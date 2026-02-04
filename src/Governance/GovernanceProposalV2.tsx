@@ -81,7 +81,8 @@ import {
   ListItemText,
   Avatar,
   TextField,
-  TextareaAutosize
+  TextareaAutosize,
+  Stack
 } from '@mui/material/';
 
 import { linearProgressClasses } from '@mui/material/LinearProgress';
@@ -263,6 +264,35 @@ export function GovernanceProposalV2View(props: any){
     const [councilVoterRecord, setCouncilVoterRecord] = React.useState<any | null>(null);
 
     const [loadingMessage, setLoadingMessage] = React.useState(null);
+
+    const [snack, setSnack] = React.useState({ open: false, msg: "" });
+    const showSnack = (msg) => setSnack({ open: true, msg });
+    const closeSnack = (_, reason) => { if (reason !== "clickaway") setSnack({ open: false, msg: "" }); };
+
+    const proposalUrl = `https://governance.so/proposal/${governanceAddress}/${proposalPk}`;
+    const realmsUrl = `https://realms.today/dao/${governanceAddress}/proposal/${thisitem?.pubkey}`;
+
+    const handleShare = () => {
+    if (navigator.share) {
+        navigator
+        .share({
+            title: `${realmName || "DAO"} Governance Proposal`,
+            text: `Check out this governance proposal on ${realmName || "this DAO"}:`,
+            url: proposalUrl,
+        })
+        .catch(() => {});
+    } else {
+        showSnack("Sharing isn’t supported in this browser. Link copied instead.");
+        try {
+        navigator.clipboard?.writeText?.(proposalUrl);
+        } catch (e) {}
+    }
+    };
+
+    const handleCopy = () => {
+    handleCopyClick?.();
+    showSnack("Link copied");
+    };
 
     const toggleInfoExpand = () => {
         setExpandInfo(!expandInfo)
@@ -2820,358 +2850,249 @@ export function GovernanceProposalV2View(props: any){
                         </Helmet>
                         
 
-                        <Grid container>
-                            <Grid item xs={12} sm={6}>
-                                {showGovernanceTitle && realmName && 
-                                    <>
-                                        <Grid item xs={12} container justifyContent="flex-start">
-                                            <Grid container>
-                                                <Grid item xs={12}>
-                                                    <Typography variant="h4">
-                                                        {realmName && realmName}
-                                                    </Typography>
-                                                </Grid>
-                                                
-                                                {/*
-                                                <Grid item xs={12}>
-                                                    <Button
-                                                        size='small'
-                                                        sx={{color:'white', borderRadius:'17px'}}
-                                                        href={`https://realms.today/dao/${governanceAddress}/proposal/${proposalPk}`}
-                                                        target='blank'
-                                                    >
-                                                        <Typography variant="caption">
-                                                        View on Realms <OpenInNewIcon fontSize='inherit'/>
-                                                        </Typography>
-                                                    </Button>
-                                                </Grid>
-                                                */}
-                                            </Grid>
-                                        </Grid>
-                                    </>
-                                }
+                        {/* =========================
+               Header: title + actions + power
+               ========================= */}
+            <Box sx={{ mb: 1 }}>
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={1}
+                alignItems={{ xs: "flex-start", md: "center" }}
+                justifyContent="space-between"
+              >
+                <Stack spacing={0.75} sx={{ minWidth: 0 }}>
+                  {showGovernanceTitle && realmName && (
+                    <Typography variant="h4" noWrap sx={{ lineHeight: 1.1 }}>
+                      {realmName}
+                    </Typography>
+                  )}
 
-                                {(showGovernanceTitle && proposalPk && realmName) ? 
-                                    <Grid container direction='row'>
-                                        <Grid item xs={12} container justifyContent="flex-start">
-                                            
-                                            <ButtonGroup
-                                                variant="outlined" 
-                                                color='inherit'
-                                            >
-                                                <Tooltip title={`Back to ${realmName ? realmName : ''} Governance`}>
-                                                    <Button 
-                                                        aria-label="back"
-                                                        variant="outlined" 
-                                                        color='inherit'
-                                                        //href={`https://governance.so/governance/${governanceAddress}`}
-                                                        component={Link}
-                                                        to={`/governance/${governanceAddress}`}
-                                                        sx={{
-                                                            borderTopLeftRadius:'17px',
-                                                            borderBottomLeftRadius:'17px',
-                                                            borderColor:'rgba(255,255,255,0.05)',
-                                                            fontSize:'10px'}}
-                                                    >
-                                                        <ArrowBackIcon fontSize='inherit' sx={{mr:1}} /> Back
-                                                    </Button>
-                                                </Tooltip>
-                                        
-                                            <CopyToClipboard 
-                                                    text={`https://governance.so/proposal/${governanceAddress}/${proposalPk}`} 
-                                                    onCopy={handleCopyClick}
-                                                >
-                                                    <Tooltip title={`Copy ${realmName ? realmName : ''} Governance Propoosal Link`}>
-                                                        <Button
-                                                            aria-label="copy"
-                                                            variant="outlined" 
-                                                            color='inherit'
-                                                            sx={{
-                                                                borderTopRightRadius:'17px',
-                                                                borderBottomRightRadius:'17px',
-                                                                borderColor:'rgba(255,255,255,0.05)',
-                                                                fontSize:'10px'}}
-                                                        >
-                                                            <ContentCopyIcon fontSize='inherit' sx={{mr:1}} /> Copy
-                                                        </Button>
-                                                    </Tooltip>
-                                            </CopyToClipboard>
-                                                <Tooltip title={`Share ${realmName ? realmName : ''} Governance Proposal`}>
-                                                    <Button
-                                                        aria-label="share"
-                                                        variant="outlined"
-                                                        color="inherit"
-                                                        onClick={() => {
-                                                            if (navigator.share) {
-                                                                navigator.share({
-                                                                    title: `${realmName} Governance Proposal`,
-                                                                    text: `Check out this governance proposal on ${realmName}:`,
-                                                                    url: `https://governance.so/proposal/${governanceAddress}/${proposalPk}`
-                                                                }).catch((error) => console.error('Error sharing:', error));
-                                                            } else {
-                                                                alert("Your browser doesn't support the Share API.");
-                                                            }
-                                                        }}
-                                                        sx={{
-                                                            borderTopRightRadius:'17px',
-                                                            borderBottomRightRadius:'17px',
-                                                            borderColor:'rgba(255,255,255,0.05)',
-                                                            fontSize:'10px'}}
-                                                    >
-                                                        <ShareIcon fontSize='inherit' sx={{mr:1}} /> Share
-                                                    </Button>
-                                                </Tooltip>
-                                            </ButtonGroup>
-                                            <Tooltip title={`Visit ${realmName ? realmName : 'DAO'} proposal on the Realms UI`}>
-                                                <Button 
-                                                    aria-label="back"
-                                                    variant="outlined" 
-                                                    color='inherit'
-                                                    href={`https://realms.today/dao/${governanceAddress}/proposal/${thisitem?.pubkey}`}
-                                                    target='blank'
-                                                    sx={{
-                                                        borderRadius:'17px',
-                                                        borderColor:'rgba(255,255,255,0.05)',
-                                                        fontSize:'10px'}}
-                                                >
-                                                    <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
-                                                </Button>
-                                            </Tooltip>
-                                            
-                                        </Grid>
-                                    </Grid>
-                                :
-                                    <Grid container>
-                                        <Grid item xs={12} container justifyContent="flex-start">
-                                            
-                                            <ButtonGroup
-                                                variant="outlined" 
-                                                color='inherit'
-                                            >
-                                                <CopyToClipboard 
-                                                        text={`https://governance.so/proposal/${governanceAddress}/${proposalPk}`} 
-                                                        onCopy={handleCopyClick}
-                                                    >
-                                                        <Tooltip title={`Copy ${realmName ? realmName : ''} Governance Propoosal Link`}>
-                                                            <Button
-                                                                variant="outlined" 
-                                                                color='inherit'
-                                                                aria-label="copy"
-                                                                sx={{   
-                                                                    borderTopLeftRadius:'17px',
-                                                                    borderBottomLeftRadius:'17px',
-                                                                    borderColor:'rgba(255,255,255,0.05)',
-                                                                    fontSize:'10px'}}
-                                                            >
-                                                                <ContentCopyIcon fontSize='inherit' sx={{mr:1}} /> Copy
-                                                            </Button>
-                                                        </Tooltip>
-                                                </CopyToClipboard>
-                                                <Tooltip title={`Share ${realmName ? realmName : ''} Governance Proposal`}>
-                                                    <Button
-                                                        aria-label="share"
-                                                        variant="outlined"
-                                                        color="inherit"
-                                                        onClick={() => {
-                                                            if (navigator.share) {
-                                                                navigator.share({
-                                                                    title: `${realmName} Governance Proposal`,
-                                                                    text: `Check out this governance proposal on ${realmName}:`,
-                                                                    url: `https://governance.so/proposal/${governanceAddress}/${proposalPk}`
-                                                                }).catch((error) => console.error('Error sharing:', error));
-                                                            } else {
-                                                                alert("Your browser doesn't support the Share API.");
-                                                            }
-                                                        }}
-                                                        sx={{
-                                                            borderTopRightRadius:'17px',
-                                                            borderBottomRightRadius:'17px',
-                                                            borderColor:'rgba(255,255,255,0.05)',
-                                                            fontSize:'10px'}}
-                                                    >
-                                                        <ShareIcon fontSize='inherit' sx={{mr:1}} /> Share
-                                                    </Button>
-                                                </Tooltip>
-                                                <Tooltip title={`Visit  ${realmName ? realmName : 'DAO'} on the Realms UI`}>
-                                                    <Button 
-                                                        aria-label="back"
-                                                        href={`https://realms.today/dao/${governanceAddress}/proposal/${thisitem?.pubkey}`}
-                                                        target='blank'
-                                                        sx={{
-                                                            borderTopRightRadius:'17px',
-                                                            borderBottomRightRadius:'17px',
-                                                            borderColor:'rgba(255,255,255,0.05)',
-                                                            fontSize:'10px',
-                                                        }}
-                                                    >
-                                                        <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
-                                                    </Button>
-                                                </Tooltip>
-                                            </ButtonGroup>
-                                        </Grid>
-                                        
-                                    </Grid>                       
-                                }
-                                </Grid>
-                                {realm &&
-                                <Grid item xs={12} sm={6} container justifyContent="flex-end">
-                                    <GovernancePower governanceAddress={typeof realm.pubkey.toBase58 === 'function' ? realm.pubkey.toBase58() : realm.pubkey} realm={realm} />
-                                </Grid>
-                                }
-                            </Grid>
-                        
+                  <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
+                    {showGovernanceTitle && proposalPk && realmName && (
+                      <Tooltip title={`Back to ${realmName} Governance`}>
+                        <Button
+                          aria-label="back"
+                          variant="outlined"
+                          color="inherit"
+                          component={Link}
+                          to={`/governance/${governanceAddress}`}
+                          sx={{
+                            borderRadius: "17px",
+                            borderColor: "rgba(255,255,255,0.08)",
+                            textTransform: "none",
+                            fontSize: 12,
+                          }}
+                        >
+                          <ArrowBackIcon fontSize="inherit" sx={{ mr: 1 }} />
+                          Back
+                        </Button>
+                      </Tooltip>
+                    )}
 
-                        
-                            <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
-                                <Divider sx={{mt:1,mb:1}}/>
-                                <Grid container>
-                                    <Grid item xs>
-                                        <Grid container direction='row' alignItems='center'>
-                                            <Grid item>
-                                                {proposalAuthor ?
-                                                    <Typography variant='subtitle1'>Author: <ExplorerView showSolanaProfile={true} memberMap={memberMap} grapeArtProfile={true} address={proposalAuthor} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/></Typography>
-                                                    :
-                                                    <>
-                                                    {thisitem.account?.tokenOwnerRecord &&
-                                                        <Typography variant='subtitle1'>Author Record: <ExplorerView address={new PublicKey(thisitem.account.tokenOwnerRecord).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/></Typography>
-                                                    }
-                                                    </>
-                                                }
-                                            </Grid>
-                                            <Grid item>
-                                                <Typography variant="caption" sx={{color:'#ccc'}}>
-                                                    &nbsp;<Tooltip title="Drafted at"><Button color='inherit' sx={{textTransform:'none',fontSize:'12px',borderRadius:'17px',ml:1}}>{moment.unix(Number(thisitem.account?.draftAt)).format("MMMM D, YYYY, h:mm a")}</Button></Tooltip>
-                                                </Typography>
-                                            </Grid>
-                                            
-                                        </Grid>
-                                        <Typography variant='subtitle1'>To: {voteType === 'Council' ? `Council`:`Community`} {/*propVoteType === 0 ? `Council`:`Community`*/}</Typography>
-                                    </Grid>
-                                    
-                                    <Grid sx={{ alignItems: 'center', textAlign: 'right',
-                                
+                    <ButtonGroup
+                      variant="outlined"
+                      color="inherit"
+                      sx={{
+                        "& .MuiButton-root": {
+                          borderColor: "rgba(255,255,255,0.08)",
+                          textTransform: "none",
+                          fontSize: 12,
+                        },
+                      }}
+                    >
+                      <CopyToClipboard text={proposalUrl} onCopy={handleCopy}>
+                        <Tooltip title={`Copy proposal link`}>
+                          <Button aria-label="copy" sx={{ borderTopLeftRadius: "17px", borderBottomLeftRadius: "17px" }}>
+                            <ContentCopyIcon fontSize="inherit" sx={{ mr: 1 }} />
+                            Copy
+                          </Button>
+                        </Tooltip>
+                      </CopyToClipboard>
 
-                                            '@media (max-width: 900px)': {
-                                                // Center the ButtonGroup on md and smaller screens
-                                                width: '100%',
-                                                justifyContent: 'center',
-                                            },
-                                        }}>
-                                        {thisitem?.account?.voteType?.type === 1 ?
-                                            <></>
-                                        :
-                                        <Grid container spacing={0} direction='row' alignItems='right' justifyContent='center'>
+                      <Tooltip title={`Share proposal`}>
+                        <Button aria-label="share" onClick={handleShare}>
+                          <ShareIcon fontSize="inherit" sx={{ mr: 1 }} />
+                          Share
+                        </Button>
+                      </Tooltip>
 
-                                            <Grid item xs={6} sm={6} md={6} key={1}
-                                                alignItems="right"
-                                            >
-                                                <Box
-                                                    display='flex' 
-                                                    sx={{
-                                                        //background: 'rgba(0, 0, 0, 0.25)',
-                                                        //borderRadius: '17px',
-                                                        p:0.25,
-                                                        //width:'260px',
-                                                        justifyContent: 'center', // Center the content horizontally
-                                                        mr:1,
-                                                    }}
-                                                    >
-                                                    <ButtonGroup variant="outlined" aria-label="outlined primary button group" sx={{textAlign:'center',height:'70px'}}>
-                                                    {realm &&
-                                                        <VoteForProposal 
-                                                            title={`${
-                                                                thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
-                                                                forVotes ? (+((forVotes / 10 ** tokenDecimals)).toFixed(0)).toLocaleString() : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))
-                                                                :
-                                                                forVotes ? (+((forVotes / 10 ** tokenDecimals)).toFixed(0)).toLocaleString() : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.yesVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))
-                                                            }`}
-                                                            subtitle={`For 
-                                                                    ${forVotes ?
-                                                                      (forVotes / (forVotes + againstVotes) * 100).toFixed(2) + '%'
-                                                                      : (thisitem.account?.options &&
-                                                                      thisitem.account?.options[0]?.voteWeight &&
-                                                                      thisitem?.account?.denyVoteWeight &&
-                                                                      Number(thisitem.account?.options[0].voteWeight) > 0) ?
-                                                                      (((Number(thisitem.account?.options[0].voteWeight)) / ((Number(thisitem.account?.denyVoteWeight)) + (Number(thisitem.account?.options[0].voteWeight)))) * 100).toFixed(2) + '%'
-                                                                      : thisitem.account.yesVotesCount ?
-                                                                      (Number(thisitem.account.yesVotesCount) / (Number(thisitem.account.noVotesCount) + Number(thisitem.account.yesVotesCount)) * 100).toFixed(2) + '%'
-                                                                      : '0%'
-                                                                    }
-                                                                `}
-                                                            hovertext=""
-                                                            showIcon={true} 
-                                                            votingResultRows={solanaVotingResultRows}  
-                                                            getVotingParticipants={getVotingParticipants} 
-                                                            hasVotedVotes={hasVotedVotes} 
-                                                            hasVoted={hasVoted} 
-                                                            realm={realm} 
-                                                            governanceAddress={governanceAddress}
-                                                            thisitem={thisitem} 
-                                                            type={0}
-                                                            quorum={totalQuorum}
-                                                            state={thisitem.account.state}
-                                                            governanceRules={thisGovernance}
-                                                            />
-                                                        }
-                                                    </ButtonGroup>
-                                                </Box>
-                                            </Grid>
-                                            <Grid item xs={6} sm={6} md={6} key={1}>
-                                                <Box
-                                                    display='flex' 
-                                                    sx={{
-                                                        //background: 'rgba(0, 0, 0, 0.25)',
-                                                        //borderRadius: '17px',
-                                                        p:0.25,
-                                                        //width:'260px',
-                                                        justifyContent: 'center', // Center the content horizontally
-                                                        //ml:1,
-                                                        }}
-                                                    >
-                                                    <ButtonGroup variant="outlined" aria-label="outlined primary button group" sx={{height:'70px'}}>
-                                                    {realm &&
-                                                        <VoteForProposal 
-                                                            title={`${
-                                                                thisitem.account?.denyVoteWeight ?
-                                                                againstVotes ? getFormattedNumberToLocale(formatAmount(+(againstVotes / 10 ** tokenDecimals).toFixed(0))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))
-                                                                :
-                                                                againstVotes ? getFormattedNumberToLocale(formatAmount(+(againstVotes / 10 ** tokenDecimals).toFixed(0))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.noVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))
-                                                            }`}
-                                                            subtitle={`Against 
-                                                                    ${againstVotes ?
-                                                                        (againstVotes/(forVotes+againstVotes)*100).toFixed(2) + '%'
-                                                                      : (thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && 
-                                                                        thisitem?.account?.denyVoteWeight && 
-                                                                        Number(thisitem.account?.options[0].voteWeight) > 0) ?
-                                                                        (((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))/((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))+(Number(thisitem.account?.options[0].voteWeight)/Math.pow(10, tokenDecimals))))*100).toFixed(2) + '%'
-                                                                      : thisitem.account.noVotesCount ?
-                                                                      (Number(thisitem.account.noVotesCount)/(Number(thisitem.account.noVotesCount)+Number(thisitem.account.yesVotesCount))*100).toFixed(2) + '%'
-                                                                      : '0%'
-                                                                    }
-                                                                `}
-                                                            hovertext=""
-                                                            showIcon={true} 
-                                                            votingResultRows={solanaVotingResultRows}  
-                                                            getVotingParticipants={getVotingParticipants} 
-                                                            hasVotedVotes={hasVotedVotes} 
-                                                            hasVoted={hasVoted} 
-                                                            realm={realm} 
-                                                            governanceAddress={governanceAddress}
-                                                            thisitem={thisitem} 
-                                                            type={1}
-                                                            quorum={totalQuorum}
-                                                            state={thisitem.account.state}
-                                                            governanceRules={thisGovernance} />
-                                                        }
-                                                    </ButtonGroup>
-                                                </Box>
-                                            </Grid>
-                                        </Grid>
-                                    }
+                      <Tooltip title={`Open in Realms`}>
+                        <Button
+                          aria-label="realms"
+                          component="a"
+                          href={realmsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          sx={{ borderTopRightRadius: "17px", borderBottomRightRadius: "17px" }}
+                        >
+                          <OpenInNewIcon fontSize="inherit" sx={{ mr: 1 }} />
+                          Realms
+                        </Button>
+                      </Tooltip>
+                    </ButtonGroup>
+                  </Stack>
+                </Stack>
 
-                                    </Grid>
-                                </Grid>
-                            </Box>
+                {realm && (
+                  <Box sx={{ mt: { xs: 1, md: 0 } }}>
+                    <GovernancePower
+                      governanceAddress={typeof realm.pubkey.toBase58 === "function" ? realm.pubkey.toBase58() : realm.pubkey}
+                      realm={realm}
+                    />
+                  </Box>
+                )}
+              </Stack>
+            </Box>
+
+            <Box sx={{ textAlign: "left" }}>
+              <Divider sx={{ mt: 1, mb: 1 }} />
+
+              {/* =========================
+                 Author + drafted + vote tiles
+                 ========================= */}
+              <Grid container spacing={1} alignItems="center">
+                <Grid item xs={12} md={6}>
+                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                    {proposalAuthor ? (
+                      <Typography variant="subtitle1" sx={{ m: 0 }}>
+                        Author:&nbsp;
+                        <ExplorerView
+                          showSolanaProfile={true}
+                          memberMap={memberMap}
+                          grapeArtProfile={true}
+                          address={proposalAuthor}
+                          type="address"
+                          shorten={8}
+                          hideTitle={false}
+                          style="text"
+                          color="white"
+                          fontSize="12px"
+                        />
+                      </Typography>
+                    ) : thisitem.account?.tokenOwnerRecord ? (
+                      <Typography variant="subtitle1" sx={{ m: 0 }}>
+                        Author Record:&nbsp;
+                        <ExplorerView
+                          address={new PublicKey(thisitem.account.tokenOwnerRecord).toBase58()}
+                          type="address"
+                          shorten={8}
+                          hideTitle={false}
+                          style="text"
+                          color="white"
+                          fontSize="12px"
+                        />
+                      </Typography>
+                    ) : null}
+
+                    <Tooltip title="Drafted at">
+                      <Button
+                        color="inherit"
+                        sx={{ textTransform: "none", fontSize: "12px", borderRadius: "17px" }}
+                      >
+                        {moment.unix(Number(thisitem.account?.draftAt)).format("MMMM D, YYYY, h:mm a")}
+                      </Button>
+                    </Tooltip>
+                  </Stack>
+
+                  <Typography variant="subtitle1" sx={{ mt: 0.5 }}>
+                    To: {voteType === "Council" ? "Council" : "Community"}
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12} md={6} sx={{ display: "flex", justifyContent: { xs: "center", md: "flex-end" } }}>
+                  {thisitem?.account?.voteType?.type === 1 ? null : (
+                    <Grid container spacing={1} sx={{ maxWidth: 520 }} justifyContent="center">
+                      <Grid item xs={6}>
+                        <Box sx={{ display: "flex", justifyContent: "center" }}>
+                          
+                            {realm && (
+                              <VoteForProposal
+                                title={`${
+                                  thisitem.account?.options && thisitem.account?.options.length >= 0
+                                    ? forVotes
+                                      ? (+((forVotes / 10 ** tokenDecimals)).toFixed(0)).toLocaleString()
+                                      : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight) / Math.pow(10, tokenDecimals)).toFixed(0)))
+                                    : forVotes
+                                    ? (+((forVotes / 10 ** tokenDecimals)).toFixed(0)).toLocaleString()
+                                    : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.yesVotesCount) / Math.pow(10, tokenDecimals)).toFixed(0)))
+                                }`}
+                                subtitle={`For ${
+                                  forVotes
+                                    ? (forVotes / (forVotes + againstVotes) * 100).toFixed(2) + "%"
+                                    : (thisitem.account?.options &&
+                                        thisitem.account?.options[0]?.voteWeight &&
+                                        thisitem?.account?.denyVoteWeight &&
+                                        Number(thisitem.account?.options[0].voteWeight) > 0)
+                                    ? (((Number(thisitem.account?.options[0].voteWeight)) / ((Number(thisitem.account?.denyVoteWeight)) + (Number(thisitem.account?.options[0].voteWeight)))) * 100).toFixed(2) + "%"
+                                    : thisitem.account.yesVotesCount
+                                    ? (Number(thisitem.account.yesVotesCount) / (Number(thisitem.account.noVotesCount) + Number(thisitem.account.yesVotesCount)) * 100).toFixed(2) + "%"
+                                    : "0%"
+                                }`}
+                                hovertext=""
+                                showIcon={true}
+                                votingResultRows={solanaVotingResultRows}
+                                getVotingParticipants={getVotingParticipants}
+                                hasVotedVotes={hasVotedVotes}
+                                hasVoted={hasVoted}
+                                realm={realm}
+                                governanceAddress={governanceAddress}
+                                thisitem={thisitem}
+                                type={0}
+                                quorum={totalQuorum}
+                                state={thisitem.account.state}
+                                governanceRules={thisGovernance}
+                              />
+                            )}
+                        </Box>
+                      </Grid>
+
+                      <Grid item xs={6}>
+                        <Box sx={{ display: "flex", justifyContent: "center" }}>
+                            {realm && (
+                              <VoteForProposal
+                                title={`${
+                                  thisitem.account?.denyVoteWeight
+                                    ? againstVotes
+                                      ? getFormattedNumberToLocale(formatAmount(+(againstVotes / 10 ** tokenDecimals).toFixed(0)))
+                                      : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight) / Math.pow(10, tokenDecimals)).toFixed(0)))
+                                    : againstVotes
+                                    ? getFormattedNumberToLocale(formatAmount(+(againstVotes / 10 ** tokenDecimals).toFixed(0)))
+                                    : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.noVotesCount) / Math.pow(10, tokenDecimals)).toFixed(0)))
+                                }`}
+                                subtitle={`Against ${
+                                  againstVotes
+                                    ? (againstVotes / (forVotes + againstVotes) * 100).toFixed(2) + "%"
+                                    : (thisitem.account?.options &&
+                                        thisitem.account?.options[0]?.voteWeight &&
+                                        thisitem?.account?.denyVoteWeight &&
+                                        Number(thisitem.account?.options[0].voteWeight) > 0)
+                                    ? (((Number(thisitem.account?.denyVoteWeight) / Math.pow(10, tokenDecimals)) / ((Number(thisitem.account?.denyVoteWeight) / Math.pow(10, tokenDecimals)) + (Number(thisitem.account?.options[0].voteWeight) / Math.pow(10, tokenDecimals)))) * 100).toFixed(2) + "%"
+                                    : thisitem.account.noVotesCount
+                                    ? (Number(thisitem.account.noVotesCount) / (Number(thisitem.account.noVotesCount) + Number(thisitem.account.yesVotesCount)) * 100).toFixed(2) + "%"
+                                    : "0%"
+                                }`}
+                                hovertext=""
+                                showIcon={true}
+                                votingResultRows={solanaVotingResultRows}
+                                getVotingParticipants={getVotingParticipants}
+                                hasVotedVotes={hasVotedVotes}
+                                hasVoted={hasVoted}
+                                realm={realm}
+                                governanceAddress={governanceAddress}
+                                thisitem={thisitem}
+                                type={1}
+                                quorum={totalQuorum}
+                                state={thisitem.account.state}
+                                governanceRules={thisGovernance}
+                              />
+                            )}
+                        </Box>
+                      </Grid>
+                    </Grid>
+                  )}
+                </Grid>
+              </Grid>
+            </Box>
                         
 
                         <Divider sx={{mt:1,mb:1}} />

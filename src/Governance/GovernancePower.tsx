@@ -41,6 +41,9 @@ import {
   InputAdornment,
 } from '@mui/material/';
 
+import { Accordion, AccordionSummary, AccordionDetails } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+
 import { useSnackbar } from 'notistack';
 
 import LoginIcon from '@mui/icons-material/Login';
@@ -710,313 +713,510 @@ export default function GovernancePower(props: any){
         withdrawVotesToGovernance(walletCouncilMintAmount, 0, walletCouncilMintAddress)
     }
 
-    function AdvancedCommunityVoteDepositPrompt(props: any){
-        const selectedMintName = props?.mintName;
-        const inlineAdvanced = props?.inlineAdvanced;
-        const selectedMintAddress = props?.mintAddress;
-        const selectedMintAvailableAmount = props?.mintAvailableAmount;
-        const selectedMintDepositedAmount = props?.mintVotingPower;
-        const isCouncil= props?.isCouncil;
-        const decimals = isCouncil ? 0 : (props?.decimals || mintDecimals);
+  
+function AdvancedCommunityVoteDepositPrompt(props: any) {
+  const selectedMintName = props?.mintName;
+  const inlineAdvanced = props?.inlineAdvanced;
+  const selectedMintAddress = props?.mintAddress;
+  const selectedMintAvailableAmount = props?.mintAvailableAmount;
+  const selectedMintDepositedAmount = props?.mintVotingPower;
+  const isCouncil = props?.isCouncil;
+  const decimals = isCouncil ? 0 : (props?.decimals || mintDecimals);
 
-        const [delegatedStr, setDelegatedStr] = React.useState<string | null>(null);
-        const [open, setOpen] = React.useState(false);
-        const [newDepositAmount, setNewDepositAmount] = React.useState<number>(
-            Number(selectedMintAvailableAmount) > 0 ? Number(selectedMintAvailableAmount) / Math.pow(10, decimals) : 0
-        );
+  const [delegatedStr, setDelegatedStr] = React.useState<string | null>(null);
+  const [open, setOpen] = React.useState(false);
 
-        const handleClickOpen = () => setOpen(true);
-        const handleClose = () => setOpen(false);
-        const handleSetDelegateStr = (e: any) => setDelegatedStr(e.target.value?.trim() || null);
+  const maxHuman = React.useMemo(() => {
+    const v = Number(selectedMintAvailableAmount || 0) / Math.pow(10, decimals);
+    return Number.isFinite(v) ? v : 0;
+  }, [selectedMintAvailableAmount, decimals]);
 
-        function handleClickRemoveDelegate(){
-            setGovernanceDelegate(selectedMintAddress, null);
-        }
-        function handleClickSetDelegate(){
-            if (!delegatedStr) return;
-            if (!isCouncil && delegatedStr === currentCommunityDelegate) return;
-            if ( isCouncil && delegatedStr === currentCouncilDelegate) return;
-            if (delegatedStr === publicKey.toBase58()) return;
-            setGovernanceDelegate(selectedMintAddress, delegatedStr);
-        }
+  const [newDepositAmount, setNewDepositAmount] = React.useState<number>(
+    Number(selectedMintAvailableAmount) > 0 ? maxHuman : 0
+  );
 
-        function handleAdvancedDepositVotesToGovernance(){
-            const maxHuman = Number(selectedMintAvailableAmount)/Math.pow(10, decimals);
-            const amt = Number(newDepositAmount || 0);
-            if (amt > 0 && amt <= maxHuman){
-            depositVotesToGovernance(amt, decimals, selectedMintAddress);
-            } else {
-            // fallback to max
-            depositVotesToGovernance(maxHuman, decimals, selectedMintAddress);
-            }
-            setOpen(false);
-        }
-        function handleAdvancedDepositMaxVotesToGovernance(){
-            const maxHuman = Number(selectedMintAvailableAmount)/Math.pow(10, decimals);
-            depositVotesToGovernance(maxHuman, decimals, selectedMintAddress);
-            setOpen(false);
-        }
+  const currentDelegate = isCouncil ? currentCouncilDelegate : currentCommunityDelegate;
 
-        const deposited = fmtInt(selectedMintDepositedAmount, decimals);
-        const inWallet = fmt(selectedMintAvailableAmount, decimals);
-        const afterDeposit = (() => {
-            const base = Number(selectedMintDepositedAmount)/Math.pow(10, decimals);
-            const add = Number(newDepositAmount || 0) || Number(selectedMintAvailableAmount)/Math.pow(10, decimals);
-            return Math.floor(base + add).toLocaleString();
-        })();
+  const handleClickOpen = () => {
+    setDelegatedStr(currentDelegate || null);
+    setNewDepositAmount(Number(selectedMintAvailableAmount) > 0 ? maxHuman : 0);
+    setOpen(true);
+  };
 
-        const hasAvailable = Number(selectedMintAvailableAmount) > 0;
+  const handleClose = () => setOpen(false);
 
-        return (
-            <>
-            <Tooltip title="Advanced (amount, delegate, withdraw)">
-                <IconButton
-                aria-label="Advanced"
-                color={inlineAdvanced ? 'inherit' : 'success'}
-                onClick={handleClickOpen}
-                sx={{ fontSize:'10px', minWidth: inlineAdvanced ? 0 : undefined }}
-                >
-                <SettingsIcon sx={{ fontSize: inlineAdvanced ? 16 : 18 }} />
-                </IconButton>
-            </Tooltip>
+  const handleSetDelegateStr = (e: any) => {
+    const v = String(e?.target?.value || "").trim();
+    setDelegatedStr(v.length ? v : null);
+  };
 
-            <Dialog open={open} onClose={handleClose}
-                PaperProps={{
-                style: {
-                    background: '#13151C',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: 20
-                }
-                }}
-            >
-                <BootstrapDialogTitle id="advanced" onClose={handleClose}>
-                Advanced
-                </BootstrapDialogTitle>
-
-                <DialogContent>
-                <DialogContentText component="div">
-                    <Grid container>
-                    {/* Totals card */}
-                    <Box sx={sectionSX}>
-                        {hasAvailable && (
-                        <>
-                            <Box sx={{ mb: 2 }}>
-                            <Grid container alignItems="center">
-                                <Grid item xs>
-                                <Typography variant="h6">New total after deposit</Typography>
-                                </Grid>
-                                <Grid item>
-                                <Typography variant="h6">{afterDeposit}</Typography>
-                                </Grid>
-                            </Grid>
-                            <Typography color="text.secondary" variant="body2">
-                                Estimated voting power after this deposit
-                            </Typography>
-                            </Box>
-                            <Divider variant="middle" />
-                        </>
-                        )}
-
-                        <Box sx={{ mt: hasAvailable ? 2 : 0 }}>
-                        <Grid container alignItems="center">
-                            <Grid item xs>
-                            <Typography variant="subtitle2">Deposited</Typography>
-                            </Grid>
-                            <Grid item>
-                            <Typography variant="body1">{deposited}</Typography>
-                            </Grid>
-                        </Grid>
-                        <Typography color="text.secondary" variant="caption">
-                            Your current voting power
-                            <Tooltip title="Withdraw">
-                            <IconButton
-                                aria-label="Withdraw"
-                                color="inherit"
-                                onClick={isCouncil ? handleWithdrawCouncilMax : handleWithdrawCommunityMax}
-                                sx={{ ml: 1 }}
-                                size="small"
-                            >
-                                <LogoutIcon fontSize="inherit" />
-                            </IconButton>
-                            </Tooltip>
-                        </Typography>
-                        </Box>
-
-                        {hasAvailable && (
-                        <Box sx={{ mt: 2 }}>
-                            <Grid container alignItems="center">
-                            <Grid item xs>
-                                <Typography variant="subtitle2">In Wallet</Typography>
-                            </Grid>
-                            <Grid item>
-                                <Typography variant="body1">{inWallet}</Typography>
-                            </Grid>
-                            </Grid>
-                            <Typography color="text.secondary" variant="caption">
-                            Undeposited voting power available in your wallet
-                            </Typography>
-                        </Box>
-                        )}
-
-                        <Box sx={{ mt: 2 }}>
-                        <Grid container justifyContent="flex-end" alignItems="center">
-                            <Grid item>
-                            <ExplorerView
-                                address={selectedMintAddress}
-                                title={`Governing Mint ${selectedMintName ? selectedMintName : `${selectedMintAddress.slice(0, 3)}...${selectedMintAddress.slice(-3)}`}`}
-                                type="address" shorten={8} hideTitle={false} style="text" color="white" fontSize="14px"
-                                showTokenMetadata={true}
-                            />
-                            </Grid>
-                        </Grid>
-                        </Box>
-                    </Box>
-
-                    {/* Delegation card */}
-                    <Box sx={sectionSX}>
-                        <Box>
-                        <Grid container alignItems="center" spacing={1}>
-                            <Grid item xs>
-                            <Typography variant="h6">Delegation</Typography>
-                            </Grid>
-                            <Grid item>
-                            <OutlinedInput
-                                size="small"
-                                sx={{ borderRadius: '14px' }}
-                                placeholder="Delegate address"
-                                onChange={handleSetDelegateStr}
-                                endAdornment={
-                                <InputAdornment position="end">
-                                    <IconButton
-                                    aria-label="Save Delegate"
-                                    onClick={handleClickSetDelegate}
-                                    edge="end"
-                                    color="success"
-                                    disabled={
-                                        !delegatedStr ||
-                                        delegatedStr === publicKey.toBase58() ||
-                                        (!isCouncil && currentCommunityDelegate === delegatedStr) ||
-                                        (isCouncil && currentCouncilDelegate === delegatedStr)
-                                    }
-                                    >
-                                    <SaveIcon />
-                                    </IconButton>
-                                </InputAdornment>
-                                }
-                            />
-                            </Grid>
-                        </Grid>
-
-                        <Box sx={{ mt: 1 }}>
-                            { (isCouncil ? currentCouncilDelegate : currentCommunityDelegate) ? (
-                            <Grid container alignItems="center" spacing={1}>
-                                <Grid item>
-                                <ExplorerView 
-                                    address={isCouncil ? currentCouncilDelegate : currentCommunityDelegate} 
-                                    title={isCouncil ? `You delegate to: ${currentCouncilDelegate.slice(0, 4)}...${currentCouncilDelegate.slice(-4)}` :
-                                            `You delegate to: ${currentCommunityDelegate.slice(0, 4)}...${currentCommunityDelegate.slice(-4)}`} 
-                                    type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='10px' /> 
-                                </Grid>
-                                <Grid item>
-                                <Button
-                                    size="small"
-                                    color="error"
-                                    variant="outlined"
-                                    onClick={handleClickRemoveDelegate}
-                                    startIcon={<CancelIcon sx={{ fontSize: 14 }} />}
-                                    sx={{ borderRadius: "12px", textTransform: "none" }}
-                                >
-                                    Remove
-                                </Button>
-                                </Grid>
-                            </Grid>
-                            ) : (
-                            <Typography variant="caption" color="text.secondary">
-                                Delegate your voting power to another wallet
-                            </Typography>
-                            )}
-                        </Box>
-                        </Box>
-                    </Box>
-
-                    {/* Incoming delegations */}
-                    {currentCommunityDelegateFrom && !isCouncil && (
-                        <Box sx={sectionSX}>
-                        <Typography variant="subtitle1" gutterBottom>Incoming Delegations — Community</Typography>
-                        <Typography color="text.secondary" variant="body2">
-                            <ExplorerView 
-                                address={currentCommunityDelegateFrom} 
-                                title={`${fmt(currentCommunityDelegateFromAmount, decimals)} — from: ${currentCommunityDelegateFrom.slice(0, 4)}...${currentCommunityDelegateFrom.slice(-4)}`}
-                                type="address" shorten={4} style="text" color="white" fontSize="14px" />
-                        </Typography>
-                        </Box>
-                    )}
-                    {currentCouncilDelegateFrom && isCouncil && (
-                        <Box sx={sectionSX}>
-                        <Typography variant="subtitle1" gutterBottom>Incoming Delegations — Council</Typography>
-                        <Typography color="text.secondary" variant="body2">
-                            <ExplorerView 
-                                address={currentCouncilDelegateFrom} 
-                                title={`${fmt(currentCouncilDelegateFromAmount, decimals)} — from: ${currentCouncilDelegateFrom.slice(0, 4)}...${currentCouncilDelegateFrom.slice(-4)}`}
-                                type="address" shorten={4} style="text" color="white" fontSize="14px" />
-                        </Typography>
-                        </Box>
-                    )}
-                    </Grid>
-                </DialogContentText>
-
-                {hasAvailable && (
-                    <RegexTextField
-                    regex={/[^0-9]+\.?[^0-9]/gi}
-                    autoFocus
-                    autoComplete="off"
-                    margin="dense"
-                    id="preview_deposit_id"
-                    label="Amount to deposit"
-                    type="text"
-                    fullWidth
-                    variant="standard"
-                    value={newDepositAmount}
-                    defaultValue={Number(selectedMintAvailableAmount)/Math.pow(10, decimals)}
-                    helperText={
-                        <Grid sx={{ textAlign:'right' }}>
-                        <Typography variant="caption" color="info">
-                            <Button
-                            variant="text" size="small"
-                            onClick={() => setNewDepositAmount(Number(selectedMintAvailableAmount)/Math.pow(10, decimals))}
-                            sx={{ borderRadius:'14px' }}
-                            >
-                            Max
-                            </Button>
-                        </Typography>
-                        </Grid>
-                    }
-                    onChange={(e: any) => setNewDepositAmount(Number(e.target.value || 0))}
-                    inputProps={{ style: { textAlign:'center', fontSize: 32 } }}
-                    />
-                )}
-                </DialogContent>
-
-                {hasAvailable && (
-                <DialogActions sx={{ px: 3, pb: 2 }}>
-                    <Button
-                    color="success"
-                    onClick={handleAdvancedDepositVotesToGovernance}
-                    sx={{ borderRadius:'14px', textTransform: 'none' }}
-                    disabled={Number(newDepositAmount) <= 0 || Number(newDepositAmount) > (Number(selectedMintAvailableAmount)/Math.pow(10, decimals))}
-                    >
-                    <LoginIcon sx={{ mr:1 }} /> Deposit
-                    </Button>
-                    {/* If you want a 1-click max: */}
-                    {/* <Button color="success" variant="outlined" onClick={handleAdvancedDepositMaxVotesToGovernance} sx={{ borderRadius:'14px', textTransform:'none' }}>
-                    Deposit Max
-                    </Button> */}
-                </DialogActions>
-                )}
-            </Dialog>
-            </>
-        );
+  const delegateLooksValid = React.useMemo(() => {
+    const s = delegatedStr || "";
+    if (!s) return false;
+    try {
+      new PublicKey(s);
+      return true;
+    } catch {
+      return false;
     }
+  }, [delegatedStr]);
+
+  function handleClickRemoveDelegate() {
+    setGovernanceDelegate(selectedMintAddress, null);
+  }
+
+  function handleClickSetDelegate() {
+    if (!delegatedStr) return;
+    if (!isCouncil && delegatedStr === currentCommunityDelegate) return;
+    if (isCouncil && delegatedStr === currentCouncilDelegate) return;
+    if (delegatedStr === publicKey.toBase58()) return;
+    if (!delegateLooksValid) return;
+
+    setGovernanceDelegate(selectedMintAddress, delegatedStr);
+  }
+
+  function handleAdvancedDepositVotesToGovernance() {
+    const amt = Number(newDepositAmount || 0);
+    if (amt > 0 && amt <= maxHuman) {
+      depositVotesToGovernance(amt, decimals, selectedMintAddress);
+    } else {
+      depositVotesToGovernance(maxHuman, decimals, selectedMintAddress);
+    }
+    setOpen(false);
+  }
+
+  const deposited = fmtInt(selectedMintDepositedAmount, decimals);
+  const inWallet = fmt(selectedMintAvailableAmount, decimals);
+
+  const afterDeposit = React.useMemo(() => {
+    const base = Number(selectedMintDepositedAmount || 0) / Math.pow(10, decimals);
+    const add = Number(newDepositAmount || 0) || maxHuman;
+    const total = base + add;
+
+    const maxFrac = decimals === 0 ? 0 : 2;
+    return total.toLocaleString(undefined, { maximumFractionDigits: maxFrac });
+  }, [selectedMintDepositedAmount, decimals, newDepositAmount, maxHuman]);
+
+  const hasAvailable = Number(selectedMintAvailableAmount || 0) > 0;
+
+  const disableSave =
+    !delegatedStr ||
+    delegatedStr === publicKey.toBase58() ||
+    (!isCouncil && currentCommunityDelegate === delegatedStr) ||
+    (isCouncil && currentCouncilDelegate === delegatedStr) ||
+    !delegateLooksValid;
+
+  const disableDeposit = Number(newDepositAmount) <= 0 || Number(newDepositAmount) > maxHuman;
+
+  // ---------- UI styles (less round, more “premium”) ----------
+  const dialogSX = {
+    "& .MuiDialog-paper": {
+      width: "min(760px, calc(100vw - 28px))",
+      maxWidth: "760px",
+      background: "linear-gradient(180deg, #13151C 0%, #10121A 100%)",
+      border: "1px solid rgba(255,255,255,0.10)",
+      borderRadius: 6,
+      overflow: "hidden",
+    },
+  };
+
+  const topbarSX = {
+    px: 2,
+    py: 1.5,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderBottom: "1px solid rgba(255,255,255,0.06)",
+  };
+
+  const contentSX = { px: 2, py: 2 };
+
+  const panelSX = {
+    background: "rgba(255,255,255,0.03)",
+    border: "1px solid rgba(255,255,255,0.06)",
+    borderRadius: 6,
+    p: 1.5,
+  };
+
+  const metricRowSX = {
+    display: "flex",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: 2,
+    py: 0.75,
+    borderBottom: "1px dashed rgba(255,255,255,0.08)",
+    "&:last-of-type": { borderBottom: "none" },
+  };
+
+  const metricLabelSX = { fontSize: 12, opacity: 0.75 };
+  const metricValueSX = { fontSize: 14, fontWeight: 700 };
+
+  return (
+    <>
+      <Tooltip title="Advanced (amount, delegate, withdraw)">
+        <IconButton
+          aria-label="Advanced"
+          color={inlineAdvanced ? "inherit" : "success"}
+          onClick={handleClickOpen}
+          sx={{ p: inlineAdvanced ? 0.5 : 1 }}
+        >
+          <SettingsIcon sx={{ fontSize: inlineAdvanced ? 16 : 18 }} />
+        </IconButton>
+      </Tooltip>
+
+      <Dialog open={open} onClose={handleClose} sx={dialogSX}>
+        {/* Top bar */}
+        <Box sx={topbarSX}>
+          <Box>
+            <Typography sx={{ fontSize: 18, fontWeight: 800, lineHeight: 1.1 }}>
+              Advanced
+            </Typography>
+            <Typography sx={{ fontSize: 12, opacity: 0.7, mt: 0.25 }}>
+              Deposit, withdraw, and manage delegation
+            </Typography>
+          </Box>
+
+          <IconButton onClick={handleClose} sx={{ opacity: 0.85 }}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
+
+        <DialogContent sx={contentSX}>
+          <Grid container spacing={1.5}>
+            {/* LEFT: Summary */}
+            <Grid item xs={12} md={5}>
+              <Box sx={panelSX}>
+                <Box sx={{ mb: 1 }}>
+                  <Typography sx={{ fontSize: 13, fontWeight: 700, opacity: 0.9 }}>
+                    Voting power
+                  </Typography>
+                </Box>
+
+                {hasAvailable && (
+                  <Box sx={metricRowSX}>
+                    <Typography sx={metricLabelSX}>After deposit</Typography>
+                    <Typography sx={{ ...metricValueSX, fontSize: 16 }}>{afterDeposit}</Typography>
+                  </Box>
+                )}
+
+                <Box sx={metricRowSX}>
+                  <Typography sx={metricLabelSX}>Deposited</Typography>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Typography sx={metricValueSX}>{deposited}</Typography>
+                    <Tooltip title="Withdraw max">
+                      <IconButton
+                        size="small"
+                        onClick={isCouncil ? handleWithdrawCouncilMax : handleWithdrawCommunityMax}
+                        sx={{
+                          border: "1px solid rgba(255,255,255,0.10)",
+                          borderRadius: 10,
+                          p: 0.75,
+                        }}
+                      >
+                        <LogoutIcon fontSize="inherit" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
+
+                {hasAvailable && (
+                  <Box sx={metricRowSX}>
+                    <Typography sx={metricLabelSX}>In wallet</Typography>
+                    <Typography sx={metricValueSX}>{inWallet}</Typography>
+                  </Box>
+                )}
+
+                <Divider sx={{ opacity: 0.12, my: 1.25 }} />
+
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Typography sx={{ fontSize: 12, opacity: 0.7 }}>Governing mint</Typography>
+                  <ExplorerView
+                    address={selectedMintAddress}
+                    title={
+                      selectedMintName
+                        ? `Mint: ${selectedMintName}`
+                        : `Mint: ${selectedMintAddress.slice(0, 3)}...${selectedMintAddress.slice(-3)}`
+                    }
+                    type="address"
+                    shorten={8}
+                    hideTitle={false}
+                    style="text"
+                    color="white"
+                    fontSize="12px"
+                    showTokenMetadata={true}
+                  />
+                </Box>
+              </Box>
+            </Grid>
+
+            {/* RIGHT: Delegation (everything in one cohesive block) */}
+            <Grid item xs={12} md={7}>
+              <Box sx={panelSX}>
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+                  <Typography sx={{ fontSize: 13, fontWeight: 800 }}>Delegation</Typography>
+                  {currentDelegate ? (
+                    <Typography sx={{ fontSize: 12, opacity: 0.7 }}>
+                      Active
+                    </Typography>
+                  ) : (
+                    <Typography sx={{ fontSize: 12, opacity: 0.7 }}>
+                      Not set
+                    </Typography>
+                  )}
+                </Box>
+
+                {/* Current delegate row */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 1,
+                    p: 1,
+                    borderRadius: 12,
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    background: "rgba(0,0,0,0.18)",
+                    mb: 1.25,
+                  }}
+                >
+                  <Box sx={{ minWidth: 0 }}>
+                    {currentDelegate ? (
+                      <ExplorerView
+                        address={currentDelegate}
+                        title={`You delegate to: ${currentDelegate.slice(0, 4)}...${currentDelegate.slice(-4)}`}
+                        type="address"
+                        shorten={8}
+                        hideTitle={false}
+                        style="text"
+                        color="white"
+                        fontSize="12px"
+                      />
+                    ) : (
+                      <Typography sx={{ fontSize: 12, opacity: 0.75 }}>
+                        Delegate your voting power to another wallet.
+                      </Typography>
+                    )}
+                  </Box>
+
+                  {currentDelegate && (
+                    <Button
+                      size="small"
+                      color="error"
+                      variant="outlined"
+                      onClick={handleClickRemoveDelegate}
+                      startIcon={<CancelIcon sx={{ fontSize: 14 }} />}
+                      sx={{ borderRadius: 10, textTransform: "none", whiteSpace: "nowrap" }}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </Box>
+
+                {/* Edit delegate input + actions */}
+                <Grid container spacing={1} alignItems="center">
+                  <Grid item xs={12}>
+                    <OutlinedInput
+                      value={delegatedStr || ""}
+                      size="small"
+                      placeholder="Enter delegate address"
+                      onChange={handleSetDelegateStr}
+                      sx={{
+                        borderRadius: 12,
+                        width: "100%",
+                        "& input": { fontSize: 13 },
+                      }}
+                      endAdornment={
+                        <InputAdornment position="end">
+                          <Tooltip title={disableSave ? "Enter a valid new address" : "Save delegate"}>
+                            <span>
+                              <IconButton
+                                aria-label="Save Delegate"
+                                onClick={handleClickSetDelegate}
+                                edge="end"
+                                color="success"
+                                disabled={disableSave}
+                                sx={{
+                                  borderRadius: 10,
+                                  border: "1px solid rgba(255,255,255,0.10)",
+                                  ml: 0.5,
+                                }}
+                              >
+                                <SaveIcon />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        </InputAdornment>
+                      }
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => setDelegatedStr(currentDelegate || null)}
+                        disabled={!currentDelegate}
+                        sx={{ borderRadius: 10, textTransform: "none" }}
+                      >
+                        Use current
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => setDelegatedStr(null)}
+                        disabled={!delegatedStr}
+                        sx={{ borderRadius: 10, textTransform: "none" }}
+                      >
+                        Clear
+                      </Button>
+
+                      {/* lightweight validity hint */}
+                      {delegatedStr && (
+                        <Typography sx={{ fontSize: 12, opacity: delegateLooksValid ? 0.75 : 0.9, ml: "auto" }}>
+                          {delegateLooksValid ? "Valid address" : "Invalid address"}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Box>
+            </Grid>
+
+            {/* Incoming delegations (make it optional & compact) */}
+            {(currentCommunityDelegateFrom && !isCouncil) && (
+              <Grid item xs={12}>
+                <Accordion
+                  sx={{
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    borderRadius: 6,
+                    "&:before": { display: "none" },
+                    overflow: "hidden",
+                  }}
+                  defaultExpanded={false}
+                >
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
+                      Incoming delegations — Community
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <ExplorerView
+                      address={currentCommunityDelegateFrom}
+                      title={`${fmt(currentCommunityDelegateFromAmount, decimals)} — from: ${currentCommunityDelegateFrom.slice(0, 4)}...${currentCommunityDelegateFrom.slice(-4)}`}
+                      type="address"
+                      shorten={4}
+                      style="text"
+                      color="white"
+                      fontSize="12px"
+                    />
+                  </AccordionDetails>
+                </Accordion>
+              </Grid>
+            )}
+
+            {(currentCouncilDelegateFrom && isCouncil) && (
+              <Grid item xs={12}>
+                <Accordion
+                  sx={{
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    borderRadius: 6,
+                    "&:before": { display: "none" },
+                    overflow: "hidden",
+                  }}
+                  defaultExpanded={false}
+                >
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
+                      Incoming delegations — Council
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <ExplorerView
+                      address={currentCouncilDelegateFrom}
+                      title={`${fmt(currentCouncilDelegateFromAmount, decimals)} — from: ${currentCouncilDelegateFrom.slice(0, 4)}...${currentCouncilDelegateFrom.slice(-4)}`}
+                      type="address"
+                      shorten={4}
+                      style="text"
+                      color="white"
+                      fontSize="12px"
+                    />
+                  </AccordionDetails>
+                </Accordion>
+              </Grid>
+            )}
+
+            {/* Amount + Deposit actions (compact single row) */}
+            {hasAvailable && (
+              <Grid item xs={12}>
+                <Box
+                  sx={{
+                    ...panelSX,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 1.5,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Box sx={{ minWidth: 240, flex: 1 }}>
+                    <RegexTextField
+                      regex={/[^0-9]+\.?[^0-9]/gi}
+                      autoComplete="off"
+                      margin="dense"
+                      id="preview_deposit_id"
+                      label="Amount to deposit"
+                      type="text"
+                      fullWidth
+                      variant="standard"
+                      value={newDepositAmount}
+                      defaultValue={maxHuman}
+                      onChange={(e: any) => setNewDepositAmount(Number(e.target.value || 0))}
+                      inputProps={{ style: { textAlign: "left", fontSize: 22, paddingTop: 6 } }}
+                      helperText={
+                        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                          <Typography sx={{ fontSize: 12, opacity: 0.7 }}>
+                            Max: {maxHuman.toLocaleString(undefined, { maximumFractionDigits: decimals === 0 ? 0 : 2 })}
+                          </Typography>
+                          <Button
+                            variant="text"
+                            size="small"
+                            onClick={() => setNewDepositAmount(maxHuman)}
+                            sx={{ borderRadius: 10, textTransform: "none" }}
+                          >
+                            Max
+                          </Button>
+                        </Box>
+                      }
+                    />
+                  </Box>
+
+                  <Button
+                    color="success"
+                    variant="outlined"
+                    onClick={handleAdvancedDepositVotesToGovernance}
+                    disabled={disableDeposit}
+                    sx={{
+                      borderRadius: 12,
+                      textTransform: "none",
+                      px: 2,
+                      height: 40,
+                      alignSelf: "flex-end",
+                    }}
+                  >
+                    <LoginIcon sx={{ mr: 1 }} /> Deposit
+                  </Button>
+                </Box>
+              </Grid>
+            )}
+          </Grid>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
 
     return(
         <Grid xs={12}>

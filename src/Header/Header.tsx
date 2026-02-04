@@ -70,6 +70,9 @@ import {
     FormControlLabel,
     FormControl,
     MenuItem,
+    ToggleButtonGroup,
+    ToggleButton,
+    Chip,
     Stack,
 } from '@mui/material';
 
@@ -77,6 +80,12 @@ import ClickAwayListener from '@mui/material/ClickAwayListener';
 
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 
+import SettingsIcon from "@mui/icons-material/Settings";
+import CloseIcon from "@mui/icons-material/Close";
+import LinkIcon from "@mui/icons-material/Link";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import InstallMobileIcon from '@mui/icons-material/InstallMobile';
 import PodcastsIcon from '@mui/icons-material/Podcasts';
@@ -276,6 +285,23 @@ export function Header(props: any) {
     const handleCloseRpcSettings = () => setRpcSettingsOpen(false);
     const [rpcSelectionMode, setRpcSelectionMode] =React.useState('predefined');
     const [customRpcInput, setCustomRpcInput] = React.useState('');
+
+    const sectionCardSX = {
+  border: "1px solid rgba(255,255,255,0.08)",
+  background: "rgba(255,255,255,0.03)",
+  borderRadius: 2,
+  p: 2,
+};
+
+const sectionHeaderSX = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  mb: 1.5,
+};
+
+const rowSX = { display: "flex", alignItems: "center", gap: 1 };
+
 
     const handleDrawerOpen = () => {
         setOpen(true);
@@ -661,107 +687,239 @@ export function Header(props: any) {
                     </Drawer>
                 </Box>
             </ClickAwayListener>
-            <Dialog open={rpcSettingsOpen} onClose={handleCloseRpcSettings} fullWidth maxWidth="sm">
-                <DialogTitle>Settings</DialogTitle>
+<Dialog
+  open={rpcSettingsOpen}
+  onClose={handleCloseRpcSettings}
+  fullWidth
+  maxWidth="sm"
+  PaperProps={{
+    sx: {
+      borderRadius: 6,
+      overflow: "hidden",
+      border: "1px solid rgba(255,255,255,0.10)",
+      background: "#13151C", // matches your other dialogs
+    },
+  }}
+>
+  {/* Header */}
+  <DialogTitle
+    sx={{
+      px: 2.25,
+      py: 1.75,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+    }}
+  >
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
+      <Box
+        sx={{
+          width: 36,
+          height: 36,
+          borderRadius: 6,
+          display: "grid",
+          placeItems: "center",
+          background: "rgba(255,255,255,0.06)",
+          border: "1px solid rgba(255,255,255,0.08)",
+        }}
+      >
+        <SettingsIcon fontSize="small" />
+      </Box>
 
-                <DialogContent dividers>
-                    <Divider sx={{ my: 3 }} />
-                    {/* ===== RPC Selection ===== */}
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                    RPC Selection
+      <Box>
+        <Typography sx={{ fontSize: 18, fontWeight: 700, lineHeight: 1.1 }}>
+          Settings
+        </Typography>
+        <Typography sx={{ fontSize: 12, opacity: 0.75, mt: 0.25 }}>
+          RPC endpoint & wallet tools
+        </Typography>
+      </Box>
+    </Box>
+
+    <IconButton onClick={handleCloseRpcSettings} sx={{ opacity: 0.8 }}>
+      <CloseIcon />
+    </IconButton>
+  </DialogTitle>
+
+  <DialogContent sx={{ px: 2.25, pb: 2.25 }}>
+    {/* ===== RPC Selection ===== */}
+    <Box sx={sectionCardSX}>
+      <Box sx={sectionHeaderSX}>
+        <Typography sx={{ fontWeight: 700, fontSize: 14 }}>RPC Selection</Typography>
+
+        {/* show current mode */}
+        <Chip
+          size="small"
+          variant="outlined"
+          label={rpcSelectionMode === "predefined" ? "Predefined" : "Custom"}
+          sx={{ opacity: 0.85 }}
+        />
+      </Box>
+
+      {/* Segmented control */}
+      <FormControl fullWidth>
+        <ToggleButtonGroup
+          exclusive
+          value={rpcSelectionMode}
+          onChange={(_, v) => v && setRpcSelectionMode(v)}
+          sx={{
+            width: "100%",
+            "& .MuiToggleButton-root": {
+              flex: 1,
+              textTransform: "none",
+              borderRadius: 6,
+              py: 1,
+            },
+          }}
+        >
+          <ToggleButton value="predefined">Predefined</ToggleButton>
+          <ToggleButton value="custom">Custom URL</ToggleButton>
+        </ToggleButtonGroup>
+      </FormControl>
+
+      {/* Predefined */}
+        {rpcSelectionMode === "predefined" && (
+        <Box sx={{ mt: 2 }}>
+            <TextField
+            select
+            fullWidth
+            label="RPC Provider"
+            value={getPreferredRpc()}
+            onChange={(e) => {
+                setPreferredRpc(e.target.value);
+                handleCloseRpcSettings();
+                window.location.reload();
+            }}
+            size="small"
+            variant="outlined"
+            helperText={
+                <Typography sx={{ fontSize: 12, opacity: 0.75 }}>
+                Switching RPC reloads the app to reinitialize connections.
+                </Typography>
+            }
+            FormHelperTextProps={{ sx: { mt: 1 } }}
+            >
+            {Object.entries(RPC_OPTIONS).map(([label, url]) => (
+                <MenuItem key={label} value={url}>
+                <Box
+                    sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    }}
+                >
+                    <Typography sx={{ fontSize: 13, fontWeight: 500 }}>
+                    {label}
                     </Typography>
 
-                    <FormControl fullWidth>
-                    <RadioGroup
-                        value={rpcSelectionMode}
-                        onChange={(e) => setRpcSelectionMode(e.target.value)}
-                    >
-                        <FormControlLabel
-                        value="predefined"
-                        control={<Radio />}
-                        label="Select from predefined list"
-                        />
-                        <FormControlLabel value="custom" control={<Radio />} label="Use custom RPC URL" />
-                    </RadioGroup>
-                    </FormControl>
+                    {/* Optional future badges */}
+                    {/* <Chip size="small" label="Recommended" /> */}
+                </Box>
+                </MenuItem>
+            ))}
+            </TextField>
+        </Box>
+        )}
 
-                    {rpcSelectionMode === 'predefined' && (
-                    <FormControl fullWidth sx={{ mt: 2 }}>
-                        <TextField
-                        select
-                        label="RPC Provider"
-                        value={getPreferredRpc()}
-                        onChange={(e) => {
-                            setPreferredRpc(e.target.value);
-                            handleCloseRpcSettings();
-                            window.location.reload();
-                        }}
-                        size="small"
-                        variant="outlined"
-                        >
-                        {Object.entries(RPC_OPTIONS).map(([label, url]) => (
-                            <MenuItem key={label} value={url}>
-                            {label}
-                            </MenuItem>
-                        ))}
-                        </TextField>
-                    </FormControl>
-                    )}
+      {/* Custom */}
+      {rpcSelectionMode === "custom" && (
+        <Box sx={{ mt: 2 }}>
+          {(() => {
+            const val = String(customRpcInput || "").trim();
+            const isHttps = val.startsWith("https://");
+            const showWarn = val.length > 0 && !isHttps;
 
-                    {rpcSelectionMode === 'custom' && (
-                    <Box mt={2}>
-                        <TextField
-                        fullWidth
-                        label="Custom RPC Endpoint"
-                        value={customRpcInput}
-                        onChange={(e) => setCustomRpcInput(e.target.value)}
-                        size="small"
-                        variant="outlined"
-                        placeholder="https://your-custom-rpc.solana.com"
-                        />
-                        <Button
-                        variant="contained"
-                        sx={{ mt: 2 }}
-                        onClick={() => {
-                            if (customRpcInput.startsWith('https')) {
-                            setPreferredRpc(customRpcInput);
-                            handleCloseRpcSettings();
-                            window.location.reload();
-                            } else {
-                            alert('Please enter a valid URL starting with https');
-                            }
-                        }}
-                        >
-                        Save & Reload
-                        </Button>
-                    </Box>
-                    )}
+            return (
+              <>
+                <TextField
+                  fullWidth
+                  label="Custom RPC Endpoint"
+                  value={customRpcInput}
+                  onChange={(e) => setCustomRpcInput(e.target.value)}
+                  size="small"
+                  variant="outlined"
+                  placeholder="https://your-custom-rpc.solana.com"
+                  error={showWarn}
+                  helperText={
+                    showWarn ? (
+                      <Box sx={rowSX}>
+                        <WarningAmberIcon sx={{ fontSize: 16 }} />
+                        <span>Must start with https://</span>
+                      </Box>
+                    ) : (
+                      "Enter a full HTTPS endpoint (recommended)."
+                    )
+                  }
+                />
 
-                    <Divider sx={{ my: 3 }} />
-
-                    {/* ===== Wallet Tools ===== */}
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                    Wallet Tools
-                    </Typography>
-
-                    <Stack direction="row" spacing={1}>
-                    <Button
-                        variant="outlined"
-                        color="error"
-                        onClick={async () => {
-                        await disconnect();
+                <Stack direction="row" spacing={1} sx={{ mt: 2 }} alignItems="center">
+                  <Button
+                    variant="contained"
+                    startIcon={<RestartAltIcon />}
+                    onClick={() => {
+                      if (String(customRpcInput || "").trim().startsWith("https://")) {
+                        setPreferredRpc(customRpcInput.trim());
                         handleCloseRpcSettings();
-                        }}
-                    >
-                        Disconnect Wallet
-                    </Button>
-                    </Stack>
-                </DialogContent>
+                        window.location.reload();
+                      } else {
+                        alert("Please enter a valid URL starting with https://");
+                      }
+                    }}
+                    sx={{
+                      borderRadius: 6,
+                      textTransform: "none",
+                      px: 2,
+                    }}
+                  >
+                    Save & Reload
+                  </Button>
 
-                <DialogActions>
-                    <Button onClick={handleCloseRpcSettings}>Close</Button>
-                </DialogActions>
-                </Dialog>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setCustomRpcInput("")}
+                    sx={{ borderRadius: 6, textTransform: "none" }}
+                  >
+                    Clear
+                  </Button>
+                </Stack>
+              </>
+            );
+          })()}
+        </Box>
+      )}
+    </Box>
+
+    {/* ===== Wallet Tools ===== */}
+    <Box sx={{ ...sectionCardSX, mt: 2 }}>
+      <Box sx={sectionHeaderSX}>
+        <Typography sx={{ fontWeight: 700, fontSize: 14 }}>Wallet Tools</Typography>
+      </Box>
+
+      <Typography sx={{ fontSize: 12, opacity: 0.75, mb: 1.5 }}>
+        Manage wallet connection for this session.
+      </Typography>
+
+      <Button
+        variant="outlined"
+        color="error"
+        startIcon={<PowerSettingsNewIcon />}
+        onClick={async () => {
+          await disconnect();
+          handleCloseRpcSettings();
+        }}
+        sx={{ borderRadius: 6, textTransform: "none" }}
+      >
+        Disconnect Wallet
+      </Button>
+    </Box>
+  </DialogContent>
+
+  <DialogActions sx={{ px: 2.25, pb: 2 }}>
+    <Button onClick={handleCloseRpcSettings} sx={{ borderRadius: 6, textTransform: "none" }}>
+      Close
+    </Button>
+  </DialogActions>
+</Dialog>
         </>
     );
 }
