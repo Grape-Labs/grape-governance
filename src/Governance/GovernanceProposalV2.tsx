@@ -90,7 +90,8 @@ import { useSnackbar } from 'notistack';
 import { IntegratedGovernanceProposalDialogView } from './IntegratedGovernanceProposal';
 import { getAllProposalSignatoryRecords, getAllProposalSignatories, ManageGovernanceProposal } from './ManageGovernanceProposal';
 import { VoteForProposal } from './GovernanceVote';
-import { InstructionView } from './GovernanceInstructionView';
+
+import { VetoVoteRow } from './GovernanceVetoVote';
 import { InstructionTableView } from './GovernanceInstructionTableView';
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
 import ExplorerView from '../utils/grapeTools/Explorer';
@@ -259,7 +260,8 @@ export function GovernanceProposalV2View(props: any){
     const [verifiedDestinationWalletArray, setVerifiedDestinationWalletArray] = React.useState(null);
     const [verifiedDAODestinationWalletArray, setVerifiedDAODestinationWalletArray] = React.useState(null);
     const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
-    
+    const [councilVoterRecord, setCouncilVoterRecord] = React.useState<any | null>(null);
+
     const [loadingMessage, setLoadingMessage] = React.useState(null);
 
     const toggleInfoExpand = () => {
@@ -425,6 +427,28 @@ export function GovernanceProposalV2View(props: any){
             }
         },
     ];
+
+    const getCouncilTorForWallet = React.useCallback(() => {
+        try {
+            if (!publicKey) return null;
+            const councilMint = realm?.account?.config?.councilMint;
+            if (!councilMint) return null;
+
+            const my58 = publicKey.toBase58();
+            const councilMint58 = councilMint.toBase58();
+
+            const list: any[] = memberMap || [];
+            return (
+            list.find(
+                (r: any) =>
+                r?.account?.governingTokenOwner?.toBase58?.() === my58 &&
+                r?.account?.governingTokenMint?.toBase58?.() === councilMint58
+            ) || null
+            );
+        } catch {
+            return null;
+        }
+        }, [publicKey, realm, memberMap]);
 
     const getGovernanceProps = async () => {
         let governance_item = null;
@@ -824,7 +848,7 @@ export function GovernanceProposalV2View(props: any){
             }
         //}
         
-        
+
 
         {
             if (vresults){
@@ -2576,6 +2600,10 @@ export function GovernanceProposalV2View(props: any){
         }
     }, [governanceLookup, loadingValidation]);
 
+    React.useEffect(() => {
+        setCouncilVoterRecord(getCouncilTorForWallet());
+    }, [getCouncilTorForWallet]);
+
     React.useEffect(() => { 
 
         if (//cachedGovernance &&
@@ -3410,6 +3438,16 @@ export function GovernanceProposalV2View(props: any){
                                                     </Box>
                                                 :<></>}
 
+                                                <VetoVoteRow
+                                                    realm={realm}
+                                                    proposal={thisitem}
+                                                    memberMap={memberMap}
+                                                    councilVoterRecord={councilVoterRecord}
+                                                    publicKey={publicKey}
+                                                    sendTransaction={sendTransaction}
+                                                    getVotingParticipants={getVotingParticipants}
+                                                    />
+
 
                                                 {
                                                 (publicKey &&
@@ -3910,7 +3948,7 @@ export function GovernanceProposalV2View(props: any){
                                                         </>
                                                         :<></>
                                                     }
-                                                    
+                                                                                                        
                                                     {(thisitem.account.signingOffAt && +thisitem.account.signingOffAt > 0 && +thisitem.account.state !== 0 && +thisitem.account.state !== 1 && csvGenerated) &&
                                                         <Box sx={{ my: 3, mx: 2 }}>
                                                             <Grid container alignItems="center">

@@ -1,25 +1,8 @@
 import { 
-    getRealm, 
-    getProposal,
-    getAllProposals, 
-    getGovernance, 
-    getGovernanceAccounts, 
-    getGovernanceChatMessages, 
-    getTokenOwnerRecord, 
-    getTokenOwnerRecordsByOwner, 
-    getAllTokenOwnerRecords,
-    getVoteRecord,
-    getMaxVoterWeightRecord,
-    getRealmConfigAddress, 
-    getGovernanceAccount, 
-    getAccountTypes, 
-    ProposalTransaction,
-    pubkeyFilter,
-    GovernanceAccountType, 
-    tryGetRealmConfig, 
     withRelinquishVote,
-    getRealmConfig,
-    InstructionData  } from '@solana/spl-governance';
+    Vote, 
+    withCastVote, 
+    VoteKind } from "@solana/spl-governance";
 import { getGrapeGovernanceProgramVersion } from '../utils/grapeTools/helpers';
 
 import { 
@@ -134,6 +117,7 @@ import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import CloseIcon from '@mui/icons-material/Close';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 
 import { 
     PROXY, 
@@ -223,7 +207,20 @@ export function VoteForProposal(props:any){
     const quorum = props?.quorum;
     const governanceRules = props?.governanceRules;
     const [open, setOpen] = React.useState(false);
-    
+    const [anchorElMore, setAnchorElMore] = React.useState<null | HTMLElement>(null);
+    const openMore = Boolean(anchorElMore);
+    const handleOpenMore = (e: React.MouseEvent<HTMLElement>) => setAnchorElMore(e.currentTarget);
+    const handleCloseMore = () => setAnchorElMore(null);
+
+    const councilMint58 = realm?.account?.config?.councilMint?.toBase58?.() || "";
+    const proposalMint58 = thisitem?.account?.governingTokenMint?.toBase58?.() || "";
+
+    const canShowVeto =
+    !!publicKey &&
+    thisitem?.account?.state === 2 &&
+    !!councilMint58 &&
+    proposalMint58 !== councilMint58; // only community proposals
+
     const isBlacklisted = BLACKLIST_WALLETS.includes(publicKey?.toBase58()) ? true : false;
 
     const handleClickOpen = () => {
@@ -430,139 +427,6 @@ export function VoteForProposal(props:any){
                 alert("No voter record!")
             }
             
-        }
-    }
-    
-    const handleVetoVote = async (type: Number, delegate?: string, withOwnerRecord?:boolean) => {
-        
-        if (!isBlacklisted){
-            const wOwner = withOwnerRecord ? true : false;
-            setAnchorElYes(false);
-            setAnchorElNo(false);
-            
-            const programId = new PublicKey(realm.owner);
-            
-            let rawTokenOwnerRecords = null;
-            
-            if (memberMap){
-                rawTokenOwnerRecords = memberMap;
-            } else{
-                rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realm.pubkey).toBase58(), realm.owner ? new PublicKey(realm.owner).toBase58() : null, publicKey.toBase58());
-                //rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
-            }
-
-            //console.log("rawTokenOwnerRecords: "+JSON.stringify(rawTokenOwnerRecords))
-            // 6R78nYux2yVDtNBd8CBXojRtgkSmRvECvQsAtZMkcDWM
-            
-            let memberItem = voterRecord || rawTokenOwnerRecords.find(item => 
-                (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
-                item.account.governingTokenMint.toBase58() === thisitem));
-            
-            let delegatedItems = delegatedVoterRecord || rawTokenOwnerRecords.filter(item => 
-                (item.account?.governanceDelegate?.toBase58() === publicKey.toBase58() && 
-                item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
-            
-            let counclilMemberItem = voterRecord || rawTokenOwnerRecords.find(item => 
-                (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
-                item.account.governingTokenMint.toBase58() === thisitem));
-            
-            console.log("delegatedItems: "+JSON.stringify(delegatedItems))
-            
-            //console.log("tokenOwnerRecord: "+JSON.stringify(thisitem.account.tokenOwnerRecord));
-            
-            const proposal = {
-                governanceId: thisitem.account.governance,
-                proposalId: thisitem.pubkey,
-                tokenOwnerRecord: thisitem.account.tokenOwnerRecord,
-                governingTokenMint: thisitem.account.governingTokenMint
-            }
-            const transactionData = {proposal:proposal,action:0} // 0 = yes
-            
-            // check if voter can participate
-            if (publicKey && counclilMemberItem) {
-                
-                const voteTx = new Transaction();
-                let supportedVote = true;
-                
-                if (wOwner){ // vote for your own if delegate is not set and value of delegate is not = 1
-                    
-                    const hasVotedItem = votingParticipants.some(item => item.governingTokenOwner === publicKey.toBase58());
-                    console.log("*** isCommunityVote: "+JSON.stringify(isCommunityVote))
-                    if (!hasVotedItem){
-                        const tmpVote = await createCastVoteTransaction(
-                            realm,
-                            publicKey,
-                            transactionData,
-                            counclilMemberItem,
-                            null,
-                            isCommunityVote,
-                            multiChoice,
-                            type
-                        );
-                        if (tmpVote){
-                            voteTx.add(tmpVote);
-                        } else {
-                            supportedVote = false;
-                            enqueueSnackbar("Additional Plugin Voting Support Coming Soon (NFT, Gateway)", { variant: 'error' });
-                        }
-                    }
-                }
-                
-                if (voteTx && supportedVote){
-                    console.log("Casting veto vote as: "+publicKey.toBase58());
-                } 
-                //console.log("vvvt: "+JSON.stringify(vvvt));
-                
-                if (voteTx){
-                    if (supportedVote){
-                        console.log("voteTx: " + JSON.stringify(voteTx));
-                        try{
-                            enqueueSnackbar(`Preparing to cast vote`,{ variant: 'info' });
-                            const signature = await sendTransaction(voteTx, RPC_CONNECTION, {
-                                skipPreflight: true,
-                                preflightCommitment: "confirmed",
-                            });
-                            const snackprogress = (key:any) => (
-                                <CircularProgress sx={{padding:'10px'}} />
-                            );
-                            const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
-                            //await connection.confirmTransaction(signature, 'processed');
-                            const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
-                            await RPC_CONNECTION.confirmTransaction({
-                                blockhash: latestBlockHash.blockhash,
-                                lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-                                signature: signature}, 
-                                'confirmed'
-                            );
-
-                            closeSnackbar(cnfrmkey);
-                            const action = (key:any) => (
-                                    <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
-                                        Signature: {shortenString(signature,5,5)}
-                                    </Button>
-                            );
-                            
-                            enqueueSnackbar(`Congratulations, you have participated in voting for this Proposal`,{ variant: 'success', action });
-
-                            // trigger a refresh here...
-                            
-                            const redirectTimer = setTimeout(() => {
-                                getVotingParticipants();
-                            }, 5000); // 5 seconds*/
-                            //getVotingParticipants();
-                        }catch(e:any){
-                            enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
-                        } 
-                    }
-                } else{
-                    enqueueSnackbar("Could not vote for proposal!", { variant: 'error' });
-                }
-                
-            } else if (!counclilMemberItem){
-                enqueueSnackbar("Voter Record Not Found!", { variant: 'error' });
-            }
-        } else{
-            enqueueSnackbar("An error occured, please try again later!", { variant: 'error' });
         }
     }
 
