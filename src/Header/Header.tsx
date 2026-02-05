@@ -287,11 +287,11 @@ export function Header(props: any) {
     const [customRpcInput, setCustomRpcInput] = React.useState('');
 
     const sectionCardSX = {
-  border: "1px solid rgba(255,255,255,0.08)",
-  background: "rgba(255,255,255,0.03)",
-  borderRadius: 2,
-  p: 2,
-};
+        border: "1px solid rgba(255,255,255,0.08)",
+        background: "rgba(255,255,255,0.03)",
+        borderRadius: 2,
+        p: 2,
+        };
 
 const sectionHeaderSX = {
   display: "flex",
