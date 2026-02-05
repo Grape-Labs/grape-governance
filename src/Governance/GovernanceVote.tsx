@@ -215,12 +215,28 @@ export function VoteForProposal(props:any){
     const councilMint58 = realm?.account?.config?.councilMint?.toBase58?.() || "";
     const proposalMint58 = thisitem?.account?.governingTokenMint?.toBase58?.() || "";
 
-    const canShowVeto =
-    !!publicKey &&
-    thisitem?.account?.state === 2 &&
-    !!councilMint58 &&
-    proposalMint58 !== councilMint58; // only community proposals
-
+    const StyledMenu = styled(Menu)(({ theme }) => ({
+    "& .MuiPaper-root": {
+        backgroundColor: "rgba(12,12,16,0.98)",
+        border: "1px solid rgba(255,255,255,0.10)",
+        borderRadius: 16,
+        color: "#fff",
+        minWidth: 340,
+        boxShadow: "0 18px 55px rgba(0,0,0,0.65)",
+        overflow: "hidden",
+    },
+    "& .MuiMenu-list": {
+        paddingTop: 6,
+        paddingBottom: 6,
+    },
+    "& .MuiMenuItem-root": {
+        fontSize: 13,
+        paddingTop: 10,
+        paddingBottom: 10,
+        whiteSpace: "normal",
+        lineHeight: 1.25,
+    },
+    }));
     const isBlacklisted = BLACKLIST_WALLETS.includes(publicKey?.toBase58()) ? true : false;
 
     const handleClickOpen = () => {
@@ -782,457 +798,469 @@ export function VoteForProposal(props:any){
     }, [publicKey]);
 
     return (
-    <>
-    
-        {(!publicKey || thisitem.account?.state !== 2 ) ?
-            <>
-            
-            {type === 0 ?
-                    <>
-                    
-                        <Button
-                            variant="outlined"
-                            color='success'
-                            disabled
-                            sx={{borderRadius:'17px',textTransform:'none'}}
+  <>
+    {!publicKey || thisitem.account?.state !== 2 ? (
+      <>
+        {type === 0 ? (
+          <Button
+            variant="outlined"
+            color="success"
+            disabled
+            sx={{ borderRadius: "17px", textTransform: "none" }}
+          >
+            {title && subtitle && showIcon && (
+              <Grid container direction="column" alignItems="center">
+                <Grid item>
+                  <Grid container direction="row" alignItems="center">
+                    <Grid item>
+                      {type === 0 ? (
+                        <ThumbUpIcon fontSize="small" sx={{ mr: 0.25, ml: 0.25 }} />
+                      ) : (
+                        <ThumbDownIcon fontSize="small" sx={{ mr: 0.25, ml: 0.25 }} />
+                      )}
+                    </Grid>
+                    <Grid item>{title}</Grid>
+                  </Grid>
+                </Grid>
+
+                <Grid item sx={{ minWidth: "100px" }}>
+                  <Divider />
+                  <Grid sx={{ mt: 0.5 }}>
+                    <Typography sx={{ fontSize: "10px" }}>{subtitle}</Typography>
+                  </Grid>
+                </Grid>
+              </Grid>
+            )}
+          </Button>
+        ) : (
+          <Button
+            variant="outlined"
+            color="error"
+            disabled
+            sx={{ borderRadius: "17px", textTransform: "none" }}
+          >
+            {title && subtitle && showIcon && (
+              <Grid container direction="column" alignItems="center">
+                <Grid item>
+                  <Grid container direction="row" alignItems="center">
+                    <Grid item>
+                      {type === 0 ? (
+                        <ThumbUpIcon fontSize="small" sx={{ mr: 0.25, ml: 0.25 }} />
+                      ) : (
+                        <ThumbDownIcon fontSize="small" sx={{ mr: 0.25, ml: 0.25 }} />
+                      )}
+                    </Grid>
+                    <Grid item>{title}</Grid>
+                  </Grid>
+                </Grid>
+
+                <Grid item sx={{ minWidth: "100px" }}>
+                  <Divider />
+                  <Grid sx={{ mt: 0.5 }}>
+                    <Typography sx={{ fontSize: "10px" }}>{subtitle}</Typography>
+                  </Grid>
+                </Grid>
+              </Grid>
+            )}
+          </Button>
+        )}
+      </>
+    ) : (
+      <>
+        {thisitem.account?.state === 2 && publicKey && (
+          <>
+            {type === 0 ? (
+              <>
+                {/* YES: split button + delegates menu (keeps original delegate behavior) */}
+                {!hasVoted ? (
+                  <ButtonGroup
+                    variant="outlined"
+                    color="success"
+                    sx={{
+                      borderRadius: "18px",
+                      overflow: "hidden",
+                      "& .MuiButton-root": { textTransform: "none" },
+                    }}
+                  >
+                    <Button
+                      onClick={handleVoteYes}
+                      sx={{ borderRadius: 0, px: 2, py: 1, minWidth: 210 }}
+                    >
+                      {title && subtitle && showIcon ? (
+                        <Grid container direction="column" alignItems="center">
+                          <Grid item>
+                            <Grid container direction="row" alignItems="center">
+                              <Grid item>
+                                <ThumbUpIcon fontSize="small" sx={{ mr: 0.5 }} />
+                              </Grid>
+                              <Grid item>{title}</Grid>
+                            </Grid>
+                          </Grid>
+
+                          <Grid item sx={{ minWidth: "140px" }}>
+                            <Divider sx={{ my: 0.5, opacity: 0.35 }} />
+                            <Typography sx={{ fontSize: "11px", opacity: 0.9 }}>
+                              {subtitle}
+                            </Typography>
+                          </Grid>
+                        </Grid>
+                      ) : (
+                        <>Vote{!multiChoice && " YES"}</>
+                      )}
+                    </Button>
+
+                    {(delegatedVoterRecord && delegatedVoterRecord.length > 0) && (
+                      <Button
+                        size="small"
+                        aria-controls={openDelegateYes ? "basic-yes-menu" : undefined}
+                        aria-haspopup="true"
+                        aria-expanded={openDelegateYes ? "true" : undefined}
+                        onClick={handleDelegateOpenYesToggle}
+                        sx={{ borderRadius: 0, px: 1.1, minWidth: 44 }}
+                      >
+                        <ArrowDropDownIcon />
+                      </Button>
+                    )}
+                  </ButtonGroup>
+                ) : (
+                  // when already voted, keep the caret available (original behavior)
+                  (delegatedVoterRecord && delegatedVoterRecord.length > 0) && (
+                    <Button
+                      size="small"
+                      color="success"
+                      aria-controls={openDelegateYes ? "basic-yes-menu" : undefined}
+                      aria-haspopup="true"
+                      aria-expanded={openDelegateYes ? "true" : undefined}
+                      onClick={handleDelegateOpenYesToggle}
+                      sx={{
+                        borderRadius: "18px",
+                        textTransform: "none",
+                        minWidth: 44,
+                      }}
+                    >
+                      <ArrowDropDownIcon />
+                    </Button>
+                  )
+                )}
+
+                {/* YES menu */}
+                <StyledMenu
+                  id="basic-yes-menu"
+                  anchorEl={anchorElYes}
+                  open={openDelegateYes}
+                  onClose={handleDelegateCloseYesToggle}
+                  MenuListProps={{ "aria-labelledby": "basic-button" }}
+                  sx={{ zIndex: 9999 }}
+                >
+                  <ClickAwayListener onClickAway={handleDelegateCloseYesToggle}>
+                    <MenuList id="split-yes-menu" autoFocusItem>
+                      <MenuItem disabled={hasVoted} onClick={() => handleVote(0, null, true)}>
+                        Vote only with my Voting Power
+                      </MenuItem>
+
+                      <Divider />
+
+                      {delegatedVoterRecord &&
+                        delegatedVoterRecord.map((option: any, index: number) => {
+                          const owner58 =
+                            option?.account?.governingTokenOwner?.toBase58?.() || "";
+                          const already =
+                            votingParticipants &&
+                            votingParticipants.some((i: any) => i.governingTokenOwner === owner58);
+
+                          return (
+                            <MenuItem
+                              key={`yes-${owner58}-${index}`}
+                              disabled={already}
+                              onClick={() => handleVote(0, owner58)}
+                            >
+                              <Typography variant="caption">
+                                Vote with {trimAddress(owner58, 3)} delegated Voting Power
+                                {already && <CheckCircleIcon fontSize="inherit" sx={{ ml: 1 }} />}
+                              </Typography>
+                            </MenuItem>
+                          );
+                        })}
+
+                      <Divider />
+
+                      <MenuItem onClick={() => handleVote(0, null, true, true)}>
+                        Vote with all my delegated Voting Power
+                      </MenuItem>
+                    </MenuList>
+                  </ClickAwayListener>
+                </StyledMenu>
+              </>
+            ) : (
+              <>
+                {/* NO: keep your existing behavior (button + separate caret/menu) */}
+                {!hasVoted && (
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={handleVoteNo}
+                    sx={{ borderRadius: "17px", textTransform: "none" }}
+                  >
+                    {title && subtitle && showIcon ? (
+                      <Grid container direction="column" alignItems="center">
+                        <Grid item>
+                          <Grid container direction="row" alignItems="center">
+                            <Grid item>
+                              {type === 0 ? (
+                                <ThumbUpIcon fontSize="small" sx={{ mr: 0.25, ml: 0.25 }} />
+                              ) : (
+                                <ThumbDownIcon fontSize="small" sx={{ mr: 0.25, ml: 0.25 }} />
+                              )}
+                            </Grid>
+                            <Grid item>{title}</Grid>
+                          </Grid>
+                        </Grid>
+
+                        <Grid item sx={{ minWidth: "100px" }}>
+                          <Divider />
+                          <Grid sx={{ mt: 0.5 }}>
+                            <Typography sx={{ fontSize: "10px" }}>{subtitle}</Typography>
+                          </Grid>
+                        </Grid>
+                      </Grid>
+                    ) : (
+                      <>Vote NO</>
+                    )}
+                  </Button>
+                )}
+
+                {(delegatedVoterRecord && delegatedVoterRecord.length > 0) && (
+                  <>
+                    <Button
+                      size="small"
+                      color="error"
+                      aria-controls={openDelegateNo ? "basic-no-menu" : undefined}
+                      aria-haspopup="true"
+                      aria-expanded={openDelegateNo ? "true" : undefined}
+                      onClick={handleDelegateOpenNoToggle}
+                      sx={{ borderRadius: "17px", textTransform: "none" }}
+                    >
+                      <ArrowDropDownIcon />
+                    </Button>
+
+                    <StyledMenu
+                      id="basic-no-menu"
+                      anchorEl={anchorElNo}
+                      open={openDelegateNo}
+                      onClose={handleDelegateCloseNoToggle}
+                      MenuListProps={{ "aria-labelledby": "basic-no-button" }}
+                      sx={{ zIndex: 9999 }}
+                    >
+                      <ClickAwayListener onClickAway={handleDelegateCloseNoToggle}>
+                        <MenuList id="split-no-menu" autoFocusItem>
+                          <MenuItem disabled={hasVoted} onClick={() => handleVote(1, null, true)}>
+                            Vote only with my Voting Power
+                          </MenuItem>
+
+                          <Divider />
+
+                          {delegatedVoterRecord &&
+                            delegatedVoterRecord.map((option: any, index: number) => {
+                              const owner58 =
+                                option?.account?.governingTokenOwner?.toBase58?.() || "";
+                              const already =
+                                votingParticipants &&
+                                votingParticipants.some((i: any) => i.governingTokenOwner === owner58);
+
+                              return (
+                                <MenuItem
+                                  key={`no-${owner58}-${index}`}
+                                  disabled={already}
+                                  onClick={() => handleVote(1, owner58)}
+                                >
+                                  <Typography variant="caption">
+                                    Vote with {trimAddress(owner58, 3)} delegated Voting Power
+                                    {already && (
+                                      <CheckCircleIcon fontSize="inherit" sx={{ ml: 1 }} />
+                                    )}
+                                  </Typography>
+                                </MenuItem>
+                              );
+                            })}
+
+                          <Divider />
+
+                          <MenuItem onClick={() => handleVote(1, null, true, true)}>
+                            Vote with all my delegated Voting Power
+                          </MenuItem>
+                        </MenuList>
+                      </ClickAwayListener>
+                    </StyledMenu>
+                  </>
+                )}
+              </>
+            )}
+          </>
+        )}
+
+        {(hasVoted && publicKey) && (
+          <>
+            {title && subtitle && showIcon ? (
+              <>
+                <Tooltip
+                  title={
+                    Number(hasVotedVotes || 0) > 0
+                      ? `You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes for this proposal`
+                      : Number(hasVotedVotes || 0) < 0
+                      ? `You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes against this proposal`
+                      : ``
+                  }
+                >
+                  <Button
+                    variant="outlined"
+                    onClick={() =>
+                      state === 2 &&
+                      (Number(hasVotedVotes || 0) > 0 || Number(hasVotedVotes || 0) < 0) &&
+                      handleClickOpen()
+                    }
+                    color={type === 0 ? "success" : "error"}
+                    sx={{ borderRadius: "17px", textTransform: "none" }}
+                  >
+                    <Grid container direction="column" alignItems="center">
+                      <Grid item>
+                        <Grid container direction="row" alignItems="center">
+                          <Grid item>
+                            {type === 0 ? (
+                              <ThumbUpIcon fontSize="small" sx={{ mr: 0.25, ml: 0.25 }} />
+                            ) : (
+                              <ThumbDownIcon fontSize="small" sx={{ mr: 0.25, ml: 0.25 }} />
+                            )}
+                          </Grid>
+                          <Grid item>{title}</Grid>
+                        </Grid>
+                      </Grid>
+
+                      <Grid item sx={{ minWidth: "100px" }}>
+                        <Divider />
+                        <Grid sx={{ mt: 0.5 }}>
+                          <Typography sx={{ fontSize: "10px" }}>
+                            <>
+                              {subtitle}{" "}
+                              {((Number(hasVotedVotes || 0) > 0 && type === 0) ||
+                              (Number(hasVotedVotes || 0) < 0 && type === 1)) ? (
+                                <CheckCircleIcon fontSize="inherit" />
+                              ) : (
+                                <></>
+                              )}
+                            </>
+                          </Typography>
+                        </Grid>
+                      </Grid>
+                    </Grid>
+                  </Button>
+                </Tooltip>
+
+                <Dialog
+                  open={open}
+                  onClose={handleClose}
+                  PaperProps={{
+                    style: {
+                      background: "#13151C",
+                      border: "1px solid rgba(255,255,255,0.05)",
+                      borderTop: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: "20px",
+                    },
+                  }}
+                >
+                  <BootstrapDialogTitle id="create-storage-pool" onClose={handleClose}>
+                    Vote
+                  </BootstrapDialogTitle>
+
+                  <DialogContent>
+                    <DialogContentText>
+                      <Grid container>
+                        <Box
+                          sx={{
+                            m: 2,
+                            background: "rgba(0, 0, 0, 0.1)",
+                            borderRadius: "17px",
+                            p: 1,
+                            width: "100%",
+                            minWidth: "360px",
+                          }}
                         >
-                            {(title && subtitle && showIcon) &&
-                                <>
-                                
-                                    <Grid container direction="column" alignItems="center">
-                                        <Grid item>
-                                            <Grid container direction='row' alignItems='center'>
-                                                <Grid item>
-                                                    {type === 0 ?
-                                                        <ThumbUpIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
-                                                    :
-                                                        <ThumbDownIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
-                                                    }
-                                                </Grid>
-                                                <Grid item>
-                                                    {title}
-                                                </Grid>
-                                            </Grid>
-                                        </Grid>
-                                        
-                                        <Grid item sx={{minWidth:'100px'}}>
-                                            <Divider />
-                                            <Grid sx={{mt:0.5}}>
-                                                <Typography sx={{fontSize:'10px'}}>
-                                                    <>
-                                                        {subtitle}
-                                                    </>
-                                                </Typography>
-                                            </Grid>
-                                        </Grid>
-                                    </Grid>
-                                
-                                </>
-                            }
-                        
-                        </Button>
-                    
-                    
-                    </>
-                :
-                    <>
+                          <Box sx={{ my: 3, mx: 2 }}>
+                            <Grid container alignItems="center">
+                              <Grid item xs>
+                                <Typography gutterBottom variant="h5" component="div">
+                                  Voted
+                                </Typography>
+                              </Grid>
+                              <Grid item>{Number(hasVotedVotes || 0).toLocaleString()}</Grid>
+                            </Grid>
+                            <Typography color="text.secondary" variant="body2">
+                              Voting direction:{" "}
+                              {Number(hasVotedVotes || 0) > 0
+                                ? "For"
+                                : Number(hasVotedVotes || 0) < 0
+                                ? "Against"
+                                : "—"}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Grid>
+                    </DialogContentText>
+                  </DialogContent>
+
+                  <DialogActions>
+                    <Button
+                      color="success"
+                      onClick={() => handleRelinquishVotes(null, true)}
+                      sx={{ borderRadius: "17px" }}
+                    >
+                      <DownloadIcon fontSize="inherit" sx={{ mr: 1 }} /> Withdraw Vote
+                    </Button>
+                  </DialogActions>
+                </Dialog>
+              </>
+            ) : (
+              <>
+                {Number(hasVotedVotes || 0) > 0 && type === 0 ? (
+                  <Tooltip
+                    title={
+                      Number(hasVotedVotes || 0) > 0 &&
+                      `You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes for this proposal`
+                    }
+                  >
+                    <Button
+                      variant="outlined"
+                      color="success"
+                      sx={{ borderRadius: "17px", textTransform: "none" }}
+                    >
+                      <CheckCircleIcon />
+                    </Button>
+                  </Tooltip>
+                ) : (
+                  <>
+                    {Number(hasVotedVotes || 0) < 0 && (
+                      <Tooltip
+                        title={
+                          Number(hasVotedVotes || 0) < 0 &&
+                          `You casted ${getFormattedNumberToLocale(hasVotedVotes * -1)} votes against this proposal`
+                        }
+                      >
                         <Button
-                            variant="outlined"
-                            color='error'
-                            disabled
-                            //onClick={handleVoteNo}
-                            sx={{borderRadius:'17px',textTransform:'none'}}
-                        >{(title && subtitle && showIcon) &&
-                            <>
-                            
-                                <Grid container direction="column" alignItems="center">
-                                    <Grid item>
-                                        <Grid container direction='row' alignItems='center'>
-                                            <Grid item>
-                                                    {type === 0 ?
-                                                        <ThumbUpIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
-                                                    :
-                                                        <ThumbDownIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
-                                                    }
-                                            </Grid>
-                                            <Grid item>
-                                                {title}
-                                            </Grid>
-                                        </Grid>
-                                    </Grid>
-                                    
-                                    <Grid item sx={{minWidth:'100px'}}>
-                                        <Divider />
-                                        <Grid sx={{mt:0.5}}>
-                                            <Typography sx={{fontSize:'10px'}}>
-                                                <>
-                                                    {subtitle}
-                                                </>
-                                            </Typography>
-                                        </Grid>
-                                    </Grid>
-                                </Grid>
-                            
-                            </>
-                        }
+                          variant="outlined"
+                          color="error"
+                          sx={{ borderRadius: "17px", textTransform: "none" }}
+                        >
+                          <CheckCircleIcon />
                         </Button>
-                    </>
-                }
-            
-            </>
-
-        :
-            <>
-            {(thisitem.account?.state === 2 && publicKey) &&
-                <>
-                    {type === 0 ?
-                        <>
-                        {!hasVoted &&
-                            <Button
-                                variant="outlined"
-                                color='success'
-                                onClick={handleVoteYes}
-                                sx={{borderRadius:'17px',textTransform:'none'}}
-                            >
-                                {(title && subtitle && showIcon) ?
-                                    <>
-                                    
-                                        <Grid container direction="column" alignItems="center">
-                                            <Grid item>
-                                                <Grid container direction='row' alignItems='center'>
-                                                    <Grid item>
-                                                        {type === 0 ?
-                                                            <ThumbUpIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
-                                                        :
-                                                            <ThumbDownIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
-                                                        }
-                                                    </Grid>
-                                                    <Grid item>
-                                                        {title}
-                                                    </Grid>
-                                                </Grid>
-                                            </Grid>
-                                            
-                                            <Grid item sx={{minWidth:'100px'}}>
-                                                <Divider />
-                                                <Grid sx={{mt:0.5}}>
-                                                    <Typography sx={{fontSize:'10px'}}>
-                                                        <>
-                                                            {subtitle}
-                                                        </>
-                                                    </Typography>
-                                                </Grid>
-                                            </Grid>
-                                        </Grid>
-                                    
-                                    </>
-                                :
-                                    <>
-                                        Vote{!multiChoice && ` YES`}
-                                    </>
-                                }
-                            
-                            </Button>
-                        }
-                        {(delegatedVoterRecord && delegatedVoterRecord.length > 0) &&
-                            <>
-                                <Button
-                                    size="small"
-                                    color='success'
-                                    aria-controls={openDelegateYes ? 'basic-yes-menu' : undefined}
-                                    aria-haspopup="true"
-                                    aria-expanded={openDelegateYes ? 'true' : undefined}
-                                    onClick={handleDelegateOpenYesToggle}
-                                    sx={{borderRadius:'17px',textTransform:'none'}}
-                                >
-                                    <ArrowDropDownIcon />
-                                </Button>
-                                
-                                <StyledMenu
-                                    id="basic-yes-menu"
-                                    anchorEl={anchorElYes}
-                                    open={openDelegateYes}
-                                    onClose={handleDelegateCloseYesToggle}
-                                    MenuListProps={{
-                                        'aria-labelledby': 'basic-button',
-                                    }}
-                                    sx={{zIndex:9999}}
-                                >
-                                    <>
-                                        <ClickAwayListener 
-                                            onClickAway={handleDelegateCloseYesToggle}>
-                                            <MenuList id="split-yes-menu" autoFocusItem>
-                                                <MenuItem 
-                                                    disabled={hasVoted}
-                                                    onClick={(event) => handleVote(0, null, true)}>Vote only with my Voting Power</MenuItem>
-                                                <Divider />
-                                                {delegatedVoterRecord && delegatedVoterRecord.map((option, index) => (
-                                                    <MenuItem
-                                                        key={`yes-${option}`}
-                                                        disabled={votingParticipants && votingParticipants?.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58())}
-                                                        //selected={index === selectedIndex}
-                                                        //onClick={(event) => handleMenuItemClick(event, index)}
-                                                        onClick={(event) => handleVote(0,option.account.governingTokenOwner.toBase58())}
-                                                    >
-                                                        <Typography variant="caption">Vote with {trimAddress(option.account.governingTokenOwner.toBase58(),3)} delegated Voting Power
-                                                        {votingParticipants && votingParticipants?.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58()) &&
-                                                            <CheckCircleIcon fontSize='inherit' sx={{ml:1}} />
-                                                        }
-                                                        </Typography>
-                                                    </MenuItem>
-                                                ))}
-                                                <Divider />
-                                                <MenuItem onClick={(event) => handleVote(0,null,true,true)}>Vote with all my delegated Voting Power</MenuItem>
-                                                
-                                            </MenuList>
-                                        </ClickAwayListener>
-                                    </>
-                                    
-                                </StyledMenu>
-                                
-                            </>
-                        }
-                        </>
-                    :
-                        <>
-                        {!hasVoted &&
-                            <Button
-                                variant="outlined"
-                                color='error'
-                                onClick={handleVoteNo}
-                                sx={{borderRadius:'17px',textTransform:'none'}}
-                            >{(title && subtitle && showIcon) ?
-                                <>
-                                    <Grid container direction="column" alignItems="center">
-                                        <Grid item>
-                                            <Grid container direction='row' alignItems='center'>
-                                                <Grid item>
-                                                    {type === 0 ?
-                                                        <ThumbUpIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
-                                                    :
-                                                        <ThumbDownIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
-                                                    }
-                                                </Grid>
-                                                <Grid item>
-                                                    {title}
-                                                </Grid>
-                                            </Grid>
-                                        </Grid>
-                                        
-                                        <Grid item sx={{minWidth:'100px'}}>
-                                            <Divider />
-                                            <Grid sx={{mt:0.5}}>
-                                                <Typography sx={{fontSize:'10px'}}>
-                                                    <>
-                                                        {subtitle}
-                                                    </>
-                                                </Typography>
-                                            </Grid>
-                                        </Grid>
-                                    </Grid>
-                                </>
-                            :
-                                <>
-                                Vote NO
-                                </>
-                            }
-                            </Button>
-                        }
-                        {(delegatedVoterRecord && delegatedVoterRecord.length > 0) &&
-                            <>
-                                <Button
-                                    size="small"
-                                    color='error'
-                                    aria-controls={openDelegateNo ? 'basic-no-menu' : undefined}
-                                    aria-haspopup="true"
-                                    aria-expanded={openDelegateNo ? 'true' : undefined}
-                                    onClick={handleDelegateOpenNoToggle}
-                                    sx={{borderRadius:'17px',textTransform:'none'}}
-                                >
-                                    <ArrowDropDownIcon />
-                                </Button>
-                                
-                                <StyledMenu
-                                    id="basic-no-menu"
-                                    anchorEl={anchorElNo}
-                                    open={openDelegateNo}
-                                    onClose={handleDelegateCloseNoToggle}
-                                    MenuListProps={{
-                                        'aria-labelledby': 'basic-no-button',
-                                    }}
-                                    sx={{zIndex:9999}}
-                                >
-                                    <>
-                                        <ClickAwayListener 
-                                            onClickAway={handleDelegateCloseNoToggle}>
-                                            <MenuList id="split-no-menu" autoFocusItem>
-                                                <MenuItem 
-                                                    disabled={hasVoted}
-                                                    onClick={(event) => handleVote(1, null, true)}>Vote only with my Voting Power</MenuItem>
-                                                <Divider />
-                                                {delegatedVoterRecord && delegatedVoterRecord.map((option, index) => (
-                                                    <MenuItem
-                                                        key={`no-${option}`}
-                                                        disabled={votingParticipants && votingParticipants?.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58())}
-                                                        //selected={index === selectedIndex}
-                                                        //onClick={(event) => handleMenuItemClick(event, index)}
-                                                        onClick={(event) => handleVote(1,option.account.governingTokenOwner.toBase58())}
-                                                    >
-                                                        <Typography variant="caption">Vote with {trimAddress(option.account.governingTokenOwner.toBase58(),3)} delegated Voting Power
-                                                        {votingParticipants && votingParticipants?.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58()) &&
-                                                            <CheckCircleIcon fontSize='inherit' sx={{ml:1}} />
-                                                        }
-                                                        </Typography>
-                                                    </MenuItem>
-                                                ))}
-                                                <Divider />
-                                                <MenuItem onClick={(event) => handleVote(1,null,true,true)}>Vote with all my delegated Voting Power</MenuItem>
-                                                
-                                            </MenuList>
-                                        </ClickAwayListener>
-                                    </>
-                                    
-                                </StyledMenu>
-                                
-                            </>
-                        }
-                        </>
-                    }
-                </>
-            }
-            
-            {(hasVoted && publicKey) &&
-                <>
-                    {(title && subtitle && showIcon) ?
-                        <>
-                            <Tooltip title={
-                                hasVotedVotes > 0 ? `You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes for this proposal`
-                                :
-                                hasVotedVotes < 0 ? `You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes against this proposal` : ``
-                                }>
-                                    
-                                <Button
-                                    variant="outlined"
-                                    onClick={() => (state === 2  && (hasVotedVotes > 0 || hasVotedVotes < 0)) && handleClickOpen()}
-                                    color={type === 0 ? 'success' : 'error'}
-                                    sx={{borderRadius:'17px',textTransform:'none'}}
-                                >
-                                    <Grid container direction="column" alignItems="center">
-                                        <Grid item>
-                                            <Grid container direction='row' alignItems='center'>
-                                                <Grid item>
-                                                    {type === 0 ?
-                                                        <ThumbUpIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
-                                                    :
-                                                        <ThumbDownIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
-                                                    }
-                                                </Grid>
-                                                <Grid item>
-                                                    {title}
-                                                </Grid>
-                                            </Grid>
-                                        </Grid>
-                                        
-                                        <Grid item sx={{minWidth:'100px'}}>
-                                            <Divider />
-                                            <Grid sx={{mt:0.5}}>
-                                                <Typography sx={{fontSize:'10px'}}>
-                                                    <> 
-                                                        {subtitle}  {((hasVotedVotes > 0 && type === 0) || (hasVotedVotes < 0 && type === 1)) ? <CheckCircleIcon fontSize="inherit" /> : <></>}
-                                                    </>
-                                                </Typography>
-                                            </Grid>
-                                        </Grid>
-                                    </Grid>
-                                </Button>
-                            </Tooltip>
-
-                            
-                            <Dialog open={open} onClose={handleClose}
-                                PaperProps={{
-                                    style: {
-                                        background: '#13151C',
-                                        border: '1px solid rgba(255,255,255,0.05)',
-                                        borderTop: '1px solid rgba(255,255,255,0.1)',
-                                        borderRadius: '20px'
-                                    }
-                                }}
-                            >
-                                <BootstrapDialogTitle id="create-storage-pool" onClose={handleClose}>
-                                    Vote
-                                </BootstrapDialogTitle>
-                                
-                                <DialogContent>
-                                <DialogContentText>
-                                    <Grid container>
-                                        <Box sx={{
-                                                m:2,
-                                                background: 'rgba(0, 0, 0, 0.1)',
-                                                borderRadius: '17px',
-                                                p:1,
-                                                width:"100%",
-                                                minWidth:'360px'
-                                            }}>
-                                            <Box sx={{ my: 3, mx: 2 }}>
-                                                <Grid container alignItems="center">
-                                                <Grid item xs>
-                                                    <Typography gutterBottom variant="h5" component="div">
-                                                    Voted
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item>
-                                                    {hasVotedVotes.toLocaleString()}
-                                                </Grid>
-                                                </Grid>
-                                                <Typography color="text.secondary" variant="body2">
-                                                Voting direction: {hasVotedVotes > 0 ? 'For' : hasVotedVotes <0 && 'Against'}
-                                                </Typography>
-                                            </Box>
-
-                                        </Box>
-                                    </Grid>
-                                </DialogContentText>
-                                
-                                </DialogContent>
-                                <DialogActions>
-                                    <Button 
-                                        color="success" 
-                                        onClick={(event) => handleRelinquishVotes(null,true)}
-                                        sx={{borderRadius:'17px'}}
-                                    ><DownloadIcon fontSize='inherit' sx={{mr:1}}/> Withdraw Vote</Button>
-                                
-                                </DialogActions>
-                            </Dialog>
-                            
-                        </>
-                    :
-                        <>
-                            {(hasVotedVotes > 0 && type === 0) ?
-                                <Tooltip title={hasVotedVotes > 0 && `You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes for this proposal`}>
-                                    <Button
-                                        variant="outlined"
-                                        color='success'
-                                        sx={{borderRadius:'17px',textTransform:'none'}}
-                                    ><CheckCircleIcon /></Button>
-                                </Tooltip>
-                            :
-                                <>
-                                    {hasVotedVotes < 0 &&
-                                        <Tooltip title={hasVotedVotes < 0 && `You casted ${getFormattedNumberToLocale(hasVotedVotes*-1)} votes against this proposal`}>
-                                            <Button
-                                                variant="outlined"
-                                                color='error'
-                                                sx={{borderRadius:'17px',textTransform:'none'}}
-                                            ><CheckCircleIcon /></Button>
-                                        </Tooltip>
-                                    }
-                                </>
-                            }
-                        </>
-                    }
-                </>
-            }
-            </>
-        }
-    </>);
+                      </Tooltip>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </>
+    )}
+  </>
+);
 }

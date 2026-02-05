@@ -1,14 +1,19 @@
 // src/utils/governanceTools/votes/VetoVote.tsx
 //
-// Drop-in “Council veto” row + canonical Veto Vote builder for SPL-Governance.
-// Designed to look good in the right-side “More Info” panel (same style as Export).
+// Drop-in “Veto” row + canonical Veto Vote builder for SPL-Governance.
+// Autodetects whether veto should be cast with Council mint or Community mint,
+// depending on which governing token mint the proposal uses.
+//
+// Supports:
+// - Council veto on Community proposals
+// - Community veto on Council proposals (if realm has community mint)
 //
 // Usage (place above Export section):
 //   <VetoVoteRow
 //     realm={realm}
 //     proposal={thisitem}
 //     memberMap={memberMap}
-//     councilVoterRecord={councilVoterRecord} // optional, speeds it up
+//     councilVoterRecord={councilVoterRecord} // optional fast-path for council veto
 //     publicKey={publicKey}
 //     sendTransaction={sendTransaction}
 //     getVotingParticipants={getVotingParticipants}
@@ -52,13 +57,15 @@ export type VetoVoteRowProps = {
   proposal: AnyProposal;
 
   memberMap?: any[] | null;
+
+  // Optional fast-path for council veto only (kept for backwards compatibility)
   councilVoterRecord?: any | null;
 
   publicKey: PublicKey | null;
   sendTransaction: (tx: Transaction, connection: any, opts?: any) => Promise<string>;
   getVotingParticipants?: () => void;
 
-  // UI
+  // UI (optional override; if omitted we auto-label)
   title?: string;
   caption?: string;
 };
@@ -76,10 +83,19 @@ export function makeVetoVote(): VetoVote {
 }
 
 // ----------------------------
-// Guards
+// Helpers
 // ----------------------------
 function getCouncilMint58(realm: AnyRealm): string {
   return realm?.account?.config?.councilMint?.toBase58?.() || "";
+}
+
+// Realms objects vary in shape across codebases; try both common spots
+function getCommunityMint58(realm: AnyRealm): string {
+  return (
+    realm?.account?.communityMint?.toBase58?.() ||
+    (typeof realm?.communityMint === "string" ? realm.communityMint : realm?.communityMint?.toBase58?.()) ||
+    ""
+  );
 }
 
 function getProposalMint58(proposal: AnyProposal): string {
@@ -90,18 +106,51 @@ function isVotingState(proposal: AnyProposal): boolean {
   return proposal?.account?.state === 2;
 }
 
-function canShowVeto(realm: AnyRealm, proposal: AnyProposal, walletPk58?: string) {
+type VetoMode =
+  | { ok: true; vetoMint58: string; label: string; caption: string }
+  | { ok: false; reason: string };
+
+function detectVetoMode(realm: AnyRealm, proposal: AnyProposal): VetoMode {
   const councilMint58 = getCouncilMint58(realm);
-  if (!councilMint58) return false;
-
+  const communityMint58 = getCommunityMint58(realm);
   const proposalMint58 = getProposalMint58(proposal);
-  if (!proposalMint58) return false;
 
-  // Veto is only meaningful when proposal is COMMUNITY (i.e. not council-mint proposal)
-  if (proposalMint58 === councilMint58) return false;
+  if (!proposalMint58) return { ok: false, reason: "missing proposal mint" };
 
-  if (!isVotingState(proposal)) return false;
+  // If proposal is council-mint, veto (if supported) should be with community mint
+  if (councilMint58 && proposalMint58 === councilMint58) {
+    if (!communityMint58) return { ok: false, reason: "no community mint" };
+    return {
+      ok: true,
+      vetoMint58: communityMint58,
+      label: "Community veto",
+      caption: "Community veto action for council proposals",
+    };
+  }
+
+  // Otherwise proposal is community-mint (or non-council), veto should be with council mint
+  if (councilMint58 && proposalMint58 !== councilMint58) {
+    return {
+      ok: true,
+      vetoMint58: councilMint58,
+      label: "Council veto",
+      caption: "Council veto action for community proposals",
+    };
+  }
+
+  return { ok: false, reason: "no council mint" };
+}
+
+function canShowVetoRow(realm: AnyRealm, proposal: AnyProposal, walletPk58?: string) {
   if (!walletPk58) return false;
+  if (!isVotingState(proposal)) return false;
+
+  const mode = detectVetoMode(realm, proposal);
+  if (!mode.ok) return false;
+
+  // Defensive: veto mint must be different than proposal mint (should be by definition)
+  const proposalMint58 = getProposalMint58(proposal);
+  if (!proposalMint58 || mode.vetoMint58 === proposalMint58) return false;
 
   return true;
 }
@@ -118,8 +167,6 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
     publicKey,
     sendTransaction,
     getVotingParticipants,
-    title = "Council veto",
-    caption = "Council-only action for community proposals",
   } = props;
 
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
@@ -131,8 +178,15 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
   const isBlacklisted = !!walletPk58 && BLACKLIST_WALLETS.includes(walletPk58);
 
   // Don’t render unless it applies
-  if (!canShowVeto(realm, proposal, walletPk58)) return null;
+  if (!canShowVetoRow(realm, proposal, walletPk58)) return null;
 
+  const mode = detectVetoMode(realm, proposal);
+  if (!mode.ok) return null;
+
+  const title = props.title ?? mode.label;
+  const caption = props.caption ?? mode.caption;
+
+  const vetoMint58 = mode.vetoMint58;
   const councilMint58 = getCouncilMint58(realm);
 
   const handleVetoVote = async () => {
@@ -158,21 +212,24 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
         );
       }
 
-      // Council TOR for THIS wallet
-      const councilMe =
-        councilVoterRecord ||
+      // Optional fast path ONLY if veto mint is council
+      const canUseCouncilFastPath = !!councilVoterRecord && vetoMint58 === councilMint58;
+
+      // Veto TOR for THIS wallet (council or community depending on mode)
+      const vetoVoterRecord =
+        (canUseCouncilFastPath ? councilVoterRecord : null) ||
         rawTokenOwnerRecords.find(
           (item: any) =>
             item?.account?.governingTokenOwner?.toBase58?.() === walletPk58 &&
-            item?.account?.governingTokenMint?.toBase58?.() === councilMint58
+            item?.account?.governingTokenMint?.toBase58?.() === vetoMint58
         );
 
-      if (!councilMe) {
-        enqueueSnackbar("You do not have council veto power.", { variant: "error" });
+      if (!vetoVoterRecord) {
+        enqueueSnackbar("You do not have veto power for this proposal.", { variant: "error" });
         return;
       }
 
-      const cnfrmkey = enqueueSnackbar("Preparing council veto…", {
+      const cnfrmkey = enqueueSnackbar(`Preparing ${title.toLowerCase()}…`, {
         variant: "info",
         persist: true,
       });
@@ -195,10 +252,10 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
         realmPk,
         new PublicKey(proposal.account.governance),
         new PublicKey(proposal.pubkey),
-        new PublicKey(proposal.account.tokenOwnerRecord), // proposal owner record (community)
-        new PublicKey(councilMe.pubkey),                  // voter TOR (council)
+        new PublicKey(proposal.account.tokenOwnerRecord), // proposal owner record (same field for both cases)
+        new PublicKey(vetoVoterRecord.pubkey),            // voter TOR (auto-selected)
         publicKey,                                        // governanceAuthority
-        new PublicKey(councilMint58),                      // voteGoverningTokenMint (council mint)
+        new PublicKey(vetoMint58),                         // voteGoverningTokenMint (auto-selected)
         makeVetoVote(),                                   // vote
         publicKey                                         // payer
       );
@@ -222,7 +279,7 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
 
       closeSnackbar(cnfrmkey);
 
-      enqueueSnackbar("Council veto submitted.", {
+      enqueueSnackbar(`${title} submitted.`, {
         variant: "success",
         action: () => (
           <Button
@@ -268,7 +325,7 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
           </Grid>
 
           <Grid item>
-            <Tooltip title="Open council veto">
+            <Tooltip title={`Open ${title.toLowerCase()}`}>
               <span>
                 <Button
                   size="small"
@@ -302,10 +359,12 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
           },
         }}
       >
-        <DialogTitle>Confirm council veto</DialogTitle>
+        <DialogTitle>Confirm {title.toLowerCase()}</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ color: "#ccc" }}>
-            This will cast a <b>VETO</b> using your council voting power.
+            This will cast a <b>VETO</b> using your{" "}
+            <b>{title.toLowerCase().includes("council") ? "council" : "community"}</b>{" "}
+            voting power.
             <br />
             This action is irreversible for this proposal.
           </DialogContentText>
