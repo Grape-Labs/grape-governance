@@ -68,6 +68,8 @@ export type VetoVoteRowProps = {
   // UI (optional override; if omitted we auto-label)
   title?: string;
   caption?: string;
+
+  vetoCount?: number; // number of VoteRecords that are VoteKind.Veto for this proposal
 };
 
 // ----------------------------
@@ -185,6 +187,8 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
 
   const title = props.title ?? mode.label;
   const caption = props.caption ?? mode.caption;
+
+  const vetoCount = props.vetoCount;
 
   const vetoMint58 = mode.vetoMint58;
   const councilMint58 = getCouncilMint58(realm);
@@ -313,8 +317,24 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
                 <GavelIcon sx={{ opacity: 0.85 }} fontSize="small" />
               </Grid>
               <Grid item>
-                <Typography gutterBottom variant="subtitle1" component="div" sx={{ mb: 0 }}>
-                  {title}
+                <Typography gutterBottom variant="subtitle1" component="div" sx={{ mb: 0, display: "flex", gap: 1, alignItems: "center" }}>
+                {title}
+
+                {typeof vetoCount === "number" && (
+                    <Box
+                    component="span"
+                    sx={{
+                        fontSize: 12,
+                        px: 1,
+                        py: 0.25,
+                        borderRadius: "999px",
+                        border: "1px solid rgba(255,255,255,0.14)",
+                        color: "rgba(255,255,255,0.85)",
+                    }}
+                    >
+                    {vetoCount} veto{vetoCount === 1 ? "" : "es"}
+                    </Box>
+                )}
                 </Typography>
               </Grid>
             </Grid>

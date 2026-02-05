@@ -16,6 +16,7 @@ import {
         getAllTokenOwnerRecordsIndexed,
         getProposalInstructionsIndexed,
 } from './api/queries';
+import { VoteKind } from "@solana/spl-governance";
 import {
     fetchGovernanceLookupFile,
     getFileFromLookup
@@ -264,6 +265,9 @@ export function GovernanceProposalV2View(props: any){
     const [councilVoterRecord, setCouncilVoterRecord] = React.useState<any | null>(null);
 
     const [loadingMessage, setLoadingMessage] = React.useState(null);
+
+    const [vetoCount, setVetoCount] = React.useState<number | null>(null);
+
 
     const [snack, setSnack] = React.useState({ open: false, msg: "" });
     const showSnack = (msg) => setSnack({ open: true, msg });
@@ -1967,6 +1971,24 @@ export function GovernanceProposalV2View(props: any){
             }
         }
 
+        // --- After voteRecord has been set (either from RPC/indexer or cache) ---
+        const rawVoteRecords = Array.isArray(voteRecord) ? voteRecord : [];
+
+        // Your cached shape uses item.vote.vote
+        // Your fresh/indexed shape uses item.account.vote
+        const vetoCount = rawVoteRecords.reduce((acc, it) => {
+        const v = it?.account?.vote ?? it?.vote?.vote; // normalize
+        // SPL-Gov: Veto is VoteKind.Veto OR v.veto === true (defensive)
+        const isVeto =
+            v?.voteType === VoteKind.Veto ||
+            v?.veto === true;
+
+        return acc + (isVeto ? 1 : 0);
+        }, 0);
+
+        // If you want it in React state (so you can pass it to <VetoVoteRow />)
+        setVetoCount?.(vetoCount); // or setProposalVetoCount(vetoCount)
+
         const voteResults = voteRecord;//JSON.parse(JSON.stringify(voteRecord));
         //console.log("1 voteResults.. " + JSON.stringify(voteResults))
         const votingResults = [];
@@ -3367,6 +3389,7 @@ export function GovernanceProposalV2View(props: any){
                                                     publicKey={publicKey}
                                                     sendTransaction={sendTransaction}
                                                     getVotingParticipants={getVotingParticipants}
+                                                    vetoCount={vetoCount ?? undefined}
                                                     />
 
 
