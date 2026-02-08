@@ -1218,20 +1218,22 @@ export function GovernanceCachedView(props: any) {
 
     React.useEffect(() => {
         if (allProposals){
-            if (filterState){
-                //console.log("allProposals: "+JSON.stringify(allProposals))
-                const tmpProps = allProposals
-                    .filter((item) => item.account?.state !== 6)
-                    .sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
-                
-                console.log("Showing only valid props")
-                setProposals(tmpProps)
-            } else{
-                const tmpProps = allProposals
-                    .sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
-                
-                console.log("Showing all props")
-                setProposals(tmpProps)
+            const sortByDraftAtDesc = (a: any, b: any) =>
+            ((b.account?.draftAt ?? 0) - (a.account?.draftAt ?? 0));
+
+            if (filterState) {
+            const tmpProps = allProposals
+                .filter((item) => ![6, 9].includes(item.account?.state))
+                .sort(sortByDraftAtDesc);
+
+            console.log("Showing only valid props (excluding executed + vetoed)");
+            setProposals(tmpProps);
+            } else {
+            const tmpProps = allProposals
+                .sort(sortByDraftAtDesc);
+
+            console.log("Showing all props");
+            setProposals(tmpProps);
             }
         }
     }, [cachedGovernance, allProposals, filterState]);
