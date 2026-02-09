@@ -386,16 +386,23 @@ const fetchStakeAccounts = React.useCallback(
 
               return {
                 pubkey,
+
+                // keep lamports for backwards compat (not used for Solscan-style display)
                 lamports: a.lamports ?? 0,
-                balance: a.balance ?? null,
-                validatorVoteAccount: d?.voter || "N/A",
-                activationEpoch:
-                  d?.activation_epoch ??
-                  d?.activationEpoch ??
-                  "N/A",
-                deactivationEpoch: deact,
-                state,
-              };
+
+                // Shyft SOL fields (IMPORTANT for Solscan-style breakdown)
+                stake_account_address: a.stake_account_address ?? pubkey,
+                vote_account_address: a.vote_account_address ?? a?.stake?.delegation?.voter ?? "N/A",
+                status: a.status ?? a.state ?? "unknown",
+                state: a.state ?? state, // use your derived state fallback
+
+                total_amount: a.total_amount ?? a.balance ?? null,
+                delegated_amount: a.delegated_amount ?? null,
+                active_amount: a.active_amount ?? null,
+                rent: a.rent ?? 0,
+                activation_epoch: a.activation_epoch ?? null,
+                deactivation_epoch: a.deactivation_epoch ?? null,
+                };
             })
             .filter(Boolean) as any[];
 
@@ -959,83 +966,124 @@ const fetchStakeAccounts = React.useCallback(
                                 </Box>
                                 <List dense sx={{ maxHeight: 250, overflow: 'auto' }}>
                                     {stakeAccounts.map((account, index) => {
-                                        const isActive = account.state === 'active';
-                                        const isDeactivating = account.state === 'deactivating';
-                                        const isInactive = account.state === 'initialized' || account.state === 'inactive';
-                                        const canDeactivate = isActive;          // only active needs deactivate
-                                        const canWithdraw = isInactive;          // only initialized/inactive can withdraw now
+                                        const n = (v: any) => {
+                                            const x = Number(v);
+                                            return Number.isFinite(x) ? x : 0;
+                                        };
 
-                                        let statusLabel = 'Unknown';
-                                        let statusColor = 'rgba(255,255,255,0.5)';
-                                        if (isActive) { statusLabel = 'Active'; statusColor = '#4caf50'; }
-                                        else if (isDeactivating) { statusLabel = 'Cooldown'; statusColor = '#ff9800'; }
-                                        else if (isInactive) { statusLabel = 'Withdrawable'; statusColor = '#f44336'; }
+                                        // Shyft-style amounts (SOL)
+                                        const total = n(account.total_amount) || (n(account.lamports) / web3.LAMPORTS_PER_SOL);
+                                        const rent = n(account.rent);
 
-                                        const displayBalance = account.balance 
-                                            ? `${parseFloat(account.balance).toFixed(4)} SOL`
-                                            : `${(account.lamports / web3.LAMPORTS_PER_SOL).toFixed(4)} SOL`;
+                                        // Prefer delegated_amount (Solscan uses delegated stake), fall back to active_amount
+                                        const delegated = n(account.delegated_amount);
+                                        const activeAmt = n(account.active_amount);
+                                        const activeStake = delegated > 0 ? delegated : activeAmt;
+
+                                        // ✅ Solscan inactive stake
+                                        const inactiveStake = Math.max(total - activeStake - rent, 0);
+
+                                        // your existing state machine
+                                        const isActive = account.state === "active";
+                                        const isDeactivating = account.state === "deactivating";
+                                        const isInactive = account.state === "initialized" || account.state === "inactive";
+
+                                        // Action rules (real-world):
+                                        // - Deactivate: only if currently active
+                                        // - Withdraw: only if stake account is inactive/initialized (cooldown finished)
+                                        const canDeactivate = isActive;
+                                        const canWithdraw = isInactive;
+
+                                        // Label/color (but also show "has inactive stake" even if active)
+                                        let statusLabel = "Unknown";
+                                        let statusColor = "rgba(255,255,255,0.5)";
+                                        if (isActive) { statusLabel = "Active"; statusColor = "#4caf50"; }
+                                        else if (isDeactivating) { statusLabel = "Cooldown"; statusColor = "#ff9800"; }
+                                        else if (isInactive) { statusLabel = "Withdrawable"; statusColor = "#f44336"; }
+
+                                        // If it has inactive stake while still active, show that nuance
+                                        if (isActive && inactiveStake > 0.000000001) {
+                                            statusLabel = "Active + Inactive";
+                                            statusColor = "#ff9800";
+                                        }
+
+                                        const displayTotal = total.toFixed(4);
+                                        const displayUsd =
+                                            usdcValue?.["So11111111111111111111111111111111111111112"]?.usdPrice
+                                            ? `$${(total * usdcValue["So11111111111111111111111111111111111111112"].usdPrice)
+                                                .toFixed(2)
+                                                .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
+                                            : "";
+
+                                        const displayVote = account.vote_account_address || account.validatorVoteAccount || "N/A";
 
                                         return (
-                                            <ListItem 
-                                                key={index}
-                                                sx={{ 
-                                                    borderRadius: '10px', 
-                                                    mb: 0.5, 
-                                                    backgroundColor: unstakeAddress === account.pubkey 
-                                                        ? 'rgba(255,255,255,0.1)' 
-                                                        : 'rgba(255,255,255,0.03)',
-                                                    cursor: 'pointer',
-                                                    '&:hover': { backgroundColor: 'rgba(255,255,255,0.07)' }
+                                            <ListItem
+                                            key={index}
+                                            sx={{
+                                                borderRadius: "10px",
+                                                mb: 0.5,
+                                                backgroundColor: unstakeAddress === account.pubkey
+                                                ? "rgba(255,255,255,0.1)"
+                                                : "rgba(255,255,255,0.03)",
+                                                cursor: "pointer",
+                                                "&:hover": { backgroundColor: "rgba(255,255,255,0.07)" },
+                                            }}
+                                            onClick={() => {
+                                                setUnstakeAddress(account.pubkey);
+
+                                                // keep your behavior, but don’t auto-switch to withdraw unless truly withdrawable
+                                                if (isActive) setUnstakeAction("deactivate");
+                                                else if (isInactive) setUnstakeAction("withdraw");
+                                                else if (isDeactivating) setUnstakeAction("deactivate");
+                                            }}
+                                            secondaryAction={
+                                                <Chip
+                                                label={statusLabel}
+                                                size="small"
+                                                sx={{
+                                                    color: statusColor,
+                                                    borderColor: statusColor,
+                                                    fontSize: "0.7rem",
                                                 }}
-                                                onClick={() => {
-                                                    setUnstakeAddress(account.pubkey);
-                                                    // Auto-select appropriate action based on state
-                                                    if (isActive) {
-                                                        setUnstakeAction('deactivate');
-                                                    } else if (isInactive) {
-                                                    // initialized OR inactive => withdrawable now
-                                                        setUnstakeAction('withdraw');
-                                                    } else if (isDeactivating) {
-                                                    // cooling down: NOT withdrawable yet
-                                                        setUnstakeAction('deactivate'); // or keep current selection; just don't force withdraw
-                                                    }
-                                                }}
-                                                secondaryAction={
-                                                    <Chip 
-                                                        label={statusLabel} 
-                                                        size="small"
-                                                        sx={{ 
-                                                            color: statusColor, 
-                                                            borderColor: statusColor,
-                                                            fontSize: '0.7rem'
-                                                        }} 
-                                                        variant="outlined"
-                                                    />
-                                                }
-                                            >
-                                                <ListItemIcon>
-                                                    <LockIcon fontSize="small" sx={{ color: statusColor }} />
-                                                </ListItemIcon>
-                                                <ListItemText
-                                                    primary={
-                                                        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
-                                                            {typeof account.pubkey === "string"
-                                                                ? `${account.pubkey.slice(0, 8)}...${account.pubkey.slice(-8)}`
-                                                                : "Unknown stake"}
-                                                        </Typography>
-                                                    }
-                                                    secondary={
-                                                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
-                                                            {displayBalance}
-                                                            {account.validatorVoteAccount !== 'N/A' && 
-                                                                ` • Validator: ${account.validatorVoteAccount.substring(0, 6)}...`
-                                                            }
-                                                        </Typography>
-                                                    }
+                                                variant="outlined"
                                                 />
+                                            }
+                                            >
+                                            <ListItemIcon>
+                                                <LockIcon fontSize="small" sx={{ color: statusColor }} />
+                                            </ListItemIcon>
+
+                                            <ListItemText
+                                                primary={
+                                                <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: "0.8rem" }}>
+                                                    {typeof account.pubkey === "string"
+                                                    ? `${account.pubkey.slice(0, 8)}...${account.pubkey.slice(-8)}`
+                                                    : "Unknown stake"}
+                                                </Typography>
+                                                }
+                                                secondary={
+                                                <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)" }}>
+                                                    {/* ✅ Solscan-like breakdown */}
+                                                    {`Active: ${activeStake.toFixed(4)} SOL • Inactive: ${inactiveStake.toFixed(4)} SOL`}
+                                                    {rent > 0 ? ` • Rent: ${rent.toFixed(4)} SOL` : ""}
+                                                    {displayVote !== "N/A" ? ` • Validator: ${String(displayVote).substring(0, 6)}...` : ""}
+                                                </Typography>
+                                                }
+                                            />
+
+                                            {/* Right-aligned total value (matches your UI screenshot) */}
+                                            <Box sx={{ ml: 2, textAlign: "right" }}>
+                                                <Typography variant="subtitle1" sx={{ color: "white" }}>
+                                                {displayTotal}
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ color: "#919EAB" }}>
+                                                {displayUsd}
+                                                </Typography>
+                                            </Box>
                                             </ListItem>
                                         );
-                                    })}
+                                        })}
                                 </List>
                             </Box>
                         ) : (
