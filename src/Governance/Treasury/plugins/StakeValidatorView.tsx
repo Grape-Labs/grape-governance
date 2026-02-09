@@ -147,6 +147,15 @@ function TabPanel(props: TabPanelProps) {
     );
 }
 
+// Helper to extract instruction from StakeProgram methods
+// (some @solana/web3.js versions return Transaction, others return TransactionInstruction)
+const extractInstruction = (result: any): TransactionInstruction => {
+    if ('instructions' in result) {
+        return result.instructions[0] as TransactionInstruction;
+    }
+    return result as TransactionInstruction;
+};
+
 export default function StakeValidatorView(props: any){
     const setReload = props?.setReload;
     const governanceLookup = props.governanceLookup;
@@ -193,6 +202,7 @@ export default function StakeValidatorView(props: any){
 
     // Unstaking state
     const [unstakeAddress, setUnstakeAddress] = React.useState('');
+    const [unstakeAction, setUnstakeAction] = React.useState<'deactivate' | 'withdraw'>('deactivate');
     const [stakeAccounts, setStakeAccounts] = React.useState<any[]>([]);
     const [loadingStakeAccounts, setLoadingStakeAccounts] = React.useState(false);
 
@@ -285,54 +295,113 @@ export default function StakeValidatorView(props: any){
         }
     };
 
-    // Fetch stake accounts owned by the governance native wallet
+    // Fetch stake accounts via Shyft API with RPC fallback
     const fetchStakeAccounts = async () => {
         try {
             setLoadingStakeAccounts(true);
-            const nativeWalletPubkey = new PublicKey(governanceNativeWallet);
-
-            // Get all stake accounts where the staker authority is the governance wallet
-            const stakeAccountsResponse = await RPC_CONNECTION.getParsedProgramAccounts(
-                StakeProgram.programId,
-                {
-                    filters: [
-                        {
-                            memcmp: {
-                                offset: 12, // Offset for the staker authority in stake account data
-                                bytes: nativeWalletPubkey.toBase58(),
-                            },
+            
+            let accounts: any[] = [];
+            
+            try {
+                // Try Shyft first
+                const response = await axios.get(
+                    `https://api.shyft.to/sol/v1/wallet/stake_accounts`,
+                    {
+                        params: {
+                            network: 'mainnet-beta',
+                            wallet_address: governanceNativeWallet,
                         },
-                    ],
-                }
-            );
+                        headers: {
+                            'x-api-key': SHYFT_KEY,
+                        },
+                        timeout: 10000,
+                    }
+                );
 
-            const accounts = stakeAccountsResponse.map((account: any) => {
-                const parsedData = account.account.data?.parsed?.info;
-                const stakeInfo = parsedData?.stake;
-                const meta = parsedData?.meta;
+                if (response.data?.success && response.data?.result) {
+                    accounts = response.data.result.map((account: any) => {
+                        const delegation = account.stake?.delegation;
+                        const deactivationEpoch = delegation?.deactivation_epoch || 'N/A';
+                        const isActive = delegation && deactivationEpoch === '18446744073709551615';
+                        const isDeactivating = delegation && deactivationEpoch !== '18446744073709551615' && deactivationEpoch !== 'N/A';
+                        
+                        let state = 'unknown';
+                        if (isActive) state = 'active';
+                        else if (isDeactivating) state = 'deactivating';
+                        else if (account.type === 'initialized') state = 'initialized';
+                        else if (account.type === 'inactive' || !delegation) state = 'inactive';
+                        else state = account.type || 'unknown';
+
+                        return {
+                            pubkey: account.pubkey || account.address,
+                            lamports: account.lamports,
+                            balance: account.balance,
+                            validatorVoteAccount: delegation?.voter || 'N/A',
+                            activationEpoch: delegation?.activation_epoch || 'N/A',
+                            deactivationEpoch: deactivationEpoch,
+                            staker: account.meta?.authorized?.staker || account.authorized_staker || 'N/A',
+                            withdrawer: account.meta?.authorized?.withdrawer || account.authorized_withdrawer || 'N/A',
+                            state: state,
+                        };
+                    });
+                }
+            } catch (shyftError) {
+                console.warn("Shyft API failed, falling back to RPC:", shyftError);
                 
-                return {
-                    pubkey: account.pubkey.toBase58(),
-                    lamports: account.account.lamports,
-                    validatorVoteAccount: stakeInfo?.delegation?.voter || 'N/A',
-                    activationEpoch: stakeInfo?.delegation?.activationEpoch || 'N/A',
-                    deactivationEpoch: stakeInfo?.delegation?.deactivationEpoch || 'N/A',
-                    staker: meta?.authorized?.staker || 'N/A',
-                    withdrawer: meta?.authorized?.withdrawer || 'N/A',
-                    state: parsedData?.type || 'unknown', // 'delegated', 'initialized', 'inactive', etc.
-                };
-            });
+                // Fallback: use getParsedProgramAccounts
+                const nativeWalletPubkey = new PublicKey(governanceNativeWallet);
+                const stakeAccountsResponse = await RPC_CONNECTION.getParsedProgramAccounts(
+                    StakeProgram.programId,
+                    {
+                        filters: [
+                            {
+                                memcmp: {
+                                    offset: 12,
+                                    bytes: nativeWalletPubkey.toBase58(),
+                                },
+                            },
+                        ],
+                    }
+                );
+
+                accounts = stakeAccountsResponse.map((account: any) => {
+                    const parsedData = account.account.data?.parsed?.info;
+                    const stakeInfo = parsedData?.stake;
+                    const meta = parsedData?.meta;
+                    const deactivationEpoch = stakeInfo?.delegation?.deactivationEpoch || 'N/A';
+                    const stakeType = parsedData?.type || 'unknown';
+
+                    let state = 'unknown';
+                    if (stakeType === 'delegated' && deactivationEpoch === '18446744073709551615') state = 'active';
+                    else if (stakeType === 'delegated' && deactivationEpoch !== '18446744073709551615') state = 'deactivating';
+                    else if (stakeType === 'initialized') state = 'initialized';
+                    else if (stakeType === 'inactive') state = 'inactive';
+
+                    return {
+                        pubkey: account.pubkey.toBase58(),
+                        lamports: account.account.lamports,
+                        balance: null,
+                        validatorVoteAccount: stakeInfo?.delegation?.voter || 'N/A',
+                        activationEpoch: stakeInfo?.delegation?.activationEpoch || 'N/A',
+                        deactivationEpoch: deactivationEpoch,
+                        staker: meta?.authorized?.staker || 'N/A',
+                        withdrawer: meta?.authorized?.withdrawer || 'N/A',
+                        state: state,
+                    };
+                });
+            }
 
             setStakeAccounts(accounts);
         } catch (error) {
             console.error("Error fetching stake accounts:", error);
             enqueueSnackbar("Failed to fetch stake accounts", { variant: 'error' });
+            setStakeAccounts([]);
         } finally {
             setLoadingStakeAccounts(false);
         }
     };
 
-    // Create staking instructions (with bug fixes)
+    // Create staking instructions
     const createStakingInstructions = async (stakeAmountLamports: number): Promise<TransactionInstruction[]> => {
         try {
             const seed = stakeSeed;
@@ -346,7 +415,6 @@ export default function StakeValidatorView(props: any){
 
             const rentExemptLamports = await RPC_CONNECTION.getMinimumBalanceForRentExemption(StakeProgram.space);
 
-            // BUG FIX: Include the actual stake amount + rent in the account creation
             const createStakeAccountIx = SystemProgram.createAccountWithSeed({
                 fromPubkey: nativeWalletPubkey,
                 newAccountPubkey: stakePubkey,
@@ -357,30 +425,24 @@ export default function StakeValidatorView(props: any){
                 programId: StakeProgram.programId,
             });
 
-            // StakeProgram methods may return Transaction or TransactionInstruction depending on version
-            const initializeResult = StakeProgram.initialize({
-                stakePubkey: stakePubkey,
-                authorized: new Authorized(
-                    nativeWalletPubkey,
-                    nativeWalletPubkey
-                ),
-                lockup: new Lockup(0, 0, nativeWalletPubkey),
-            });
+            const initializeStakeIx = extractInstruction(
+                StakeProgram.initialize({
+                    stakePubkey: stakePubkey,
+                    authorized: new Authorized(
+                        nativeWalletPubkey,
+                        nativeWalletPubkey
+                    ),
+                    lockup: new Lockup(0, 0, nativeWalletPubkey),
+                })
+            );
 
-            const initializeStakeIx = 'instructions' in (initializeResult as any)
-                ? (initializeResult as any).instructions[0] as TransactionInstruction
-                : initializeResult as unknown as TransactionInstruction;
-
-            // Delegate the stake to the validator
-            const delegateResult = StakeProgram.delegate({
-                stakePubkey: stakePubkey,
-                authorizedPubkey: nativeWalletPubkey,
-                votePubkey: new PublicKey(validatorVoteAddress),
-            });
-
-            const delegateStakeIx = 'instructions' in (delegateResult as any)
-                ? (delegateResult as any).instructions[0] as TransactionInstruction
-                : delegateResult as unknown as TransactionInstruction;
+            const delegateStakeIx = extractInstruction(
+                StakeProgram.delegate({
+                    stakePubkey: stakePubkey,
+                    authorizedPubkey: nativeWalletPubkey,
+                    votePubkey: new PublicKey(validatorVoteAddress),
+                })
+            );
 
             return [createStakeAccountIx, initializeStakeIx, delegateStakeIx];
         } catch (error) {
@@ -389,19 +451,17 @@ export default function StakeValidatorView(props: any){
         }
     }
 
-    // Create deactivate (unstake) instructions
+    // Create deactivate instructions
     const createDeactivateInstructions = (stakeAccountPubkey: PublicKey): TransactionInstruction[] => {
         try {
             const nativeWalletPubkey = new PublicKey(governanceNativeWallet);
 
-            const deactivateResult = StakeProgram.deactivate({
-                stakePubkey: stakeAccountPubkey,
-                authorizedPubkey: nativeWalletPubkey,
-            });
-
-            const deactivateIx = 'instructions' in (deactivateResult as any)
-                ? (deactivateResult as any).instructions[0] as TransactionInstruction
-                : deactivateResult as unknown as TransactionInstruction;
+            const deactivateIx = extractInstruction(
+                StakeProgram.deactivate({
+                    stakePubkey: stakeAccountPubkey,
+                    authorizedPubkey: nativeWalletPubkey,
+                })
+            );
 
             return [deactivateIx];
         } catch (error) {
@@ -410,21 +470,19 @@ export default function StakeValidatorView(props: any){
         }
     }
 
-    // Create withdraw instructions (for fully deactivated stake accounts)
+    // Create withdraw instructions
     const createWithdrawInstructions = (stakeAccountPubkey: PublicKey, lamports: number): TransactionInstruction[] => {
         try {
             const nativeWalletPubkey = new PublicKey(governanceNativeWallet);
 
-            const withdrawResult = StakeProgram.withdraw({
-                stakePubkey: stakeAccountPubkey,
-                authorizedPubkey: nativeWalletPubkey,
-                toPubkey: nativeWalletPubkey,
-                lamports: lamports,
-            });
-
-            const withdrawIx = 'instructions' in (withdrawResult as any)
-                ? (withdrawResult as any).instructions[0] as TransactionInstruction
-                : withdrawResult as unknown as TransactionInstruction;
+            const withdrawIx = extractInstruction(
+                StakeProgram.withdraw({
+                    stakePubkey: stakeAccountPubkey,
+                    authorizedPubkey: nativeWalletPubkey,
+                    toPubkey: nativeWalletPubkey,
+                    lamports: lamports,
+                })
+            );
 
             return [withdrawIx];
         } catch (error) {
@@ -455,13 +513,9 @@ export default function StakeValidatorView(props: any){
                 return;
             }
 
-            // Convert SOL amount to lamports
             const stakeAmountLamports = Math.floor(web3.LAMPORTS_PER_SOL * stakeAmount);
-
-            // Create staking instructions with the actual stake amount
             const stakingIxs = await createStakingInstructions(stakeAmountLamports);
 
-            // Simulate transaction
             const status = await simulateIx(new Transaction().add(...stakingIxs));
             if (!status) {
                 enqueueSnackbar("Transaction simulation failed", { variant: 'error' });
@@ -479,7 +533,6 @@ export default function StakeValidatorView(props: any){
             }
 
             console.log("propIx: ", JSON.stringify(propIx));
-
             setInstructions(propIx);
             setExpandedLoader(true);
         } catch (error) {
@@ -498,7 +551,6 @@ export default function StakeValidatorView(props: any){
             const stakeAccountPubkey = new PublicKey(stakeAccountAddress);
             const deactivateIxs = createDeactivateInstructions(stakeAccountPubkey);
 
-            // Simulate
             const status = await simulateIx(new Transaction().add(...deactivateIxs));
             if (!status) {
                 enqueueSnackbar("Transaction simulation failed", { variant: 'error' });
@@ -516,7 +568,6 @@ export default function StakeValidatorView(props: any){
             }
 
             console.log("propIx (deactivate): ", JSON.stringify(propIx));
-
             setInstructions(propIx);
             setExpandedLoader(true);
         } catch (error) {
@@ -535,7 +586,6 @@ export default function StakeValidatorView(props: any){
             const stakeAccountPubkey = new PublicKey(stakeAccountAddress);
             const withdrawIxs = createWithdrawInstructions(stakeAccountPubkey, lamports);
 
-            // Simulate
             const status = await simulateIx(new Transaction().add(...withdrawIxs));
             if (!status) {
                 enqueueSnackbar("Transaction simulation failed", { variant: 'error' });
@@ -553,7 +603,6 @@ export default function StakeValidatorView(props: any){
             }
 
             console.log("propIx (withdraw): ", JSON.stringify(propIx));
-
             setInstructions(propIx);
             setExpandedLoader(true);
         } catch (error) {
@@ -562,47 +611,32 @@ export default function StakeValidatorView(props: any){
         }
     }
 
-    // Handle unstake using a manually entered address
-    const handleUnstakeManual = async () => {
+    // Handle unstake action based on dropdown selection
+    const handleUnstakeAction = async () => {
         if (!unstakeAddress) {
             enqueueSnackbar("Please enter a stake account address", { variant: 'error' });
             return;
         }
 
         try {
-            const stakeAccountPubkey = new PublicKey(unstakeAddress);
-            
-            // Fetch the account to determine its state
-            const accountInfo = await RPC_CONNECTION.getParsedAccountInfo(stakeAccountPubkey);
-            
-            if (!accountInfo || !accountInfo.value) {
-                enqueueSnackbar("Stake account not found", { variant: 'error' });
-                return;
-            }
-
-            const parsedData = (accountInfo.value.data as any)?.parsed?.info;
-            const stakeType = parsedData?.type; // 'delegated', 'initialized', 'inactive'
-            const deactivationEpoch = parsedData?.stake?.delegation?.deactivationEpoch;
-            const lamports = accountInfo.value.lamports;
-
-            const currentEpoch = (await RPC_CONNECTION.getEpochInfo()).epoch;
-
-            if (stakeType === 'delegated' && deactivationEpoch === '18446744073709551615') {
-                // Active stake — needs deactivation first
+            if (unstakeAction === 'deactivate') {
                 await handleDeactivateIx(unstakeAddress);
-            } else if (stakeType === 'delegated' && Number(deactivationEpoch) <= currentEpoch) {
-                // Deactivated and cooldown complete — withdraw
+            } else if (unstakeAction === 'withdraw') {
+                // Fetch account to get lamports for full withdrawal
+                const stakeAccountPubkey = new PublicKey(unstakeAddress);
+                const accountInfo = await RPC_CONNECTION.getParsedAccountInfo(stakeAccountPubkey);
+                
+                if (!accountInfo || !accountInfo.value) {
+                    enqueueSnackbar("Stake account not found", { variant: 'error' });
+                    return;
+                }
+
+                const lamports = accountInfo.value.lamports;
                 await handleWithdrawIx(unstakeAddress, lamports);
-            } else if (stakeType === 'initialized' || stakeType === 'inactive') {
-                // Not delegated — can withdraw directly
-                await handleWithdrawIx(unstakeAddress, lamports);
-            } else {
-                // Still in cooldown
-                enqueueSnackbar(`Stake is deactivating. Cooldown ends after epoch ${deactivationEpoch}. Current epoch: ${currentEpoch}`, { variant: 'warning' });
             }
         } catch (error) {
-            enqueueSnackbar("Failed to process unstake", { variant: 'error' });
-            console.error('Failed to process unstake:', error);
+            enqueueSnackbar("Failed to process unstake action", { variant: 'error' });
+            console.error('Failed to process unstake action:', error);
         }
     }
 
@@ -624,7 +658,6 @@ export default function StakeValidatorView(props: any){
                 setIsGoverningMintCouncilSelected(false);
             }
         }
-        // BUG FIX: Actually set the seed state
         if (!stakeSeed){
             setStakeSeed(generateUniqueSeed());
         }
@@ -795,6 +828,35 @@ export default function StakeValidatorView(props: any){
                         <FormControl fullWidth>
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
+                                    <TextField
+                                        select
+                                        fullWidth
+                                        label="Action"
+                                        value={unstakeAction}
+                                        onChange={(e) => setUnstakeAction(e.target.value as 'deactivate' | 'withdraw')}
+                                        variant="filled"
+                                        sx={{ m: 0.65 }}
+                                        helperText={
+                                            unstakeAction === 'deactivate' 
+                                                ? "Deactivate begins the cooldown period (~2-3 days). Stake remains locked until the epoch ends."
+                                                : "Withdraw returns SOL to the governance wallet. Only works on inactive/deactivated accounts."
+                                        }
+                                    >
+                                        <MenuItem value="deactivate">
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <LockOpenIcon fontSize="small" />
+                                                Deactivate Stake
+                                            </Box>
+                                        </MenuItem>
+                                        <MenuItem value="withdraw">
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <GetAppIcon fontSize="small" />
+                                                Withdraw Stake
+                                            </Box>
+                                        </MenuItem>
+                                    </TextField>
+                                </Grid>
+                                <Grid item xs={12}>
                                     <TextField 
                                         fullWidth 
                                         label="Stake Account Address" 
@@ -804,7 +866,7 @@ export default function StakeValidatorView(props: any){
                                         onChange={(e) => setUnstakeAddress(e.target.value)}
                                         variant="filled"
                                         required
-                                        helperText="Enter a stake account address to deactivate or withdraw."
+                                        helperText="Enter a stake account address or select one from the list below."
                                         sx={{ m: 0.65 }}
                                     />
                                 </Grid>
@@ -831,8 +893,8 @@ export default function StakeValidatorView(props: any){
                                 </Box>
                                 <List dense sx={{ maxHeight: 250, overflow: 'auto' }}>
                                     {stakeAccounts.map((account, index) => {
-                                        const isActive = account.state === 'delegated' && account.deactivationEpoch === '18446744073709551615';
-                                        const isDeactivating = account.state === 'delegated' && account.deactivationEpoch !== '18446744073709551615';
+                                        const isActive = account.state === 'active';
+                                        const isDeactivating = account.state === 'deactivating';
                                         const isInactive = account.state === 'initialized' || account.state === 'inactive';
 
                                         let statusLabel = 'Unknown';
@@ -841,17 +903,31 @@ export default function StakeValidatorView(props: any){
                                         else if (isDeactivating) { statusLabel = 'Deactivating'; statusColor = '#ff9800'; }
                                         else if (isInactive) { statusLabel = 'Inactive'; statusColor = '#f44336'; }
 
+                                        const displayBalance = account.balance 
+                                            ? `${parseFloat(account.balance).toFixed(4)} SOL`
+                                            : `${(account.lamports / web3.LAMPORTS_PER_SOL).toFixed(4)} SOL`;
+
                                         return (
                                             <ListItem 
                                                 key={index}
                                                 sx={{ 
                                                     borderRadius: '10px', 
                                                     mb: 0.5, 
-                                                    backgroundColor: 'rgba(255,255,255,0.03)',
+                                                    backgroundColor: unstakeAddress === account.pubkey 
+                                                        ? 'rgba(255,255,255,0.1)' 
+                                                        : 'rgba(255,255,255,0.03)',
                                                     cursor: 'pointer',
                                                     '&:hover': { backgroundColor: 'rgba(255,255,255,0.07)' }
                                                 }}
-                                                onClick={() => setUnstakeAddress(account.pubkey)}
+                                                onClick={() => {
+                                                    setUnstakeAddress(account.pubkey);
+                                                    // Auto-select appropriate action based on state
+                                                    if (isActive) {
+                                                        setUnstakeAction('deactivate');
+                                                    } else if (isInactive || isDeactivating) {
+                                                        setUnstakeAction('withdraw');
+                                                    }
+                                                }}
                                                 secondaryAction={
                                                     <Chip 
                                                         label={statusLabel} 
@@ -876,7 +952,7 @@ export default function StakeValidatorView(props: any){
                                                     }
                                                     secondary={
                                                         <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
-                                                            {(account.lamports / web3.LAMPORTS_PER_SOL).toFixed(4)} SOL
+                                                            {displayBalance}
                                                             {account.validatorVoteAccount !== 'N/A' && 
                                                                 ` • Validator: ${account.validatorVoteAccount.substring(0, 6)}...`
                                                             }
@@ -973,7 +1049,7 @@ export default function StakeValidatorView(props: any){
                                     ) : (
                                         <Button 
                                             autoFocus 
-                                            onClick={handleUnstakeManual}
+                                            onClick={handleUnstakeAction}
                                             sx={{
                                                 p:1,
                                                 borderRadius:'17px',
@@ -981,9 +1057,13 @@ export default function StakeValidatorView(props: any){
                                                     color:'rgba(255,255,255,0.90)'
                                                 }
                                             }}
-                                            startIcon={<LockOpenIcon sx={{ color:'rgba(255,255,255,0.25)', fontSize:"14px!important"}} />}
+                                            startIcon={
+                                                unstakeAction === 'deactivate' 
+                                                    ? <LockOpenIcon sx={{ color:'rgba(255,255,255,0.25)', fontSize:"14px!important"}} />
+                                                    : <GetAppIcon sx={{ color:'rgba(255,255,255,0.25)', fontSize:"14px!important"}} />
+                                            }
                                         >
-                                            Unstake
+                                            {unstakeAction === 'deactivate' ? 'Deactivate' : 'Withdraw'}
                                         </Button>
                                     )}
                                 </>
