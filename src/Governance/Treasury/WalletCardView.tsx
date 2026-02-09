@@ -124,6 +124,8 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import ShareIcon from '@mui/icons-material/Share';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import VerticalAlignTopIcon from '@mui/icons-material/VerticalAlignTop';
+import LockIcon from '@mui/icons-material/Lock';
 import { getNativeTreasuryAddress } from '@solana/spl-governance';
 
 import { gistApi, resolveProposalDescription } from '../../utils/grapeTools/github';
@@ -1035,124 +1037,284 @@ export default function WalletCardView(props:any) {
         )
     }
 
-    const StakeAccountsView = () => {
-        const [loadingStake, setLoadingStake] = React.useState(false);
-        const [nativeStake, setNativeStake] = React.useState(null);
+const StakeAccountsView = () => {
+  const [loadingStake, setLoadingStake] = React.useState(false);
+  const [nativeStake, setNativeStake] = React.useState<any[] | null>(null);
 
-        const fetchStakeAccounts = async() =>{
-            setLoadingStake(true);
-            //isLoading.current = true;
-            try{
-               
-                // get stake accounts
-                const stake1 = await getWalletStakeAccounts(new PublicKey(walletAddress));
-                //const stake2 = await getWalletStakeAccounts(new PublicKey(rulesWalletAddress));
-
-                //setNativeStakeAccounts(stake1);
-                setNativeStake(stake1);
-                setLoadingStake(false);
-            }catch(e){
-                setLoadingStake(false);
-            }
-        }
-
-        const handleAddressCopy = () => {
-            setIsCopied(true);
-        };
-
-        React.useEffect(() => { 
-            if (!loadingStake && !nativeStake){
-                fetchStakeAccounts();
-            }
-        }, []);
-
-
-        return (
-            <>
-                {loadingStake ?
-                    <Grid container justifyContent={'center'} alignContent={'center'} sx={{mt:2}}>
-                        <CircularProgress />        
-                    </Grid>
-                :
-                <>
-                    {(nativeStake && nativeStake.length > 0) ? nativeStake
-                        .sort((a:any,b:any) => (b.total_amount - a.total_amount))
-                        .map((item: any,key:number) => (  
-                            <> 
-                                <ListItem
-                                    secondaryAction={
-                                        <Box sx={{textAlign:'right'}}>
-                                            <Typography variant="subtitle1" sx={{color:'white'}}>
-                                                {item.total_amount}
-                                            </Typography>
-                                            <Typography variant="caption" sx={{color:'#919EAB'}}>
-                                            {usdcValue ? 
-                                                <>{usdcValue['So11111111111111111111111111111111111111112'] ? 
-                                                    <>${(((item.total_amount) * usdcValue['So11111111111111111111111111111111111111112']?.usdPrice).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
-                                                    :<></>
-                                                }</>
-                                            :<></>}</Typography>
-                                        </Box>
-                                    }
-                                    key={key}
-                                >
-                                    <ListItemAvatar>
-                                        <Avatar>
-                                            <AccessTimeIcon />
-                                        </Avatar>
-                                    </ListItemAvatar>
-                                    <ListItemText 
-                                        primary={
-                                            <CopyToClipboard text={item.stake_account_address} onCopy={handleAddressCopy}>
-                                                <Button 
-                                                    color={'inherit'} 
-                                                    variant='text' 
-                                                    sx={{m:0,
-                                                        p:0,
-                                                        textAlign:'right',
-                                                        mintWidth:'' , 
-                                                            '&:hover .MuiSvgIcon-root': {
-                                                                opacity: 1,
-                                                            },
-                                                        }}
-                                                    endIcon={
-                                                    <FileCopyIcon 
-                                                        fontSize={'small'} 
-                                                        sx={{
-                                                            color:'rgba(255,255,255,0.25)',
-                                                            pr:1,
-                                                            opacity: 0,
-                                                            fontSize:"10px"}} />
-                                                    }
-                                                    
-                                                >
-                                                    <Typography variant="subtitle1" sx={{color:'white'}}>{shortenString(item.stake_account_address,5,5)}</Typography>
-                                                </Button>
-                                            </CopyToClipboard>
-                                        } 
-                                        secondary={
-                                            <>
-                                            {item.status}
-                                            </>
-                                        }
-                                        />
-                                </ListItem>
-                                {key+1 < nativeStake.length && <Divider variant="inset" component="li" light />}
-                            </>
-                        ))
-                    :<>
-                        <Grid container justifyContent={'center'} alignContent={'center'} sx={{mt:2}}>
-                            <Typography variant="caption" sx={{color:'#919EAB'}}>
-                                No stake accounts for this address
-                            </Typography>
-                        </Grid>
-                    </>
-                    }
-                </>
-                }
-            </>
-        )
+  const fetchStakeAccounts = async () => {
+    setLoadingStake(true);
+    try {
+      const stake1 = await getWalletStakeAccounts(new PublicKey(walletAddress));
+      setNativeStake(Array.isArray(stake1) ? stake1 : []);
+    } catch (e) {
+      setNativeStake([]);
+    } finally {
+      setLoadingStake(false);
     }
+  };
+
+  const handleAddressCopy = () => setIsCopied(true);
+
+  React.useEffect(() => {
+    if (!loadingStake && !nativeStake) fetchStakeAccounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <>
+      {loadingStake ? (
+        <Grid container justifyContent={"center"} alignContent={"center"} sx={{ mt: 2 }}>
+          <CircularProgress />
+        </Grid>
+      ) : (
+        <>
+          {nativeStake && nativeStake.length > 0 ? (
+            (() => {
+              const SOL_MINT = "So11111111111111111111111111111111111111112";
+              const solUsd = usdcValue?.[SOL_MINT]?.usdPrice ?? null;
+
+              const n = (v: any) => {
+                const x = Number(v);
+                return Number.isFinite(x) ? x : 0;
+              };
+
+              const toUsd = (amt: number) =>
+                solUsd != null
+                  ? `$${(amt * solUsd).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
+                  : "";
+
+              const lower = (v: any) => String(v ?? "").toLowerCase();
+
+              // Solscan-style:
+              // - If account is delegated/active-ish: Active = delegated_amount (preferred), Inactive = total - delegated - rent
+              // - If account is inactive/initialized: Active = 0, Inactive = total - rent
+              const computeSolscan = (item: any) => {
+                const total = n(item.total_amount);
+                const rent = n(item.rent);
+
+                const state = lower(item.state);
+                const status = lower(item.status);
+
+                const looksDelegated =
+                  state === "active" ||
+                  state === "deactivating" ||
+                  status === "delegated" ||
+                  status.includes("delegated");
+
+                const delegated = n(item.delegated_amount);
+                const activeAmt = n(item.active_amount);
+
+                // Prefer delegated_amount IF it looks sane (<= total). Otherwise fallback to active_amount.
+                const stakedActive = looksDelegated
+                  ? Math.min(
+                      total,
+                      delegated > 0 && delegated <= total ? delegated : activeAmt
+                    )
+                  : 0;
+
+                const inactiveStake = looksDelegated
+                  ? Math.max(total - stakedActive - rent, 0)
+                  : Math.max(total - rent, 0);
+
+                return {
+                  total,
+                  rent,
+                  stakedActive,
+                  inactiveStake,
+                  looksDelegated,
+                  state,
+                  status,
+                };
+              };
+
+              const enhanced = nativeStake
+                .map((item: any) => {
+                  const addr =
+                    item.stake_account_address || item.pubkey || item.address || "";
+
+                  const calc = computeSolscan(item);
+
+                  // Buckets for ordering/labels (Solscan shows inactive stake even for active accounts)
+                  const bucket =
+                    calc.inactiveStake > 1e-9 ? "hasInactive" : "noInactive";
+
+                  return {
+                    ...item,
+                    __addr: addr,
+                    __total: calc.total,
+                    __rent: calc.rent,
+                    __activeStake: calc.stakedActive,
+                    __inactiveStake: calc.inactiveStake,
+                    __bucket: bucket,
+                    __state: calc.state,
+                    __status: calc.status,
+                    __looksDelegated: calc.looksDelegated,
+                  };
+                })
+                // Sort: show accounts with inactive stake first (like “inactive stake” is interesting), then by total desc
+                .sort((a: any, b: any) => {
+                  if (a.__bucket !== b.__bucket) {
+                    if (a.__bucket === "hasInactive") return -1;
+                    if (b.__bucket === "hasInactive") return 1;
+                  }
+                  return b.__total - a.__total;
+                });
+
+              const sum = (arr: any[], field: string) =>
+                arr.reduce((acc, x) => acc + (x[field] || 0), 0);
+
+              const stakedTotal = sum(enhanced, "__activeStake");
+              const inactiveTotal = sum(enhanced, "__inactiveStake");
+
+              const renderRow = (item: any, key: number) => {
+                const addr = item.__addr;
+
+                const hasInactive = item.__inactiveStake > 1e-9;
+                const hasActive = item.__activeStake > 1e-9;
+
+                // Chip / icon
+                let label = "Unknown";
+                let chipSx: any = {
+                  borderColor: "rgba(255,255,255,0.25)",
+                  color: "rgba(255,255,255,0.6)",
+                };
+                let avatarSx: any = { bgcolor: "rgba(255,255,255,0.08)" };
+                let icon = <AccessTimeIcon />;
+
+                if (hasInactive && hasActive) {
+                  label = "Active + Inactive";
+                  chipSx = { borderColor: "#ff9800", color: "#ff9800" };
+                  avatarSx = { bgcolor: "rgba(255,152,0,0.15)" };
+                  icon = <AccessTimeIcon />;
+                } else if (hasActive) {
+                  label = "Staked";
+                  chipSx = { borderColor: "#4caf50", color: "#4caf50" };
+                  avatarSx = { bgcolor: "rgba(76,175,80,0.15)" };
+                  icon = <LockIcon />;
+                } else if (hasInactive) {
+                  label = "Inactive";
+                  chipSx = { borderColor: "#f44336", color: "#f44336" };
+                  avatarSx = { bgcolor: "rgba(244,67,54,0.15)" };
+                  icon = <VerticalAlignTopIcon />;
+                }
+
+                // RIGHT SIDE: show TOTAL like your current UI does
+                const rightAmt = item.__total;
+
+                return (
+                  <React.Fragment key={addr || key}>
+                    <ListItem
+                      secondaryAction={
+                        <Box sx={{ textAlign: "right" }}>
+                          <Typography variant="subtitle1" sx={{ color: "white" }}>
+                            {rightAmt.toFixed(4)}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: "#919EAB" }}>
+                            {toUsd(rightAmt)}
+                          </Typography>
+                        </Box>
+                      }
+                    >
+                      <ListItemAvatar>
+                        <Avatar sx={avatarSx}>{icon}</Avatar>
+                      </ListItemAvatar>
+
+                      <ListItemText
+                        primary={
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <CopyToClipboard text={addr} onCopy={handleAddressCopy}>
+                              <Button
+                                color="inherit"
+                                variant="text"
+                                sx={{
+                                  m: 0,
+                                  p: 0,
+                                  textAlign: "right",
+                                  minWidth: "",
+                                  "&:hover .MuiSvgIcon-root": { opacity: 1 },
+                                }}
+                                endIcon={
+                                  <FileCopyIcon
+                                    fontSize="small"
+                                    sx={{
+                                      color: "rgba(255,255,255,0.25)",
+                                      pr: 1,
+                                      opacity: 0,
+                                      fontSize: "10px",
+                                    }}
+                                  />
+                                }
+                              >
+                                <Typography
+                                  variant="subtitle1"
+                                  sx={{ color: "white", fontFamily: "monospace" }}
+                                >
+                                  {addr ? shortenString(addr, 5, 5) : "Unknown"}
+                                </Typography>
+                              </Button>
+                            </CopyToClipboard>
+
+                            <Chip
+                              size="small"
+                              variant="outlined"
+                              label={label}
+                              sx={{ height: 22, fontSize: "0.70rem", ...chipSx }}
+                            />
+                          </Box>
+                        }
+                        secondary={
+                          <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)" }}>
+                            {`Active: ${item.__activeStake.toFixed(4)} SOL`}
+                            {` • `}
+                            {`Inactive: ${item.__inactiveStake.toFixed(4)} SOL`}
+                            {item.__rent > 0 ? ` • Rent: ${item.__rent.toFixed(4)} SOL` : ""}
+                          </Typography>
+                        }
+                      />
+                    </ListItem>
+                    <Divider variant="inset" component="li" light />
+                  </React.Fragment>
+                );
+              };
+
+              return (
+                <>
+                  {/* Totals header (Solscan-style totals) */}
+                  <Box sx={{ mt: 1, mb: 1, display: "flex", justifyContent: "space-between", gap: 2 }}>
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      label={`Staked: ${stakedTotal.toFixed(4)} SOL`}
+                      sx={{ color: "#4caf50", borderColor: "#4caf50" }}
+                    />
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      label={`Inactive: ${inactiveTotal.toFixed(4)} SOL`}
+                      sx={{ color: "#f44336", borderColor: "#f44336" }}
+                    />
+                  </Box>
+
+                  <Divider light>
+                    <Chip size="small" label={`Stake Accounts • ${enhanced.length}`} />
+                  </Divider>
+
+                  {enhanced.map(renderRow)}
+                </>
+              );
+            })()
+          ) : (
+            <Grid container justifyContent="center" alignContent="center" sx={{ mt: 2 }}>
+              <Typography variant="caption" sx={{ color: "#919EAB" }}>
+                No stake accounts for this address
+              </Typography>
+            </Grid>
+          )}
+        </>
+      )}
+    </>
+  );
+};
 
 
     React.useEffect(() => { 
