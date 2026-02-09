@@ -349,22 +349,48 @@ export default function StakeValidatorView(props: any){
                 console.warn("Shyft API failed, falling back to RPC:", shyftError);
                 
                 // Fallback: use getParsedProgramAccounts
+                // Query by both staker (offset 12) and withdrawer (offset 44) authority
                 const nativeWalletPubkey = new PublicKey(governanceNativeWallet);
-                const stakeAccountsResponse = await RPC_CONNECTION.getParsedProgramAccounts(
-                    StakeProgram.programId,
-                    {
-                        filters: [
-                            {
-                                memcmp: {
-                                    offset: 12,
-                                    bytes: nativeWalletPubkey.toBase58(),
+                
+                const [stakerAccounts, withdrawerAccounts] = await Promise.all([
+                    RPC_CONNECTION.getParsedProgramAccounts(
+                        StakeProgram.programId,
+                        {
+                            filters: [
+                                {
+                                    memcmp: {
+                                        offset: 12, // staker authority
+                                        bytes: nativeWalletPubkey.toBase58(),
+                                    },
                                 },
-                            },
-                        ],
-                    }
-                );
+                            ],
+                        }
+                    ),
+                    RPC_CONNECTION.getParsedProgramAccounts(
+                        StakeProgram.programId,
+                        {
+                            filters: [
+                                {
+                                    memcmp: {
+                                        offset: 44, // withdrawer authority
+                                        bytes: nativeWalletPubkey.toBase58(),
+                                    },
+                                },
+                            ],
+                        }
+                    ),
+                ]);
 
-                accounts = stakeAccountsResponse.map((account: any) => {
+                // Deduplicate by pubkey
+                const seen = new Set<string>();
+                const allAccounts = [...stakerAccounts, ...withdrawerAccounts].filter((account: any) => {
+                    const key = account.pubkey.toBase58();
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+
+                accounts = allAccounts.map((account: any) => {
                     const parsedData = account.account.data?.parsed?.info;
                     const stakeInfo = parsedData?.stake;
                     const meta = parsedData?.meta;
