@@ -307,38 +307,53 @@ const fetchStakeAccounts = React.useCallback(
   async (force = false) => {
     if (!governanceNativeWallet) return;
 
-    // ✅ Serve from cache
+    const walletKey = governanceNativeWallet;
+
+    // 1) Serve from cache (unless forced)
     if (
       !force &&
-      stakeAccountsCacheRef.current.wallet === governanceNativeWallet &&
-      stakeAccountsCacheRef.current.accounts
+      stakeAccountsCacheRef.current.wallet === walletKey &&
+      Array.isArray(stakeAccountsCacheRef.current.accounts)
     ) {
-      setStakeAccounts(stakeAccountsCacheRef.current.accounts);
+      setStakeAccounts(stakeAccountsCacheRef.current.accounts || []);
       return;
     }
+
+    // 2) Single-flight: if same wallet fetch already in-flight, do nothing
+    if (
+      fetchStakeAccountsInFlight.current &&
+      fetchStakeAccountsKeyRef.current === walletKey
+    ) {
+      return;
+    }
+
+    // 3) Abort any previous request (wallet changed or forced refresh)
+    if (fetchStakeAccountsAbortRef.current) {
+      try { fetchStakeAccountsAbortRef.current.abort(); } catch {}
+    }
+    const controller = new AbortController();
+    fetchStakeAccountsAbortRef.current = controller;
+
+    fetchStakeAccountsInFlight.current = true;
+    fetchStakeAccountsKeyRef.current = walletKey;
 
     setLoadingStakeAccounts(true);
 
     const U64_MAX = "18446744073709551615";
 
-    // Helper to find an array anywhere reasonable in Shyft response
     const extractStakeArray = (data: any): any[] => {
       if (!data) return [];
-
-      // most common patterns
       if (Array.isArray(data.result)) return data.result;
       if (Array.isArray(data.result?.data)) return data.result.data;
       if (Array.isArray(data.result?.stake_accounts)) return data.result.stake_accounts;
       if (Array.isArray(data.result?.accounts)) return data.result.accounts;
-
-      // sometimes it’s nested differently
       if (Array.isArray(data.data)) return data.data;
-
       return [];
     };
 
     const normalizePubkey = (a: any): string | null => {
       const k =
+        a?.stake_account_address ??
         a?.pubkey ??
         a?.address ??
         a?.stake_account ??
@@ -357,44 +372,40 @@ const fetchStakeAccounts = React.useCallback(
           {
             params: {
               network: "mainnet-beta",
-              wallet_address: governanceNativeWallet,
+              wallet_address: walletKey,
             },
             headers: { "x-api-key": SHYFT_KEY },
             timeout: 10_000,
+            signal: controller.signal as any, // axios supports AbortController in modern versions
           }
         );
 
         const arr = extractStakeArray(data);
 
-        // ✅ If Shyft returned stake accounts, we STOP here (no RPC)
         if (arr.length > 0) {
           accounts = arr
             .map((a: any) => {
               const pubkey = normalizePubkey(a);
               if (!pubkey) return null;
 
+              // Shyft sometimes provides "state" directly; keep your derived fallback
               const d = a.stake?.delegation;
-              const deact =
-                d?.deactivation_epoch ??
-                d?.deactivationEpoch ??
-                "N/A";
+              const deact = d?.deactivation_epoch ?? d?.deactivationEpoch ?? "N/A";
 
-              let state = "inactive";
-              if (d && String(deact) === U64_MAX) state = "active";
-              else if (d && String(deact) !== "N/A") state = "deactivating";
-              else if (a.type === "initialized") state = "initialized";
+              let derivedState = "inactive";
+              if (d && String(deact) === U64_MAX) derivedState = "active";
+              else if (d && String(deact) !== "N/A") derivedState = "deactivating";
+              else if (a.type === "initialized") derivedState = "initialized";
 
               return {
                 pubkey,
-
-                // keep lamports for backwards compat (not used for Solscan-style display)
                 lamports: a.lamports ?? 0,
 
-                // Shyft SOL fields (IMPORTANT for Solscan-style breakdown)
+                // Shyft SOL fields for Solscan-like breakdown
                 stake_account_address: a.stake_account_address ?? pubkey,
-                vote_account_address: a.vote_account_address ?? a?.stake?.delegation?.voter ?? "N/A",
+                vote_account_address: a.vote_account_address ?? d?.voter ?? "N/A",
                 status: a.status ?? a.state ?? "unknown",
-                state: a.state ?? state, // use your derived state fallback
+                state: a.state ?? derivedState,
 
                 total_amount: a.total_amount ?? a.balance ?? null,
                 delegated_amount: a.delegated_amount ?? null,
@@ -402,28 +413,28 @@ const fetchStakeAccounts = React.useCallback(
                 rent: a.rent ?? 0,
                 activation_epoch: a.activation_epoch ?? null,
                 deactivation_epoch: a.deactivation_epoch ?? null,
-                };
+              };
             })
             .filter(Boolean) as any[];
 
-          // ✅ Cache + set + return early (prevents RPC fallback)
-          stakeAccountsCacheRef.current = {
-            wallet: governanceNativeWallet,
-            accounts,
-          };
+          // Cache and return early: NO RPC fallback
+          stakeAccountsCacheRef.current = { wallet: walletKey, accounts };
           setStakeAccounts(accounts);
           return;
         }
 
-        // If Shyft returned *no array*, treat as failure to trigger fallback
-        throw new Error("Shyft: no stake accounts array found in response shape");
-      } catch (shyftErr) {
-        // -------- RPC FALLBACK --------
+        throw new Error("Shyft returned empty stake array");
+      } catch (shyftErr: any) {
+        // If we aborted, silently exit (do NOT show error/toast)
+        if (controller.signal.aborted) return;
+
         console.warn("Shyft stake_accounts failed; falling back to RPC:", shyftErr);
 
-        const walletPk = new PublicKey(governanceNativeWallet);
-        const programAccounts =
-          await RPC_CONNECTION.getParsedProgramAccounts(StakeProgram.programId);
+        // -------- RPC FALLBACK --------
+        const walletPk = new PublicKey(walletKey);
+        const programAccounts = await RPC_CONNECTION.getParsedProgramAccounts(
+          StakeProgram.programId
+        );
 
         accounts = programAccounts
           .filter((acc) => {
@@ -445,26 +456,29 @@ const fetchStakeAccounts = React.useCallback(
             return {
               pubkey: acc.pubkey.toBase58(),
               lamports: acc.account.lamports,
-              balance: null,
-              validatorVoteAccount: d?.voter || "N/A",
-              activationEpoch: d?.activationEpoch || "N/A",
-              deactivationEpoch: deact,
+              // best-effort fields
+              stake_account_address: acc.pubkey.toBase58(),
+              vote_account_address: d?.voter ?? "N/A",
+              status: info.type ?? "unknown",
               state,
             };
           });
-      }
 
-      // ✅ Cache result (RPC or Shyft)
-      stakeAccountsCacheRef.current = {
-        wallet: governanceNativeWallet,
-        accounts,
-      };
-      setStakeAccounts(accounts);
+        stakeAccountsCacheRef.current = { wallet: walletKey, accounts };
+        setStakeAccounts(accounts);
+      }
     } catch (e) {
+      // If aborted, do nothing
+      if (controller.signal.aborted) return;
+
       console.error(e);
       enqueueSnackbar("Failed to fetch stake accounts", { variant: "error" });
       setStakeAccounts([]);
     } finally {
+      // Only clear in-flight if this call is still the “current” one
+      if (fetchStakeAccountsKeyRef.current === walletKey) {
+        fetchStakeAccountsInFlight.current = false;
+      }
       setLoadingStakeAccounts(false);
     }
   },
@@ -960,8 +974,8 @@ const fetchStakeAccounts = React.useCallback(
                                     <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
                                         Governance Stake Accounts
                                     </Typography>
-                                    <IconButton size="small" onClick={fetchStakeAccounts}>
-                                        <RefreshIcon fontSize="small" />
+                                    <IconButton size="small" onClick={() => fetchStakeAccounts(true)}>
+                                    <RefreshIcon fontSize="small" />
                                     </IconButton>
                                 </Box>
                                 <List dense sx={{ maxHeight: 250, overflow: 'auto' }}>
