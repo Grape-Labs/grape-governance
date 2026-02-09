@@ -63,6 +63,8 @@ import {
     ListItemText,
     SelectChangeEvent,
     FormGroup,
+    Tab,
+    Tabs,
 } from '@mui/material/';
 
 import { useSnackbar } from 'notistack';
@@ -73,6 +75,7 @@ import VerticalAlignTopIcon from '@mui/icons-material/VerticalAlignTop';
 import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import PersonIcon from '@mui/icons-material/Person';
 import LockIcon from '@mui/icons-material/Lock';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import SendIcon from '@mui/icons-material/Send';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -122,6 +125,28 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     },
 }));
 
+// Tab panel helper component
+interface TabPanelProps {
+    children?: React.ReactNode;
+    index: number;
+    value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+    const { children, value, index, ...other } = props;
+    return (
+        <div
+            role="tabpanel"
+            hidden={value !== index}
+            id={`stake-tabpanel-${index}`}
+            aria-labelledby={`stake-tab-${index}`}
+            {...other}
+        >
+            {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
+        </div>
+    );
+}
+
 export default function StakeValidatorView(props: any){
     const setReload = props?.setReload;
     const governanceLookup = props.governanceLookup;
@@ -158,10 +183,18 @@ export default function StakeValidatorView(props: any){
     const [isGoverningMintCouncilSelected, setIsGoverningMintCouncilSelected] = React.useState(true);
     const [isDraft, setIsDraft] = React.useState(false);
     
-    // New state variables for staking
+    // Tab state: 0 = Stake, 1 = Unstake
+    const [tabValue, setTabValue] = React.useState(0);
+
+    // Staking state
     const [validatorVoteAddress, setValidatorVoteAddress] = React.useState('');
-    const [stakeSeed, setStakeSeed] = React.useState(null);
+    const [stakeSeed, setStakeSeed] = React.useState<string | null>(null);
     const [amount, setAmount] = React.useState('');
+
+    // Unstaking state
+    const [unstakeAddress, setUnstakeAddress] = React.useState('');
+    const [stakeAccounts, setStakeAccounts] = React.useState<any[]>([]);
+    const [loadingStakeAccounts, setLoadingStakeAccounts] = React.useState(false);
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const onError = useCallback(
@@ -172,8 +205,9 @@ export default function StakeValidatorView(props: any){
         [enqueueSnackbar]
     );
 
-    const generateUniqueSeed = () => {
-        return `stake-${uuidv4()}`;
+    const generateUniqueSeed = (): string => {
+        const seed = `stake-${uuidv4().substring(0, 8)}`;
+        return seed;
     }
 
     const toggleGoverningMintSelected = (council: boolean) => {
@@ -206,6 +240,10 @@ export default function StakeValidatorView(props: any){
             handleCloseExtMenu();
     };
 
+    const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+        setTabValue(newValue);
+    };
+
     // Helper function to split instructions into chunks
     const chunkInstructions = (instructions: TransactionInstruction[], chunkSize: number) => {
         const chunks = [];
@@ -221,7 +259,7 @@ export default function StakeValidatorView(props: any){
             const payerKey = new PublicKey(governanceNativeWallet);
             const transactionIxs: TransactionInstruction[] = transaction.instructions;
 
-            for (const instructionChunk of chunkInstructions(transactionIxs, 10)) { // Adjust chunk size as needed
+            for (const instructionChunk of chunkInstructions(transactionIxs, 10)) {
                 const message = new TransactionMessage({
                     payerKey,
                     recentBlockhash: blockhash,
@@ -230,9 +268,7 @@ export default function StakeValidatorView(props: any){
     
                 const transaction = new VersionedTransaction(message);
     
-                // Simulate the chunk
                 const simulationResult = await RPC_CONNECTION.simulateTransaction(transaction);
-                //setSimulationResults(simulationResult.value.logs);
     
                 if (simulationResult.value.err) {
                     console.error("Chunk simulation failed with error:", simulationResult.value.err);
@@ -249,57 +285,150 @@ export default function StakeValidatorView(props: any){
         }
     };
 
-    // New function to create staking instructions
-    const createStakingInstructions = async (): Promise<TransactionInstruction[]> => {
+    // Fetch stake accounts owned by the governance native wallet
+    const fetchStakeAccounts = async () => {
         try {
-            // Generate stake account public key using seed
+            setLoadingStakeAccounts(true);
+            const nativeWalletPubkey = new PublicKey(governanceNativeWallet);
+
+            // Get all stake accounts where the staker authority is the governance wallet
+            const stakeAccountsResponse = await RPC_CONNECTION.getParsedProgramAccounts(
+                StakeProgram.programId,
+                {
+                    filters: [
+                        {
+                            memcmp: {
+                                offset: 12, // Offset for the staker authority in stake account data
+                                bytes: nativeWalletPubkey.toBase58(),
+                            },
+                        },
+                    ],
+                }
+            );
+
+            const accounts = stakeAccountsResponse.map((account: any) => {
+                const parsedData = account.account.data?.parsed?.info;
+                const stakeInfo = parsedData?.stake;
+                const meta = parsedData?.meta;
+                
+                return {
+                    pubkey: account.pubkey.toBase58(),
+                    lamports: account.account.lamports,
+                    validatorVoteAccount: stakeInfo?.delegation?.voter || 'N/A',
+                    activationEpoch: stakeInfo?.delegation?.activationEpoch || 'N/A',
+                    deactivationEpoch: stakeInfo?.delegation?.deactivationEpoch || 'N/A',
+                    staker: meta?.authorized?.staker || 'N/A',
+                    withdrawer: meta?.authorized?.withdrawer || 'N/A',
+                    state: parsedData?.type || 'unknown', // 'delegated', 'initialized', 'inactive', etc.
+                };
+            });
+
+            setStakeAccounts(accounts);
+        } catch (error) {
+            console.error("Error fetching stake accounts:", error);
+            enqueueSnackbar("Failed to fetch stake accounts", { variant: 'error' });
+        } finally {
+            setLoadingStakeAccounts(false);
+        }
+    };
+
+    // Create staking instructions (with bug fixes)
+    const createStakingInstructions = async (stakeAmountLamports: number): Promise<TransactionInstruction[]> => {
+        try {
             const seed = stakeSeed;
+            const nativeWalletPubkey = new PublicKey(governanceNativeWallet);
+            
             const stakePubkey = await PublicKey.createWithSeed(
-                new PublicKey(governanceNativeWallet),
+                nativeWalletPubkey,
                 seed,
                 StakeProgram.programId
             );
 
-            // Create stake account if it does not exist
+            const rentExemptLamports = await RPC_CONNECTION.getMinimumBalanceForRentExemption(StakeProgram.space);
+
+            // BUG FIX: Include the actual stake amount + rent in the account creation
             const createStakeAccountIx = SystemProgram.createAccountWithSeed({
-                fromPubkey: new PublicKey(governanceNativeWallet),
+                fromPubkey: nativeWalletPubkey,
                 newAccountPubkey: stakePubkey,
-                basePubkey: new PublicKey(governanceNativeWallet),
+                basePubkey: nativeWalletPubkey,
                 seed: seed,
-                lamports: await RPC_CONNECTION.getMinimumBalanceForRentExemption(StakeProgram.space),
+                lamports: rentExemptLamports + stakeAmountLamports,
                 space: StakeProgram.space,
                 programId: StakeProgram.programId,
             });
 
-            // Initialize the stake account
-            const initializeStakeIx = StakeProgram.initialize({
+            // StakeProgram methods may return Transaction or TransactionInstruction depending on version
+            const initializeResult = StakeProgram.initialize({
                 stakePubkey: stakePubkey,
                 authorized: new Authorized(
-                    new PublicKey(governanceNativeWallet),
-                    new PublicKey(governanceNativeWallet)
+                    nativeWalletPubkey,
+                    nativeWalletPubkey
                 ),
-                lockup: new Lockup(0, 0, new PublicKey(governanceNativeWallet)),
+                lockup: new Lockup(0, 0, nativeWalletPubkey),
             });
 
+            const initializeStakeIx = 'instructions' in (initializeResult as any)
+                ? (initializeResult as any).instructions[0] as TransactionInstruction
+                : initializeResult as unknown as TransactionInstruction;
+
             // Delegate the stake to the validator
-            const delegateStakeIx = StakeProgram.delegate({
+            const delegateResult = StakeProgram.delegate({
                 stakePubkey: stakePubkey,
-                authorizedPubkey: new PublicKey(governanceNativeWallet),
+                authorizedPubkey: nativeWalletPubkey,
                 votePubkey: new PublicKey(validatorVoteAddress),
             });
 
-            // Assuming delegateStakeIx is a Transaction with only one instruction
-            const instructions = delegateStakeIx.instructions;
+            const delegateStakeIx = 'instructions' in (delegateResult as any)
+                ? (delegateResult as any).instructions[0] as TransactionInstruction
+                : delegateResult as unknown as TransactionInstruction;
 
-            if (instructions.length !== 1) {
-                throw new Error("Transaction does not contain exactly one instruction.");
-            }
-
-            const delegateStakeInstruction = instructions[0];
-
-            return [createStakeAccountIx, initializeStakeIx, delegateStakeInstruction];
+            return [createStakeAccountIx, initializeStakeIx, delegateStakeIx];
         } catch (error) {
             console.error("Error creating staking instructions:", error);
+            throw error;
+        }
+    }
+
+    // Create deactivate (unstake) instructions
+    const createDeactivateInstructions = (stakeAccountPubkey: PublicKey): TransactionInstruction[] => {
+        try {
+            const nativeWalletPubkey = new PublicKey(governanceNativeWallet);
+
+            const deactivateResult = StakeProgram.deactivate({
+                stakePubkey: stakeAccountPubkey,
+                authorizedPubkey: nativeWalletPubkey,
+            });
+
+            const deactivateIx = 'instructions' in (deactivateResult as any)
+                ? (deactivateResult as any).instructions[0] as TransactionInstruction
+                : deactivateResult as unknown as TransactionInstruction;
+
+            return [deactivateIx];
+        } catch (error) {
+            console.error("Error creating deactivate instructions:", error);
+            throw error;
+        }
+    }
+
+    // Create withdraw instructions (for fully deactivated stake accounts)
+    const createWithdrawInstructions = (stakeAccountPubkey: PublicKey, lamports: number): TransactionInstruction[] => {
+        try {
+            const nativeWalletPubkey = new PublicKey(governanceNativeWallet);
+
+            const withdrawResult = StakeProgram.withdraw({
+                stakePubkey: stakeAccountPubkey,
+                authorizedPubkey: nativeWalletPubkey,
+                toPubkey: nativeWalletPubkey,
+                lamports: lamports,
+            });
+
+            const withdrawIx = 'instructions' in (withdrawResult as any)
+                ? (withdrawResult as any).instructions[0] as TransactionInstruction
+                : withdrawResult as unknown as TransactionInstruction;
+
+            return [withdrawIx];
+        } catch (error) {
+            console.error("Error creating withdraw instructions:", error);
             throw error;
         }
     }
@@ -316,13 +445,22 @@ export default function StakeValidatorView(props: any){
                 return;
             }
 
+            if (!validatorVoteAddress) {
+                enqueueSnackbar("Please enter a validator vote address", { variant: 'error' });
+                return;
+            }
+
+            if (!stakeSeed) {
+                enqueueSnackbar("Please enter a seed for the stake account", { variant: 'error' });
+                return;
+            }
+
             // Convert SOL amount to lamports
-            const lamports = web3.LAMPORTS_PER_SOL * stakeAmount;
+            const stakeAmountLamports = Math.floor(web3.LAMPORTS_PER_SOL * stakeAmount);
 
-            // Create staking instructions
-            const stakingIxs = await createStakingInstructions();
+            // Create staking instructions with the actual stake amount
+            const stakingIxs = await createStakingInstructions(stakeAmountLamports);
 
-            // Create Transaction object
             // Simulate transaction
             const status = await simulateIx(new Transaction().add(...stakingIxs));
             if (!status) {
@@ -330,12 +468,11 @@ export default function StakeValidatorView(props: any){
                 return;
             }
 
-            // Prepare proposal instruction
             const propIx = {
-                title: "Stake to Validator",
-                description: `Staking ${stakeAmount} SOL to validator ${validatorVoteAddress}`,
+                title: proposalTitle || "Stake to Validator",
+                description: proposalDescription || `Staking ${stakeAmount} SOL to validator ${validatorVoteAddress}`,
                 ix: stakingIxs,
-                aix: [], // Additional instructions if any
+                aix: [],
                 nativeWallet: governanceNativeWallet,
                 governingMint: governingMint,
                 draft: isDraft,
@@ -343,12 +480,129 @@ export default function StakeValidatorView(props: any){
 
             console.log("propIx: ", JSON.stringify(propIx));
 
-            // Set instructions and trigger loader
             setInstructions(propIx);
             setExpandedLoader(true);
         } catch (error) {
             enqueueSnackbar("Failed to create staking instructions", { variant: 'error' });
             console.error('Failed to create staking instructions:', error);
+        }
+    }
+
+    // Handle deactivate (begin unstaking cooldown)
+    const handleDeactivateIx = async (stakeAccountAddress: string) => {
+        if (handleCloseExtMenu)
+            handleCloseExtMenu();
+        setPropOpen(false);
+
+        try {
+            const stakeAccountPubkey = new PublicKey(stakeAccountAddress);
+            const deactivateIxs = createDeactivateInstructions(stakeAccountPubkey);
+
+            // Simulate
+            const status = await simulateIx(new Transaction().add(...deactivateIxs));
+            if (!status) {
+                enqueueSnackbar("Transaction simulation failed", { variant: 'error' });
+                return;
+            }
+
+            const propIx = {
+                title: proposalTitle || "Deactivate Stake",
+                description: proposalDescription || `Deactivate stake account ${stakeAccountAddress}`,
+                ix: deactivateIxs,
+                aix: [],
+                nativeWallet: governanceNativeWallet,
+                governingMint: governingMint,
+                draft: isDraft,
+            }
+
+            console.log("propIx (deactivate): ", JSON.stringify(propIx));
+
+            setInstructions(propIx);
+            setExpandedLoader(true);
+        } catch (error) {
+            enqueueSnackbar("Failed to create deactivate instructions", { variant: 'error' });
+            console.error('Failed to create deactivate instructions:', error);
+        }
+    }
+
+    // Handle withdraw (after cooldown is complete)
+    const handleWithdrawIx = async (stakeAccountAddress: string, lamports: number) => {
+        if (handleCloseExtMenu)
+            handleCloseExtMenu();
+        setPropOpen(false);
+
+        try {
+            const stakeAccountPubkey = new PublicKey(stakeAccountAddress);
+            const withdrawIxs = createWithdrawInstructions(stakeAccountPubkey, lamports);
+
+            // Simulate
+            const status = await simulateIx(new Transaction().add(...withdrawIxs));
+            if (!status) {
+                enqueueSnackbar("Transaction simulation failed", { variant: 'error' });
+                return;
+            }
+
+            const propIx = {
+                title: proposalTitle || "Withdraw Stake",
+                description: proposalDescription || `Withdraw ${(lamports / web3.LAMPORTS_PER_SOL).toFixed(4)} SOL from stake account ${stakeAccountAddress}`,
+                ix: withdrawIxs,
+                aix: [],
+                nativeWallet: governanceNativeWallet,
+                governingMint: governingMint,
+                draft: isDraft,
+            }
+
+            console.log("propIx (withdraw): ", JSON.stringify(propIx));
+
+            setInstructions(propIx);
+            setExpandedLoader(true);
+        } catch (error) {
+            enqueueSnackbar("Failed to create withdraw instructions", { variant: 'error' });
+            console.error('Failed to create withdraw instructions:', error);
+        }
+    }
+
+    // Handle unstake using a manually entered address
+    const handleUnstakeManual = async () => {
+        if (!unstakeAddress) {
+            enqueueSnackbar("Please enter a stake account address", { variant: 'error' });
+            return;
+        }
+
+        try {
+            const stakeAccountPubkey = new PublicKey(unstakeAddress);
+            
+            // Fetch the account to determine its state
+            const accountInfo = await RPC_CONNECTION.getParsedAccountInfo(stakeAccountPubkey);
+            
+            if (!accountInfo || !accountInfo.value) {
+                enqueueSnackbar("Stake account not found", { variant: 'error' });
+                return;
+            }
+
+            const parsedData = (accountInfo.value.data as any)?.parsed?.info;
+            const stakeType = parsedData?.type; // 'delegated', 'initialized', 'inactive'
+            const deactivationEpoch = parsedData?.stake?.delegation?.deactivationEpoch;
+            const lamports = accountInfo.value.lamports;
+
+            const currentEpoch = (await RPC_CONNECTION.getEpochInfo()).epoch;
+
+            if (stakeType === 'delegated' && deactivationEpoch === '18446744073709551615') {
+                // Active stake — needs deactivation first
+                await handleDeactivateIx(unstakeAddress);
+            } else if (stakeType === 'delegated' && Number(deactivationEpoch) <= currentEpoch) {
+                // Deactivated and cooldown complete — withdraw
+                await handleWithdrawIx(unstakeAddress, lamports);
+            } else if (stakeType === 'initialized' || stakeType === 'inactive') {
+                // Not delegated — can withdraw directly
+                await handleWithdrawIx(unstakeAddress, lamports);
+            } else {
+                // Still in cooldown
+                enqueueSnackbar(`Stake is deactivating. Cooldown ends after epoch ${deactivationEpoch}. Current epoch: ${currentEpoch}`, { variant: 'warning' });
+            }
+        } catch (error) {
+            enqueueSnackbar("Failed to process unstake", { variant: 'error' });
+            console.error('Failed to process unstake:', error);
         }
     }
 
@@ -370,14 +624,22 @@ export default function StakeValidatorView(props: any){
                 setIsGoverningMintCouncilSelected(false);
             }
         }
+        // BUG FIX: Actually set the seed state
         if (!stakeSeed){
-            generateUniqueSeed();
+            setStakeSeed(generateUniqueSeed());
         }
     }, []);
 
+    // Fetch stake accounts when the unstake tab is opened
+    React.useEffect(() => {
+        if (tabValue === 1 && open && governanceNativeWallet) {
+            fetchStakeAccounts();
+        }
+    }, [tabValue, open]);
+
     return (
         <>
-            <Tooltip title="Stake to Validator" placement="right">
+            <Tooltip title="Stake / Unstake Validator" placement="right">
                 {useButtonText && useButtonType === 1 ?
                 <>
                     <Button onClick={publicKey && handleClickOpen} fullWidth color='primary' size="large" variant="contained" sx={{backgroundColor:'rgba(255,255,255,0.05)',pl:2,pr:2,ml:1,mr:1}}>
@@ -415,7 +677,7 @@ export default function StakeValidatorView(props: any){
                                 <ListItemIcon>
                                     <LockIcon fontSize="small" />
                                 </ListItemIcon>
-                                Stake to Validator
+                                Stake / Unstake
                             </MenuItem>
                         </>
                     }
@@ -424,6 +686,7 @@ export default function StakeValidatorView(props: any){
             
             <BootstrapDialog 
                 fullWidth={true}
+                maxWidth="sm"
                 open={open} onClose={handleClose}
                 PaperProps={{
                     style: {
@@ -438,73 +701,201 @@ export default function StakeValidatorView(props: any){
                     id='staking-dialog'
                     onClose={handleCloseDialog}
                 >
-                    Stake to Validator
+                    Stake / Unstake Validator
                 </BootstrapDialogTitle>
                 <DialogContent>
                     
-                    <DialogContentText sx={{textAlign:'center'}}>
-                        Stake SOL to a Solana Validator
-                    </DialogContentText>
-                    
-                    <FormControl fullWidth sx={{mt:2, mb:2}}>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12}>
-                                <TextField 
-                                    fullWidth 
-                                    label="Validator Vote Address" 
-                                    id="validatorVoteAddress"
-                                    type="text"
-                                    value={validatorVoteAddress}
-                                    onChange={(e) => setValidatorVoteAddress(e.target.value)}
-                                    variant="filled"
-                                    required
-                                    sx={{ m: 0.65 }}
-                                />
+                    <Tabs 
+                        value={tabValue} 
+                        onChange={handleTabChange} 
+                        centered
+                        sx={{
+                            '& .MuiTab-root': { color: 'rgba(255,255,255,0.5)' },
+                            '& .Mui-selected': { color: 'white' },
+                            '& .MuiTabs-indicator': { backgroundColor: 'white' },
+                        }}
+                    >
+                        <Tab icon={<LockIcon />} label="Stake" iconPosition="start" />
+                        <Tab icon={<LockOpenIcon />} label="Unstake" iconPosition="start" />
+                    </Tabs>
+
+                    {/* ==================== STAKE TAB ==================== */}
+                    <TabPanel value={tabValue} index={0}>
+                        <DialogContentText sx={{textAlign:'center', mb: 2}}>
+                            Stake SOL to a Solana Validator
+                        </DialogContentText>
+                        
+                        <FormControl fullWidth>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
+                                    <TextField 
+                                        fullWidth 
+                                        label="Validator Vote Address" 
+                                        id="validatorVoteAddress"
+                                        type="text"
+                                        value={validatorVoteAddress}
+                                        onChange={(e) => setValidatorVoteAddress(e.target.value)}
+                                        variant="filled"
+                                        required
+                                        sx={{ m: 0.65 }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField 
+                                        fullWidth 
+                                        label="Seed for Stake Address" 
+                                        id="stakeSeed"
+                                        type="text"
+                                        value={stakeSeed || ''}
+                                        onChange={(e) => setStakeSeed(e.target.value)}
+                                        variant="filled"
+                                        required
+                                        helperText="A unique seed string to generate the stake account."
+                                        sx={{ m: 0.65 }}
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <IconButton
+                                                        aria-label="regenerate seed"
+                                                        onClick={() => setStakeSeed(generateUniqueSeed())}
+                                                        edge="end"
+                                                        size="small"
+                                                    >
+                                                        <RefreshIcon fontSize="small" />
+                                                    </IconButton>
+                                                </InputAdornment>
+                                            ),
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField 
+                                        fullWidth 
+                                        label="Amount (SOL)" 
+                                        id="amount"
+                                        type="number"
+                                        value={amount}
+                                        onChange={(e) => setAmount(e.target.value)}
+                                        variant="filled"
+                                        required
+                                        inputProps={{ min: "0", step: "0.0001" }}
+                                        sx={{ m: 0.65 }}
+                                    />
+                                </Grid>
                             </Grid>
-                            <Grid item xs={12}>
-                                <TextField 
-                                    fullWidth 
-                                    label="Seed for Stake Address" 
-                                    id="stakeSeed"
-                                    type="text"
-                                    value={stakeSeed}
-                                    onChange={(e) => setStakeSeed(e.target.value)}
-                                    variant="filled"
-                                    required
-                                    helperText="A unique seed string to generate the stake account."
-                                    sx={{ m: 0.65 }}
-                                    InputProps={{
-                                        endAdornment: (
-                                            <InputAdornment position="end">
-                                                <IconButton
-                                                    aria-label="regenerate seed"
-                                                    onClick={() => setStakeSeed(generateUniqueSeed())}
-                                                    edge="end"
-                                                    size="small"
-                                                >
-                                                    <RefreshIcon fontSize="small" />
-                                                </IconButton>
-                                            </InputAdornment>
-                                        ),
-                                    }}
-                                />
+                        </FormControl>
+                    </TabPanel>
+
+                    {/* ==================== UNSTAKE TAB ==================== */}
+                    <TabPanel value={tabValue} index={1}>
+                        <DialogContentText sx={{textAlign:'center', mb: 2}}>
+                            Deactivate or withdraw from a stake account
+                        </DialogContentText>
+
+                        <FormControl fullWidth>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
+                                    <TextField 
+                                        fullWidth 
+                                        label="Stake Account Address" 
+                                        id="unstakeAddress"
+                                        type="text"
+                                        value={unstakeAddress}
+                                        onChange={(e) => setUnstakeAddress(e.target.value)}
+                                        variant="filled"
+                                        required
+                                        helperText="Enter a stake account address to deactivate or withdraw."
+                                        sx={{ m: 0.65 }}
+                                    />
+                                </Grid>
                             </Grid>
-                            <Grid item xs={12}>
-                                <TextField 
-                                    fullWidth 
-                                    label="Amount (SOL)" 
-                                    id="amount"
-                                    type="number"
-                                    value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
-                                    variant="filled"
-                                    required
-                                    inputProps={{ min: "0", step: "0.0001" }}
-                                    sx={{ m: 0.65 }}
-                                />
-                            </Grid>
-                        </Grid>
-                    </FormControl>
+                        </FormControl>
+
+                        {/* List of existing stake accounts */}
+                        {loadingStakeAccounts ? (
+                            <Box sx={{ mt: 2 }}>
+                                <LinearProgress />
+                                <Typography variant="caption" sx={{ mt: 1, display: 'block', textAlign: 'center' }}>
+                                    Loading stake accounts...
+                                </Typography>
+                            </Box>
+                        ) : stakeAccounts.length > 0 ? (
+                            <Box sx={{ mt: 2 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                    <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                                        Governance Stake Accounts
+                                    </Typography>
+                                    <IconButton size="small" onClick={fetchStakeAccounts}>
+                                        <RefreshIcon fontSize="small" />
+                                    </IconButton>
+                                </Box>
+                                <List dense sx={{ maxHeight: 250, overflow: 'auto' }}>
+                                    {stakeAccounts.map((account, index) => {
+                                        const isActive = account.state === 'delegated' && account.deactivationEpoch === '18446744073709551615';
+                                        const isDeactivating = account.state === 'delegated' && account.deactivationEpoch !== '18446744073709551615';
+                                        const isInactive = account.state === 'initialized' || account.state === 'inactive';
+
+                                        let statusLabel = 'Unknown';
+                                        let statusColor = 'rgba(255,255,255,0.5)';
+                                        if (isActive) { statusLabel = 'Active'; statusColor = '#4caf50'; }
+                                        else if (isDeactivating) { statusLabel = 'Deactivating'; statusColor = '#ff9800'; }
+                                        else if (isInactive) { statusLabel = 'Inactive'; statusColor = '#f44336'; }
+
+                                        return (
+                                            <ListItem 
+                                                key={index}
+                                                sx={{ 
+                                                    borderRadius: '10px', 
+                                                    mb: 0.5, 
+                                                    backgroundColor: 'rgba(255,255,255,0.03)',
+                                                    cursor: 'pointer',
+                                                    '&:hover': { backgroundColor: 'rgba(255,255,255,0.07)' }
+                                                }}
+                                                onClick={() => setUnstakeAddress(account.pubkey)}
+                                                secondaryAction={
+                                                    <Chip 
+                                                        label={statusLabel} 
+                                                        size="small"
+                                                        sx={{ 
+                                                            color: statusColor, 
+                                                            borderColor: statusColor,
+                                                            fontSize: '0.7rem'
+                                                        }} 
+                                                        variant="outlined"
+                                                    />
+                                                }
+                                            >
+                                                <ListItemIcon>
+                                                    <LockIcon fontSize="small" sx={{ color: statusColor }} />
+                                                </ListItemIcon>
+                                                <ListItemText
+                                                    primary={
+                                                        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                                                            {account.pubkey.substring(0, 8)}...{account.pubkey.substring(account.pubkey.length - 8)}
+                                                        </Typography>
+                                                    }
+                                                    secondary={
+                                                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                                                            {(account.lamports / web3.LAMPORTS_PER_SOL).toFixed(4)} SOL
+                                                            {account.validatorVoteAccount !== 'N/A' && 
+                                                                ` • Validator: ${account.validatorVoteAccount.substring(0, 6)}...`
+                                                            }
+                                                        </Typography>
+                                                    }
+                                                />
+                                            </ListItem>
+                                        );
+                                    })}
+                                </List>
+                            </Box>
+                        ) : (
+                            <Box sx={{ mt: 2, textAlign: 'center' }}>
+                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>
+                                    No stake accounts found for this governance wallet.
+                                </Typography>
+                            </Box>
+                        )}
+                    </TabPanel>
                 
                     {openAdvanced ? 
                         <>
@@ -522,7 +913,6 @@ export default function StakeValidatorView(props: any){
                                 setEditProposalAddress={setEditProposalAddress}
                                 editProposalAddress={editProposalAddress}
                             />
-                            
                         </>
                     :
                         <></>
@@ -536,7 +926,6 @@ export default function StakeValidatorView(props: any){
                         <Box sx={{ display: 'flex', alignItems: 'center', p:0 }}>
                         {(publicKey) ?
                                 <Button
-                                    //disabled={!loading}
                                     size='small'
                                     onClick={handleAdvancedToggle}
                                     sx={{
@@ -564,31 +953,40 @@ export default function StakeValidatorView(props: any){
                         </Box>
 
                         <Box sx={{ display: 'flex', p:0 }}>
-                            
                             {(publicKey) ?
-                                <Button 
-                                   //disabled={!loading}
-                                    autoFocus 
-                                    onClick={handleStakeIx}
-                                    sx={{
-                                        p:1,
-                                        borderRadius:'17px',
-                                        '&:hover .MuiSvgIcon-root.claimNowIcon': {
-                                            color:'rgba(255,255,255,0.90)'
-                                        }
-                                    }}
-                                    startIcon={
-                                    <>
-                                        <LockIcon 
+                                <>
+                                    {tabValue === 0 ? (
+                                        <Button 
+                                            autoFocus 
+                                            onClick={handleStakeIx}
                                             sx={{
-                                                color:'rgba(255,255,255,0.25)',
-                                                fontSize:"14px!important"}}
-                                        />
-                                    </>
-                                    }
-                                >
-                                    Create Stake Account
-                                </Button>
+                                                p:1,
+                                                borderRadius:'17px',
+                                                '&:hover .MuiSvgIcon-root': {
+                                                    color:'rgba(255,255,255,0.90)'
+                                                }
+                                            }}
+                                            startIcon={<LockIcon sx={{ color:'rgba(255,255,255,0.25)', fontSize:"14px!important"}} />}
+                                        >
+                                            Create Stake Account
+                                        </Button>
+                                    ) : (
+                                        <Button 
+                                            autoFocus 
+                                            onClick={handleUnstakeManual}
+                                            sx={{
+                                                p:1,
+                                                borderRadius:'17px',
+                                                '&:hover .MuiSvgIcon-root': {
+                                                    color:'rgba(255,255,255,0.90)'
+                                                }
+                                            }}
+                                            startIcon={<LockOpenIcon sx={{ color:'rgba(255,255,255,0.25)', fontSize:"14px!important"}} />}
+                                        >
+                                            Unstake
+                                        </Button>
+                                    )}
+                                </>
                             : <></>
                             }
                         </Box>
