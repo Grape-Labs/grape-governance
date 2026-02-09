@@ -178,9 +178,17 @@ export default function StakeValidatorView(props: any){
     const instructions = props?.instructions;
     const setInstructions = props?.setInstructions;
 
+    const fetchStakeAccountsInFlight = React.useRef(false);
+    const fetchStakeAccountsKeyRef = React.useRef<string>("");
+    const fetchStakeAccountsAbortRef = React.useRef<AbortController | null>(null);
+    const stakeAccountsCacheRef = React.useRef<{
+    wallet: string | null;
+    accounts: any[] | null;
+    }>({ wallet: null, accounts: null });
+
     const governanceNativeWallet = props?.governanceNativeWallet;
     const { publicKey } = useWallet();
-    const wallet = useWallet();
+    const fetchedOnOpenRef = React.useRef(false);
 
     const [loading, setLoading] = React.useState(false);
     const [open, setPropOpen] = React.useState(false);
@@ -295,137 +303,166 @@ export default function StakeValidatorView(props: any){
         }
     };
 
-    // Fetch stake accounts via Shyft API with RPC fallback
-    const fetchStakeAccounts = async () => {
-        try {
-            setLoadingStakeAccounts(true);
-            
-            let accounts: any[] = [];
-            
-            try {
-                // Try Shyft first
-                const response = await axios.get(
-                    `https://api.shyft.to/sol/v1/wallet/stake_accounts`,
-                    {
-                        params: {
-                            network: 'mainnet-beta',
-                            wallet_address: governanceNativeWallet,
-                        },
-                        headers: {
-                            'x-api-key': SHYFT_KEY,
-                        },
-                        timeout: 10000,
-                    }
-                );
+const fetchStakeAccounts = React.useCallback(
+  async (force = false) => {
+    if (!governanceNativeWallet) return;
 
-                if (response.data?.success && response.data?.result) {
-                    accounts = response.data.result.map((account: any) => {
-                        const delegation = account.stake?.delegation;
-                        const deactivationEpoch = delegation?.deactivation_epoch || 'N/A';
-                        const isActive = delegation && deactivationEpoch === '18446744073709551615';
-                        const isDeactivating = delegation && deactivationEpoch !== '18446744073709551615' && deactivationEpoch !== 'N/A';
-                        
-                        let state = 'unknown';
-                        if (isActive) state = 'active';
-                        else if (isDeactivating) state = 'deactivating';
-                        else if (account.type === 'initialized') state = 'initialized';
-                        else if (account.type === 'inactive' || !delegation) state = 'inactive';
-                        else state = account.type || 'unknown';
+    // ✅ Serve from cache
+    if (
+      !force &&
+      stakeAccountsCacheRef.current.wallet === governanceNativeWallet &&
+      stakeAccountsCacheRef.current.accounts
+    ) {
+      setStakeAccounts(stakeAccountsCacheRef.current.accounts);
+      return;
+    }
 
-                        return {
-                            pubkey: account.pubkey || account.address,
-                            lamports: account.lamports,
-                            balance: account.balance,
-                            validatorVoteAccount: delegation?.voter || 'N/A',
-                            activationEpoch: delegation?.activation_epoch || 'N/A',
-                            deactivationEpoch: deactivationEpoch,
-                            staker: account.meta?.authorized?.staker || account.authorized_staker || 'N/A',
-                            withdrawer: account.meta?.authorized?.withdrawer || account.authorized_withdrawer || 'N/A',
-                            state: state,
-                        };
-                    });
-                }
-            } catch (shyftError) {
-                console.warn("Shyft API failed, falling back to RPC:", shyftError);
-                
-                // Fallback: use getParsedProgramAccounts
-                // Query by both staker (offset 12) and withdrawer (offset 44) authority
-                const nativeWalletPubkey = new PublicKey(governanceNativeWallet);
-                
-                const [stakerAccounts, withdrawerAccounts] = await Promise.all([
-                    RPC_CONNECTION.getParsedProgramAccounts(
-                        StakeProgram.programId,
-                        {
-                            filters: [
-                                {
-                                    memcmp: {
-                                        offset: 12, // staker authority
-                                        bytes: nativeWalletPubkey.toBase58(),
-                                    },
-                                },
-                            ],
-                        }
-                    ),
-                    RPC_CONNECTION.getParsedProgramAccounts(
-                        StakeProgram.programId,
-                        {
-                            filters: [
-                                {
-                                    memcmp: {
-                                        offset: 44, // withdrawer authority
-                                        bytes: nativeWalletPubkey.toBase58(),
-                                    },
-                                },
-                            ],
-                        }
-                    ),
-                ]);
+    setLoadingStakeAccounts(true);
 
-                // Deduplicate by pubkey
-                const seen = new Set<string>();
-                const allAccounts = [...stakerAccounts, ...withdrawerAccounts].filter((account: any) => {
-                    const key = account.pubkey.toBase58();
-                    if (seen.has(key)) return false;
-                    seen.add(key);
-                    return true;
-                });
+    const U64_MAX = "18446744073709551615";
 
-                accounts = allAccounts.map((account: any) => {
-                    const parsedData = account.account.data?.parsed?.info;
-                    const stakeInfo = parsedData?.stake;
-                    const meta = parsedData?.meta;
-                    const deactivationEpoch = stakeInfo?.delegation?.deactivationEpoch || 'N/A';
-                    const stakeType = parsedData?.type || 'unknown';
+    // Helper to find an array anywhere reasonable in Shyft response
+    const extractStakeArray = (data: any): any[] => {
+      if (!data) return [];
 
-                    let state = 'unknown';
-                    if (stakeType === 'delegated' && deactivationEpoch === '18446744073709551615') state = 'active';
-                    else if (stakeType === 'delegated' && deactivationEpoch !== '18446744073709551615') state = 'deactivating';
-                    else if (stakeType === 'initialized') state = 'initialized';
-                    else if (stakeType === 'inactive') state = 'inactive';
+      // most common patterns
+      if (Array.isArray(data.result)) return data.result;
+      if (Array.isArray(data.result?.data)) return data.result.data;
+      if (Array.isArray(data.result?.stake_accounts)) return data.result.stake_accounts;
+      if (Array.isArray(data.result?.accounts)) return data.result.accounts;
 
-                    return {
-                        pubkey: account.pubkey.toBase58(),
-                        lamports: account.account.lamports,
-                        balance: null,
-                        validatorVoteAccount: stakeInfo?.delegation?.voter || 'N/A',
-                        activationEpoch: stakeInfo?.delegation?.activationEpoch || 'N/A',
-                        deactivationEpoch: deactivationEpoch,
-                        staker: meta?.authorized?.staker || 'N/A',
-                        withdrawer: meta?.authorized?.withdrawer || 'N/A',
-                        state: state,
-                    };
-                });
-            }
+      // sometimes it’s nested differently
+      if (Array.isArray(data.data)) return data.data;
 
-            setStakeAccounts(accounts);
-        } catch (error) {
-            console.error("Error fetching stake accounts:", error);
-            enqueueSnackbar("Failed to fetch stake accounts", { variant: 'error' });
-            setStakeAccounts([]);
-        } finally {
-            setLoadingStakeAccounts(false);
-        }
+      return [];
     };
+
+    const normalizePubkey = (a: any): string | null => {
+      const k =
+        a?.pubkey ??
+        a?.address ??
+        a?.stake_account ??
+        a?.stakeAccount ??
+        a?.account;
+      return typeof k === "string" && k.length >= 32 ? k : null;
+    };
+
+    try {
+      let accounts: any[] = [];
+
+      // -------- SHYFT --------
+      try {
+        const { data } = await axios.get(
+          "https://api.shyft.to/sol/v1/wallet/stake_accounts",
+          {
+            params: {
+              network: "mainnet-beta",
+              wallet_address: governanceNativeWallet,
+            },
+            headers: { "x-api-key": SHYFT_KEY },
+            timeout: 10_000,
+          }
+        );
+
+        const arr = extractStakeArray(data);
+
+        // ✅ If Shyft returned stake accounts, we STOP here (no RPC)
+        if (arr.length > 0) {
+          accounts = arr
+            .map((a: any) => {
+              const pubkey = normalizePubkey(a);
+              if (!pubkey) return null;
+
+              const d = a.stake?.delegation;
+              const deact =
+                d?.deactivation_epoch ??
+                d?.deactivationEpoch ??
+                "N/A";
+
+              let state = "inactive";
+              if (d && String(deact) === U64_MAX) state = "active";
+              else if (d && String(deact) !== "N/A") state = "deactivating";
+              else if (a.type === "initialized") state = "initialized";
+
+              return {
+                pubkey,
+                lamports: a.lamports ?? 0,
+                balance: a.balance ?? null,
+                validatorVoteAccount: d?.voter || "N/A",
+                activationEpoch:
+                  d?.activation_epoch ??
+                  d?.activationEpoch ??
+                  "N/A",
+                deactivationEpoch: deact,
+                state,
+              };
+            })
+            .filter(Boolean) as any[];
+
+          // ✅ Cache + set + return early (prevents RPC fallback)
+          stakeAccountsCacheRef.current = {
+            wallet: governanceNativeWallet,
+            accounts,
+          };
+          setStakeAccounts(accounts);
+          return;
+        }
+
+        // If Shyft returned *no array*, treat as failure to trigger fallback
+        throw new Error("Shyft: no stake accounts array found in response shape");
+      } catch (shyftErr) {
+        // -------- RPC FALLBACK --------
+        console.warn("Shyft stake_accounts failed; falling back to RPC:", shyftErr);
+
+        const walletPk = new PublicKey(governanceNativeWallet);
+        const programAccounts =
+          await RPC_CONNECTION.getParsedProgramAccounts(StakeProgram.programId);
+
+        accounts = programAccounts
+          .filter((acc) => {
+            const auth = acc.account.data?.parsed?.info?.meta?.authorized;
+            return (
+              auth?.staker === walletPk.toBase58() ||
+              auth?.withdrawer === walletPk.toBase58()
+            );
+          })
+          .map((acc) => {
+            const info = acc.account.data.parsed.info;
+            const d = info.stake?.delegation;
+            const deact = d?.deactivationEpoch ?? "N/A";
+
+            let state = info.type;
+            if (info.type === "delegated" && String(deact) === U64_MAX) state = "active";
+            else if (info.type === "delegated") state = "deactivating";
+
+            return {
+              pubkey: acc.pubkey.toBase58(),
+              lamports: acc.account.lamports,
+              balance: null,
+              validatorVoteAccount: d?.voter || "N/A",
+              activationEpoch: d?.activationEpoch || "N/A",
+              deactivationEpoch: deact,
+              state,
+            };
+          });
+      }
+
+      // ✅ Cache result (RPC or Shyft)
+      stakeAccountsCacheRef.current = {
+        wallet: governanceNativeWallet,
+        accounts,
+      };
+      setStakeAccounts(accounts);
+    } catch (e) {
+      console.error(e);
+      enqueueSnackbar("Failed to fetch stake accounts", { variant: "error" });
+      setStakeAccounts([]);
+    } finally {
+      setLoadingStakeAccounts(false);
+    }
+  },
+  [governanceNativeWallet, enqueueSnackbar]
+);
 
     // Create staking instructions
     const createStakingInstructions = async (stakeAmountLamports: number): Promise<TransactionInstruction[]> => {
@@ -691,10 +728,13 @@ export default function StakeValidatorView(props: any){
 
     // Fetch stake accounts when the unstake tab is opened
     React.useEffect(() => {
-        if (tabValue === 1 && open && governanceNativeWallet) {
-            fetchStakeAccounts();
-        }
-    }, [tabValue, open]);
+    if (!open) fetchedOnOpenRef.current = false;
+
+    if (open && tabValue === 1 && !fetchedOnOpenRef.current) {
+        fetchedOnOpenRef.current = true;
+        fetchStakeAccounts();
+    }
+    }, [open, tabValue, fetchStakeAccounts]);
 
     return (
         <>
@@ -922,12 +962,14 @@ export default function StakeValidatorView(props: any){
                                         const isActive = account.state === 'active';
                                         const isDeactivating = account.state === 'deactivating';
                                         const isInactive = account.state === 'initialized' || account.state === 'inactive';
+                                        const canDeactivate = isActive;          // only active needs deactivate
+                                        const canWithdraw = isInactive;          // only initialized/inactive can withdraw now
 
                                         let statusLabel = 'Unknown';
                                         let statusColor = 'rgba(255,255,255,0.5)';
                                         if (isActive) { statusLabel = 'Active'; statusColor = '#4caf50'; }
-                                        else if (isDeactivating) { statusLabel = 'Deactivating'; statusColor = '#ff9800'; }
-                                        else if (isInactive) { statusLabel = 'Inactive'; statusColor = '#f44336'; }
+                                        else if (isDeactivating) { statusLabel = 'Cooldown'; statusColor = '#ff9800'; }
+                                        else if (isInactive) { statusLabel = 'Withdrawable'; statusColor = '#f44336'; }
 
                                         const displayBalance = account.balance 
                                             ? `${parseFloat(account.balance).toFixed(4)} SOL`
@@ -950,8 +992,12 @@ export default function StakeValidatorView(props: any){
                                                     // Auto-select appropriate action based on state
                                                     if (isActive) {
                                                         setUnstakeAction('deactivate');
-                                                    } else if (isInactive || isDeactivating) {
+                                                    } else if (isInactive) {
+                                                    // initialized OR inactive => withdrawable now
                                                         setUnstakeAction('withdraw');
+                                                    } else if (isDeactivating) {
+                                                    // cooling down: NOT withdrawable yet
+                                                        setUnstakeAction('deactivate'); // or keep current selection; just don't force withdraw
                                                     }
                                                 }}
                                                 secondaryAction={
@@ -973,7 +1019,9 @@ export default function StakeValidatorView(props: any){
                                                 <ListItemText
                                                     primary={
                                                         <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
-                                                            {account.pubkey.substring(0, 8)}...{account.pubkey.substring(account.pubkey.length - 8)}
+                                                            {typeof account.pubkey === "string"
+                                                                ? `${account.pubkey.slice(0, 8)}...${account.pubkey.slice(-8)}`
+                                                                : "Unknown stake"}
                                                         </Typography>
                                                     }
                                                     secondary={
