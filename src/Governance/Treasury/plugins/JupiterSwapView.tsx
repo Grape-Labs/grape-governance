@@ -231,19 +231,33 @@ export default function JupiterSwapView(props: any) {
       const transactionIxs: TransactionInstruction[] = transaction.instructions;
 
       for (const instructionChunk of chunkInstructions(transactionIxs, 10)) {
-        const message = new TransactionMessage({
-          payerKey,
-          recentBlockhash: blockhash,
-          instructions: instructionChunk,
-        }).compileToV0Message();
+        
+        const simulateIx = async (transaction: Transaction): Promise<boolean> => {
+        try {
+            const { blockhash } = await RPC_CONNECTION.getLatestBlockhash();
 
-        const vtx = new VersionedTransaction(message);
-        const simulationResult = await RPC_CONNECTION.simulateTransaction(vtx);
+            transaction.recentBlockhash = blockhash;
+            transaction.feePayer = new PublicKey(governanceNativeWallet);
 
-        if (simulationResult.value.err) {
-          console.error("Chunk simulation failed:", simulationResult.value.err);
-          return false;
+            // ✅ LEGACY overload (no config object allowed)
+            const sim = await RPC_CONNECTION.simulateTransaction(
+            transaction,
+            [],     // no signers
+            false   // don't include accounts
+            );
+
+            if (sim.value.err) {
+            console.error("Simulation error:", sim.value.err);
+            return false;
+            }
+
+            return true;
+        } catch (e) {
+            console.error("simulateIx error:", e);
+            return false;
         }
+        };
+
       }
       return true;
     } catch (e) {
@@ -292,9 +306,9 @@ export default function JupiterSwapView(props: any) {
         slippageBps: slip,            // uint16
         swapMode: "ExactIn",          // default per spec, but explicit is nice
         onlyDirectRoutes: onlyDirectRoutes, // boolean (don’t send "true"/"false" strings)
-        // restrictIntermediateTokens: true, // default true per spec
-        // maxAccounts: 20,
-        // instructionVersion: "V1", // default
+        restrictIntermediateTokens: true, // default true per spec
+        maxAccounts: 20,
+        instructionVersion: "V1", // default
       },
       headers: jupHeaders(),
       timeout: 15_000,
@@ -328,6 +342,35 @@ export default function JupiterSwapView(props: any) {
   } finally {
     setLoadingQuote(false);
   }
+};
+
+const splitJupiterInstructions = (swapIxs: any) => {
+  const setupIxs: TransactionInstruction[] = [];
+  const swapIxsOnly: TransactionInstruction[] = [];
+  const cleanupIxs: TransactionInstruction[] = [];
+
+  if (swapIxs.tokenLedgerInstruction) {
+    setupIxs.push(decodeJupIx(swapIxs.tokenLedgerInstruction));
+  }
+
+  (swapIxs.computeBudgetInstructions || []).forEach((ix: any) =>
+    setupIxs.push(decodeJupIx(ix))
+  );
+
+  (swapIxs.setupInstructions || []).forEach((ix: any) =>
+    setupIxs.push(decodeJupIx(ix))
+  );
+
+  if (swapIxs.swapInstruction) {
+    swapIxsOnly.push(decodeJupIx(swapIxs.swapInstruction));
+  }
+
+  // ⛔ cleanup is optional — include only if you want
+  if (swapIxs.cleanupInstruction) {
+    cleanupIxs.push(decodeJupIx(swapIxs.cleanupInstruction));
+  }
+
+  return { setupIxs, swapIxsOnly, cleanupIxs };
 };
 
   const buildProposalFromQuote = async () => {
@@ -378,26 +421,23 @@ export default function JupiterSwapView(props: any) {
         );
       }
 
-      const ixList: TransactionInstruction[] = [];
+        const { setupIxs, swapIxsOnly, cleanupIxs } = splitJupiterInstructions(swapIxs);
 
-      if (tokenLedgerInstruction) ixList.push(decodeJupIx(tokenLedgerInstruction));
-      (computeBudgetInstructions || []).forEach((ix: any) => ixList.push(decodeJupIx(ix)));
-      (setupInstructions || []).forEach((ix: any) => ixList.push(decodeJupIx(ix)));
-      if (swapInstruction) ixList.push(decodeJupIx(swapInstruction));
-      if (cleanupInstruction) ixList.push(decodeJupIx(cleanupInstruction));
+        // 🚨 Hard safety: swap must exist
+        if (!swapIxsOnly.length) {
+        throw new Error("No swap instruction returned by Jupiter");
+        }
 
-      if (ixList.length === 0) {
-        throw new Error("No instructions returned by Jupiter");
-      }
-
-      const tx = new Transaction().add(...ixList);
-      const ok = await simulateIx(tx);
-      if (!ok) {
-        enqueueSnackbar("Simulation failed. Try onlyDirectRoutes, increase slippage slightly, or reduce route complexity.", {
-          variant: "error",
-        });
-        return;
-      }
+        // ✅ Simulate EACH PHASE separately (legacy-safe)
+        for (const phase of [setupIxs, swapIxsOnly, cleanupIxs]) {
+        if (!phase.length) continue;
+        const tx = new Transaction().add(...phase);
+        const ok = await simulateIx(tx);
+        if (!ok) {
+            enqueueSnackbar("Simulation failed for one swap phase", { variant: "error" });
+            return;
+        }
+        }
 
       if (handleCloseExtMenu) handleCloseExtMenu();
       setOpen(false);
@@ -405,7 +445,11 @@ export default function JupiterSwapView(props: any) {
       const propIx = {
         title: proposalTitle || "Jupiter Swap",
         description: proposalDescription || "Jupiter swap via Metis Swap API",
-        ix: ixList,
+        ix: [
+        ...setupIxs,
+        ...swapIxsOnly,
+        ...cleanupIxs, // optional — remove if you want smaller txs
+        ],
         aix: [],
         nativeWallet: governanceNativeWallet,
         governingMint: governingMint,

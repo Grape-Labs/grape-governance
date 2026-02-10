@@ -70,6 +70,7 @@ import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import PersonIcon from '@mui/icons-material/Person';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import SendIcon from '@mui/icons-material/Send';
 import SettingsIcon from '@mui/icons-material/Settings';
 import GetAppIcon from '@mui/icons-material/GetApp';
@@ -970,7 +971,7 @@ export default function JupDcaExtensionView(props: any){
                                     },
                                 }}
                                 startIcon={
-                                    <SwapHorizIcon 
+                                    <AccessTimeIcon 
                                         fontSize={'small'} 
                                         sx={{
                                             color:'rgba(255,255,255,0.25)',
@@ -987,9 +988,9 @@ export default function JupDcaExtensionView(props: any){
                         <>
                             <MenuItem onClick={publicKey && handleClickOpen}>
                                 <ListItemIcon>
-                                    <SwapHorizIcon fontSize="small" />
+                                    <AccessTimeIcon fontSize="small" />
                                 </ListItemIcon>
-                                Swap
+                                DCA
                             </MenuItem>
                         </>
                     }
