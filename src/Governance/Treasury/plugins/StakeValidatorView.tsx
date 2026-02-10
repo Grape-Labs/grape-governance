@@ -488,26 +488,50 @@ export default function StakeValidatorView(props: any){
                     });
 
                     accounts = allRpc.map((acc: any) => {
-                        const info = acc.account.data?.parsed?.info;
-                        const d = info?.stake?.delegation;
-                        const deact = d?.deactivationEpoch ?? "N/A";
+                    const info = acc.account.data?.parsed?.info;
+                    const d = info?.stake?.delegation;
 
-                        let state = info?.type ?? "unknown";
-                        if (info?.type === "delegated" && String(deact) === U64_MAX) state = "active";
-                        else if (info?.type === "delegated") state = "deactivating";
+                    const deact = d?.deactivationEpoch ?? "N/A";
 
-                        return {
-                            pubkey: acc.pubkey.toBase58(),
-                            lamports: acc.account.lamports,
-                            stake_account_address: acc.pubkey.toBase58(),
-                            vote_account_address: d?.voter ?? "N/A",
-                            status: info?.type ?? "unknown",
-                            state,
-                            total_amount: null,
-                            delegated_amount: null,
-                            active_amount: null,
-                            rent: 0,
-                        };
+                    let state = info?.type ?? "unknown";
+                    if (info?.type === "delegated" && String(deact) === U64_MAX) state = "active";
+                    else if (info?.type === "delegated") state = "deactivating";
+                    else if (info?.type === "initialized") state = "initialized";
+
+                    const totalLamports = Number(acc.account.lamports || 0);
+                    const rentLamports =
+                        info?.meta?.rentExemptReserve != null ? Number(info.meta.rentExemptReserve) : STAKE_RENT_EXEMPT_LAMPORTS;
+
+                    // IMPORTANT: on many RPCs, delegation.stake exists and is the active delegated stake in lamports
+                    const activeStakeLamports = d?.stake != null ? Number(d.stake) : 0;
+
+                    const inactiveLamports = Math.max(0, totalLamports - activeStakeLamports - rentLamports);
+
+                    const totalSol = totalLamports / web3.LAMPORTS_PER_SOL;
+                    const rentSol = rentLamports / web3.LAMPORTS_PER_SOL;
+                    const inactiveSol = inactiveLamports / web3.LAMPORTS_PER_SOL;
+                    const activeStakeSol = activeStakeLamports / web3.LAMPORTS_PER_SOL;
+
+                    const pubkey = acc.pubkey.toBase58();
+
+                    return {
+                        pubkey,
+                        stake_account_address: pubkey,
+                        vote_account_address: d?.voter ?? "N/A",
+                        status: info?.type ?? "unknown",
+                        state,
+
+                        // canonical
+                        total_amount: totalSol,
+                        active_stake_amount: activeStakeSol,
+                        rent: rentSol,
+                        inactive_amount: inactiveSol,
+
+                        lamports: totalLamports,
+                        activeStakeLamports,
+                        rentLamports,
+                        inactiveLamports,
+                    };
                     });
 
                     stakeAccountsCacheRef.current = { wallet: walletKey, accounts };
