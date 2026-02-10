@@ -1,3 +1,8 @@
+// FIXED VERSION - Key changes for JITO MEV Harvest:
+// 1. Use canonical field names (activeStakeLamports, rentLamports, inactiveLamports)
+// 2. All lamports fields are already in lamports (not SOL), so don't multiply by LAMPORTS_PER_SOL
+// 3. Calculate excess as: total - activeStake - rent
+
 import { AnchorProvider, web3 } from '@coral-xyz/anchor';
 import { v4 as uuidv4 } from 'uuid';
 import { 
@@ -207,7 +212,7 @@ export default function StakeValidatorView(props: any){
     const [isGoverningMintCouncilSelected, setIsGoverningMintCouncilSelected] = React.useState(true);
     const [isDraft, setIsDraft] = React.useState(false);
     
-    // Tab state: 0 = Stake, 1 = Unstake
+    // Tab state: 0 = Stake, 1 = Unstake, 2 = Harvest
     const [tabValue, setTabValue] = React.useState(0);
 
     // Staking state
@@ -430,7 +435,7 @@ export default function StakeValidatorView(props: any){
 
                                 // Canonical SOL fields
                                 total_amount: totalSol,
-                                active_stake_amount: activeStakeSol,   // <-- IMPORTANT (don’t call this active_amount)
+                                active_stake_amount: activeStakeSol,   // <-- IMPORTANT (don't call this active_amount)
                                 rent: rentSol,
                                 inactive_amount: inactiveSol,
 
@@ -699,24 +704,30 @@ export default function StakeValidatorView(props: any){
 
     // ========== Jito MEV Harvest Functions ==========
     
-    // Calculate harvestable (excess) lamports for each active stake account
+    // FIXED: Calculate harvestable (excess) lamports for each active stake account
     // Harvestable = total_balance - active_stake - rent_exempt_reserve
+    // Use canonical field names that are already in lamports
     const computeHarvestableAccounts = React.useCallback((accounts: any[]) => {
         return accounts
             .filter((a: any) => a.state === 'active' || a.state === 'deactivating')
             .map((a: any) => {
                 const totalLamports = a.lamports || 0;
-                // Use delegated_amount or active_amount from Shyft, fall back to 0 for RPC
-                const activeLamports = a.delegated_amount != null
-                    ? Math.round(parseFloat(a.delegated_amount) * web3.LAMPORTS_PER_SOL)
-                    : a.active_amount != null
-                        ? Math.round(parseFloat(a.active_amount) * web3.LAMPORTS_PER_SOL)
-                        : 0;
-                const rent = a.rent != null && parseFloat(a.rent) > 0
-                    ? Math.round(parseFloat(a.rent) * web3.LAMPORTS_PER_SOL)
+                
+                // Use the canonical activeStakeLamports field that was set in fetchStakeAccounts
+                // This field is already in lamports, not SOL
+                const activeLamports = a.activeStakeLamports != null
+                    ? a.activeStakeLamports
+                    : 0;
+                
+                // Use the canonical rentLamports field
+                const rent = a.rentLamports != null
+                    ? a.rentLamports
                     : STAKE_RENT_EXEMPT_LAMPORTS;
                 
                 const excess = totalLamports - activeLamports - rent;
+                
+                console.log(`Account ${a.pubkey?.slice(0,8)}: total=${totalLamports}, active=${activeLamports}, rent=${rent}, excess=${excess}`);
+                
                 return {
                     ...a,
                     activeLamports,
@@ -1064,16 +1075,7 @@ export default function StakeValidatorView(props: any){
         }
     }, []);
 
-    // Fetch stake accounts when the unstake tab is opened
-    /*
-    React.useEffect(() => {
-        if (!open) fetchedOnOpenRef.current = false;
-
-        if (open && tabValue === 1 && !fetchedOnOpenRef.current) {
-            fetchedOnOpenRef.current = true;
-            fetchStakeAccounts();
-        }
-    }, [open, tabValue, fetchStakeAccounts]);*/
+    // Fetch stake accounts when dialog opens
     React.useEffect(() => {
     if (!open) return;
         fetchStakeAccounts(); // no force
