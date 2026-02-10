@@ -753,7 +753,7 @@ export default function StakeValidatorView(props: any){
 
             for (const account of selected) {
                 const stakeAccountPubkey = new PublicKey(account.pubkey);
-                const withdrawIx = extractStakeInstruction(
+                const withdrawIx = extractInstruction(
                     StakeProgram.withdraw({
                         stakePubkey: stakeAccountPubkey,
                         authorizedPubkey: govWallet,
@@ -1332,7 +1332,11 @@ export default function StakeValidatorView(props: any){
                                         else if (isDeactivating) { statusLabel = 'Deactivating'; statusColor = '#ff9800'; }
                                         else if (isInactive) { statusLabel = 'Inactive'; statusColor = '#f44336'; }
 
-                                        
+                                        const vote =
+                                            account?.vote_account_address ||
+                                            account?.validatorVoteAccount ||
+                                            account?.voteAccount ||
+                                            "N/A";
                                         const totalSol =
                                             account.total_amount != null
                                                 ? Number(account.total_amount)
@@ -1340,15 +1344,15 @@ export default function StakeValidatorView(props: any){
                                                 ? Number(account.total_amount_sol)
                                                 : null;
 
-                                            const inactiveSol =
-                                                account.inactive_amount != null ? Number(account.inactive_amount) :
-                                                account.inactiveLamports != null ? account.inactiveLamports / web3.LAMPORTS_PER_SOL :
-                                                0;
+                                            const rentSol  = Number(account.rent ?? 0);
 
-                                            const rentSol =
-                                                account.rent != null ? Number(account.rent) :
-                                                account.rentLamports != null ? account.rentLamports / web3.LAMPORTS_PER_SOL :
-                                                (STAKE_RENT_EXEMPT_LAMPORTS / web3.LAMPORTS_PER_SOL);
+                                            // Shyft quirk: delegated_amount matches Explorer "Active Stake" in your samples
+                                            const activeStakeSol =
+                                            account.delegated_amount != null ? Number(account.delegated_amount) :
+                                            account.active_amount != null ? Number(account.active_amount) :
+                                            0;
+
+                                            const withdrawableSol = Math.max(0, totalSol - activeStakeSol - rentSol);
                                         return (
                                             <ListItem 
                                                 key={index}
@@ -1395,7 +1399,7 @@ export default function StakeValidatorView(props: any){
                                                     secondary={
                                                         <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)" }}>
                                                         {totalSol.toFixed(4)} SOL
-                                                        {" • "}Withdrawable: {inactiveSol.toFixed(4)} SOL
+                                                        {" • "}Withdrawable: {withdrawableSol.toFixed(4)} SOL
                                                         {" • "}Rent: {rentSol.toFixed(4)} SOL
                                                         {vote !== "N/A" ? ` • Validator: ${vote.slice(0, 6)}...` : ""}
                                                         </Typography>
