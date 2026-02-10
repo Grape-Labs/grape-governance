@@ -150,7 +150,6 @@ export default function AdvanvedProposalView(props: any){
                 
             <FormControl fullWidth  sx={{mb:2}}>
                 <TextField
-                    autoFocus
                     required
                     margin="dense"
                     id="proposal_title"
@@ -172,7 +171,6 @@ export default function AdvanvedProposalView(props: any){
 
             <FormControl fullWidth  sx={{mb:2}}> 
                 <TextField
-                    autoFocus
                     required
                     margin="dense"
                     id="proposal_dsecription"
