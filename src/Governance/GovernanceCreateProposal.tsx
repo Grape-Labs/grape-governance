@@ -1986,37 +1986,22 @@ export default function GovernanceCreateProposalView(props: any){
 
                             <FormControl fullWidth  sx={{mb:2}}>
                                 <TextField 
-                                    fullWidth
-                                    label="Description"
-                                    multiline
-                                    rows={4}
-                                    //maxRows={4}
-                                    value={description || ""}
-                                    tabIndex={2} // Ensure Box is focusable
-                                    onFocus={() => console.log("Description Field focused")}
-                                    onBlur={() => console.log("Description Field blurred")}
-                                    onKeyDown={(e) => {
-                                      /*
-                                      if (e.key === 'G' || e.key === 'g') {
-                                          console.log("Refocusing field on 'G'");
-                                          if (e.target instanceof HTMLInputElement) {
-                                            e.target.focus(); // Safely access focus
-                                          }
-                                      }
-                                      */
-                                  }}
-                                    onChange={(e) => {
+                                  fullWidth
+                                  label="Description"
+                                  multiline
+                                  rows={4}
+                                  value={description || ""}
+                                  onChange={(e) => {
                                       const newValue = e.target.value;
-                                      //console.log("newValue "+newValue);
-                                        if (newValue.length <= maxDescriptionLen) {
-                                          if (!description || description.length < maxDescriptionLen)
-                                              handleDescriptionChange(e.target.value)
-                                          }  
-                                        }
+                                      if (newValue.length <= maxDescriptionLen) {
+                                          handleDescriptionChange(newValue);
                                       }
-                                    
-                                    sx={{maxlength:maxDescriptionLen}}
-                                    />
+                                  }}
+                                  inputProps={{
+                                      maxLength: maxDescriptionLen // This is the correct way to set max length
+                                  }}
+                                  helperText={`${description?.length || 0}/${maxDescriptionLen} characters`}
+                              />
 
                                 <Grid container justifyContent="space-between" alignItems="center">
                                   <Grid item sx={{textAlign:'left'}}>
