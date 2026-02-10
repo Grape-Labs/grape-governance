@@ -53,6 +53,7 @@ import {
     Switch,
     FormControl,
     FormControlLabel,
+    Checkbox,
     InputAdornment,
     InputLabel,
     Select,
@@ -80,6 +81,7 @@ import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import SendIcon from '@mui/icons-material/Send';
 import SettingsIcon from '@mui/icons-material/Settings';
 import GetAppIcon from '@mui/icons-material/GetApp';
+import WaterDropIcon from '@mui/icons-material/WaterDrop';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -156,6 +158,9 @@ const extractInstruction = (result: any): TransactionInstruction => {
     return result as TransactionInstruction;
 };
 
+// ========== Jito MEV Harvest Constants ==========
+const STAKE_RENT_EXEMPT_LAMPORTS = 2282880; // Rent-exempt minimum for a stake account
+
 export default function StakeValidatorView(props: any){
     const setReload = props?.setReload;
     const governanceLookup = props.governanceLookup;
@@ -182,13 +187,14 @@ export default function StakeValidatorView(props: any){
     const fetchStakeAccountsKeyRef = React.useRef<string>("");
     const fetchStakeAccountsAbortRef = React.useRef<AbortController | null>(null);
     const stakeAccountsCacheRef = React.useRef<{
-    wallet: string | null;
-    accounts: any[] | null;
+        wallet: string | null;
+        accounts: any[] | null;
     }>({ wallet: null, accounts: null });
 
     const governanceNativeWallet = props?.governanceNativeWallet;
     const { publicKey } = useWallet();
     const fetchedOnOpenRef = React.useRef(false);
+    const wallet = useWallet();
 
     const [loading, setLoading] = React.useState(false);
     const [open, setPropOpen] = React.useState(false);
@@ -211,8 +217,15 @@ export default function StakeValidatorView(props: any){
     // Unstaking state
     const [unstakeAddress, setUnstakeAddress] = React.useState('');
     const [unstakeAction, setUnstakeAction] = React.useState<'deactivate' | 'withdraw'>('deactivate');
+    const [unstakeAmount, setUnstakeAmount] = React.useState(''); // empty = full amount
+    const [unstakeSeed, setUnstakeSeed] = React.useState<string | null>(null);
     const [stakeAccounts, setStakeAccounts] = React.useState<any[]>([]);
     const [loadingStakeAccounts, setLoadingStakeAccounts] = React.useState(false);
+
+    // Jito liquid staking state
+    const [harvestAccounts, setHarvestAccounts] = React.useState<any[]>([]);
+    const [loadingHarvest, setLoadingHarvest] = React.useState(false);
+    const [harvestSelectAll, setHarvestSelectAll] = React.useState(true);
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const onError = useCallback(
@@ -303,187 +316,176 @@ export default function StakeValidatorView(props: any){
         }
     };
 
-const fetchStakeAccounts = React.useCallback(
-  async (force = false) => {
-    if (!governanceNativeWallet) return;
+    // Fetch stake accounts via Shyft API with RPC fallback
+    const fetchStakeAccounts = React.useCallback(
+        async (force = false) => {
+            if (!governanceNativeWallet) return;
 
-    const walletKey = governanceNativeWallet;
+            const walletKey = governanceNativeWallet;
 
-    // 1) Serve from cache (unless forced)
-    if (
-      !force &&
-      stakeAccountsCacheRef.current.wallet === walletKey &&
-      Array.isArray(stakeAccountsCacheRef.current.accounts)
-    ) {
-      setStakeAccounts(stakeAccountsCacheRef.current.accounts || []);
-      return;
-    }
+            // 1) Serve from cache (unless forced)
+            if (
+                !force &&
+                stakeAccountsCacheRef.current.wallet === walletKey &&
+                Array.isArray(stakeAccountsCacheRef.current.accounts)
+            ) {
+                setStakeAccounts(stakeAccountsCacheRef.current.accounts || []);
+                return;
+            }
 
-    // 2) Single-flight: if same wallet fetch already in-flight, do nothing
-    if (
-      fetchStakeAccountsInFlight.current &&
-      fetchStakeAccountsKeyRef.current === walletKey
-    ) {
-      return;
-    }
+            // 2) Single-flight: if same wallet fetch already in-flight, do nothing
+            if (
+                fetchStakeAccountsInFlight.current &&
+                fetchStakeAccountsKeyRef.current === walletKey
+            ) {
+                return;
+            }
 
-    // 3) Abort any previous request (wallet changed or forced refresh)
-    if (fetchStakeAccountsAbortRef.current) {
-      try { fetchStakeAccountsAbortRef.current.abort(); } catch {}
-    }
-    const controller = new AbortController();
-    fetchStakeAccountsAbortRef.current = controller;
+            // 3) Abort any previous request (wallet changed or forced refresh)
+            if (fetchStakeAccountsAbortRef.current) {
+                try { fetchStakeAccountsAbortRef.current.abort(); } catch {}
+            }
+            const controller = new AbortController();
+            fetchStakeAccountsAbortRef.current = controller;
 
-    fetchStakeAccountsInFlight.current = true;
-    fetchStakeAccountsKeyRef.current = walletKey;
+            fetchStakeAccountsInFlight.current = true;
+            fetchStakeAccountsKeyRef.current = walletKey;
 
-    setLoadingStakeAccounts(true);
+            setLoadingStakeAccounts(true);
 
-    const U64_MAX = "18446744073709551615";
+            const U64_MAX = "18446744073709551615";
 
-    const extractStakeArray = (data: any): any[] => {
-      if (!data) return [];
-      if (Array.isArray(data.result)) return data.result;
-      if (Array.isArray(data.result?.data)) return data.result.data;
-      if (Array.isArray(data.result?.stake_accounts)) return data.result.stake_accounts;
-      if (Array.isArray(data.result?.accounts)) return data.result.accounts;
-      if (Array.isArray(data.data)) return data.data;
-      return [];
-    };
+            try {
+                let accounts: any[] = [];
 
-    const normalizePubkey = (a: any): string | null => {
-      const k =
-        a?.stake_account_address ??
-        a?.pubkey ??
-        a?.address ??
-        a?.stake_account ??
-        a?.stakeAccount ??
-        a?.account;
-      return typeof k === "string" && k.length >= 32 ? k : null;
-    };
+                // -------- SHYFT --------
+                try {
+                    const { data } = await axios.get(
+                        "https://api.shyft.to/sol/v1/wallet/stake_accounts",
+                        {
+                            params: {
+                                network: "mainnet-beta",
+                                wallet_address: walletKey,
+                            },
+                            headers: { "x-api-key": SHYFT_KEY },
+                            timeout: 10_000,
+                            signal: controller.signal as any,
+                        }
+                    );
 
-    try {
-      let accounts: any[] = [];
+                    const arr = Array.isArray(data?.result) ? data.result : [];
 
-      // -------- SHYFT --------
-      try {
-        const { data } = await axios.get(
-          "https://api.shyft.to/sol/v1/wallet/stake_accounts",
-          {
-            params: {
-              network: "mainnet-beta",
-              wallet_address: walletKey,
-            },
-            headers: { "x-api-key": SHYFT_KEY },
-            timeout: 10_000,
-            signal: controller.signal as any, // axios supports AbortController in modern versions
-          }
-        );
+                    if (arr.length > 0) {
+                        accounts = arr
+                            .map((a: any) => {
+                                const pubkey = a?.pubkey || a?.address || a?.stake_account_address;
+                                if (!pubkey) return null;
 
-        const arr = extractStakeArray(data);
+                                const d = a.stake?.delegation;
+                                const deact = d?.deactivation_epoch ?? d?.deactivationEpoch ?? "N/A";
 
-        if (arr.length > 0) {
-          accounts = arr
-            .map((a: any) => {
-              const pubkey = normalizePubkey(a);
-              if (!pubkey) return null;
+                                let derivedState = "inactive";
+                                if (d && String(deact) === U64_MAX) derivedState = "active";
+                                else if (d && String(deact) !== "N/A") derivedState = "deactivating";
+                                else if (a.type === "initialized") derivedState = "initialized";
 
-              // Shyft sometimes provides "state" directly; keep your derived fallback
-              const d = a.stake?.delegation;
-              const deact = d?.deactivation_epoch ?? d?.deactivationEpoch ?? "N/A";
+                                return {
+                                    pubkey,
+                                    lamports: a.lamports ?? 0,
+                                    stake_account_address: a.stake_account_address ?? pubkey,
+                                    vote_account_address: a.vote_account_address ?? d?.voter ?? "N/A",
+                                    status: a.status ?? a.state ?? "unknown",
+                                    state: a.state ?? derivedState,
+                                    total_amount: a.total_amount ?? a.balance ?? null,
+                                    delegated_amount: a.delegated_amount ?? null,
+                                    active_amount: a.active_amount ?? null,
+                                    rent: a.rent ?? 0,
+                                    activation_epoch: a.activation_epoch ?? null,
+                                    deactivation_epoch: a.deactivation_epoch ?? null,
+                                };
+                            })
+                            .filter(Boolean) as any[];
 
-              let derivedState = "inactive";
-              if (d && String(deact) === U64_MAX) derivedState = "active";
-              else if (d && String(deact) !== "N/A") derivedState = "deactivating";
-              else if (a.type === "initialized") derivedState = "initialized";
+                        // Cache and return early — NO RPC fallback needed
+                        stakeAccountsCacheRef.current = { wallet: walletKey, accounts };
+                        setStakeAccounts(accounts);
+                        return;
+                    }
 
-              return {
-                pubkey,
-                lamports: a.lamports ?? 0,
+                    // Shyft returned empty — fall through to RPC
+                    throw new Error("Shyft returned empty stake array");
+                } catch (shyftErr: any) {
+                    if (controller.signal.aborted) return;
 
-                // Shyft SOL fields for Solscan-like breakdown
-                stake_account_address: a.stake_account_address ?? pubkey,
-                vote_account_address: a.vote_account_address ?? d?.voter ?? "N/A",
-                status: a.status ?? a.state ?? "unknown",
-                state: a.state ?? derivedState,
+                    console.warn("Shyft stake_accounts failed; falling back to RPC:", shyftErr);
 
-                total_amount: a.total_amount ?? a.balance ?? null,
-                delegated_amount: a.delegated_amount ?? null,
-                active_amount: a.active_amount ?? null,
-                rent: a.rent ?? 0,
-                activation_epoch: a.activation_epoch ?? null,
-                deactivation_epoch: a.deactivation_epoch ?? null,
-              };
-            })
-            .filter(Boolean) as any[];
+                    // -------- RPC FALLBACK --------
+                    const walletPk = new PublicKey(walletKey);
 
-          // Cache and return early: NO RPC fallback
-          stakeAccountsCacheRef.current = { wallet: walletKey, accounts };
-          setStakeAccounts(accounts);
-          return;
-        }
+                    const [stakerAccounts, withdrawerAccounts] = await Promise.all([
+                        RPC_CONNECTION.getParsedProgramAccounts(
+                            StakeProgram.programId,
+                            {
+                                filters: [{ memcmp: { offset: 12, bytes: walletPk.toBase58() } }],
+                            }
+                        ),
+                        RPC_CONNECTION.getParsedProgramAccounts(
+                            StakeProgram.programId,
+                            {
+                                filters: [{ memcmp: { offset: 44, bytes: walletPk.toBase58() } }],
+                            }
+                        ),
+                    ]);
 
-        throw new Error("Shyft returned empty stake array");
-      } catch (shyftErr: any) {
-        // If we aborted, silently exit (do NOT show error/toast)
-        if (controller.signal.aborted) return;
+                    // Deduplicate
+                    const seen = new Set<string>();
+                    const allRpc = [...stakerAccounts, ...withdrawerAccounts].filter((acc: any) => {
+                        const key = acc.pubkey.toBase58();
+                        if (seen.has(key)) return false;
+                        seen.add(key);
+                        return true;
+                    });
 
-        console.warn("Shyft stake_accounts failed; falling back to RPC:", shyftErr);
+                    accounts = allRpc.map((acc: any) => {
+                        const info = acc.account.data?.parsed?.info;
+                        const d = info?.stake?.delegation;
+                        const deact = d?.deactivationEpoch ?? "N/A";
 
-        // -------- RPC FALLBACK --------
-        const walletPk = new PublicKey(walletKey);
-        const programAccounts = await RPC_CONNECTION.getParsedProgramAccounts(
-          StakeProgram.programId
-        );
+                        let state = info?.type ?? "unknown";
+                        if (info?.type === "delegated" && String(deact) === U64_MAX) state = "active";
+                        else if (info?.type === "delegated") state = "deactivating";
 
-        accounts = programAccounts
-          .filter((acc) => {
-            const auth = acc.account.data?.parsed?.info?.meta?.authorized;
-            return (
-              auth?.staker === walletPk.toBase58() ||
-              auth?.withdrawer === walletPk.toBase58()
-            );
-          })
-          .map((acc) => {
-            const info = acc.account.data.parsed.info;
-            const d = info.stake?.delegation;
-            const deact = d?.deactivationEpoch ?? "N/A";
+                        return {
+                            pubkey: acc.pubkey.toBase58(),
+                            lamports: acc.account.lamports,
+                            stake_account_address: acc.pubkey.toBase58(),
+                            vote_account_address: d?.voter ?? "N/A",
+                            status: info?.type ?? "unknown",
+                            state,
+                            total_amount: null,
+                            delegated_amount: null,
+                            active_amount: null,
+                            rent: 0,
+                        };
+                    });
 
-            let state = info.type;
-            if (info.type === "delegated" && String(deact) === U64_MAX) state = "active";
-            else if (info.type === "delegated") state = "deactivating";
-
-            return {
-              pubkey: acc.pubkey.toBase58(),
-              lamports: acc.account.lamports,
-              // best-effort fields
-              stake_account_address: acc.pubkey.toBase58(),
-              vote_account_address: d?.voter ?? "N/A",
-              status: info.type ?? "unknown",
-              state,
-            };
-          });
-
-        stakeAccountsCacheRef.current = { wallet: walletKey, accounts };
-        setStakeAccounts(accounts);
-      }
-    } catch (e) {
-      // If aborted, do nothing
-      if (controller.signal.aborted) return;
-
-      console.error(e);
-      enqueueSnackbar("Failed to fetch stake accounts", { variant: "error" });
-      setStakeAccounts([]);
-    } finally {
-      // Only clear in-flight if this call is still the “current” one
-      if (fetchStakeAccountsKeyRef.current === walletKey) {
-        fetchStakeAccountsInFlight.current = false;
-      }
-      setLoadingStakeAccounts(false);
-    }
-  },
-  [governanceNativeWallet, enqueueSnackbar]
-);
+                    stakeAccountsCacheRef.current = { wallet: walletKey, accounts };
+                    setStakeAccounts(accounts);
+                }
+            } catch (e) {
+                if (controller.signal.aborted) return;
+                console.error(e);
+                enqueueSnackbar("Failed to fetch stake accounts", { variant: "error" });
+                setStakeAccounts([]);
+            } finally {
+                if (fetchStakeAccountsKeyRef.current === walletKey) {
+                    fetchStakeAccountsInFlight.current = false;
+                }
+                setLoadingStakeAccounts(false);
+            }
+        },
+        [governanceNativeWallet, enqueueSnackbar]
+    );
 
     // Create staking instructions
     const createStakingInstructions = async (stakeAmountLamports: number): Promise<TransactionInstruction[]> => {
@@ -554,6 +556,61 @@ const fetchStakeAccounts = React.useCallback(
         }
     }
 
+    // Create split + deactivate instructions for partial unstaking
+    // Splits off `lamports` into a new stake account (via seed), then deactivates it
+    const createSplitDeactivateInstructions = async (
+        stakeAccountPubkey: PublicKey, 
+        lamports: number,
+        seed: string
+    ): Promise<TransactionInstruction[]> => {
+        try {
+            const nativeWalletPubkey = new PublicKey(governanceNativeWallet);
+
+            // Derive split stake account from seed
+            const splitStakePubkey = await PublicKey.createWithSeed(
+                nativeWalletPubkey,
+                seed,
+                StakeProgram.programId
+            );
+
+            const rentExemptLamports = await RPC_CONNECTION.getMinimumBalanceForRentExemption(StakeProgram.space);
+
+            // Create the split destination account (empty, rent-exempt)
+            const createSplitAccountIx = SystemProgram.createAccountWithSeed({
+                fromPubkey: nativeWalletPubkey,
+                newAccountPubkey: splitStakePubkey,
+                basePubkey: nativeWalletPubkey,
+                seed: seed,
+                lamports: rentExemptLamports,
+                space: StakeProgram.space,
+                programId: StakeProgram.programId,
+            });
+
+            // Split the stake
+            const splitIx = extractInstruction(
+                StakeProgram.split({
+                    stakePubkey: stakeAccountPubkey,
+                    authorizedPubkey: nativeWalletPubkey,
+                    splitStakePubkey: splitStakePubkey,
+                    lamports: lamports,
+                })
+            );
+
+            // Deactivate the split-off account
+            const deactivateIx = extractInstruction(
+                StakeProgram.deactivate({
+                    stakePubkey: splitStakePubkey,
+                    authorizedPubkey: nativeWalletPubkey,
+                })
+            );
+
+            return [createSplitAccountIx, splitIx, deactivateIx];
+        } catch (error) {
+            console.error("Error creating split+deactivate instructions:", error);
+            throw error;
+        }
+    }
+
     // Create withdraw instructions
     const createWithdrawInstructions = (stakeAccountPubkey: PublicKey, lamports: number): TransactionInstruction[] => {
         try {
@@ -574,6 +631,136 @@ const fetchStakeAccounts = React.useCallback(
             throw error;
         }
     }
+
+    // ========== Jito MEV Harvest Functions ==========
+    
+    // Calculate harvestable (excess) lamports for each active stake account
+    // Harvestable = total_balance - active_stake - rent_exempt_reserve
+    const computeHarvestableAccounts = React.useCallback((accounts: any[]) => {
+        return accounts
+            .filter((a: any) => a.state === 'active' || a.state === 'deactivating')
+            .map((a: any) => {
+                const totalLamports = a.lamports || 0;
+                // Use delegated_amount or active_amount from Shyft, fall back to 0 for RPC
+                const activeLamports = a.delegated_amount != null
+                    ? Math.round(parseFloat(a.delegated_amount) * web3.LAMPORTS_PER_SOL)
+                    : a.active_amount != null
+                        ? Math.round(parseFloat(a.active_amount) * web3.LAMPORTS_PER_SOL)
+                        : 0;
+                const rent = a.rent != null && parseFloat(a.rent) > 0
+                    ? Math.round(parseFloat(a.rent) * web3.LAMPORTS_PER_SOL)
+                    : STAKE_RENT_EXEMPT_LAMPORTS;
+                
+                const excess = totalLamports - activeLamports - rent;
+                return {
+                    ...a,
+                    activeLamports,
+                    rentLamports: rent,
+                    excessLamports: Math.max(0, excess),
+                    selected: excess > 0,
+                };
+            })
+            .filter((a: any) => a.excessLamports > 0);
+    }, []);
+
+    // Update harvest accounts when stakeAccounts changes and harvest tab is active
+    React.useEffect(() => {
+        if (tabValue === 2 && stakeAccounts && stakeAccounts.length > 0) {
+            setHarvestAccounts(computeHarvestableAccounts(stakeAccounts));
+            setLoadingHarvest(false);
+        }
+    }, [stakeAccounts, tabValue, computeHarvestableAccounts]);
+
+    // Fetch stake accounts for harvest tab if not already loaded
+    const fetchHarvestAccounts = React.useCallback(async () => {
+        if (!governanceNativeWallet) return;
+        setLoadingHarvest(true);
+        try {
+            if (stakeAccounts && stakeAccounts.length > 0) {
+                setHarvestAccounts(computeHarvestableAccounts(stakeAccounts));
+                setLoadingHarvest(false);
+                return;
+            }
+            await fetchStakeAccounts();
+        } catch (e) {
+            console.error("Failed to fetch harvest accounts:", e);
+            enqueueSnackbar("Failed to fetch stake accounts for harvest", { variant: 'error' });
+            setLoadingHarvest(false);
+        }
+    }, [governanceNativeWallet, stakeAccounts, fetchStakeAccounts, computeHarvestableAccounts, enqueueSnackbar]);
+
+    const totalHarvestable = React.useMemo(() => {
+        return harvestAccounts
+            .filter((a: any) => a.selected)
+            .reduce((sum: number, a: any) => sum + a.excessLamports, 0);
+    }, [harvestAccounts]);
+
+    const toggleHarvestAccount = (pubkey: string) => {
+        setHarvestAccounts((prev: any[]) =>
+            prev.map((a: any) => a.pubkey === pubkey ? { ...a, selected: !a.selected } : a)
+        );
+    };
+
+    const toggleHarvestSelectAll = () => {
+        const newVal = !harvestSelectAll;
+        setHarvestSelectAll(newVal);
+        setHarvestAccounts((prev: any[]) => prev.map((a: any) => ({ ...a, selected: newVal })));
+    };
+
+    // Build harvest instructions: StakeProgram.withdraw for excess lamports from each selected account
+    const handleHarvestAction = async () => {
+        const selected = harvestAccounts.filter((a: any) => a.selected && a.excessLamports > 0);
+        if (selected.length === 0) {
+            enqueueSnackbar("No accounts selected for harvest", { variant: 'error' });
+            return;
+        }
+
+        try {
+            const govWallet = new PublicKey(governanceNativeWallet);
+            const ixs: TransactionInstruction[] = [];
+
+            for (const account of selected) {
+                const stakeAccountPubkey = new PublicKey(account.pubkey);
+                const withdrawIx = extractStakeInstruction(
+                    StakeProgram.withdraw({
+                        stakePubkey: stakeAccountPubkey,
+                        authorizedPubkey: govWallet,
+                        toPubkey: govWallet,
+                        lamports: account.excessLamports,
+                    })
+                );
+                ixs.push(withdrawIx);
+            }
+
+            const totalSol = (selected.reduce((s: number, a: any) => s + a.excessLamports, 0) / web3.LAMPORTS_PER_SOL);
+            
+            const status = await simulateIx(new Transaction().add(...ixs));
+            if (!status) {
+                enqueueSnackbar("Transaction simulation failed. Some accounts may not have withdrawable excess yet.", { variant: 'error' });
+                return;
+            }
+
+            if (handleCloseExtMenu) handleCloseExtMenu();
+            setPropOpen(false);
+
+            const propIx = {
+                title: proposalTitle || "Harvest Jito MEV Rewards",
+                description: proposalDescription || `Withdraw ${totalSol.toFixed(4)} SOL of excess MEV rewards from ${selected.length} stake account(s) to the governance treasury.`,
+                ix: ixs,
+                aix: [],
+                nativeWallet: governanceNativeWallet,
+                governingMint: governingMint,
+                draft: isDraft,
+            };
+
+            console.log("propIx (harvest): ", JSON.stringify(propIx));
+            setInstructions(propIx);
+            setExpandedLoader(true);
+        } catch (error) {
+            enqueueSnackbar("Failed to create harvest instructions", { variant: 'error' });
+            console.error("Failed to create harvest instructions:", error);
+        }
+    };
 
     const handleStakeIx = async () => {
         if (handleCloseExtMenu)
@@ -702,11 +889,46 @@ const fetchStakeAccounts = React.useCallback(
             return;
         }
 
+        const parsedUnstakeAmount = unstakeAmount ? parseFloat(unstakeAmount) : 0;
+        const isPartial = parsedUnstakeAmount > 0;
+
         try {
             if (unstakeAction === 'deactivate') {
-                await handleDeactivateIx(unstakeAddress);
+                if (isPartial) {
+                    // Partial deactivate: split + deactivate
+                    const seed = unstakeSeed || generateUniqueSeed();
+                    const lamports = Math.floor(parsedUnstakeAmount * web3.LAMPORTS_PER_SOL);
+
+                    const stakeAccountPubkey = new PublicKey(unstakeAddress);
+                    const splitDeactivateIxs = await createSplitDeactivateInstructions(stakeAccountPubkey, lamports, seed);
+
+                    const status = await simulateIx(new Transaction().add(...splitDeactivateIxs));
+                    if (!status) {
+                        enqueueSnackbar("Transaction simulation failed", { variant: 'error' });
+                        return;
+                    }
+
+                    if (handleCloseExtMenu) handleCloseExtMenu();
+                    setPropOpen(false);
+
+                    const propIx = {
+                        title: proposalTitle || "Partial Deactivate Stake",
+                        description: proposalDescription || `Split ${parsedUnstakeAmount} SOL from stake account ${unstakeAddress} and deactivate`,
+                        ix: splitDeactivateIxs,
+                        aix: [],
+                        nativeWallet: governanceNativeWallet,
+                        governingMint: governingMint,
+                        draft: isDraft,
+                    };
+
+                    console.log("propIx (split+deactivate): ", JSON.stringify(propIx));
+                    setInstructions(propIx);
+                    setExpandedLoader(true);
+                } else {
+                    // Full deactivate
+                    await handleDeactivateIx(unstakeAddress);
+                }
             } else if (unstakeAction === 'withdraw') {
-                // Fetch account to get lamports for full withdrawal
                 const stakeAccountPubkey = new PublicKey(unstakeAddress);
                 const accountInfo = await RPC_CONNECTION.getParsedAccountInfo(stakeAccountPubkey);
                 
@@ -715,8 +937,30 @@ const fetchStakeAccounts = React.useCallback(
                     return;
                 }
 
-                const lamports = accountInfo.value.lamports;
-                await handleWithdrawIx(unstakeAddress, lamports);
+                const totalLamports = accountInfo.value.lamports;
+
+                if (isPartial) {
+                    const withdrawLamports = Math.floor(parsedUnstakeAmount * web3.LAMPORTS_PER_SOL);
+                    
+                    // Validate: can't withdraw more than total, and remaining must cover rent
+                    const rentExempt = await RPC_CONNECTION.getMinimumBalanceForRentExemption(StakeProgram.space);
+                    const remaining = totalLamports - withdrawLamports;
+                    
+                    if (withdrawLamports > totalLamports) {
+                        enqueueSnackbar("Withdraw amount exceeds account balance", { variant: 'error' });
+                        return;
+                    }
+                    
+                    if (remaining > 0 && remaining < rentExempt) {
+                        enqueueSnackbar(`Remaining balance (${(remaining / web3.LAMPORTS_PER_SOL).toFixed(4)} SOL) would be below rent-exempt minimum. Withdraw full amount or leave at least ${(rentExempt / web3.LAMPORTS_PER_SOL).toFixed(4)} SOL.`, { variant: 'warning' });
+                        return;
+                    }
+
+                    await handleWithdrawIx(unstakeAddress, withdrawLamports);
+                } else {
+                    // Full withdrawal
+                    await handleWithdrawIx(unstakeAddress, totalLamports);
+                }
             }
         } catch (error) {
             enqueueSnackbar("Failed to process unstake action", { variant: 'error' });
@@ -745,17 +989,27 @@ const fetchStakeAccounts = React.useCallback(
         if (!stakeSeed){
             setStakeSeed(generateUniqueSeed());
         }
+        if (!unstakeSeed){
+            setUnstakeSeed(generateUniqueSeed());
+        }
     }, []);
 
     // Fetch stake accounts when the unstake tab is opened
     React.useEffect(() => {
-    if (!open) fetchedOnOpenRef.current = false;
+        if (!open) fetchedOnOpenRef.current = false;
 
-    if (open && tabValue === 1 && !fetchedOnOpenRef.current) {
-        fetchedOnOpenRef.current = true;
-        fetchStakeAccounts();
-    }
+        if (open && tabValue === 1 && !fetchedOnOpenRef.current) {
+            fetchedOnOpenRef.current = true;
+            fetchStakeAccounts();
+        }
     }, [open, tabValue, fetchStakeAccounts]);
+
+    // Fetch harvest data when the Jito MEV tab is opened
+    React.useEffect(() => {
+        if (open && tabValue === 2 && governanceNativeWallet) {
+            fetchHarvestAccounts();
+        }
+    }, [open, tabValue, fetchHarvestAccounts]);
 
     return (
         <>
@@ -837,6 +1091,7 @@ const fetchStakeAccounts = React.useCallback(
                     >
                         <Tab icon={<LockIcon />} label="Stake" iconPosition="start" />
                         <Tab icon={<LockOpenIcon />} label="Unstake" iconPosition="start" />
+                        <Tab icon={<WaterDropIcon />} label="Harvest" iconPosition="start" />
                     </Tabs>
 
                     {/* ==================== STAKE TAB ==================== */}
@@ -957,174 +1212,294 @@ const fetchStakeAccounts = React.useCallback(
                                         sx={{ m: 0.65 }}
                                     />
                                 </Grid>
+                                <Grid item xs={12}>
+                                    <TextField 
+                                        fullWidth 
+                                        label="Amount (SOL) — leave empty for full amount" 
+                                        id="unstakeAmount"
+                                        type="number"
+                                        value={unstakeAmount}
+                                        onChange={(e) => setUnstakeAmount(e.target.value)}
+                                        variant="filled"
+                                        inputProps={{ min: "0", step: "0.0001" }}
+                                        helperText={
+                                            unstakeAction === 'deactivate' && unstakeAmount
+                                                ? "Partial deactivate will split the stake account first, then deactivate the split portion."
+                                                : unstakeAction === 'withdraw' && unstakeAmount
+                                                ? "Partial withdraw. Remaining balance must stay above rent-exempt minimum."
+                                                : "Leave empty to deactivate/withdraw the full stake account balance."
+                                        }
+                                        sx={{ m: 0.65 }}
+                                    />
+                                </Grid>
+                                {unstakeAction === 'deactivate' && unstakeAmount && (
+                                    <Grid item xs={12}>
+                                        <TextField 
+                                            fullWidth 
+                                            label="Seed for Split Stake Account" 
+                                            id="unstakeSeed"
+                                            type="text"
+                                            value={unstakeSeed || ''}
+                                            onChange={(e) => setUnstakeSeed(e.target.value)}
+                                            variant="filled"
+                                            required
+                                            helperText="A unique seed for the new split stake account."
+                                            sx={{ m: 0.65 }}
+                                            InputProps={{
+                                                endAdornment: (
+                                                    <InputAdornment position="end">
+                                                        <IconButton
+                                                            aria-label="regenerate seed"
+                                                            onClick={() => setUnstakeSeed(generateUniqueSeed())}
+                                                            edge="end"
+                                                            size="small"
+                                                        >
+                                                            <RefreshIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                        />
+                                    </Grid>
+                                )}
                             </Grid>
                         </FormControl>
 
                         {/* List of existing stake accounts */}
                         {loadingStakeAccounts ? (
-                        <Box sx={{ mt: 2 }}>
-                            <LinearProgress />
-                            <Typography variant="caption" sx={{ mt: 1, display: "block", textAlign: "center" }}>
-                            Loading stake accounts...
-                            </Typography>
-                        </Box>
-                        ) : stakeAccounts.length > 0 ? (
-                        <Box sx={{ mt: 2 }}>
-                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                            <Typography variant="subtitle2" sx={{ color: "rgba(255,255,255,0.8)" }}>
-                                Governance Stake Accounts
-                            </Typography>
-                            <IconButton size="small" onClick={() => fetchStakeAccounts(true)}>
-                                <RefreshIcon fontSize="small" />
-                            </IconButton>
+                            <Box sx={{ mt: 2 }}>
+                                <LinearProgress />
+                                <Typography variant="caption" sx={{ mt: 1, display: 'block', textAlign: 'center' }}>
+                                    Loading stake accounts...
+                                </Typography>
                             </Box>
+                        ) : stakeAccounts.length > 0 ? (
+                            <Box sx={{ mt: 2 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                    <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                                        Governance Stake Accounts
+                                    </Typography>
+                                    <IconButton size="small" onClick={() => fetchStakeAccounts(true)}>
+                                        <RefreshIcon fontSize="small" />
+                                    </IconButton>
+                                </Box>
+                                <List dense sx={{ maxHeight: 250, overflow: 'auto' }}>
+                                    {stakeAccounts.map((account, index) => {
+                                        const isActive = account.state === 'active';
+                                        const isDeactivating = account.state === 'deactivating';
+                                        const isInactive = account.state === 'initialized' || account.state === 'inactive';
 
-                            <List dense sx={{ maxHeight: 280, overflow: "auto" }}>
-                            {stakeAccounts.map((account, index) => {
-                                const n = (v: any) => {
-                                const x = Number(v);
-                                return Number.isFinite(x) ? x : 0;
-                                };
+                                        let statusLabel = 'Unknown';
+                                        let statusColor = 'rgba(255,255,255,0.5)';
+                                        if (isActive) { statusLabel = 'Active'; statusColor = '#4caf50'; }
+                                        else if (isDeactivating) { statusLabel = 'Deactivating'; statusColor = '#ff9800'; }
+                                        else if (isInactive) { statusLabel = 'Inactive'; statusColor = '#f44336'; }
 
-                                const addr =
-                                (typeof account.stake_account_address === "string" && account.stake_account_address) ||
-                                (typeof account.pubkey === "string" && account.pubkey) ||
-                                "";
+                                        const displayBalance = account.balance 
+                                            ? `${parseFloat(account.balance).toFixed(4)} SOL`
+                                            : `${(account.lamports / web3.LAMPORTS_PER_SOL).toFixed(4)} SOL`;
 
-                                // --- amounts (SOL) ---
-                                const total =
-                                n(account.total_amount) ||
-                                n(account.balance) ||
-                                (n(account.lamports) > 0 ? n(account.lamports) / web3.LAMPORTS_PER_SOL : 0);
+                                        return (
+                                            <ListItem 
+                                                key={index}
+                                                sx={{ 
+                                                    borderRadius: '10px', 
+                                                    mb: 0.5, 
+                                                    backgroundColor: unstakeAddress === account.pubkey 
+                                                        ? 'rgba(255,255,255,0.1)' 
+                                                        : 'rgba(255,255,255,0.03)',
+                                                    cursor: 'pointer',
+                                                    '&:hover': { backgroundColor: 'rgba(255,255,255,0.07)' }
+                                                }}
+                                                onClick={() => {
+                                                    setUnstakeAddress(account.pubkey);
+                                                    // Auto-select appropriate action based on state
+                                                    if (isActive) {
+                                                        setUnstakeAction('deactivate');
+                                                    } else if (isInactive || isDeactivating) {
+                                                        setUnstakeAction('withdraw');
+                                                    }
+                                                }}
+                                                secondaryAction={
+                                                    <Chip 
+                                                        label={statusLabel} 
+                                                        size="small"
+                                                        sx={{ 
+                                                            color: statusColor, 
+                                                            borderColor: statusColor,
+                                                            fontSize: '0.7rem'
+                                                        }} 
+                                                        variant="outlined"
+                                                    />
+                                                }
+                                            >
+                                                <ListItemIcon>
+                                                    <LockIcon fontSize="small" sx={{ color: statusColor }} />
+                                                </ListItemIcon>
+                                                <ListItemText
+                                                    primary={
+                                                        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                                                            {account.pubkey.substring(0, 8)}...{account.pubkey.substring(account.pubkey.length - 8)}
+                                                        </Typography>
+                                                    }
+                                                    secondary={
+                                                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                                                            {displayBalance}
+                                                            {account.validatorVoteAccount !== 'N/A' && 
+                                                                ` • Validator: ${account.validatorVoteAccount.substring(0, 6)}...`
+                                                            }
+                                                        </Typography>
+                                                    }
+                                                />
+                                            </ListItem>
+                                        );
+                                    })}
+                                </List>
+                            </Box>
+                        ) : (
+                            <Box sx={{ mt: 2, textAlign: 'center' }}>
+                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>
+                                    No stake accounts found for this governance wallet.
+                                </Typography>
+                            </Box>
+                        )}
+                    </TabPanel>
 
-                                const rent = n(account.rent);
+                    {/* ==================== JITO MEV HARVEST TAB ==================== */}
+                    <TabPanel value={tabValue} index={2}>
+                        <DialogContentText sx={{textAlign:'center', mb: 2}}>
+                            Harvest MEV Rewards — Withdraw excess SOL from active stake accounts
+                        </DialogContentText>
 
-                                const stateRaw = String(account.state ?? account.status ?? "").toLowerCase();
-                                const isActive = stateRaw === "active";
-                                const isDeactivating = stateRaw === "deactivating";
-                                const isInactive = stateRaw === "inactive" || stateRaw === "initialized";
-
-                                // Solscan-style:
-                                // - Active/Deactivating: active stake uses delegated_amount (fallback active_amount)
-                                // - Inactive/Initialized: withdrawable = total - rent (active = 0)
-                                const delegated = n(account.delegated_amount);
-                                const activeAmt = n(account.active_amount);
-
-                                const stakeNonRent = Math.max(total - rent, 0);
-
-                                const activeStake = isInactive ? 0 : (delegated > 0 ? delegated : activeAmt);
-                                const inactiveStake = isInactive
-                                ? stakeNonRent
-                                : Math.max(total - activeStake - rent, 0);
-
-                                // --- chip label/colors ---
-                                let statusLabel = "Unknown";
-                                let statusColor = "rgba(255,255,255,0.55)";
-                                let iconColor = "rgba(255,255,255,0.55)";
-
-                                if (isActive) {
-                                statusLabel = inactiveStake > 1e-9 ? "Active + Inactive" : "Active";
-                                statusColor = inactiveStake > 1e-9 ? "#ff9800" : "#4caf50";
-                                iconColor = statusColor;
-                                } else if (isDeactivating) {
-                                statusLabel = "Cooldown";
-                                statusColor = "#ff9800";
-                                iconColor = statusColor;
-                                } else if (isInactive) {
-                                statusLabel = "Withdrawable";
-                                statusColor = "#f44336";
-                                iconColor = statusColor;
-                                }
-
-                                const solMint = "So11111111111111111111111111111111111111112";
-                                const solUsd = usdcValue?.[solMint]?.usdPrice ?? null;
-                                const usdText =
-                                solUsd != null
-                                    ? `$${(total * solUsd).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
-                                    : "";
-
-                                const displayVote = account.vote_account_address || account.validatorVoteAccount || "N/A";
-
-                                return (
-                                <ListItem
-                                    key={addr || index}
-                                    sx={{
-                                    borderRadius: "12px",
-                                    mb: 1,
-                                    px: 1.5,
-                                    py: 1.25,
-                                    backgroundColor: unstakeAddress === addr ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.05)",
-                                    border: "1px solid rgba(255,255,255,0.06)",
-                                    cursor: "pointer",
-                                    "&:hover": { backgroundColor: "rgba(255,255,255,0.08)" },
-                                    alignItems: "flex-start",
-                                    }}
-                                    onClick={() => {
-                                    setUnstakeAddress(addr);
-
-                                    // auto-pick sensible action:
-                                    if (isActive || isDeactivating) setUnstakeAction("deactivate");
-                                    else if (isInactive) setUnstakeAction("withdraw");
-                                    }}
-                                    secondaryAction={
-                                    <Box sx={{ textAlign: "right", minWidth: 140, pl: 2 }}>
-                                        <Typography variant="h6" sx={{ color: "white", lineHeight: 1.1 }}>
-                                        {total.toFixed(4)}
-                                        </Typography>
-                                        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)" }}>
-                                        {usdText}
-                                        </Typography>
-                                        <Box sx={{ mt: 0.75 }}>
-                                        <Chip
-                                            label={statusLabel}
-                                            size="small"
-                                            variant="outlined"
-                                            sx={{
-                                            color: statusColor,
-                                            borderColor: statusColor,
-                                            fontSize: "0.72rem",
-                                            backgroundColor: "rgba(0,0,0,0.25)",
-                                            }}
-                                        />
-                                        </Box>
-                                    </Box>
-                                    }
+                        {loadingHarvest ? (
+                            <Box sx={{ mt: 1, mb: 2 }}>
+                                <LinearProgress />
+                                <Typography variant="caption" sx={{ mt: 1, display: 'block', textAlign: 'center' }}>
+                                    Loading stake accounts...
+                                </Typography>
+                            </Box>
+                        ) : harvestAccounts.length === 0 ? (
+                            <Box sx={{ textAlign: 'center', py: 3 }}>
+                                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                                    No harvestable MEV rewards found in active stake accounts.
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', display: 'block', mt: 1 }}>
+                                    MEV rewards accumulate as excess lamports when validators run the Jito client.
+                                </Typography>
+                                <Button
+                                    size="small"
+                                    onClick={() => fetchStakeAccounts(true)}
+                                    sx={{ mt: 1, fontSize: '0.7rem' }}
                                 >
-                                    <ListItemIcon sx={{ minWidth: 36, mt: 0.25 }}>
-                                    <LockIcon fontSize="small" sx={{ color: iconColor }} />
-                                    </ListItemIcon>
-
-                                    <ListItemText
-                                    primary={
-                                        <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: "0.9rem", color: "white" }}>
-                                        {addr ? `${addr.slice(0, 8)}...${addr.slice(-8)}` : "Unknown stake"}
+                                    Refresh
+                                </Button>
+                            </Box>
+                        ) : (
+                            <>
+                                {/* Summary */}
+                                <Box sx={{ 
+                                    mb: 2, p: 1.5, 
+                                    borderRadius: '12px', 
+                                    backgroundColor: 'rgba(255,255,255,0.04)',
+                                    border: '1px solid rgba(255,255,255,0.06)',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <Box>
+                                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                                            Total Harvestable MEV
                                         </Typography>
-                                    }
-                                    secondary={
-                                        <Box sx={{ mt: 0.5 }}>
-                                        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.70)" }}>
-                                            {`Active: ${activeStake.toFixed(4)} SOL • Inactive: ${inactiveStake.toFixed(4)} SOL`}
-                                            {rent > 0 ? ` • Rent: ${rent.toFixed(4)} SOL` : ""}
+                                        <Typography variant="h6" sx={{ color: '#4caf50', fontWeight: 700 }}>
+                                            {(totalHarvestable / web3.LAMPORTS_PER_SOL).toFixed(6)} SOL
                                         </Typography>
-                                        {displayVote !== "N/A" && (
-                                            <Typography variant="caption" sx={{ display: "block", mt: 0.25, color: "rgba(255,255,255,0.50)" }}>
-                                            {`Validator: ${String(displayVote).slice(0, 6)}...`}
+                                        {usdcValue > 0 && (
+                                            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>
+                                                ≈ ${((totalHarvestable / web3.LAMPORTS_PER_SOL) * usdcValue).toFixed(2)} USD
                                             </Typography>
                                         )}
-                                        </Box>
-                                    }
+                                    </Box>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Chip
+                                            label={`${harvestAccounts.filter((a: any) => a.selected).length}/${harvestAccounts.length} accounts`}
+                                            size="small"
+                                            sx={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}
+                                        />
+                                        <IconButton size="small" onClick={() => fetchStakeAccounts(true)}>
+                                            <RefreshIcon sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 18 }} />
+                                        </IconButton>
+                                    </Box>
+                                </Box>
+
+                                {/* Select All toggle */}
+                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                checked={harvestSelectAll}
+                                                onChange={toggleHarvestSelectAll}
+                                                size="small"
+                                                sx={{ color: 'rgba(255,255,255,0.5)', '&.Mui-checked': { color: '#4caf50' } }}
+                                            />
+                                        }
+                                        label={<Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>Select All</Typography>}
                                     />
-                                </ListItem>
-                                );
-                            })}
-                            </List>
-                        </Box>
-                        ) : (
-                        <Box sx={{ mt: 2, textAlign: "center" }}>
-                            <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.4)" }}>
-                            No stake accounts found for this governance wallet.
-                            </Typography>
-                        </Box>
+                                </Box>
+
+                                {/* Account list */}
+                                <Box sx={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                    {harvestAccounts.map((account: any, idx: number) => (
+                                        <Box
+                                            key={account.pubkey}
+                                            onClick={() => toggleHarvestAccount(account.pubkey)}
+                                            sx={{
+                                                p: 1.5, mb: 1,
+                                                borderRadius: '10px',
+                                                cursor: 'pointer',
+                                                border: account.selected
+                                                    ? '1px solid rgba(76, 175, 80, 0.4)'
+                                                    : '1px solid rgba(255,255,255,0.06)',
+                                                backgroundColor: account.selected
+                                                    ? 'rgba(76, 175, 80, 0.06)'
+                                                    : 'rgba(255,255,255,0.02)',
+                                                '&:hover': { backgroundColor: 'rgba(255,255,255,0.05)' },
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center'
+                                            }}
+                                        >
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <Checkbox
+                                                    checked={account.selected}
+                                                    size="small"
+                                                    sx={{ p: 0, color: 'rgba(255,255,255,0.3)', '&.Mui-checked': { color: '#4caf50' } }}
+                                                />
+                                                <Box>
+                                                    <Typography variant="body2" sx={{ color: 'white', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                                                        {account.pubkey.slice(0, 8)}...{account.pubkey.slice(-6)}
+                                                    </Typography>
+                                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>
+                                                        Validator: {(account.vote_account_address || account.validatorVoteAccount || 'N/A').slice(0, 8)}...
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
+                                            <Box sx={{ textAlign: 'right' }}>
+                                                <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 600 }}>
+                                                    +{(account.excessLamports / web3.LAMPORTS_PER_SOL).toFixed(6)} SOL
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)' }}>
+                                                    Staked: {(account.activeLamports / web3.LAMPORTS_PER_SOL).toFixed(2)} SOL
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+                                    ))}
+                                </Box>
+
+                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', display: 'block', mt: 1, textAlign: 'center' }}>
+                                    MEV rewards are airdropped as excess SOL to stake accounts by Jito validators. 
+                                    Harvesting withdraws this excess without affecting your active stake.
+                                </Typography>
+                            </>
                         )}
                     </TabPanel>
                 
@@ -1201,7 +1576,7 @@ const fetchStakeAccounts = React.useCallback(
                                         >
                                             Create Stake Account
                                         </Button>
-                                    ) : (
+                                    ) : tabValue === 1 ? (
                                         <Button 
                                             autoFocus 
                                             onClick={handleUnstakeAction}
@@ -1219,6 +1594,22 @@ const fetchStakeAccounts = React.useCallback(
                                             }
                                         >
                                             {unstakeAction === 'deactivate' ? 'Deactivate' : 'Withdraw'}
+                                        </Button>
+                                    ) : (
+                                        <Button 
+                                            autoFocus 
+                                            onClick={handleHarvestAction}
+                                            disabled={totalHarvestable === 0}
+                                            sx={{
+                                                p:1,
+                                                borderRadius:'17px',
+                                                '&:hover .MuiSvgIcon-root': {
+                                                    color:'rgba(255,255,255,0.90)'
+                                                }
+                                            }}
+                                            startIcon={<WaterDropIcon sx={{ color:'rgba(255,255,255,0.25)', fontSize:"14px!important"}} />}
+                                        >
+                                            Harvest MEV ({(totalHarvestable / web3.LAMPORTS_PER_SOL).toFixed(4)} SOL)
                                         </Button>
                                     )}
                                 </>
