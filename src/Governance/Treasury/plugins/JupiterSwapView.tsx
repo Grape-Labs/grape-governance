@@ -119,6 +119,20 @@ async function getMintDecimals(mint: string): Promise<number> {
   return 9;
 }
 
+const JUP_API_KEY = process.env.APP_JUP_API_KEY?.trim();
+
+// if you have an API key, use api.jup.ag; otherwise use lite-api.jup.ag
+const JUP_BASE = JUP_API_KEY ? "https://api.jup.ag" : "https://lite-api.jup.ag";
+
+const JUP = {
+  quoteUrl: `${JUP_BASE}/swap/v1/quote`,
+  // keep your swap-instructions URL aligned with the same base:
+  swapInstructionsUrl: `${JUP_BASE}/swap/v1/swap-instructions`,
+  priceV3Url: `${JUP_BASE}/price/v3`, // (only for prices, not quote)
+};
+
+const jupHeaders = () => (JUP_API_KEY ? { "x-api-key": JUP_API_KEY } : {});
+
 export default function JupiterSwapView(props: any) {
   const realm = props?.realm;
   const rulesWallet = props?.rulesWallet;
@@ -246,71 +260,75 @@ export default function JupiterSwapView(props: any) {
   };
 
   const fetchQuote = async () => {
-    if (!governanceNativeWallet) return;
-    const inMint = normalizeMint(inputMint);
-    const outMint = normalizeMint(outputMint);
+  if (!governanceNativeWallet) return;
 
-    if (!isPk(inMint) || !isPk(outMint)) {
-      enqueueSnackbar("Invalid mint(s). Use 'SOL' or a valid mint address.", { variant: "warning" });
-      return;
+  const inMint = normalizeMint(inputMint);
+  const outMint = normalizeMint(outputMint);
+
+  if (!isPk(inMint) || !isPk(outMint)) {
+    enqueueSnackbar("Invalid mint(s). Use 'SOL' or a valid mint address.", { variant: "warning" });
+    return;
+  }
+
+  const amt = Number(uiAmount);
+  if (!Number.isFinite(amt) || amt <= 0) {
+    enqueueSnackbar("Enter a valid amount > 0", { variant: "warning" });
+    return;
+  }
+
+  setLoadingQuote(true);
+  setQuoteSummary(null);
+
+  try {
+    const [inDec, outDec] = await Promise.all([getMintDecimals(inMint), getMintDecimals(outMint)]);
+    const amountRaw = Math.floor(amt * Math.pow(10, inDec));
+    const slip = Math.max(1, Math.min(5000, parseInt(slippageBps || "50", 10) || 50));
+
+    const { data: quote } = await axios.get(JUP.quoteUrl, {
+      params: {
+        inputMint: inMint,
+        outputMint: outMint,
+        amount: amountRaw,            // uint64 in the spec; number is fine unless huge
+        slippageBps: slip,            // uint16
+        swapMode: "ExactIn",          // default per spec, but explicit is nice
+        onlyDirectRoutes: onlyDirectRoutes, // boolean (don’t send "true"/"false" strings)
+        // restrictIntermediateTokens: true, // default true per spec
+        // maxAccounts: 20,
+        // instructionVersion: "V1", // default
+      },
+      headers: jupHeaders(),
+      timeout: 15_000,
+    });
+
+    if (!quote || (quote as any).error) {
+      throw new Error((quote as any)?.error || "Quote failed");
     }
-    const amt = Number(uiAmount);
-    if (!Number.isFinite(amt) || amt <= 0) {
-      enqueueSnackbar("Enter a valid amount > 0", { variant: "warning" });
-      return;
-    }
 
-    setLoadingQuote(true);
-    setQuoteSummary(null);
+    const outAmountRaw = Number(quote.outAmount || 0);
+    const outUi = outAmountRaw / Math.pow(10, outDec);
 
-    try {
-      const [inDec, outDec] = await Promise.all([getMintDecimals(inMint), getMintDecimals(outMint)]);
-      const amountRaw = Math.floor(amt * Math.pow(10, inDec));
-      const slip = Math.max(1, Math.min(5000, parseInt(slippageBps || "50", 10) || 50));
+    setQuoteSummary({
+      quote,
+      inDec,
+      outDec,
+      amountRaw,
+      outAmountRaw,
+      outUi,
+      routeCount: (quote.routePlan || []).length,
+    });
 
-      const { data: quote } = await axios.get("https://api.jup.ag/swap/v1/quote", {
-        params: {
-          inputMint: inMint,
-          outputMint: outMint,
-          amount: String(amountRaw),
-          slippageBps: String(slip),
-          onlyDirectRoutes: onlyDirectRoutes ? "true" : "false",
-          // If you run into tx size / ALT issues, you can consider passing maxAccounts here.
-          // maxAccounts: 20,
-        },
-        timeout: 15_000,
-      });
-
-      if (!quote || quote.error) {
-        throw new Error(quote?.error || "Quote failed");
-      }
-
-      // quick summary for UI
-      const outAmountRaw = Number(quote.outAmount || 0);
-      const outUi = outAmountRaw / Math.pow(10, outDec);
-
-      setQuoteSummary({
-        quote,
-        inDec,
-        outDec,
-        amountRaw,
-        outAmountRaw,
-        outUi,
-        routeCount: (quote.routePlan || []).length,
-      });
-
-      setProposalTitle(`Jupiter Swap`);
-      setProposalDescription(
-        `Swap ${amt} (${inMint === SOL_MINT ? "SOL" : inMint.slice(0, 4) + "..."}) → ` +
-          `${outMint === SOL_MINT ? "SOL" : outMint.slice(0, 4) + "..."} (slippage ${slip} bps)`
-      );
-    } catch (e: any) {
-      console.error(e);
-      enqueueSnackbar(`Quote failed: ${e?.message || "unknown error"}`, { variant: "error" });
-    } finally {
-      setLoadingQuote(false);
-    }
-  };
+    setProposalTitle("Jupiter Swap");
+    setProposalDescription(
+      `Swap ${amt} (${inMint === SOL_MINT ? "SOL" : inMint.slice(0, 4) + "..."}) → ` +
+        `${outMint === SOL_MINT ? "SOL" : outMint.slice(0, 4) + "..."} (slippage ${slip} bps)`
+    );
+  } catch (e: any) {
+    console.error(e);
+    enqueueSnackbar(`Quote failed: ${e?.message || "unknown error"}`, { variant: "error" });
+  } finally {
+    setLoadingQuote(false);
+  }
+};
 
   const buildProposalFromQuote = async () => {
     if (!governanceNativeWallet) return;
@@ -323,21 +341,20 @@ export default function JupiterSwapView(props: any) {
       const quoteResponse = quoteSummary.quote;
 
       // Build instructions (preferred for composability)
-      const { data: swapIxs } = await axios.post(
-        "https://api.jup.ag/swap/v1/swap-instructions",
-        {
-          quoteResponse,
-          userPublicKey: governanceNativeWallet,
-          wrapAndUnwrapSol: wrapUnwrapSol,
-          dynamicComputeUnitLimit: true,
-          dynamicSlippage: true,
-          // prioritizationFeeLamports: { priorityLevelWithMaxLamports: { maxLamports: 1_000_000, priorityLevel: "veryHigh" } },
-        },
-        {
-          headers: { "Content-Type": "application/json" },
-          timeout: 20_000,
-        }
-      );
+    const { data: swapIxs } = await axios.post(
+    JUP.swapInstructionsUrl,
+    {
+        quoteResponse,
+        userPublicKey: governanceNativeWallet,
+        wrapAndUnwrapSol: wrapUnwrapSol,
+        dynamicComputeUnitLimit: true,
+        dynamicSlippage: true,
+    },
+    {
+        headers: { "Content-Type": "application/json", ...jupHeaders() },
+        timeout: 20_000,
+    }
+    );
 
       if (!swapIxs || swapIxs.error) {
         throw new Error(swapIxs?.error || "swap-instructions failed");
