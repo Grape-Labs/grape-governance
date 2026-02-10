@@ -61,6 +61,7 @@ import ClaimExtensionView from './ClaimView';
 import TokenManagerView from './TokenManagerView';
 import DemoExtensionView from './DemoView';
 import GovernanceConfigView from './GovernanceConfigView';
+import MemoIxView from './MemoIxView';
 
 export default function ExtensionsMenuView(props: any) {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -216,15 +217,15 @@ export default function ExtensionsMenuView(props: any) {
             instructions={instructions}
             setInstructions={setInstructions}
         />
-        <DistributorExtensionView
-            realm={realm}
-            handleCloseExtMenu={handleClose}
-            rulesWallet={rulesWallet}
-            governanceNativeWallet={governanceNativeWallet}
-            expandedLoader={expandedLoader} 
-            setExpandedLoader={setExpandedLoader}
-            instructions={instructions}
-            setInstructions={setInstructions}
+        <MemoIxView
+          realm={realm}
+          rulesWallet={rulesWallet}
+          handleCloseExtMenu={handleClose}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader} 
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
         />
         <ClaimExtensionView
             realm={realm}
