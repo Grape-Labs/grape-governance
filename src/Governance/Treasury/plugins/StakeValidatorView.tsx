@@ -816,6 +816,7 @@ export default function StakeValidatorView(props: any){
                 nativeWallet: governanceNativeWallet,
                 governingMint: governingMint,
                 draft: isDraft,
+                editProposalAddress: editProposalAddress,
             };
 
             console.log("propIx (harvest): ", JSON.stringify(propIx));
@@ -866,6 +867,7 @@ export default function StakeValidatorView(props: any){
                 nativeWallet: governanceNativeWallet,
                 governingMint: governingMint,
                 draft: isDraft,
+                editProposalAddress: editProposalAddress,
             }
 
             console.log("propIx: ", JSON.stringify(propIx));
@@ -901,6 +903,7 @@ export default function StakeValidatorView(props: any){
                 nativeWallet: governanceNativeWallet,
                 governingMint: governingMint,
                 draft: isDraft,
+                editProposalAddress: editProposalAddress,
             }
 
             console.log("propIx (deactivate): ", JSON.stringify(propIx));
@@ -936,6 +939,7 @@ export default function StakeValidatorView(props: any){
                 nativeWallet: governanceNativeWallet,
                 governingMint: governingMint,
                 draft: isDraft,
+                editProposalAddress: editProposalAddress,
             }
 
             console.log("propIx (withdraw): ", JSON.stringify(propIx));
@@ -982,8 +986,9 @@ export default function StakeValidatorView(props: any){
                         ix: splitDeactivateIxs,
                         aix: [],
                         nativeWallet: governanceNativeWallet,
-                        governingMint: governingMint,
+                        governingMint: governingMint,  
                         draft: isDraft,
+                        editProposalAddress: editProposalAddress,
                     };
 
                     console.log("propIx (split+deactivate): ", JSON.stringify(propIx));
