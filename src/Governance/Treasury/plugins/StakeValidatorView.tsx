@@ -406,34 +406,43 @@ export default function StakeValidatorView(props: any){
                                 else if (d && String(deact) !== "N/A") derivedState = "deactivating";
                                 else if (a.type === "initialized") derivedState = "initialized";
 
-                                const totalSol = a.total_amount != null ? Number(a.total_amount) : 0;
-                                const activeSol = a.active_amount != null ? Number(a.active_amount) : 0;
-                                const rentSol  = a.rent != null ? Number(a.rent) : 0;
+                                const totalSol = Number(a.total_amount ?? 0);
+                                const rentSol  = Number(a.rent ?? 0);
 
-                                // This matches Solana Explorer "Inactive Stake"
-                                const inactiveSol = Math.max(0, totalSol - activeSol - rentSol);
+                                // Shyft feed quirk: for ACTIVE accounts, delegated_amount matches Explorer "Active Stake".
+                                // BUT sometimes delegated_amount is bogus (see your 2030 SOL example), so sanity-check it.
+                                const delegatedSol = a.delegated_amount != null ? Number(a.delegated_amount) : null;
+                                const activeSolRaw = a.active_amount != null ? Number(a.active_amount) : null;
+
+                                // pick the best "active stake" candidate
+                                const activeStakeSol =
+                                delegatedSol != null && Number.isFinite(delegatedSol) && delegatedSol <= totalSol + 0.01
+                                    ? delegatedSol
+                                    : (activeSolRaw != null && Number.isFinite(activeSolRaw) && activeSolRaw <= totalSol + 0.01
+                                        ? activeSolRaw
+                                        : 0);
+
+                                const inactiveSol = Math.max(0, totalSol - activeStakeSol - rentSol);
 
                                 return {
-                                    pubkey,
-                                    stake_account_address: a.stake_account_address ?? pubkey,
+                                pubkey,
+                                stake_account_address: a.stake_account_address ?? pubkey,
 
-                                    // Keep total for display
-                                    total_amount: totalSol,
-                                    active_amount: activeSol,
-                                    rent: rentSol,
+                                // Canonical SOL fields
+                                total_amount: totalSol,
+                                active_stake_amount: activeStakeSol,   // <-- IMPORTANT (don’t call this active_amount)
+                                rent: rentSol,
+                                inactive_amount: inactiveSol,
 
-                                    // NEW: withdrawable/excess (inactive) amount
-                                    inactive_amount: inactiveSol,
+                                // Canonical lamports fields
+                                lamports: Math.round(totalSol * web3.LAMPORTS_PER_SOL),
+                                activeStakeLamports: Math.round(activeStakeSol * web3.LAMPORTS_PER_SOL),
+                                rentLamports: Math.round(rentSol * web3.LAMPORTS_PER_SOL),
+                                inactiveLamports: Math.round(inactiveSol * web3.LAMPORTS_PER_SOL),
 
-                                    // Also store lamports equivalents for your existing code paths
-                                    lamports: Math.round(totalSol * web3.LAMPORTS_PER_SOL),
-                                    activeLamports: Math.round(activeSol * web3.LAMPORTS_PER_SOL),
-                                    rentLamports: Math.round(rentSol * web3.LAMPORTS_PER_SOL),
-                                    inactiveLamports: Math.round(inactiveSol * web3.LAMPORTS_PER_SOL),
-
-                                    vote_account_address: a.vote_account_address ?? d?.voter ?? "N/A",
-                                    status: a.status ?? a.state ?? "unknown",
-                                    state: a.state ?? derivedState,
+                                vote_account_address: a.vote_account_address ?? d?.voter ?? "N/A",
+                                status: a.status ?? a.state ?? "unknown",
+                                state: a.state ?? derivedState,
                                 };
                             })
                             .filter(Boolean) as any[];
@@ -1346,13 +1355,12 @@ export default function StakeValidatorView(props: any){
 
                                             const rentSol  = Number(account.rent ?? 0);
 
-                                            // Shyft quirk: delegated_amount matches Explorer "Active Stake" in your samples
-                                            const activeStakeSol =
-                                            account.delegated_amount != null ? Number(account.delegated_amount) :
-                                            account.active_amount != null ? Number(account.active_amount) :
-                                            0;
-
-                                            const withdrawableSol = Math.max(0, totalSol - activeStakeSol - rentSol);
+                                            const withdrawableSol =
+                                                account.inactive_amount != null
+                                                    ? Number(account.inactive_amount)
+                                                    : (account.inactiveLamports != null
+                                                        ? Number(account.inactiveLamports) / web3.LAMPORTS_PER_SOL
+                                                        : 0);
                                         return (
                                             <ListItem 
                                                 key={index}
