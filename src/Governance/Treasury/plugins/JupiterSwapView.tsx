@@ -127,6 +127,7 @@ export default function JupiterSwapView(props: any) {
   const handleCloseExtMenu = props?.handleCloseExtMenu;
   const setExpandedLoader = props?.setExpandedLoader;
   const setInstructions = props?.setInstructions;
+  const [editProposalAddress, setEditProposalAddress] = React.useState(props?.editProposalAddress);
 
   const { publicKey } = useWallet();
   const { enqueueSnackbar } = useSnackbar();
@@ -392,6 +393,7 @@ export default function JupiterSwapView(props: any) {
         nativeWallet: governanceNativeWallet,
         governingMint: governingMint,
         draft: isDraft,
+        editProposalAddress: editProposalAddress,
       };
 
       setInstructions(propIx);

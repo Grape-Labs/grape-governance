@@ -195,7 +195,8 @@ export default function BatchSendView(props: any) {
   const [isGoverningMintSelectable, setIsGoverningMintSelectable] = React.useState(true);
   const [isGoverningMintCouncilSelected, setIsGoverningMintCouncilSelected] = React.useState(true);
   const [isDraft, setIsDraft] = React.useState(false);
-
+    const [editProposalAddress, setEditProposalAddress] = React.useState<string | null>(null);
+    
   // Form
   const [mode, setMode] = React.useState<"SOL" | "SPL">("SOL");
   const [mintAddress, setMintAddress] = React.useState<string>("");
@@ -365,6 +366,7 @@ export default function BatchSendView(props: any) {
           nativeWallet: governanceNativeWallet,
           governingMint,
           draft: isDraft,
+            editProposalAddress: editProposalAddress,
         });
         setExpandedLoader(true);
         setLoading(false);

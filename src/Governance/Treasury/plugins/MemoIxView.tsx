@@ -222,7 +222,8 @@ export default function MemoIxView(props: any) {
       aix: [],
       nativeWallet: governanceNativeWallet,
       governingMint: governingMint,
-      draft: isDraft,
+        draft: isDraft,
+        editProposalAddress: editProposalAddress,
     };
 
     setInstructions(propIx);
