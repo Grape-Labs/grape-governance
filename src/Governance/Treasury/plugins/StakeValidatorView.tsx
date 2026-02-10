@@ -183,6 +183,7 @@ export default function StakeValidatorView(props: any){
     const instructions = props?.instructions;
     const setInstructions = props?.setInstructions;
 
+    const stakeAccountsPromiseRef = React.useRef<Promise<any[]> | null>(null);
     const fetchStakeAccountsInFlight = React.useRef(false);
     const fetchStakeAccountsKeyRef = React.useRef<string>("");
     const fetchStakeAccountsAbortRef = React.useRef<AbortController | null>(null);
@@ -318,8 +319,15 @@ export default function StakeValidatorView(props: any){
 
     // Fetch stake accounts via Shyft API with RPC fallback
     const fetchStakeAccounts = React.useCallback(
-        async (force = false) => {
+       async (force = false) => {
             if (!governanceNativeWallet) return;
+
+                if (!force && stakeAccountsPromiseRef.current) {
+                    // Someone already kicked it off — await the same work
+                    const accounts = await stakeAccountsPromiseRef.current;
+                    setStakeAccounts(accounts);
+                    return;
+                }
 
             const walletKey = governanceNativeWallet;
 
@@ -373,7 +381,16 @@ export default function StakeValidatorView(props: any){
                         }
                     );
 
-                    const arr = Array.isArray(data?.result) ? data.result : [];
+                    const raw = data?.result;
+
+                    const arr =
+                    Array.isArray(raw) ? raw :
+                    Array.isArray(raw?.stake_accounts) ? raw.stake_accounts :
+                    Array.isArray(raw?.accounts) ? raw.accounts :
+                    Array.isArray(raw?.data) ? raw.data :
+                    [];
+
+                    console.log("Shyft stake_accounts shape keys:", raw && typeof raw === "object" ? Object.keys(raw) : typeof raw);
 
                     if (arr.length > 0) {
                         accounts = arr
@@ -389,19 +406,34 @@ export default function StakeValidatorView(props: any){
                                 else if (d && String(deact) !== "N/A") derivedState = "deactivating";
                                 else if (a.type === "initialized") derivedState = "initialized";
 
+                                const totalSol = a.total_amount != null ? Number(a.total_amount) : 0;
+                                const activeSol = a.active_amount != null ? Number(a.active_amount) : 0;
+                                const rentSol  = a.rent != null ? Number(a.rent) : 0;
+
+                                // This matches Solana Explorer "Inactive Stake"
+                                const inactiveSol = Math.max(0, totalSol - activeSol - rentSol);
+
                                 return {
                                     pubkey,
-                                    lamports: a.lamports ?? 0,
                                     stake_account_address: a.stake_account_address ?? pubkey,
+
+                                    // Keep total for display
+                                    total_amount: totalSol,
+                                    active_amount: activeSol,
+                                    rent: rentSol,
+
+                                    // NEW: withdrawable/excess (inactive) amount
+                                    inactive_amount: inactiveSol,
+
+                                    // Also store lamports equivalents for your existing code paths
+                                    lamports: Math.round(totalSol * web3.LAMPORTS_PER_SOL),
+                                    activeLamports: Math.round(activeSol * web3.LAMPORTS_PER_SOL),
+                                    rentLamports: Math.round(rentSol * web3.LAMPORTS_PER_SOL),
+                                    inactiveLamports: Math.round(inactiveSol * web3.LAMPORTS_PER_SOL),
+
                                     vote_account_address: a.vote_account_address ?? d?.voter ?? "N/A",
                                     status: a.status ?? a.state ?? "unknown",
                                     state: a.state ?? derivedState,
-                                    total_amount: a.total_amount ?? a.balance ?? null,
-                                    delegated_amount: a.delegated_amount ?? null,
-                                    active_amount: a.active_amount ?? null,
-                                    rent: a.rent ?? 0,
-                                    activation_epoch: a.activation_epoch ?? null,
-                                    deactivation_epoch: a.deactivation_epoch ?? null,
                                 };
                             })
                             .filter(Boolean) as any[];
@@ -721,7 +753,7 @@ export default function StakeValidatorView(props: any){
 
             for (const account of selected) {
                 const stakeAccountPubkey = new PublicKey(account.pubkey);
-                const withdrawIx = extractStakeInstruction(
+                const withdrawIx = extractInstruction(
                     StakeProgram.withdraw({
                         stakePubkey: stakeAccountPubkey,
                         authorizedPubkey: govWallet,
@@ -995,6 +1027,7 @@ export default function StakeValidatorView(props: any){
     }, []);
 
     // Fetch stake accounts when the unstake tab is opened
+    /*
     React.useEffect(() => {
         if (!open) fetchedOnOpenRef.current = false;
 
@@ -1002,7 +1035,11 @@ export default function StakeValidatorView(props: any){
             fetchedOnOpenRef.current = true;
             fetchStakeAccounts();
         }
-    }, [open, tabValue, fetchStakeAccounts]);
+    }, [open, tabValue, fetchStakeAccounts]);*/
+    React.useEffect(() => {
+    if (!open) return;
+        fetchStakeAccounts(); // no force
+    }, [open, fetchStakeAccounts]);
 
     // Fetch harvest data when the Jito MEV tab is opened
     React.useEffect(() => {
@@ -1295,10 +1332,27 @@ export default function StakeValidatorView(props: any){
                                         else if (isDeactivating) { statusLabel = 'Deactivating'; statusColor = '#ff9800'; }
                                         else if (isInactive) { statusLabel = 'Inactive'; statusColor = '#f44336'; }
 
-                                        const displayBalance = account.balance 
-                                            ? `${parseFloat(account.balance).toFixed(4)} SOL`
-                                            : `${(account.lamports / web3.LAMPORTS_PER_SOL).toFixed(4)} SOL`;
+                                        const vote =
+                                            account?.vote_account_address ||
+                                            account?.validatorVoteAccount ||
+                                            account?.voteAccount ||
+                                            "N/A";
+                                        const totalSol =
+                                            account.total_amount != null
+                                                ? Number(account.total_amount)
+                                                : account.total_amount_sol != null
+                                                ? Number(account.total_amount_sol)
+                                                : null;
 
+                                            const rentSol  = Number(account.rent ?? 0);
+
+                                            // Shyft quirk: delegated_amount matches Explorer "Active Stake" in your samples
+                                            const activeStakeSol =
+                                            account.delegated_amount != null ? Number(account.delegated_amount) :
+                                            account.active_amount != null ? Number(account.active_amount) :
+                                            0;
+
+                                            const withdrawableSol = Math.max(0, totalSol - activeStakeSol - rentSol);
                                         return (
                                             <ListItem 
                                                 key={index}
@@ -1343,11 +1397,11 @@ export default function StakeValidatorView(props: any){
                                                         </Typography>
                                                     }
                                                     secondary={
-                                                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
-                                                            {displayBalance}
-                                                            {account.validatorVoteAccount !== 'N/A' && 
-                                                                ` • Validator: ${account.validatorVoteAccount.substring(0, 6)}...`
-                                                            }
+                                                        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)" }}>
+                                                        {totalSol.toFixed(4)} SOL
+                                                        {" • "}Withdrawable: {withdrawableSol.toFixed(4)} SOL
+                                                        {" • "}Rent: {rentSol.toFixed(4)} SOL
+                                                        {vote !== "N/A" ? ` • Validator: ${vote.slice(0, 6)}...` : ""}
                                                         </Typography>
                                                     }
                                                 />
