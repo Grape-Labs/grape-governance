@@ -1406,9 +1406,9 @@ export default function StakeValidatorView(props: any){
                                                     }
                                                     secondary={
                                                         <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)" }}>
-                                                        {totalSol.toFixed(4)} SOL
-                                                        {" • "}Withdrawable: {withdrawableSol.toFixed(4)} SOL
-                                                        {" • "}Rent: {rentSol.toFixed(4)} SOL
+                                                        {totalSol && totalSol?.toFixed(4)} SOL
+                                                        {" • "}Withdrawable: {withdrawableSol && withdrawableSol?.toFixed(4)} SOL
+                                                        {" • "}Rent: {rentSol && rentSol?.toFixed(4)} SOL
                                                         {vote !== "N/A" ? ` • Validator: ${vote.slice(0, 6)}...` : ""}
                                                         </Typography>
                                                     }
