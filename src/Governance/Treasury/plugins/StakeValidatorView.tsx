@@ -1355,13 +1355,12 @@ export default function StakeValidatorView(props: any){
 
                                             const rentSol  = Number(account.rent ?? 0);
 
-                                            // Shyft quirk: delegated_amount matches Explorer "Active Stake" in your samples
-                                            const activeStakeSol =
-                                            account.delegated_amount != null ? Number(account.delegated_amount) :
-                                            account.active_amount != null ? Number(account.active_amount) :
-                                            0;
-
-                                            const withdrawableSol = Math.max(0, totalSol - activeStakeSol - rentSol);
+                                            const withdrawableSol =
+                                                account.inactive_amount != null
+                                                    ? Number(account.inactive_amount)
+                                                    : (account.inactiveLamports != null
+                                                        ? Number(account.inactiveLamports) / web3.LAMPORTS_PER_SOL
+                                                        : 0);
                                         return (
                                             <ListItem 
                                                 key={index}
