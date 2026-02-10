@@ -173,9 +173,9 @@ export default function ExtensionsMenuView(props: any) {
             setInstructions={setInstructions}
         />
         
-        {(governanceNativeWallet === '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8' ||
+        {/*(governanceNativeWallet === '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8' ||
           governanceNativeWallet === '3BEvopNQ89zkM4r6ADva18i5fao1sqR1pmswyQyfj838'
-         ) &&
+         ) && */}
           <JupDcaExtensionView
               realm={realm}
               handleCloseExtMenu={handleClose}
@@ -188,7 +188,7 @@ export default function ExtensionsMenuView(props: any) {
               masterWallet={masterWallet}
               usdcValue={usdcValue}
           />
-        }
+        
         <JupiterSwapView
           realm={realm}
           handleCloseExtMenu={handleClose}
