@@ -119,6 +119,20 @@ async function getMintDecimals(mint: string): Promise<number> {
   return 9;
 }
 
+const JUP_API_KEY = process.env.APP_JUP_API_KEY?.trim();
+
+// if you have an API key, use api.jup.ag; otherwise use lite-api.jup.ag
+const JUP_BASE = JUP_API_KEY ? "https://api.jup.ag" : "https://lite-api.jup.ag";
+
+const JUP = {
+  quoteUrl: `${JUP_BASE}/swap/v1/quote`,
+  // keep your swap-instructions URL aligned with the same base:
+  swapInstructionsUrl: `${JUP_BASE}/swap/v1/swap-instructions`,
+  priceV3Url: `${JUP_BASE}/price/v3`, // (only for prices, not quote)
+};
+
+const jupHeaders = () => (JUP_API_KEY ? { "x-api-key": JUP_API_KEY } : {});
+
 export default function JupiterSwapView(props: any) {
   const realm = props?.realm;
   const rulesWallet = props?.rulesWallet;
@@ -217,19 +231,33 @@ export default function JupiterSwapView(props: any) {
       const transactionIxs: TransactionInstruction[] = transaction.instructions;
 
       for (const instructionChunk of chunkInstructions(transactionIxs, 10)) {
-        const message = new TransactionMessage({
-          payerKey,
-          recentBlockhash: blockhash,
-          instructions: instructionChunk,
-        }).compileToV0Message();
+        
+        const simulateIx = async (transaction: Transaction): Promise<boolean> => {
+        try {
+            const { blockhash } = await RPC_CONNECTION.getLatestBlockhash();
 
-        const vtx = new VersionedTransaction(message);
-        const simulationResult = await RPC_CONNECTION.simulateTransaction(vtx);
+            transaction.recentBlockhash = blockhash;
+            transaction.feePayer = new PublicKey(governanceNativeWallet);
 
-        if (simulationResult.value.err) {
-          console.error("Chunk simulation failed:", simulationResult.value.err);
-          return false;
+            // ✅ LEGACY overload (no config object allowed)
+            const sim = await RPC_CONNECTION.simulateTransaction(
+            transaction,
+            [],     // no signers
+            false   // don't include accounts
+            );
+
+            if (sim.value.err) {
+            console.error("Simulation error:", sim.value.err);
+            return false;
+            }
+
+            return true;
+        } catch (e) {
+            console.error("simulateIx error:", e);
+            return false;
         }
+        };
+
       }
       return true;
     } catch (e) {
@@ -246,71 +274,104 @@ export default function JupiterSwapView(props: any) {
   };
 
   const fetchQuote = async () => {
-    if (!governanceNativeWallet) return;
-    const inMint = normalizeMint(inputMint);
-    const outMint = normalizeMint(outputMint);
+  if (!governanceNativeWallet) return;
 
-    if (!isPk(inMint) || !isPk(outMint)) {
-      enqueueSnackbar("Invalid mint(s). Use 'SOL' or a valid mint address.", { variant: "warning" });
-      return;
+  const inMint = normalizeMint(inputMint);
+  const outMint = normalizeMint(outputMint);
+
+  if (!isPk(inMint) || !isPk(outMint)) {
+    enqueueSnackbar("Invalid mint(s). Use 'SOL' or a valid mint address.", { variant: "warning" });
+    return;
+  }
+
+  const amt = Number(uiAmount);
+  if (!Number.isFinite(amt) || amt <= 0) {
+    enqueueSnackbar("Enter a valid amount > 0", { variant: "warning" });
+    return;
+  }
+
+  setLoadingQuote(true);
+  setQuoteSummary(null);
+
+  try {
+    const [inDec, outDec] = await Promise.all([getMintDecimals(inMint), getMintDecimals(outMint)]);
+    const amountRaw = Math.floor(amt * Math.pow(10, inDec));
+    const slip = Math.max(1, Math.min(5000, parseInt(slippageBps || "50", 10) || 50));
+
+    const { data: quote } = await axios.get(JUP.quoteUrl, {
+      params: {
+        inputMint: inMint,
+        outputMint: outMint,
+        amount: amountRaw,            // uint64 in the spec; number is fine unless huge
+        slippageBps: slip,            // uint16
+        swapMode: "ExactIn",          // default per spec, but explicit is nice
+        onlyDirectRoutes: onlyDirectRoutes, // boolean (don’t send "true"/"false" strings)
+        restrictIntermediateTokens: true, // default true per spec
+        maxAccounts: 20,
+        instructionVersion: "V1", // default
+      },
+      headers: jupHeaders(),
+      timeout: 15_000,
+    });
+
+    if (!quote || (quote as any).error) {
+      throw new Error((quote as any)?.error || "Quote failed");
     }
-    const amt = Number(uiAmount);
-    if (!Number.isFinite(amt) || amt <= 0) {
-      enqueueSnackbar("Enter a valid amount > 0", { variant: "warning" });
-      return;
-    }
 
-    setLoadingQuote(true);
-    setQuoteSummary(null);
+    const outAmountRaw = Number(quote.outAmount || 0);
+    const outUi = outAmountRaw / Math.pow(10, outDec);
 
-    try {
-      const [inDec, outDec] = await Promise.all([getMintDecimals(inMint), getMintDecimals(outMint)]);
-      const amountRaw = Math.floor(amt * Math.pow(10, inDec));
-      const slip = Math.max(1, Math.min(5000, parseInt(slippageBps || "50", 10) || 50));
+    setQuoteSummary({
+      quote,
+      inDec,
+      outDec,
+      amountRaw,
+      outAmountRaw,
+      outUi,
+      routeCount: (quote.routePlan || []).length,
+    });
 
-      const { data: quote } = await axios.get("https://api.jup.ag/swap/v1/quote", {
-        params: {
-          inputMint: inMint,
-          outputMint: outMint,
-          amount: String(amountRaw),
-          slippageBps: String(slip),
-          onlyDirectRoutes: onlyDirectRoutes ? "true" : "false",
-          // If you run into tx size / ALT issues, you can consider passing maxAccounts here.
-          // maxAccounts: 20,
-        },
-        timeout: 15_000,
-      });
+    setProposalTitle("Jupiter Swap");
+    setProposalDescription(
+      `Swap ${amt} (${inMint === SOL_MINT ? "SOL" : inMint.slice(0, 4) + "..."}) → ` +
+        `${outMint === SOL_MINT ? "SOL" : outMint.slice(0, 4) + "..."} (slippage ${slip} bps)`
+    );
+  } catch (e: any) {
+    console.error(e);
+    enqueueSnackbar(`Quote failed: ${e?.message || "unknown error"}`, { variant: "error" });
+  } finally {
+    setLoadingQuote(false);
+  }
+};
 
-      if (!quote || quote.error) {
-        throw new Error(quote?.error || "Quote failed");
-      }
+const splitJupiterInstructions = (swapIxs: any) => {
+  const setupIxs: TransactionInstruction[] = [];
+  const swapIxsOnly: TransactionInstruction[] = [];
+  const cleanupIxs: TransactionInstruction[] = [];
 
-      // quick summary for UI
-      const outAmountRaw = Number(quote.outAmount || 0);
-      const outUi = outAmountRaw / Math.pow(10, outDec);
+  if (swapIxs.tokenLedgerInstruction) {
+    setupIxs.push(decodeJupIx(swapIxs.tokenLedgerInstruction));
+  }
 
-      setQuoteSummary({
-        quote,
-        inDec,
-        outDec,
-        amountRaw,
-        outAmountRaw,
-        outUi,
-        routeCount: (quote.routePlan || []).length,
-      });
+  (swapIxs.computeBudgetInstructions || []).forEach((ix: any) =>
+    setupIxs.push(decodeJupIx(ix))
+  );
 
-      setProposalTitle(`Jupiter Swap`);
-      setProposalDescription(
-        `Swap ${amt} (${inMint === SOL_MINT ? "SOL" : inMint.slice(0, 4) + "..."}) → ` +
-          `${outMint === SOL_MINT ? "SOL" : outMint.slice(0, 4) + "..."} (slippage ${slip} bps)`
-      );
-    } catch (e: any) {
-      console.error(e);
-      enqueueSnackbar(`Quote failed: ${e?.message || "unknown error"}`, { variant: "error" });
-    } finally {
-      setLoadingQuote(false);
-    }
-  };
+  (swapIxs.setupInstructions || []).forEach((ix: any) =>
+    setupIxs.push(decodeJupIx(ix))
+  );
+
+  if (swapIxs.swapInstruction) {
+    swapIxsOnly.push(decodeJupIx(swapIxs.swapInstruction));
+  }
+
+  // ⛔ cleanup is optional — include only if you want
+  if (swapIxs.cleanupInstruction) {
+    cleanupIxs.push(decodeJupIx(swapIxs.cleanupInstruction));
+  }
+
+  return { setupIxs, swapIxsOnly, cleanupIxs };
+};
 
   const buildProposalFromQuote = async () => {
     if (!governanceNativeWallet) return;
@@ -323,21 +384,20 @@ export default function JupiterSwapView(props: any) {
       const quoteResponse = quoteSummary.quote;
 
       // Build instructions (preferred for composability)
-      const { data: swapIxs } = await axios.post(
-        "https://api.jup.ag/swap/v1/swap-instructions",
-        {
-          quoteResponse,
-          userPublicKey: governanceNativeWallet,
-          wrapAndUnwrapSol: wrapUnwrapSol,
-          dynamicComputeUnitLimit: true,
-          dynamicSlippage: true,
-          // prioritizationFeeLamports: { priorityLevelWithMaxLamports: { maxLamports: 1_000_000, priorityLevel: "veryHigh" } },
-        },
-        {
-          headers: { "Content-Type": "application/json" },
-          timeout: 20_000,
-        }
-      );
+    const { data: swapIxs } = await axios.post(
+    JUP.swapInstructionsUrl,
+    {
+        quoteResponse,
+        userPublicKey: governanceNativeWallet,
+        wrapAndUnwrapSol: wrapUnwrapSol,
+        dynamicComputeUnitLimit: true,
+        dynamicSlippage: true,
+    },
+    {
+        headers: { "Content-Type": "application/json", ...jupHeaders() },
+        timeout: 20_000,
+    }
+    );
 
       if (!swapIxs || swapIxs.error) {
         throw new Error(swapIxs?.error || "swap-instructions failed");
@@ -361,26 +421,23 @@ export default function JupiterSwapView(props: any) {
         );
       }
 
-      const ixList: TransactionInstruction[] = [];
+        const { setupIxs, swapIxsOnly, cleanupIxs } = splitJupiterInstructions(swapIxs);
 
-      if (tokenLedgerInstruction) ixList.push(decodeJupIx(tokenLedgerInstruction));
-      (computeBudgetInstructions || []).forEach((ix: any) => ixList.push(decodeJupIx(ix)));
-      (setupInstructions || []).forEach((ix: any) => ixList.push(decodeJupIx(ix)));
-      if (swapInstruction) ixList.push(decodeJupIx(swapInstruction));
-      if (cleanupInstruction) ixList.push(decodeJupIx(cleanupInstruction));
+        // 🚨 Hard safety: swap must exist
+        if (!swapIxsOnly.length) {
+        throw new Error("No swap instruction returned by Jupiter");
+        }
 
-      if (ixList.length === 0) {
-        throw new Error("No instructions returned by Jupiter");
-      }
-
-      const tx = new Transaction().add(...ixList);
-      const ok = await simulateIx(tx);
-      if (!ok) {
-        enqueueSnackbar("Simulation failed. Try onlyDirectRoutes, increase slippage slightly, or reduce route complexity.", {
-          variant: "error",
-        });
-        return;
-      }
+        // ✅ Simulate EACH PHASE separately (legacy-safe)
+        for (const phase of [setupIxs, swapIxsOnly, cleanupIxs]) {
+        if (!phase.length) continue;
+        const tx = new Transaction().add(...phase);
+        const ok = await simulateIx(tx);
+        if (!ok) {
+            enqueueSnackbar("Simulation failed for one swap phase", { variant: "error" });
+            return;
+        }
+        }
 
       if (handleCloseExtMenu) handleCloseExtMenu();
       setOpen(false);
@@ -388,7 +445,11 @@ export default function JupiterSwapView(props: any) {
       const propIx = {
         title: proposalTitle || "Jupiter Swap",
         description: proposalDescription || "Jupiter swap via Metis Swap API",
-        ix: ixList,
+        ix: [
+        ...setupIxs,
+        ...swapIxsOnly,
+        ...cleanupIxs, // optional — remove if you want smaller txs
+        ],
         aix: [],
         nativeWallet: governanceNativeWallet,
         governingMint: governingMint,
