@@ -62,6 +62,8 @@ import TokenManagerView from './TokenManagerView';
 import DemoExtensionView from './DemoView';
 import GovernanceConfigView from './GovernanceConfigView';
 import MemoIxView from './MemoIxView';
+import BatchSendView from './BatchSendView';
+import JupiterSwapView from './JupiterSwapView';
 
 export default function ExtensionsMenuView(props: any) {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -187,6 +189,16 @@ export default function ExtensionsMenuView(props: any) {
               usdcValue={usdcValue}
           />
         }
+        <JupiterSwapView
+          realm={realm}
+          handleCloseExtMenu={handleClose}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
+        />
         <DirectoryExtensionView
             realm={realm}
             handleCloseExtMenu={handleClose}
@@ -226,6 +238,18 @@ export default function ExtensionsMenuView(props: any) {
           setExpandedLoader={setExpandedLoader}
           instructions={instructions}
           setInstructions={setInstructions}
+        />
+        <BatchSendView
+          realm={realm}
+          handleCloseExtMenu={handleClose}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
+          masterWallet={masterWallet}
+          usdcValue={usdcValue}
         />
         <ClaimExtensionView
             realm={realm}
