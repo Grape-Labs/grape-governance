@@ -107,7 +107,9 @@ const GOVERNANNCE_STATE = {
     6:'Cancelled',
     7:'Defeated',
     8:'Executing with Errors!',
+    9:'Vetoed',
 }
+const EXCLUDED_COMMUNITY_STATES = new Set<number>([6, 9]); // cancelled + vetoed
 
 TablePaginationActions.propTypes = {
     count: PropTypes.number.isRequired,
@@ -324,8 +326,29 @@ export function GovernanceStatsView(props: any) {
             
                 setLoadingMessage("Loading Proposals...");
                 const gap = await getAllProposalsIndexed(governanceRulesStrArr, null, governanceAddress);
+
+                const communityMintStr = new PublicKey(grealm.account.communityMint).toBase58();
+
+                const filteredGap = (gap || []).filter((p: any) => {
+                const state = Number(p?.account?.state ?? -1);
+
+                const proposalMintStr =
+                    p?.account?.governingTokenMint?.toBase58?.() ||
+                    p?.account?.governingTokenMint?.toString?.() ||
+                    "";
+
+                const isCommunityProposal = proposalMintStr === communityMintStr;
+
+                // exclude ONLY community proposals that are cancelled/vetoed
+                if (isCommunityProposal && EXCLUDED_COMMUNITY_STATES.has(state)) return false;
+
+                return true;
+                });
+
+
                 //console.log("gap: ", gap);
-                setGovernanceProposals(gap);
+                //setGovernanceProposals(gap);
+                setGovernanceProposals(filteredGap);
 
                 const proposalsPerMonth = gap.reduce((acc, p) => {
                     const votingAt = p.account?.votingAt;
@@ -343,51 +366,60 @@ export function GovernanceStatsView(props: any) {
                     .map(([month, count]) => ({ month, count }));
 
                 setProposalsPerMonthArray(tproposalsPerMonthArray);
-
                 setLoadingMessage("Getting Participation...");
                 const allVoteRecords: any[] = [];
 
-                for (let i = 0; i < gap.length; i++) {
-                    const proposal = gap[i];
-                    setLoadingMessage(`${i + 1} of ${gap.length} Proposal Participation...`);
+                for (let i = 0; i < filteredGap.length; i++) {
+                const proposal = filteredGap[i];
+                setLoadingMessage(`${i + 1} of ${filteredGap.length} Proposal Participation...`);
 
-                    if (proposal.account.state !== 0) { // Skip drafts
-                        const voteRecords = await getVoteRecordsIndexed(
-                            proposal.pubkey.toBase58(),
-                            grealm?.owner,
-                            governanceAddress,
-                            true
-                        );
+                // Skip drafts
+                if (Number(proposal?.account?.state) === 0) continue;
 
-                        // Attach to proposal if needed
-                        proposal.voteRecords = voteRecords;
+                const voteRecords = await getVoteRecordsIndexed(
+                    proposal.pubkey.toBase58(),
+                    grealm?.owner,
+                    governanceAddress,
+                    true
+                );
 
-                        let recordsArray: any[] = [];
-                        if (Array.isArray(voteRecords)) {
-                            recordsArray = voteRecords;
-                        } else if (voteRecords && typeof voteRecords === 'object' && 'value' in voteRecords) {
-                            recordsArray = voteRecords.value ?? [];
-                        }
+                // Attach to proposal if needed
+                proposal.voteRecords = voteRecords;
 
-                        allVoteRecords.push(...recordsArray);
-                    }
+                let recordsArray: any[] = [];
+                if (Array.isArray(voteRecords)) {
+                    recordsArray = voteRecords;
+                } else if (voteRecords && typeof voteRecords === "object" && "value" in voteRecords) {
+                    recordsArray = (voteRecords as any).value ?? [];
+                }
+
+                allVoteRecords.push(...recordsArray);
                 }
 
                 setLoadingMessage("Processing Participation Data...");
 
                 // Build proposal metadata lookup
-                const proposalMetaMap = {};
-                for (const p of gap) {
+                const proposalMetaMap: Record<string, any> = {};
+                for (const p of filteredGap) {
                     proposalMetaMap[p.pubkey.toBase58()] = {
                         title: p.account.name,
                         mint: p.account.governingTokenMint.toBase58(),
-                        draftAt: p.account.draftAt, //?.toNumber?.() || null,
-                        signingOffAt: p.account.signingOffAt,//?.toNumber?.() || null,
-                        votingAt: p.account.votingAt,//?.toNumber?.() || null,
-                        votingCompletedAt: p.account.votingCompletedAt,//?.toNumber?.() || null,
+                        draftAt: p.account.draftAt,
+                        signingOffAt: p.account.signingOffAt,
+                        votingAt: p.account.votingAt,
+                        votingCompletedAt: p.account.votingCompletedAt,
                         proposalState: p.account.state,
                     };
                 }
+
+                const proposalParticipationStats = filteredGap
+                    .filter(p => Array.isArray(p.voteRecords))
+                    .map(p => ({
+                        title: p.account.name,
+                        pubkey: p.pubkey.toBase58(),
+                        totalVotes: p.voteRecords.length,
+                        state: GOVERNANNCE_STATE[p.account.state] || 'Unknown',
+                    }));
                 
                 // Group vote records by wallet
                 const voteRecordMap = {};
@@ -506,16 +538,6 @@ export function GovernanceStatsView(props: any) {
                     .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
 
                 setParticipationArray(tparticipationArray);
-
-                // New: Calculate proposal participation stats
-                const proposalParticipationStats = gap
-                .filter(p => Array.isArray(p.voteRecords))
-                .map(p => ({
-                    title: p.account.name,
-                    pubkey: p.pubkey.toBase58(),
-                    totalVotes: p.voteRecords.length,
-                    state: GOVERNANNCE_STATE[p.account.state] || 'Unknown'
-                }));
 
                 const sortedProposalsByParticipation = proposalParticipationStats.sort((a, b) => b.totalVotes - a.totalVotes);
 
