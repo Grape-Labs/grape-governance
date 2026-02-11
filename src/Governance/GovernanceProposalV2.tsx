@@ -2954,7 +2954,7 @@ export function GovernanceProposalV2View(props: any){
                     </ButtonGroup>
                   </Stack>
                 </Stack>
-
+                
                 {realm && (
                   <Box sx={{ mt: { xs: 1, md: 0 } }}>
                     <GovernancePower

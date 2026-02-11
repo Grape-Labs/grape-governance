@@ -1683,7 +1683,6 @@ export function GovernanceCachedView(props: any) {
                                             governanceAddress={governanceAddress}
                                             gsplMetadata={gsplMetadata}
                                         />
-
                                         {(showGovernanceNavigation && realm) ?
                                             <Grid item sm={6} container justifyContent="flex-end">
                                                 <GovernanceNavigation governanceAddress={governanceAddress} cachedMemberMap={cachedMemberMap} realm={realm} />

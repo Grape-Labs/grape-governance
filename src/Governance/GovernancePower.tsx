@@ -250,8 +250,12 @@ export default function GovernancePower(props: any){
         //setRpcMemberMap(rawTokenOwnerRecords);
         
         //console.log("realm: "+JSON.stringify(realm));
+      
 
         if (realm){
+
+          
+
             let communityMint = null;
             if (typeof realm.account.communityMint.toBase58 === 'function') {
                 communityMint = realm.account.communityMint.toBase58();
@@ -275,11 +279,15 @@ export default function GovernancePower(props: any){
             const config = await getRealmConfigIndexed(null, new PublicKey(realm?.owner), new PublicKey(realm?.pubkey));
             let plugin = false;
             setIsPlugin(false);
-            if (config?.account?.communityTokenConfig?.voterWeightAddin){
-                plugin = true;
-                setIsPlugin(true);
-                setRealmConfig(config);
-            }
+            
+            //if (realm.pubkey != "9mS8GuMx2MkZGMSwa2k87HNLTFZ1ssa9mJ1RkGFKcGyQ"){
+
+              if (config?.account?.communityTokenConfig?.voterWeightAddin){
+                  plugin = true;
+                  setIsPlugin(true);
+                  setRealmConfig(config);
+              }
+            //}
 
             //console.log("End tryGetRealmConfig");
 
