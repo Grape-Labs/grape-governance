@@ -54,6 +54,7 @@ import {
   LinearProgress,
   Card, 
   CardContent,
+  Chip,
 } from '@mui/material/';
 
 import { GovernanceHeaderView } from './GovernanceHeaderView';
@@ -71,6 +72,8 @@ import { getProfilePicture } from '@solflare-wallet/pfp';
 import { findDisplayName } from '../utils/name-service';
 import Jazzicon, { jsNumberForAddress } from 'react-jazzicon';
 
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import ShareIcon from '@mui/icons-material/Share';
 import DownloadIcon from '@mui/icons-material/Download';
 import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
@@ -240,6 +243,14 @@ export function GovernanceStatsView(props: any) {
     const [governanceProposals, setGovernanceProposals] = React.useState<any[]>([]);
     const [governanceParticipants, setGovernanceParticipants] = React.useState<any[]>([]);
 
+    const [flaggedAuthors, setFlaggedAuthors] = React.useState<any[]>([]);
+    const [showFlaggedAuthors, setShowFlaggedAuthors] = React.useState(false);
+
+    const [paginationModel, setPaginationModel] = React.useState<GridPaginationModel>({
+        page: 0,
+        pageSize: 10,
+    });
+
     const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
     const initGrapeGovernanceDirectory = async() => {
         try{
@@ -251,8 +262,6 @@ export function GovernanceStatsView(props: any) {
             console.log("Could not load GSPDL");
         }
     }
-
-
 
     const getTokens = async () => {
         const tarray:any[] = [];
@@ -271,6 +280,24 @@ export function GovernanceStatsView(props: any) {
             });
             return tmap;
         } catch(e){console.log("ERR: "+e); return null;}
+    }
+
+    function getProposalAuthorKey(p: any): string | null {
+        // 1) best: explicit proposer / author if present
+        const proposer =
+            p?.account?.proposer?.toBase58?.() ||
+            p?.account?.proposer?.toString?.();
+
+        if (proposer) return proposer;
+
+        // 2) tokenOwnerRecord (then map TOR -> wallet using trecords later)
+        const tor =
+            p?.account?.tokenOwnerRecord?.toBase58?.() ||
+            p?.account?.tokenOwnerRecord?.toString?.();
+
+        if (tor) return `TOR:${tor}`;
+
+        return null;
     }
 
     const getGovernanceMembers = async () => {
@@ -330,25 +357,94 @@ export function GovernanceStatsView(props: any) {
                 const communityMintStr = new PublicKey(grealm.account.communityMint).toBase58();
 
                 const filteredGap = (gap || []).filter((p: any) => {
+                    const state = Number(p?.account?.state ?? -1);
+
+                    const proposalMintStr =
+                        p?.account?.governingTokenMint?.toBase58?.() ||
+                        p?.account?.governingTokenMint?.toString?.() ||
+                        "";
+
+                    const isCommunityProposal = proposalMintStr === communityMintStr;
+
+                    // exclude ONLY community proposals that are cancelled/vetoed
+                    if (isCommunityProposal && EXCLUDED_COMMUNITY_STATES.has(state)) return false;
+
+                    return true;
+                });
+
+
+                const gapAll = gap || []; // all proposals (includes vetoed/cancelled)
+                const gapFiltered = gapAll.filter((p: any) => {
+                    const state = Number(p?.account?.state ?? -1);
+
+                    const proposalMintStr =
+                        p?.account?.governingTokenMint?.toBase58?.() ||
+                        p?.account?.governingTokenMint?.toString?.() ||
+                        "";
+
+                    const isCommunityProposal = proposalMintStr === communityMintStr;
+
+                    // exclude ONLY community proposals that are cancelled/vetoed from normal stats
+                    if (isCommunityProposal && EXCLUDED_COMMUNITY_STATES.has(state)) return false;
+
+                    return true;
+                });
+
+                setGovernanceProposals(gapFiltered);
+
+                const excludedCommunityProposals = gapAll.filter((p: any) => {
                 const state = Number(p?.account?.state ?? -1);
 
-                const proposalMintStr =
+                const mintStr =
                     p?.account?.governingTokenMint?.toBase58?.() ||
                     p?.account?.governingTokenMint?.toString?.() ||
                     "";
 
-                const isCommunityProposal = proposalMintStr === communityMintStr;
-
-                // exclude ONLY community proposals that are cancelled/vetoed
-                if (isCommunityProposal && EXCLUDED_COMMUNITY_STATES.has(state)) return false;
-
-                return true;
+                const isCommunityProposal = mintStr === communityMintStr;
+                return isCommunityProposal && EXCLUDED_COMMUNITY_STATES.has(state);
                 });
 
+                const flaggedAuthorsMap: Record<string, any> = {};
+
+                for (const p of excludedCommunityProposals) {
+                const state = Number(p?.account?.state ?? -1);
+                const authorKey = getProposalAuthorKey(p);
+                if (!authorKey) continue;
+
+                const k = authorKey;
+                if (!flaggedAuthorsMap[k]) {
+                    flaggedAuthorsMap[k] = {
+                    authorKey: k, // wallet or TOR:xxx
+                    vetoed: 0,
+                    cancelled: 0,
+                    totalFlagged: 0,
+                    proposals: [],
+                    lastFlaggedAt: 0,
+                    };
+                }
+
+                if (state === 9) flaggedAuthorsMap[k].vetoed++;
+                if (state === 6) flaggedAuthorsMap[k].cancelled++;
+
+                flaggedAuthorsMap[k].totalFlagged++;
+                const ts = Number(p?.account?.draftAt ?? p?.account?.votingAt ?? 0);
+                flaggedAuthorsMap[k].lastFlaggedAt = Math.max(flaggedAuthorsMap[k].lastFlaggedAt, ts);
+
+                flaggedAuthorsMap[k].proposals.push({
+                    pubkey: p.pubkey.toBase58(),
+                    title: p.account?.name,
+                    state: GOVERNANNCE_STATE[state] || String(state),
+                    draftAt: p.account?.draftAt ?? null,
+                    votingAt: p.account?.votingAt ?? null,
+                });
+                }
+
+                const flaggedAuthorsArray = Object.values(flaggedAuthorsMap)
+                .sort((a: any, b: any) => b.totalFlagged - a.totalFlagged);
 
                 //console.log("gap: ", gap);
                 //setGovernanceProposals(gap);
-                setGovernanceProposals(filteredGap);
+                //setGovernanceProposals(filteredGap);
 
                 const proposalsPerMonth = gap.reduce((acc, p) => {
                     const votingAt = p.account?.votingAt;
@@ -455,6 +551,24 @@ export function GovernanceStatsView(props: any) {
                     grealm.owner
                 );
                 trecords = indexedTokenOwnerRecords;
+
+                const torToWallet: Record<string, string> = {};
+                for (const r of trecords) {
+                // r.pubkey is the TokenOwnerRecord account address
+                const torPk = r?.pubkey?.toBase58?.() || String(r?.pubkey);
+                const walletPk = r?.account?.governingTokenOwner?.toBase58?.() || String(r?.account?.governingTokenOwner);
+                if (torPk && walletPk) torToWallet[torPk] = walletPk;
+                }
+
+                const resolvedFlaggedAuthors = flaggedAuthorsArray.map((a: any) => {
+                if (typeof a.authorKey === "string" && a.authorKey.startsWith("TOR:")) {
+                    const tor = a.authorKey.slice(4);
+                    return { ...a, wallet: torToWallet[tor] || null, tor };
+                }
+                return { ...a, wallet: a.authorKey, tor: null };
+                });
+
+                setFlaggedAuthors(resolvedFlaggedAuthors);
 
                 // Build participant array
                 setLoadingMessage("Merging Data...");
@@ -831,6 +945,16 @@ export function GovernanceStatsView(props: any) {
         }
     }, []);
 
+    const sortedFlaggedAuthors = React.useMemo(() => {
+        return (flaggedAuthors || [])
+            .slice()
+            .sort((a: any, b: any) =>
+            (Number(b.vetoed || 0) - Number(a.vetoed || 0)) ||
+            (Number(b.totalFlagged || 0) - Number(a.totalFlagged || 0)) ||
+            (Number(b.lastFlaggedAt || 0) - Number(a.lastFlaggedAt || 0))
+            );
+        }, [flaggedAuthors]);
+
 
 
     
@@ -960,6 +1084,95 @@ export function GovernanceStatsView(props: any) {
                                 // set default filters or use it elsewhere
                             }}
                             />
+
+
+                                                   {sortedFlaggedAuthors?.length > 0 && (
+                                <Paper
+                                    elevation={0}
+                                    sx={{
+                                    my: 1.5,
+                                    px: 1.25,
+                                    py: 0.75,
+                                    borderRadius: 2,
+                                    background: "rgba(0,0,0,0.35)",
+                                    border: "1px solid rgba(255,255,255,0.08)",
+                                    }}
+                                >
+                                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                        <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1 }}>
+                                        Flagged authors
+                                        </Typography>
+
+                                        <Chip
+                                        size="small"
+                                        label={sortedFlaggedAuthors.length}
+                                        sx={{ height: 20, "& .MuiChip-label": { px: 0.75, fontSize: 12 } }}
+                                        />
+
+                                        {showFlaggedAuthors && (
+                                        <Typography variant="caption" sx={{ opacity: 0.75, lineHeight: 1 }}>
+                                            sorted by vetoes
+                                        </Typography>
+                                        )}
+                                    </Box>
+
+                                    <Tooltip title={showFlaggedAuthors ? "Hide flagged authors" : "Show flagged authors"}>
+                                        <IconButton
+                                        size="small"
+                                        onClick={() => setShowFlaggedAuthors((v) => !v)}
+                                        sx={{ p: 0.5 }}
+                                        >
+                                        {showFlaggedAuthors ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                                        </IconButton>
+                                    </Tooltip>
+                                    </Box>
+
+                                    <Collapse in={showFlaggedAuthors} timeout="auto" unmountOnExit>
+                                    <Box sx={{ mt: 1 }}>
+                                        <DataGrid
+                                        autoHeight
+                                        density="compact"
+                                        disableRowSelectionOnClick
+                                        hideFooterSelectedRowCount
+                                        rows={sortedFlaggedAuthors.map((x, idx) => ({ id: idx, ...x }))}
+                                        columns={[
+                                            {
+                                            field: "wallet",
+                                            headerName: "Author",
+                                            flex: 1,
+                                            minWidth: 220,
+                                            renderCell: (params) =>
+                                                params.value ? (
+                                                <ExplorerView address={params.value} type="address" />
+                                                ) : (
+                                                <Typography variant="caption">Unknown</Typography>
+                                                ),
+                                            },
+                                            { field: "vetoed", headerName: "Veto", width: 80 },
+                                            { field: "cancelled", headerName: "Canc", width: 80 },
+                                            { field: "totalFlagged", headerName: "Total", width: 80 },
+                                            {
+                                            field: "lastFlaggedAt",
+                                            headerName: "Last",
+                                            width: 120,
+                                            valueGetter: (p) =>
+                                                p?.row?.lastFlaggedAt ? moment.unix(Number(p.row.lastFlaggedAt)).fromNow() : "",
+                                            },
+                                        ]}
+                                        initialState={{ pagination: { page: 0, pageSize: 5 } }}
+                                        rowsPerPageOptions={[5, 10, 25]}
+                                        sx={{
+                                            border: "none",
+                                            "& .MuiDataGrid-columnHeaders": { minHeight: 34, maxHeight: 34 },
+                                            "& .MuiDataGrid-columnHeader": { py: 0 },
+                                            "& .MuiDataGrid-cell": { py: 0 },
+                                        }}
+                                        />
+                                    </Box>
+                                    </Collapse>
+                                </Paper>
+                                )}
                         
                         {endTime &&
                             <Typography 
