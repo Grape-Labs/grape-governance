@@ -12,6 +12,7 @@ import Jazzicon, { jsNumberForAddress } from 'react-jazzicon';
 import { useWallet } from '@solana/wallet-adapter-react';
 
 import { createProposalInstructionsLegacy } from '../Proposals/createProposalInstructionsLegacy';
+import { createProposalInstructionsV0 } from '../Proposals/createProposalInstructionsV0';
 
 import { 
     RPC_CONNECTION,
@@ -82,6 +83,7 @@ import {
 } from '@mui/material/';
 
 import { linearProgressClasses } from '@mui/material/LinearProgress';
+import { createInstructionData } from '@solana/spl-governance';
 
 import { 
     getRealmIndexed,
@@ -1623,7 +1625,7 @@ const StakeAccountsView = () => {
                 
                 console.log("ix signers: "+JSON.stringify(instructions?.signers))
                 console.log("editProposalAddress: "+JSON.stringify(instructions?.editProposalAddress))
-                
+                /*
                 const propResponse = await createProposalInstructionsLegacy(
                     new PublicKey(programId),
                     new PublicKey(governanceAddress),
@@ -1648,6 +1650,38 @@ const StakeAccountsView = () => {
                     instructions?.signers,
                     null, // delegate
                 );
+                */
+                
+                const instructionsData = instructions.ix.map((ix) => ({
+                    data: createInstructionData(ix),
+                    holdUpTime: undefined,
+                    prerequisiteInstructions: [],
+                    chunkBy: 1,
+                }));
+
+                const propResponse = await createProposalInstructionsV0(
+                new PublicKey(programId),                 // token_realm_program_id
+                new PublicKey(governanceAddress),          // realmPk
+                new PublicKey(ixRulesWallet),              // governancePk
+                new PublicKey(useGoverningMint),           // governingTokenMint
+                publicKey,                                 // walletPk
+                instructions.title,
+                instructions.description,
+                RPC_CONNECTION,
+                new Transaction(),                         // transactionInstr (unused, keep empty)
+                authTransaction,
+                anchorWallet,
+                null,                                      // sendTransaction
+                instructionsData,                          // ⭐ THIS IS THE IMPORTANT PART
+                isDraft,
+                false,                                     // returnTx
+                publicKey,                                 // payer
+                instructions.editProposalAddress
+                    ? new PublicKey(instructions.editProposalAddress)
+                    : undefined,
+                undefined                                  // callbacks (optional)
+                );
+                
                 
                 setLoaderCreationComplete(false);
                 setLoadingPropCreation(false);
