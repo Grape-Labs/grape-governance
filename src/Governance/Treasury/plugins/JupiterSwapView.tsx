@@ -91,15 +91,19 @@ const isPk = (s: string) => {
   }
 };
 
-const decodeJupIx = (ix: any) => {
-  // Jupiter returns: { programId, accounts: [{pubkey,isSigner,isWritable}], data (base64) }
+const decodeJupIx = (ix: any, governanceSigner: string) => {
   return new TransactionInstruction({
     programId: new PublicKey(ix.programId),
-    keys: (ix.accounts || []).map((k: any) => ({
-      pubkey: new PublicKey(k.pubkey),
-      isSigner: !!k.isSigner,
-      isWritable: !!k.isWritable,
-    })),
+    keys: (ix.accounts || []).map((k: any) => {
+      const pk = new PublicKey(k.pubkey);
+      const isGovernanceSigner = pk.toBase58() === governanceSigner;
+
+      return {
+        pubkey: pk,
+        isSigner: isGovernanceSigner || !!k.isSigner,
+        isWritable: !!k.isWritable,
+      };
+    }),
     data: Buffer.from(ix.data, "base64"),
   });
 };
@@ -445,11 +449,7 @@ const splitJupiterInstructions = (swapIxs: any) => {
       const propIx = {
         title: proposalTitle || "Jupiter Swap",
         description: proposalDescription || "Jupiter swap via Metis Swap API",
-        ix: [
-        ...setupIxs,
-        ...swapIxsOnly,
-        ...cleanupIxs, // optional — remove if you want smaller txs
-        ],
+        ix: [...setupIxs, ...swapIxsOnly, ...cleanupIxs],
         aix: [],
         nativeWallet: governanceNativeWallet,
         governingMint: governingMint,
