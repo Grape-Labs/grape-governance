@@ -729,8 +729,8 @@ const filteredGovernances = React.useMemo(() => {
       />
     </Box>
   )}
-
-  <GovernanceDirectorySorting />
+    {/*
+  <GovernanceDirectorySorting />*/}
 
   {/* LIST */}
   <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }} sx={{ mt: 0.5 }}>
