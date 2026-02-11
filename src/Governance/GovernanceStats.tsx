@@ -2,7 +2,7 @@ import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import axios from "axios";
-import { DataGrid, GridColDef, GridValueGetterParams, GridPaginationModel } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
 import moment from 'moment';
 import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
 import {getRealms, RequestStatus} from "gspl-directory";

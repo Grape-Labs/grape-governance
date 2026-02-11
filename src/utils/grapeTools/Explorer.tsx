@@ -1,900 +1,719 @@
-import React from "react"
-import {CopyToClipboard} from 'react-copy-to-clipboard';
-import { styled } from '@mui/material/styles';
-import { useSnackbar } from 'notistack';
+// ExplorerView.tsx — drop-in replacement (MUI v5)
+// Goals vs your current version:
+// - Cleaner/denser button + menu UI (less bulky)
+// - No menu "jump" (uses Popover positioning + compact paddings)
+// - Optional lazy fetch: only fetch profile/domain/balance when menu opens
+// - Better blacklisted/off-curve affordances
+// - Safer effects + no noisy console logs
+// - Keeps your existing props API as much as possible
+
+import React from "react";
+import { CopyToClipboard } from "react-copy-to-clipboard";
+import { styled } from "@mui/material/styles";
+import { useSnackbar } from "notistack";
 import { Link } from "react-router-dom";
-import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
-import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
-import axios from "axios";
+import { PublicKey } from "@solana/web3.js";
 import QRCode from "react-qr-code";
+import axios from "axios";
 
-import { 
-    tryGetName,
-} from '@cardinal/namespaces';
-
-import { getProfilePicture } from '@solflare-wallet/pfp';
-import { findDisplayName } from '../name-service';
-import Jazzicon, { jsNumberForAddress } from 'react-jazzicon';
-
-import { 
-    RPC_CONNECTION, 
-    TWITTER_PROXY,
-    SHYFT_KEY,
-    HELIUS_API,
-    BLACKLIST_WALLETS } from './constants';
-
-import { 
-    Avatar,
-    Button,
-    Menu,
-    MenuItem,
-    ListItemIcon,
-    Grid,
-    Box,
-    ListItemText,
-    Typography,
-    Paper,
-    Divider,
-    Tooltip,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogContentText,
-    DialogTitle,
-    IconButton,
-} from '@mui/material';
+import { getProfilePicture } from "@solflare-wallet/pfp";
+import { findDisplayName } from "../name-service";
 
 import {
-    //GRAPE_COLLECTIONS_DATA
-} from './constants';
+  RPC_CONNECTION,
+  TWITTER_PROXY,
+  SHYFT_KEY,
+  HELIUS_API,
+  BLACKLIST_WALLETS,
+} from "./constants";
 
-import { decodeMetadata } from '../grapeTools/utils';
-import { ValidateCurve } from '../grapeTools/WalletAddress';
+import {
+  Avatar,
+  Button,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  Grid,
+  Box,
+  ListItemText,
+  Typography,
+  Paper,
+  Divider,
+  Tooltip,
+  Dialog,
+  DialogContent,
+  DialogContentText,
+  IconButton,
+  Chip,
+  CircularProgress,
+} from "@mui/material";
 
-import SolIcon from '../../components/static/SolIcon';
-import SolCurrencyIcon from '../../components/static/SolCurrencyIcon';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import CloseIcon from '@mui/icons-material/Close';
-import QrCode2Icon from '@mui/icons-material/QrCode2';
-import TwitterIcon from '@mui/icons-material/Twitter';
-import ExploreOutlinedIcon from '@mui/icons-material/ExploreOutlined';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import ExploreIcon from '@mui/icons-material/Explore';
-import PersonIcon from '@mui/icons-material/Person';
-import ContactPageIcon from '@mui/icons-material/ContactPage';
+import SolCurrencyIcon from "../../components/static/SolCurrencyIcon";
+import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
+import QrCode2Icon from "@mui/icons-material/QrCode2";
+import TwitterIcon from "@mui/icons-material/Twitter";
+import ExploreOutlinedIcon from "@mui/icons-material/ExploreOutlined";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import ExploreIcon from "@mui/icons-material/Explore";
+import PersonIcon from "@mui/icons-material/Person";
+import ContactPageIcon from "@mui/icons-material/ContactPage";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import CloseIcon from "@mui/icons-material/Close";
 
 import { trimAddress } from "./WalletAddress";
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-
-export interface DialogTitleProps {
-    id: string;
-    children?: React.ReactNode;
-    onClose: () => void;
-  }
-
-  const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-    '& .MuDialogContent-root': {
-      padding: theme.spacing(2),
-    },
-    '& .MuDialogActions-root': {
-      padding: theme.spacing(1),
-    },
-  }));
+import { ValidateCurve } from "../grapeTools/WalletAddress";
+import { decodeMetadata } from "../grapeTools/utils";
 
 const StyledMenu = styled(Menu)(({ theme }) => ({
-    '& .MuiMenu-root': {
-    },
-    '& .MuiMenu-box': {
-        backgroundColor:'rgba(0,0,0,0.95)',
-        borderRadius:'17px'
-    },
+  "& .MuiPaper-root": {
+    borderRadius: 14,
+    minWidth: 240,
+    background: "rgba(10,10,10,0.94)",
+    backdropFilter: "blur(10px)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    boxShadow: "0px 10px 30px rgba(0,0,0,0.35)",
+  },
+  "& .MuiMenuItem-root": {
+    minHeight: 36,
+    paddingTop: 6,
+    paddingBottom: 6,
+  },
 }));
 
-const getTokens = async () => {
-    const tarray:any[] = [];
-    try{
-        await new TokenListProvider().resolve().then(tokens => {
-            const tokenList = tokens.filterByChainId(ENV.MainnetBeta).getList();
-            console.log("tokenList: "+JSON.stringify(tokenList))
-            const tmap = tokenList.reduce((map, item) => {
-                tarray.push({address:item.address, decimals:item.decimals})
-                map.set(item.address, item);
-                return map;
-            },new Map())
-            console.log("gt: "+JSON.stringify(tmap));
-            return tmap;
-        });
-        return null;
-    } catch(e){
-        console.log("ERR: "+e);
-        return null;
-    }
+function isSamePk(a?: string, b?: string) {
+  if (!a || !b) return false;
+  return a.toLowerCase() === b.toLowerCase();
 }
 
-export default function ExplorerView(props:any){
-    const address = props.address;
-    //const [address, setAddress] = React.useState(props.address);
-    const title = props.title || null;
-    const showAddress = props.showAddress || false;
-    const memberMap = props?.memberMap || null;
-    const type = props.type || 'address';
-    const buttonStyle = props?.style || 'outlined';
-    const buttonColor = props?.color || 'white';
-    const hideTitle = props?.hideTitle || false;
-    const hideIcon = props?.hideIcon || false;
-    const fontSize = props?.fontSize || '14px';
-    const useLogo = props?.useLogo || null;
-    const grapeArtProfile = props?.grapeArtProfile || false;
-    const shorten = props?.shorten || 0;
-    const [anchorEl, setAnchorEl] = React.useState(null);
-    const open = Boolean(anchorEl);
-    const dao = props?.dao;
-    const governance = props?.governance;
-    const showSolanaProfile = props.showSolanaProfile || null;
-    const showNftData = props.showNftData || null;
-    const showSolBalance = props.showSolBalance || null;
-    const connection = RPC_CONNECTION;
-    const [solanaDomain, setSolanaDomain] = React.useState(null);
-    const [hasSolanaDomain, setHasSolanaDomain] = React.useState(false);
-    const [profilePictureUrl, setProfilePictureUrl] = React.useState(null);
-    const [twitterRegistration, setTwitterRegistration] = React.useState(null);
-    const [hasProfilePicture, setHasProfilePicture] = React.useState(null);
-    const [openDialog, setOpenDialog] = React.useState(false);
-    const [solBalance, setSolBalance] = React.useState(null);
-    const showTokenMetadata = props?.showTokenMetadata;
-    const tokenMap = props?.tokenMap;
+function safeBase58(pk: any): string | null {
+  try {
+    if (!pk) return null;
+    if (typeof pk === "string") return pk;
+    if (pk?.toBase58) return pk.toBase58();
+    if (pk?.toString) return pk.toString();
+    return String(pk);
+  } catch {
+    return null;
+  }
+}
 
-    const isBlacklisted = BLACKLIST_WALLETS.some(w => w.toLowerCase() === address.toLowerCase());
+export default function ExplorerView(props: any) {
+  const address: string = props.address;
+  const title = props.title || null;
+  const showAddress = props.showAddress || false;
+  const memberMap = props?.memberMap || null;
+  const type = props.type || "address";
+  const buttonStyle = props?.style || "text"; // default to less bulky
+  const buttonColor = props?.color || "inherit";
+  const hideTitle = props?.hideTitle || false;
+  const hideIcon = props?.hideIcon || false;
+  const fontSize = props?.fontSize || "13px";
+  const useLogo = props?.useLogo || null;
+  const grapeArtProfile = props?.grapeArtProfile || false;
+  const shorten = props?.shorten || 0;
+  const dao = props?.dao;
+  const governance = props?.governance;
 
-    const handleClickOpenDialog = (event:any) => {
-        setOpenDialog(true);
-    };
-    const handleCloseDialog = () => {
-        setOpenDialog(false);
-        handleClose();
-    };
+  const showSolanaProfile = props.showSolanaProfile || null;
+  const showNftData = props.showNftData || null;
+  const showSolBalance = props.showSolBalance || null;
 
-    const handleClick = (event:any) => {
-        setAnchorEl(event.currentTarget);
-    };
-    const handleClose = () => {
-        setAnchorEl(null);
-    };
+  const showTokenMetadata = props?.showTokenMetadata;
+  const tokenMap = props?.tokenMap;
 
-    const [open_snackbar, setSnackbarState] = React.useState(false);
-    const { enqueueSnackbar } = useSnackbar();
+  const connection = RPC_CONNECTION;
 
-    const handleCopyClick = () => {
-        enqueueSnackbar(`Copied!`,{ variant: 'success' });
-        handleClose();
-    };
+  const isBlacklisted =
+    !!address &&
+    BLACKLIST_WALLETS.some((w: string) => w?.toLowerCase?.() === address.toLowerCase());
 
-    const fetchTokenMetada = async() => {
-        try{
-            
-            let titem = null;
-            if (tokenMap){
-                titem = tokenMap.get(address);
-                //console.log("item: "+JSON.stringify(titem))
-                if (titem?.name)
-                    setSolanaDomain(titem.name);
+  const offCurve = !!address && type === "address" && !ValidateCurve(address);
 
-                if (titem?.logoURI){
-                    setProfilePictureUrl(titem?.logoURI);
-                    setHasProfilePicture(true);
-                }
-            }
-            if (!titem) // && tokenMap) // remove tokenMap here to will make more rpc calls
-                fetchTokenData();
-            
-        }catch(e){
-            console.log("ERR: "+e);
-        }
+  const { enqueueSnackbar } = useSnackbar();
+
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
+  // Display name / metadata
+  const [solanaDomain, setSolanaDomain] = React.useState<string | null>(null);
+  const [hasSolanaDomain, setHasSolanaDomain] = React.useState(false);
+  const [profilePictureUrl, setProfilePictureUrl] = React.useState<string | null>(null);
+  const [hasProfilePicture, setHasProfilePicture] = React.useState<boolean>(false);
+  const [twitterRegistration, setTwitterRegistration] = React.useState<string | null>(null);
+
+  // QR + Balance
+  const [openDialog, setOpenDialog] = React.useState(false);
+  const [solBalance, setSolBalance] = React.useState<number | null>(null);
+
+  // Lazy loading flags
+  const [loadingMeta, setLoadingMeta] = React.useState(false);
+  const metaFetchedRef = React.useRef(false);
+
+  const handleClick = (event: any) => setAnchorEl(event.currentTarget);
+  const handleClose = () => setAnchorEl(null);
+
+  const handleCopyClick = () => {
+    enqueueSnackbar("Copied!", { variant: "success" });
+    handleClose();
+  };
+
+  const handleOpenQR = () => setOpenDialog(true);
+  const handleCloseQR = () => {
+    setOpenDialog(false);
+    handleClose();
+  };
+
+  const label = React.useMemo(() => {
+    if (title) return title;
+    if (hideTitle) return "";
+    if (solanaDomain) return solanaDomain;
+    if (shorten && shorten > 0) return trimAddress(address, shorten);
+    return address;
+  }, [title, hideTitle, solanaDomain, shorten, address]);
+
+  const secondary = React.useMemo(() => {
+    if (!showAddress) return null;
+    if (!hasSolanaDomain) return null;
+    return shorten && shorten > 0 ? trimAddress(address, shorten) : address;
+  }, [showAddress, hasSolanaDomain, shorten, address]);
+
+  // ---------- fetchers (now opt-in / lazy) ----------
+
+  const fetchFromTokenMap = React.useCallback(async () => {
+    if (!tokenMap || !address) return false;
+    const titem = tokenMap.get(address);
+    if (titem?.name) {
+      setSolanaDomain(titem.name);
+      setHasSolanaDomain(true);
     }
-
-    const fetchSolBalance = async() => {
-        try{
-            const balance = await connection.getBalance(new PublicKey(address));
-            const adjusted_balance = +(balance/(10 ** 9)).toFixed(3)
-            console.log("balance: "+adjusted_balance)
-            setSolBalance(adjusted_balance);
-        }catch(e){
-            console.log("ERR: "+e);
-        }
+    if (titem?.logoURI) {
+      setProfilePictureUrl(titem.logoURI);
+      setHasProfilePicture(true);
     }
+    return !!titem;
+  }, [tokenMap, address]);
 
-    const fetchTokenData = async() => {
-        try{
-            
-            if (HELIUS_API){
-                const uri = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API}`;
-                const response = await fetch(uri, {
-                    method: 'POST',
-                    headers: {
-                    "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                    "jsonrpc": "2.0",
-                    "id": "text",
-                    "method": "getAsset",
-                    "params": {
-                        id: address,
-                    }
-                    }),
-                });
-                /*
-                const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
-                const response = await fetch(uri, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        jsonrpc: '2.0',
-                        id: 'rpc-id',
-                        method: 'getAsset',
-                        params: {
-                            id: address
-                        },
-                    }),
-                    });
-                    */ 
-                const { result } = await response.json();
-                
-                if (result){
-                    if (result?.content?.metadata?.name){
-                        setSolanaDomain(result?.content?.metadata?.name);
-                        //return result?.content?.metadata?.name;
-                    }
-                    const image = result?.content?.links?.image;
-                
-                    if (image){
-                        if (image){
-                            setProfilePictureUrl(image);
-                            setHasProfilePicture(true);
-                        }
-                    }
-                    return null;
-                } else {
+  const fetchSolanaDomain = React.useCallback(async () => {
+    if (!address) return;
+    setTwitterRegistration(null);
+    setHasSolanaDomain(false);
 
-                    const MD_PUBKEY = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
-                    const [pda, bump] = await PublicKey.findProgramAddress(
-                        [Buffer.from('metadata'), MD_PUBKEY.toBuffer(), new PublicKey(address).toBuffer()],
-                        MD_PUBKEY
-                    );
-                    
-                    const tokendata = await connection.getParsedAccountInfo(new PublicKey(pda));
-
-                    if (tokendata){
-                        //console.log("tokendata: "+JSON.stringify(tokendata));
-                        if (tokendata.value?.data) {
-                            const buf = Buffer.from(tokendata.value.data, 'base64');
-                            const meta_final = decodeMetadata(buf);
-                            
-                            if (meta_final?.data?.name){
-                                setSolanaDomain(meta_final.data.name);
-                                if (meta_final.data?.uri){
-                                    const urimeta = await window.fetch(meta_final.data.uri).then((res: any) => res.json());
-                                    const image = urimeta?.image;
-                                    if (image){
-                                        setProfilePictureUrl(image);
-                                        setHasProfilePicture(true);
-                                    }
-                                }
-                            }
-                            //console.log("meta_final: "+JSON.stringify(meta_final));
-                        }
-                    }
-                }
-            }
-            
-            /*
-            const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
-
-            const response = await fetch(uri, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    jsonrpc: '2.0',
-                    id: 'rpc-id',
-                    method: 'getAsset',
-                    params: {
-                    id: address
-                    },
-                }),
-                });
-            const { result } = await response.json();
-            //console.log("Asset: ", result);
-
-            if (result){
-                if (result?.content?.metadata?.name){
-                    setSolanaDomain(result?.content?.metadata?.name);
-                }
-                const image = result?.content?.links?.image;
-                
-                if (image){
-                    if (image){
-                        setProfilePictureUrl(image);
-                        setHasProfilePicture(true);
-                    }
-                }
-            } else {
-
-                const MD_PUBKEY = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
-                const [pda, bump] = await PublicKey.findProgramAddress(
-                    [Buffer.from('metadata'), MD_PUBKEY.toBuffer(), new PublicKey(address).toBuffer()],
-                    MD_PUBKEY
-                );
-                
-                const tokendata = await connection.getParsedAccountInfo(new PublicKey(pda));
-
-                if (tokendata){
-                    //console.log("tokendata: "+JSON.stringify(tokendata));
-                    if (tokendata.value?.data) {
-                        const buf = Buffer.from(tokendata.value.data, 'base64');
-                        const meta_final = decodeMetadata(buf);
-                        
-                        if (meta_final?.data?.name){
-                            setSolanaDomain(meta_final.data.name);
-                            if (meta_final.data?.uri){
-                                const urimeta = await window.fetch(meta_final.data.uri).then((res: any) => res.json());
-                                const image = urimeta?.image;
-                                if (image){
-                                    setProfilePictureUrl(image);
-                                    setHasProfilePicture(true);
-                                }
-                            }
-                        }
-                        //console.log("meta_final: "+JSON.stringify(meta_final));
-                    }
-                }
-            }
-            */
-        }catch(e){
-            console.log("ERR: "+e)
-        }
-    
+    const domain = await findDisplayName(connection, address);
+    if (domain && domain[0] && domain[0] !== address) {
+      setHasSolanaDomain(true);
+      setSolanaDomain(domain[0]);
     }
+  }, [connection, address]);
 
-    const fetchProfilePicture = async () => {
-        //setLoadingPicture(true);  
-            try{
-                const { isAvailable, url } = await getProfilePicture(connection, new PublicKey(address));
-                
-                let img_url = url;
-                if (url)
-                    img_url = url.replace(/width=100/g, 'width=256');
-                setProfilePictureUrl(img_url);
-                setHasProfilePicture(isAvailable);
-                //countRef.current++;
-            }catch(e){
-                console.log("ERR: "+e)
-            }
-        //setLoadingPicture(false);
+  const fetchProfilePicture = React.useCallback(async () => {
+    if (!address) return;
+    try {
+      const { isAvailable, url } = await getProfilePicture(connection, new PublicKey(address));
+      if (url) {
+        const img = url.replace(/width=100/g, "width=256");
+        setProfilePictureUrl(img);
+        setHasProfilePicture(true);
+      } else {
+        setHasProfilePicture(isAvailable);
+      }
+    } catch {
+      // ignore
     }
+  }, [connection, address]);
 
-    const fetchSolanaDomain = async () => {
-        
-        console.log("fetching tryGetName: "+address);
-        setTwitterRegistration(null);
-        setHasSolanaDomain(false);
-        let found_cardinal = false;
-        /*
-        //const cardinalResolver = new CardinalTwitterIdentityResolver(ggoconnection);
-        try{
-            //const cardinal_registration = await cardinalResolver.resolve(new PublicKey(address));
-            //const identity = await cardinalResolver.resolveReverse(address);
-            //console.log("identity "+JSON.stringify(cardinal_registration))
-            
-            
-            const cardinal_registration = await tryGetName(
-                connection, 
-                new PublicKey(address)
-            );
+  const fetchSolBalance = React.useCallback(async () => {
+    if (!address) return;
+    try {
+      const balance = await connection.getBalance(new PublicKey(address));
+      setSolBalance(+((balance / 1e9).toFixed(3)));
+    } catch {
+      // ignore
+    }
+  }, [connection, address]);
 
-            if (cardinal_registration){
-                found_cardinal = true;
-                console.log("cardinal_registration: "+JSON.stringify(cardinal_registration));
-                setHasSolanaDomain(true);
-                setSolanaDomain(cardinal_registration[0]);
-                setTwitterRegistration(cardinal_registration[0]);
-                const url = `${TWITTER_PROXY}https://api.twitter.com/2/users/by&usernames=${cardinal_registration[0].slice(1)}&user.fields=profile_image_url,public_metrics`;
-                const response = await axios.get(url);
-                //const twitterImage = response?.data?.data[0]?.profile_image_url;
-                if (response?.data?.data[0]?.profile_image_url){
-                    setProfilePictureUrl(response?.data?.data[0]?.profile_image_url);
-                    setHasProfilePicture(true);
-                }
-            }
-            
-        }catch(e){
-            console.log("ERR: "+e);
+  const fetchNftMetadata = React.useCallback(async () => {
+    if (!address || !HELIUS_API) return;
+
+    try {
+      // Use Helius getAsset first
+      const uri = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API}`;
+      const response = await fetch(uri, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: "text",
+          method: "getAsset",
+          params: { id: address },
+        }),
+      });
+
+      const { result } = await response.json();
+      if (result) {
+        const name = result?.content?.metadata?.name;
+        const image = result?.content?.links?.image;
+        if (name) {
+          setSolanaDomain(name);
+          setHasSolanaDomain(true);
         }
-        */
-        
-        if (!found_cardinal){
-            const domain = await findDisplayName(connection, address);
-            if (domain) {
-                if (domain[0] !== address) {
-                    setHasSolanaDomain(true);
-                    setSolanaDomain(domain[0]);
-                }
-            }
+        if (image) {
+          setProfilePictureUrl(image);
+          setHasProfilePicture(true);
         }
+        return;
+      }
+
+      // Fallback: metaplex metadata PDA
+      const MD_PUBKEY = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
+      const [pda] = await PublicKey.findProgramAddress(
+        [Buffer.from("metadata"), MD_PUBKEY.toBuffer(), new PublicKey(address).toBuffer()],
+        MD_PUBKEY
+      );
+
+      const tokendata = await connection.getParsedAccountInfo(new PublicKey(pda));
+      if (tokendata?.value?.data) {
+        const buf = Buffer.from(tokendata.value.data as any, "base64");
+        const meta_final = decodeMetadata(buf);
+
+        const nm = meta_final?.data?.name;
+        if (nm) {
+          setSolanaDomain(nm);
+          setHasSolanaDomain(true);
+        }
+        if (meta_final?.data?.uri) {
+          const urimeta = await window.fetch(meta_final.data.uri).then((res: any) => res.json());
+          const image = urimeta?.image;
+          if (image) {
+            setProfilePictureUrl(image);
+            setHasProfilePicture(true);
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [address, connection]);
+
+  // Seed from memberMap immediately (fast path)
+  React.useEffect(() => {
+    if (!showSolanaProfile || !address) return;
+
+    // set quick initial label
+    setSolanaDomain(shorten && shorten > 0 ? trimAddress(address, shorten) : address);
+    setHasSolanaDomain(false);
+    setHasProfilePicture(false);
+    setProfilePictureUrl(null);
+    setTwitterRegistration(null);
+
+    if (!memberMap) return;
+
+    try {
+      for (const member of memberMap) {
+        const owner = safeBase58(member?.account?.governingTokenOwner);
+        if (isSamePk(owner, address)) {
+          const sc = member?.socialConnections;
+          if (sc?.solflare?.pfp) {
+            setProfilePictureUrl(sc.solflare.pfp);
+            setHasProfilePicture(true);
+          }
+          if (sc?.bonfida?.handle) {
+            setSolanaDomain(sc.bonfida.handle);
+            setHasSolanaDomain(true);
+          }
+          if (sc?.cardinal?.handle) {
+            setSolanaDomain(sc.cardinal.handle);
+            setHasSolanaDomain(true);
+            setTwitterRegistration(sc.cardinal.handle);
+          }
+          if (sc?.cardinal?.pfp) {
+            setProfilePictureUrl(sc.cardinal.pfp);
+            setHasProfilePicture(true);
+          }
+          break;
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [showSolanaProfile, address, shorten, memberMap]);
+
+  // Lazy fetch on menu open (only once per address)
+  React.useEffect(() => {
+    if (!open) return;
+    if (!address) return;
+    if (metaFetchedRef.current) return;
+
+    let alive = true;
+    (async () => {
+      setLoadingMeta(true);
+
+      // Token map is cheapest
+      const gotTokenMap = await fetchFromTokenMap();
+
+      // Only do heavier calls if needed/allowed by props
+      if (!alive) return;
+
+      if (!gotTokenMap && showSolanaProfile) {
+        await Promise.all([fetchSolanaDomain(), fetchProfilePicture()]);
+      }
+
+      if (!alive) return;
+
+      if (showNftData) await fetchNftMetadata();
+      if (showSolBalance) await fetchSolBalance();
+
+      if (!alive) return;
+      metaFetchedRef.current = true;
+      setLoadingMeta(false);
+    })();
+
+    return () => {
+      alive = false;
     };
+  }, [
+    open,
+    address,
+    showSolanaProfile,
+    showNftData,
+    showSolBalance,
+    fetchFromTokenMap,
+    fetchSolanaDomain,
+    fetchProfilePicture,
+    fetchNftMetadata,
+    fetchSolBalance,
+  ]);
 
-    function GetEscrowName(props:any){
-        const thisAddress = props.address;
-        const [escrowName, setEscrowName] = React.useState(null);
-      
-        const fetchVerifiedAuctionHouses = async() => {
-            try{
-                /*
-                const url = GRAPE_COLLECTIONS_DATA+'verified_auctionHouses.json';
-                const response = await window.fetch(url, {
-                    method: 'GET',
-                    headers: {
-                    }
-                  });
-                  const string = await response.text();
-                  const json = string === "" ? {} : JSON.parse(string);
+  // Reset lazy flag if address changes
+  React.useEffect(() => {
+    metaFetchedRef.current = false;
+    setLoadingMeta(false);
+  }, [address]);
 
-                  for (let itemAuctionHouse of json){
-                    //console.log("itemAuctionHouse: " + itemAuctionHouse.address + " vs " + thisAddress)
-                    if (itemAuctionHouse.address === thisAddress){
-                      setEscrowName(itemAuctionHouse.name);
-                    }
-                  }
-                
-                return json;
-                */
-                return null
-            } catch(e){
-                console.log("ERR: "+e)
-                return null;
+  // ---------- render ----------
+
+  return (
+    <>
+      <Tooltip
+        title={
+            isBlacklisted
+            ? "This wallet is blacklisted"
+            : offCurve
+                ? "Program address (PDA)"
+                : "Open menu"
+        }
+        >
+        <Button
+          aria-controls={open ? "explorer-menu" : undefined}
+          aria-haspopup="true"
+          aria-expanded={open ? "true" : undefined}
+          onClick={handleClick}
+          variant={buttonStyle}
+          color="inherit"
+          sx={{
+            m: 0,
+            borderRadius: "14px",
+            textTransform: "none",
+            px: 1,
+            minHeight: 34,
+            color: buttonColor,
+            ...(isBlacklisted
+              ? { border: "1px solid rgba(255,165,0,0.35)", background: "rgba(255,165,0,0.08)" }
+              : {}),
+          }}
+          startIcon={
+            hideIcon ? null : (
+                <>
+                {profilePictureUrl ? (
+                    <Avatar alt={address} src={profilePictureUrl} sx={{ width: 26, height: 26, bgcolor: "rgb(0,0,0)" }} />
+                ) : useLogo ? (
+                    <Avatar alt={address} src={useLogo} sx={{ width: 26, height: 26, bgcolor: "rgb(0,0,0)" }} />
+                ) : isBlacklisted ? (
+                    <WarningAmberIcon sx={{ color: "orange", fontSize }} />
+                ) : (
+                    <ExploreIcon sx={{ color: buttonColor, fontSize }} />
+                )}
+                </>
+            )
             }
-        }
-      
-        React.useEffect(() => {   
-            if (thisAddress)
-                fetchVerifiedAuctionHouses();
-        }, [thisAddress]);
-          
-        return (
-            <>
-                {escrowName && <Typography variant='caption' sx={{ml:1}}>({escrowName})</Typography>}
-            </>
-        );
-    }
+        >
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.1 }}>
+            <Typography sx={{ fontSize, color: buttonColor, lineHeight: 1.15 }}>
+              {label}
+            </Typography>
+            {!!secondary && (
+              <Typography variant="caption" sx={{ opacity: 0.75, lineHeight: 1.1 }}>
+                {secondary}
+              </Typography>
+            )}
+          </Box>
+        </Button>
+      </Tooltip>
 
-    React.useEffect(() => {   
-        if (showSolanaProfile){
+      <StyledMenu
+        id="explorer-menu"
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        transformOrigin={{ horizontal: "left", vertical: "top" }}
+        anchorOrigin={{ horizontal: "left", vertical: "bottom" }}
+      >
+        {/* Header row inside the menu */}
+        <Box sx={{ px: 1.25, pt: 1, pb: 0.75, display: "flex", alignItems: "center", gap: 1 }}>
+          {profilePictureUrl ? (
+            <Avatar src={profilePictureUrl} sx={{ width: 28, height: 28 }} />
+          ) : (
+            <Avatar sx={{ width: 28, height: 28, bgcolor: "rgba(255,255,255,0.08)" }}>
+              {(address || "").slice(0, 2)}
+            </Avatar>
+          )}
 
-            {(shorten && shorten > 0) ? 
-                setSolanaDomain(trimAddress(address,shorten))
-            : 
-                setSolanaDomain(address)
-            } 
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.1 }} noWrap>
+              {solanaDomain || (shorten ? trimAddress(address, shorten) : address)}
+            </Typography>
+            <Typography variant="caption" sx={{ opacity: 0.75 }} noWrap>
+              {shorten ? trimAddress(address, 4) : address}
+            </Typography>
+          </Box>
 
-            setHasProfilePicture(null);
-            setProfilePictureUrl(null);
-            setHasProfilePicture(false);
-            setTwitterRegistration(null);
-            if (memberMap){
-                for (var member of memberMap){
-                    if (new PublicKey(member.account.governingTokenOwner).toBase58() === address){
-                        //console.log("found: "+address);
-                        //console.log("memberItem: "+JSON.stringify(member.socialConnections));
-                        if (member?.socialConnections){
-                            if (member.socialConnections.solflare.pfp){
-                                setProfilePictureUrl(member.socialConnections.solflare.pfp)
-                                setHasProfilePicture(true);
-                            }
-                            if (member.socialConnections.bonfida.handle){
-                                setSolanaDomain(member.socialConnections.bonfida.handle)
-                            }
-                            if (member.socialConnections.cardinal.handle){
-                                setSolanaDomain(member.socialConnections.cardinal.handle)
-                                setTwitterRegistration(member.socialConnections.cardinal.handle)
-                            }
-                            if (member.socialConnections.cardinal.pfp){
-                                setProfilePictureUrl(member.socialConnections.cardinal.pfp)
-                                setHasProfilePicture(true);
-                            }
-                            if (member.socialConnections?.allDomains?.handles){
-                                //console.log("All Domains ("+address+"): "+JSON.stringify(member.socialConnections.allDomains))
-                                //setSolanaDomain(member.socialConnections.allDomains.handle)
-                            }
-                            
+          {loadingMeta ? (
+            <CircularProgress size={16} />
+          ) : (
+            <Chip
+            size="small"
+            label={type === "tx" ? "TX" : offCurve ? "PDA" : "PK"}
+            sx={{
+                height: 20,
+                opacity: 0.85,
+                "& .MuiChip-label": { px: 0.75, fontSize: 11 },
+            }}
+            />
+          )}
 
-                        }
-                    }
-                }
-            } else{
-                //console.log("no memberMap?")
-                //fetchProfilePicture();
-                //fetchSolanaDomain();
-            }
-        }
-    }, [showSolanaProfile, address]);
-    
-    React.useEffect(() => {   
-        if (showTokenMetadata){
-            fetchTokenMetada();
-        }
-    }, [showTokenMetadata, address]);
+          <IconButton size="small" onClick={handleClose} sx={{ p: 0.5, ml: 0.5 }}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Box>
 
-    React.useEffect(() => {   
-        if (showNftData){
-            fetchTokenData()
-        }
-    }, [showNftData, address]);
+        <Divider sx={{ opacity: 0.12 }} />
 
-    React.useEffect(() => {   
-        if (showSolBalance){
-            fetchSolBalance()
-        }
-    }, [showSolBalance, address]);
+        <CopyToClipboard text={address} onCopy={handleCopyClick}>
+          <MenuItem onClick={handleClose}>
+            <ListItemIcon>
+              <ContentCopyIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="Copy address" />
+          </MenuItem>
+        </CopyToClipboard>
 
-    return (
-        <>
-            <Tooltip title={isBlacklisted ? "This wallet is blacklisted" : "View in explorer"}>
-            <Button
-                aria-controls={open ? 'basic-menu' : undefined}
-                aria-haspopup="true"
-                aria-expanded={open ? 'true' : undefined}
-                onClick={handleClick}
-                variant={buttonStyle}
-                color='inherit'
-                sx={{m:0,borderRadius:'17px',color:`${buttonColor}`, textTransform:'none'}}
-                startIcon={
-                    <>
-                        {profilePictureUrl ?
-                            <Avatar alt={address} src={profilePictureUrl} sx={{ width: 30, height: 30, bgcolor: 'rgb(0, 0, 0)' }}>
-                                {address.substr(0,2)}
-                            </Avatar>
-                        :
-                            <>
-                            {useLogo ?
-                                <Avatar alt={address} src={useLogo} sx={{ width: 30, height: 30, bgcolor: 'rgb(0, 0, 0)' }}>
-                                    {address.substr(0,2)}
-                                </Avatar>
-                            :
-                                <>
-                                {hideIcon ?
-                                    <></>
-                                :
-                                    <>
-                                        {isBlacklisted ? (
-                                            <WarningAmberIcon sx={{ color: 'orange', fontSize: fontSize }} />
-                                        ) : (
-                                            <ExploreIcon sx={{ color: buttonColor, fontSize: fontSize }} />
-                                        )}
-                                    </>
-                                }
-                                </>
-                            }
-                            </>
-                        }
-                    </>
-                }
+        {grapeArtProfile && (
+          <>
+            <MenuItem onClick={handleOpenQR}>
+              <ListItemIcon>
+                <QrCode2Icon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="QR code" />
+            </MenuItem>
+
+            {typeof solBalance === "number" && (
+              <Tooltip title="SOL balance">
+                <MenuItem>
+                  <ListItemIcon>
+                    <SolCurrencyIcon sx={{ color: "white" }} />
+                  </ListItemIcon>
+                  <ListItemText primary={`${solBalance} SOL`} />
+                </MenuItem>
+              </Tooltip>
+            )}
+
+            <Divider sx={{ opacity: 0.12 }} />
+          </>
+        )}
+
+        {grapeArtProfile && (
+          <>
+            <MenuItem
+              component="a"
+              target="_blank"
+              href={`https://governance.so/profile/${address}`}
+              onClick={handleClose}
             >
-                <Typography sx={{color:`${buttonColor}`,fontSize:`${fontSize}`,textAlign:'left'}}>
-                    {title ?
-                        <>{title}</>
-                    :
-                        <>
-                            {!hideTitle &&
-                                <>
-                                    {solanaDomain ?
-                                        <>
-                                            {solanaDomain}
-                                            {showAddress && hasSolanaDomain &&
-                                            <><br/><Typography variant='caption' sx={{textTransform:'none'}}>{(shorten && shorten > 0) ? trimAddress(address,shorten) : address}</Typography></>}
-                                        </>
-                                    :
-                                    <>
-                                    {(shorten && shorten > 0) ? 
-                                        trimAddress(address,shorten) : address
-                                    } 
-                                    </>
-                                    }
-                                </>
-                            }
-                        </>
-                    }
-                    
-                    {address && type === 'address' && !ValidateCurve(address) &&
-                        <>
-                            <GetEscrowName address={address} />
-                        </>
-                    }
-                    
-                </Typography>
-            </Button>
-            </Tooltip>
+              <ListItemIcon>
+                <ContactPageIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Governance profile" />
+              <OpenInNewIcon sx={{ opacity: 0.6 }} fontSize="small" />
+            </MenuItem>
+
+            <MenuItem
+              component="a"
+              target="_blank"
+              href={`https://grape.art/identity/${address}`}
+              onClick={handleClose}
+            >
+              <ListItemIcon>
+                <PersonIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Grape identity" />
+              <OpenInNewIcon sx={{ opacity: 0.6 }} fontSize="small" />
+            </MenuItem>
+
+            <Divider sx={{ opacity: 0.12 }} />
+          </>
+        )}
+
+        {governance && (
+          <>
+            <MenuItem
+              component="a"
+              target="_blank"
+              href={`https://governance.so/treasury/${dao}/${governance}`}
+              onClick={handleClose}
+            >
+              <ListItemIcon>
+                <AccountBalanceIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Treasury wallet" />
+              <OpenInNewIcon sx={{ opacity: 0.6 }} fontSize="small" />
+            </MenuItem>
+
+            <Divider sx={{ opacity: 0.12 }} />
+          </>
+        )}
+
+        {/* Explorers */}
+        <MenuItem
+          component="a"
+          href={`https://explorer.solana.com/${type}/${address}`}
+          target="_blank"
+          onClick={handleClose}
+        >
+          <ListItemIcon>
+            <ExploreOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Solana Explorer" />
+          <OpenInNewIcon sx={{ opacity: 0.6 }} fontSize="small" />
+        </MenuItem>
+
+        <MenuItem
+          component="a"
+          href={`https://translator.shyft.to/${type === "address" ? "address" : "tx"}/${address}`}
+          target="_blank"
+          onClick={handleClose}
+        >
+          <ListItemIcon>
+            <ExploreOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Shyft translator" />
+          <OpenInNewIcon sx={{ opacity: 0.6 }} fontSize="small" />
+        </MenuItem>
+
+        <MenuItem
+          component="a"
+          href={`https://solscan.io/${type === "address" ? "account" : type}/${address}`}
+          target="_blank"
+          onClick={handleClose}
+        >
+          <ListItemIcon>
+            <ExploreOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Solscan" />
+          <OpenInNewIcon sx={{ opacity: 0.6 }} fontSize="small" />
+        </MenuItem>
+
+        <MenuItem
+          component="a"
+          href={`https://solana.fm/${type}/${address}`}
+          target="_blank"
+          onClick={handleClose}
+        >
+          <ListItemIcon>
+            <ExploreOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="SolanaFM" />
+          <OpenInNewIcon sx={{ opacity: 0.6 }} fontSize="small" />
+        </MenuItem>
+
+        <MenuItem
+          component="a"
+          href={`https://solanabeach.io/${type === "address" ? "address" : "transaction"}/${address}`}
+          target="_blank"
+          onClick={handleClose}
+        >
+          <ListItemIcon>
+            <ExploreOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Solana Beach" />
+          <OpenInNewIcon sx={{ opacity: 0.6 }} fontSize="small" />
+        </MenuItem>
+
+        {twitterRegistration && (
+          <>
+            <Divider sx={{ opacity: 0.12 }} />
+            <MenuItem
+              component="a"
+              href={`https://twitter.com/${twitterRegistration}`}
+              target="_blank"
+              onClick={handleClose}
+            >
+              <ListItemIcon>
+                <TwitterIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Twitter" />
+              <OpenInNewIcon sx={{ opacity: 0.6 }} fontSize="small" />
+            </MenuItem>
+          </>
+        )}
+      </StyledMenu>
+
+      {/* QR dialog */}
+      <Dialog open={openDialog} onClose={handleCloseQR} PaperProps={{ sx: { borderRadius: 2 } }}>
+        <Box sx={{ px: 2, pt: 1.5, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+            QR Code
+          </Typography>
+          <IconButton onClick={handleCloseQR} size="small">
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Box>
+
+        <DialogContent>
+          <DialogContentText component="div">
             <Box
+              display="flex"
+              flexDirection="column"
+              alignItems="center"
+              justifyContent="center"
+              sx={{
+                borderRadius: 2,
+                backgroundColor: "#111",
+                p: 2,
+                mb: 2,
+                border: "1px solid rgba(255,255,255,0.1)",
+                maxWidth: 256,
+                mx: "auto",
+              }}
             >
-                <StyledMenu
-                    id="basic-menu"
-                    anchorEl={anchorEl}
-                    open={open}
-                    onClose={handleClose}
-                    MenuListProps={{
-                        'aria-labelledby': 'basic-button',
-                    }}
-                >
-                    <CopyToClipboard 
-                            text={address} 
-                            onCopy={handleCopyClick}
-                        >
-                        <MenuItem 
-                            onClick={handleClose}
-                            color='inherit'
-                        >
-
-                            <ListItemIcon>
-                                <ContentCopyIcon fontSize="small" />
-                            </ListItemIcon>
-                            Copy
-                        </MenuItem>
-                    </CopyToClipboard>
-                    {grapeArtProfile &&
-                        <>
-                        <Divider />
-                        <MenuItem 
-                            color='inherit'
-                            onClick={handleClickOpenDialog}>
-                                <ListItemIcon>
-                                    <QrCode2Icon fontSize="small" />
-                                </ListItemIcon>
-                                QR Code
-                        </MenuItem>
-                        
-                        {solBalance &&
-                        <>
-                            <Divider />
-                            <Tooltip title="SOL balance in wallet">
-                                <MenuItem
-                                    color='inherit'
-                                >
-                                        <ListItemIcon>
-                                            <SolCurrencyIcon sx={{color:'white'}} />
-                                        </ListItemIcon>
-                                        {solBalance}
-                                </MenuItem>
-                            </Tooltip>
-                        </>
-                        }
-
-                        <BootstrapDialog
-                            onClose={handleCloseDialog}
-                            aria-labelledby="customized-dialog-title"
-                            open={openDialog}
-                            PaperProps={{
-                                style: {
-                                boxShadow: '0px 4px 20px rgba(0,0,0,0.1)',
-                                borderRadius: '17px',
-                                padding: '24px',
-                                background: 'linear-gradient(to right, #434343, #111111)' // ✅ use 'background' here
-                                },
-                            }}
-                            >
-                            <DialogContentText id="alert-dialog-description">
-                                <Box
-                                    display="flex"
-                                    flexDirection="column"
-                                    alignItems="center"
-                                    justifyContent="center"
-                                    sx={{
-                                        borderRadius: 2,
-                                        backgroundColor: '#1e1e1e',  // ✅ Dark theme friendly
-                                        p: 2,
-                                        mb: 2,
-                                        border: '1px solid #444',    // ✅ Adds subtle separation
-                                        boxShadow: 1,
-                                        maxWidth: 256,
-                                        mx: 'auto',
-                                    }}
-                                    >
-                                    <QRCode
-                                        size={256}
-                                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                                        value={address}
-                                        viewBox={`0 0 256 256`}
-                                        fgColor="#ffffff"  // ✅ Make QR code white for visibility on dark
-                                        bgColor="#1e1e1e"
-                                    />
-                                    </Box>
-
-                                <Grid container spacing={1} justifyContent="center" textAlign="center">
-                                    <Grid item xs={12}>
-                                        <Typography
-                                            variant="subtitle1"
-                                            color="text.secondary"
-                                            sx={{
-                                                wordBreak: 'break-all',
-                                            }}
-                                        >
-                                        {address}
-                                        </Typography>
-                                    </Grid>
-                                    <Grid item xs={12}>
-                                        <Typography variant="caption" color="text.secondary">
-                                        Send to this address
-                                        </Typography>
-                                    </Grid>
-                                </Grid>
-                            </DialogContentText>
-                            </BootstrapDialog>
-                        </>
-                    }
-                    <Divider />
-                    
-                    
-                    {/*grapeArtProfile && 
-                        <>
-                        {ValidateCurve(address) ?
-                                <MenuItem 
-                                    component={Link}
-                                    to={`${GRAPE_PROFILE}${address}`}
-                                    onClick={handleClose}>
-                                        <ListItemIcon>
-                                            <PersonIcon fontSize="small" />
-                                        </ListItemIcon>
-                                        Grape Profile
-                                </MenuItem>
-                        :
-                            <Tooltip title='The address is off-curve (this address does not lie on a Ed25519 curve - typically a valid curve is generated when creating a new wallet), the address here is off-curve and can be a program derived address (PDA) like a multi-sig or escrow'>
-                                <MenuItem >
-                                    <ListItemIcon>
-                                        <WarningAmberIcon sx={{ color: 'yellow' }} fontSize="small" />
-                                    </ListItemIcon>
-                                    Off-Curve
-                                </MenuItem>
-                            </Tooltip>
-                        }
-                        </>
-                    */}
-                {grapeArtProfile && 
-                    <>    
-                        <MenuItem 
-                            color='inherit'
-                            component='a'
-                            target='_blank'
-                            href={`https://governance.so/profile/${address}`}
-                            onClick={handleClose}>
-                                <ListItemIcon>
-                                    <ContactPageIcon fontSize="small" />
-                                </ListItemIcon>
-                                Governance Profile
-                        </MenuItem>
-
-                        <MenuItem 
-                            color='inherit'
-                            component='a'
-                            target='_blank'
-                            href={`https://grape.art/identity/${address}`}
-                            onClick={handleClose}>
-                                <ListItemIcon>
-                                    <PersonIcon fontSize="small" />
-                                </ListItemIcon>
-                                Grape Identity
-                        </MenuItem>
-                        
-                        <Divider />
-                    </>
-                }
-
-                {governance &&
-                    <>    
-                        <MenuItem 
-                            color='inherit'
-                            component='a'
-                            target='_blank'
-                            href={`https://governance.so/treasury/${dao}/${governance}`}
-                            onClick={handleClose}>
-                                <ListItemIcon>
-                                    <AccountBalanceIcon fontSize="small" />
-                                </ListItemIcon>
-                                Treasury Wallet
-                        </MenuItem>
-                        
-                        <Divider />
-                    </>
-                }
-                    <MenuItem 
-                        color='inherit'
-                        component='a'
-                        href={`https://explorer.solana.com/${type}/${address}`}
-                        target='_blank'
-                        onClick={handleClose}
-                    >
-                        <ListItemIcon>
-                            <ExploreOutlinedIcon fontSize="small" />
-                        </ListItemIcon>
-                        Explorer
-                    </MenuItem>
-                    <MenuItem 
-                        color='inherit'
-                        component='a'
-                        href={`https://translator.shyft.to/${type === 'address' ? 'address' : 'tx'}/${address}`}
-                        target='_blank'
-                        onClick={handleClose}>
-                            <ListItemIcon>
-                                <ExploreOutlinedIcon fontSize="small" />
-                            </ListItemIcon>
-                            Shyft
-                    </MenuItem>
-                    <MenuItem 
-                        color='inherit'
-                        component='a'
-                        href={`https://solscan.io/${type === 'address' ? 'account' : type}/${address}`}
-                        target='_blank'
-                        onClick={handleClose}>
-                            <ListItemIcon>
-                                <ExploreOutlinedIcon fontSize="small" />
-                            </ListItemIcon>
-                            SolScan
-                    </MenuItem>
-                    <MenuItem 
-                        color='inherit'
-                        component='a'
-                        href={`https://solana.fm/${type}/${address}`}
-                        target='_blank'
-                        onClick={handleClose}>
-                            <ListItemIcon>
-                                <ExploreOutlinedIcon fontSize="small" />
-                            </ListItemIcon>
-                            SolanaFM
-                    </MenuItem>
-                    <MenuItem 
-                        color='inherit'
-                        component='a'
-                        href={`https://solanabeach.io/${type === 'address' ? 'address' : 'transaction'}/${address}`}
-                        target='_blank'
-                        onClick={handleClose}>
-                            <ListItemIcon>
-                                <ExploreOutlinedIcon fontSize="small" />
-                            </ListItemIcon>
-                            Solana Beach
-                    </MenuItem>
-                    {/*
-                    <MenuItem 
-                        color='inherit'
-                        component='a'
-                        href={`https://xray.helius.xyz/${type === 'address' ? 'account' : 'tx'}/${address}`}
-                        target='_blank'
-                        onClick={handleClose}>
-                            <ListItemIcon>
-                                <ExploreOutlinedIcon fontSize="small" />
-                            </ListItemIcon>
-                            XRay
-                    </MenuItem>
-                    */}
-                    
-                    {twitterRegistration &&
-                        <>
-                            <Divider />
-                            <MenuItem 
-                                color='inherit'
-                                component='a'
-                                href={`https://twitter.com/${twitterRegistration}`}
-                                target='_blank'
-                                onClick={handleClose}>
-                                    <ListItemIcon>
-                                        <TwitterIcon fontSize="small" />
-                                    </ListItemIcon>
-                                    Twitter
-                            </MenuItem>
-                        </>
-                    }
-
-                </StyledMenu>
+              <QRCode
+                size={256}
+                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                value={address}
+                viewBox={`0 0 256 256`}
+                fgColor="#ffffff"
+                bgColor="#111111"
+              />
             </Box>
-        </>
-        
-    ); 
+
+            <Typography variant="caption" sx={{ display: "block", textAlign: "center", opacity: 0.85 }}>
+              {address}
+            </Typography>
+            <Typography variant="caption" sx={{ display: "block", textAlign: "center", opacity: 0.6, mt: 0.5 }}>
+              Send to this address
+            </Typography>
+          </DialogContentText>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }
