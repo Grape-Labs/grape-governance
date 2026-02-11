@@ -599,18 +599,6 @@ const rowSX = { display: "flex", alignItems: "center", gap: 1 };
                             </ListItem>
 
                             <ListItem disablePadding>
-                                <Tooltip title={`*tools for whitelisted addresses`} placement="right" arrow>
-                                    <ListItemButton 
-                                        component={Link}
-                                        to={'/admin'}
-                                    >
-                                    <ListItemIcon><SettingsSuggestIcon /></ListItemIcon>
-                                    <Typography variant="h6">Admin Tools</Typography>
-                                    </ListItemButton>
-                                </Tooltip>
-                            </ListItem>
-
-                            <ListItem disablePadding>
                                 <Tooltip title={`Governance & GSPL Documentation`} placement="right" arrow>
                                     <a
                                         href="https://grape-governance.gitbook.io/gspl"

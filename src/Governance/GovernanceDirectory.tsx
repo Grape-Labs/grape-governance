@@ -3,6 +3,7 @@ import { styled, useTheme } from '@mui/material/styles';
 import { Link } from "react-router-dom";
 
 import { initGrapeGovernanceDirectory } from './api/gspl_queries';
+import { buildDirectoryFromGraphQL } from "./api/queries"; // adjust path if needed
 
 import {
     Box,
@@ -45,6 +46,18 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import GroupIcon from '@mui/icons-material/Group';
 import SortIcon from '@mui/icons-material/Sort';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
+import SearchIcon from "@mui/icons-material/Search";
+import ViewModuleIcon from "@mui/icons-material/ViewModule";
+import ViewListIcon from "@mui/icons-material/ViewList";
+import WhatshotIcon from "@mui/icons-material/Whatshot";
+import VerifiedIcon from "@mui/icons-material/Verified";
+import FilterAltIcon from "@mui/icons-material/FilterAlt";
+import InputAdornment from "@mui/material/InputAdornment";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import Chip from "@mui/material/Chip";
+import Stack from "@mui/material/Stack";
+import Divider from "@mui/material/Divider";
 
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
 
@@ -145,6 +158,63 @@ function ScrollTop(props: Props) {
     );
   }
 
+function toHexNo0x(ts: number) {
+  // your UI expects a hex string WITHOUT 0x prefix
+  if (!ts || ts <= 0) return "0";
+  return Math.floor(ts).toString(16);
+}
+
+function safeNum(x: any, fallback = 0) {
+  const n = Number(x);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function govKey(x: any): string {
+  return x?.toBase58?.() || (typeof x === "string" ? x : String(x || ""));
+}
+
+async function overlayGraphQLVoting(sortedItems: any[]) {
+  const { directory, votingProposalsByGovernance } = await buildDirectoryFromGraphQL({
+    includeMembers: false,
+    proposalScanLimit: 5000,
+  });
+
+  const gqlByGov = new Map<string, any>();
+  for (const d of directory || []) {
+    const k = govKey(d?.governanceAddress);
+    if (k) gqlByGov.set(k, d);
+  }
+
+  return sortedItems.map((it: any) => {
+    const k = govKey(it?.governanceAddress);
+
+    const overlay = gqlByGov.get(k);
+    const votingList = (k && votingProposalsByGovernance?.[k]) ? votingProposalsByGovernance[k] : [];
+
+    if (!overlay) {
+      return {
+        ...it,
+        votingProposals: votingList,
+        totalProposalsVoting: votingList.length || (it.totalProposalsVoting || 0),
+      };
+    }
+
+    const merged: any = {
+      ...it,
+      votingProposals: votingList,
+      totalProposalsVoting: Number.isFinite(Number(overlay.totalProposalsVoting))
+        ? Number(overlay.totalProposalsVoting)
+        : votingList.length || (it.totalProposalsVoting || 0),
+    };
+
+    if (overlay?.lastProposalDate && overlay.lastProposalDate !== "0") {
+      merged.lastProposalDate = overlay.lastProposalDate;
+    }
+
+    return merged;
+  });
+}
+
 export function GovernanceDirectoryView(props: Props) {
     const { publicKey } = useWallet();
     
@@ -173,43 +243,67 @@ export function GovernanceDirectoryView(props: Props) {
     const [sortingType, setSortingType] = React.useState(null);
     const [sortingDirection, setSortingDirection] = React.useState(null);
 
-    const sortGovernance = (type:number) => {
-        let sorted = governanceLookup; 
+    const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid");
+    const [filterVerified, setFilterVerified] = React.useState(false);
+    const [filterActiveVoting, setFilterActiveVoting] = React.useState(false);
+    const [filterHasTreasury, setFilterHasTreasury] = React.useState(false);
 
-        let direction = sortingDirection;
-        if (direction === 0) direction = 1;
-        else direction = 0;
-        console.log("type: " + type+ " direction: "+direction)
-        if (type === 1 && direction === 0){ // by members:
-            sorted = governanceLookup.sort((a:any, b:any) => a?.totalMembers < b?.totalMembers ? 1 : -1); 
-        } else if (type === 1 && direction === 1){ // by members:
-            sorted = governanceLookup.sort((a:any, b:any) => b?.totalMembers < a?.totalMembers ? 1 : -1); 
-        } else if (type === 2 && direction === 0){ // by props:
-            sorted = governanceLookup.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
-        } else if (type === 2 && direction === 1){ // by props:
-            sorted = governanceLookup.sort((a:any, b:any) => b?.totalProposals < a?.totalProposals ? 1 : -1); 
-        } else if (type === 3 && direction === 0){ // by voting props:
-            sorted = governanceLookup.sort((a:any, b:any) => a?.totalProposalsVoting < b?.totalProposalsVoting ? 1 : -1); 
-        } else if (type === 3 && direction === 1){ // by voting props:
-            sorted = governanceLookup.sort((a:any, b:any) => b?.totalProposalsVoting < a?.totalProposalsVoting ? 1 : -1); 
-        } else if (type === 4 && direction === 0){ // by treasury:
-            sorted = governanceLookup.sort((a:any, b:any) => a?.totalVaultValue < b?.totalVaultValue ? 1 : -1); 
-        } else if (type === 4 && direction === 1){ // by treasury:
-            sorted = governanceLookup.sort((a:any, b:any) => b?.totalVaultValue < a?.totalVaultValue ? 1 : -1); 
-        } else if (type === 5 && direction === 0){ // by last proposal date:
-            sorted = governanceLookup.sort((a:any, b:any) => Number("0x"+a.lastProposalDate) < Number("0x"+b.lastProposalDate) ? 1 : -1); 
-        } else if (type === 5 && direction === 1){ // by last proposal data:
-            sorted = governanceLookup.sort((a:any, b:any) => Number("0x"+b.lastProposalDate) < Number("0x"+a.lastProposalDate) ? 1 : -1); 
-        } else if (type === 6 && direction === 0){ // by stable coin:
-            sorted = governanceLookup.sort((a:any, b:any) => a?.totalVaultStableCoinValue < b?.totalVaultStableCoinValue ? 1 : -1);
-        } else if (type === 6 && direction === 1){ // by stable coin:
-            sorted = governanceLookup.sort((a:any, b:any) => b?.totalVaultStableCoinValue < a?.totalVaultStableCoinValue ? 1 : -1);
-        } 
+const sortGovernance = (type: number) => {
+  if (!governanceLookup) return;
 
-        setSortingType(type);
-        setSortingDirection(direction);
-        setGovernanceLookup(sorted);
+  let direction = sortingDirection;
+  direction = direction === 0 ? 1 : 0;
+
+  const base = Array.from(governanceLookup); // ✅ no mutation
+  let sorted = base;
+
+  if (type === 1 && direction === 0) sorted = base.sort((a: any, b: any) => (a?.totalMembers < b?.totalMembers ? 1 : -1));
+  else if (type === 1 && direction === 1) sorted = base.sort((a: any, b: any) => (b?.totalMembers < a?.totalMembers ? 1 : -1));
+  else if (type === 2 && direction === 0) sorted = base.sort((a: any, b: any) => (a?.totalProposals < b?.totalProposals ? 1 : -1));
+  else if (type === 2 && direction === 1) sorted = base.sort((a: any, b: any) => (b?.totalProposals < a?.totalProposals ? 1 : -1));
+  else if (type === 3 && direction === 0) sorted = base.sort((a: any, b: any) => (a?.totalProposalsVoting < b?.totalProposalsVoting ? 1 : -1));
+  else if (type === 3 && direction === 1) sorted = base.sort((a: any, b: any) => (b?.totalProposalsVoting < a?.totalProposalsVoting ? 1 : -1));
+  else if (type === 4 && direction === 0) sorted = base.sort((a: any, b: any) => (a?.totalVaultValue < b?.totalVaultValue ? 1 : -1));
+  else if (type === 4 && direction === 1) sorted = base.sort((a: any, b: any) => (b?.totalVaultValue < a?.totalVaultValue ? 1 : -1));
+  else if (type === 5 && direction === 0) sorted = base.sort((a: any, b: any) => (Number("0x" + a.lastProposalDate) < Number("0x" + b.lastProposalDate) ? 1 : -1));
+  else if (type === 5 && direction === 1) sorted = base.sort((a: any, b: any) => (Number("0x" + b.lastProposalDate) < Number("0x" + a.lastProposalDate) ? 1 : -1));
+  else if (type === 6 && direction === 0) sorted = base.sort((a: any, b: any) => (a?.totalVaultStableCoinValue < b?.totalVaultStableCoinValue ? 1 : -1));
+  else if (type === 6 && direction === 1) sorted = base.sort((a: any, b: any) => (b?.totalVaultStableCoinValue < a?.totalVaultStableCoinValue ? 1 : -1));
+
+  setSortingType(type);
+  setSortingDirection(direction);
+  setGovernanceLookup(sorted);
+};
+
+const filteredGovernances = React.useMemo(() => {
+  if (!governanceLookup) return [];
+
+  const q = (searchFilter || "").trim();
+  const qUpper = q.replace(/\s+/g, "").toUpperCase();
+
+  return governanceLookup.filter((item: any) => {
+    if (filterVerified && !item?.gspl) return false;
+    if (filterActiveVoting && !(item?.totalProposalsVoting > 0)) return false;
+
+    const treasury = (item?.totalVaultValue || 0) + (item?.totalVaultStableCoinValue || 0);
+    if (filterHasTreasury && !(treasury > 0)) return false;
+
+    if (!q) return true;
+
+    const nameMatch = (item?.governanceName || "").replace(/\s+/g, "").toUpperCase().includes(qUpper);
+    if (nameMatch) return true;
+
+    if (isValidSolanaPublicKey(q)) {
+      return (
+        (item?.governanceAddress || "").includes(q) ||
+        (item?.communityMint || "").includes(q) ||
+        (item?.councilMint || "").includes(q)
+      );
     }
+
+    return false;
+  });
+}, [governanceLookup, searchFilter, filterVerified, filterActiveVoting, filterHasTreasury]);
 
     function GovernanceDirectorySorting(props: any){
         
@@ -314,21 +408,28 @@ export function GovernanceDirectoryView(props: Props) {
             
             const prepresorted = fglf.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
             const presorted = prepresorted.sort((a:any, b:any) => (b?.totalProposalsVoting < a?.totalProposalsVoting) ? 1 : -1); 
-            const sorted = presorted.sort((a:any, b:any) => (a?.totalVaultValue < b?.totalVaultValue && b?.totalVaultValue > 1) ? 1 : -1); 
+            let sorted = presorted.sort((a:any, b:any) => (a?.totalVaultValue < b?.totalVaultValue && b?.totalVaultValue > 1) ? 1 : -1);
 
             // go through it one more time to merge gspldir data
             for (var item of sorted){
-                if (gspldir){
-                    for (var diritem of gspldir){
-                        if (item.governanceName === diritem.name){ // also make sure that diritem.governanceProgram ===item.parent?
-                            item.gspl = diritem;
-                            console.log("GSPL Entry found for "+item.governanceName);
-                        }
-                    }
+            if (gspldir){
+                for (var diritem of gspldir){
+                if (item.governanceName === diritem.name){
+                    item.gspl = diritem;
+                    console.log("GSPL Entry found for "+item.governanceName);
+                }
                 }
             }
+            }
 
-            //const sorted = fglf.sort((a:any, b:any) => (a.totalVaultStableCoinValue != null ? a.totalVaultStableCoinValue : Infinity) - (b.totalVaultStableCoinValue != null ? b.totalVaultStableCoinValue : Infinity)); 
+            // ✅ Overlay GraphQL voting counts AFTER GSPL merge, BEFORE setGovernanceLookup
+            try {
+            sorted = await overlayGraphQLVoting(sorted);
+            console.log("GraphQL overlay applied (voting counts)");
+            } catch (e) {
+            console.warn("GraphQL overlay failed; using cached voting counts", e);
+            }
+
             setGovernanceLookup(sorted);
             
             // fetch some summary data
@@ -494,407 +595,167 @@ export function GovernanceDirectoryView(props: Props) {
     } else{
         if (governanceLookup){
             return (
-                <Box
-                    sx={{
-                        mt:6,
-                        background: 'rgba(0, 0, 0, 0.5)',
-                        borderRadius: '17px',
-                        p:2,
-                        alignItems: 'center', textAlign: 'center'
-                    }} 
-                > 
-                    <Grid container sx={{mb:2}} id="back-to-top-anchor">
-                        <Grid item xs={8} container justifyContent="flex-start"
-                            sx={{textAlign:'left',mb:2}}
-                        >
-                            <Grid container>
-                                <Grid item xs={12}>
-                                    <Typography variant="h4">
-                                        DAO Directory
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="caption">
-                                        {gspl && gspl.length} Verified DAOs on the Grape GSPL
-                                    </Typography>
-                                    <Typography color='#555' fontSize="9px">{governanceLookup && governanceLookup.length} Active Solana DAOs | 2,500+ DAOs on SPL Governance</Typography>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-                        <Grid item xs={4} container justifyContent="flex-end"
-                            sx={{textAlign:'right'}}
-                        >
-                            <Grid container>
-                                <Grid item xs={12}>
-                                    {/*publicKey &&
-                                        <Button
-                                            variant='contained'
-                                            color='inherit'
-                                            sx={{backgroundColor:'white',mt:0.2,mr:1}}
-                                            disabled
-                                        >
-                                            Create Governance
-                                        </Button>
-                                    */}
-                                    
-                                    <TextField 
-                                        size="small"
-                                        id="search-governances" 
-                                        label="Search" 
-                                        variant="outlined"
-                                        onChange={(e) => setSearchFilter(e.target.value)}
-                                        sx={{
-                                            '.MuiInputBase-input': { fontSize: '16px' },
-                                        }}
-                                        />
-                                </Grid>
-                            </Grid>
-                        </Grid>
-                    </Grid>
+<Box
+  sx={{
+    mt: 6,
+    borderRadius: "24px",
+    p: { xs: 2, md: 3 },
+    background:
+      "radial-gradient(1200px 600px at 20% 0%, rgba(130, 80, 255, 0.22), transparent 60%), radial-gradient(900px 500px at 90% 20%, rgba(0, 200, 140, 0.18), transparent 55%), rgba(0,0,0,0.55)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    backdropFilter: "blur(10px)",
+  }}
+>
+  {/* HERO */}
+  <Grid container spacing={2} alignItems="center" id="back-to-top-anchor">
+    <Grid item xs={12} md={7} sx={{ textAlign: "left" }}>
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, letterSpacing: -0.5 }}>
+          DAO Directory
+        </Typography>
+        <Chip
+          size="small"
+          icon={<VerifiedIcon />}
+          label={`${gspl?.length || 0} verified`}
+          variant="outlined"
+          sx={{ borderRadius: "999px" }}
+        />
+        <Chip
+          size="small"
+          icon={<WhatshotIcon />}
+          label="Live"
+          variant="outlined"
+          sx={{ borderRadius: "999px" }}
+        />
+      </Stack>
 
-                    
-                    {(!searchFilter || (searchFilter && searchFilter.length <= 0)) &&
-                    <>
-                        <GovernanceParticipationView pubkey={publicKey} metadataMap={metadataMap} governanceLookup={governanceLookup} />
+      <Typography variant="body2" sx={{ opacity: 0.85 }}>
+        Explore Solana SPL Governance DAOs — browse by treasury, members, proposals, and recent activity.
+      </Typography>
 
-                        {/*
-                        <Box sx={{mb:1}}>
-                            <Box
-                                sx={{ 
-                                    mb: 1, 
-                                    width: '100%',
-                                    background: 'rgba(0,0,0,0.2)',
-                                    borderRadius: '17px'
-                                }}
-                            > 
-                                Realtime
-                            </Box>
-                        </Box>
-                        */}
-                        
-                        <Box sx={{mb:1}}>
-                            <GovernanceRealtimeInfo governanceLookup={governanceLookup} governanceAddress={"GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"} title={'Latest Activity'} expanded={true} />
-                        </Box>
-                        
-                        <Box sx={{ 
-                            p:1}}>
-                            <Grid container spacing={0}>
-                                {/*
-                                <Grid item xs={12} md={12} lg={6} key={1}>
-                                    <Box
-                                        sx={{
-                                            borderRadius:'24px',
-                                            m:2,
-                                            ml:0,
-                                            p:1,
-                                            background: 'rgba(0, 0, 0, 0.2)',
-                                        }}
-                                    >
-                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'center'}}>
-                                            <>Total Treasury Value</>
-                                        </Typography>
-                                        <Tooltip title={<>
-                                                The total deposited in all SPL Governance accounts<br/>Last Fetch: {governanceLastVaultValue ? `$${getFormattedNumberToLocale(Number(governanceLastVaultValue.toFixed(2)))}` : 0}
-                                                </>
-                                            }>
-                                            <Button
-                                                color='inherit'
-                                                sx={{
-                                                    borderRadius:'17px',
-                                                }}
-                                            >   
-                                                <Grid container
-                                                    sx={{
-                                                        verticalAlign: 'bottom'}}
-                                                >
-                                                    <Typography variant="h4">
-                                                        {governanceTotalVaultValue ? `$${getFormattedNumberToLocale(Number(governanceTotalVaultValue.toFixed(2)))}` : 0}
-                                                    </Typography>
-                                                </Grid>
-                                            </Button>
-                                        </Tooltip>
-                                    </Box>
-                                </Grid>
+      <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} useFlexGap flexWrap="wrap">
+        <Chip size="small" label={`${governanceLookup?.length || 0} active DAOs`} />
+        <Chip size="small" label={`${governanceTotalMembers ? getFormattedNumberToLocale(governanceTotalMembers) : 0} unique voters`} />
+        <Chip size="small" label={`${governanceTotalProposals ? getFormattedNumberToLocale(governanceTotalProposals) : 0} proposals`} />
+      </Stack>
+    </Grid>
 
-                                <Grid item xs={12} md={6} lg={3} key={1}>
-                                    <Box
-                                        sx={{
-                                            borderRadius:'24px',
-                                            m:2,
-                                            p:1,
-                                            background: 'rgba(0, 0, 0, 0.2)',
-                                        }}
-                                    >
-                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'center'}}>
-                                            <>Total in Stable Coins</>
-                                        </Typography>
-                                        <Tooltip title={<>
-                                                The total value of stable coins deposited in SPL Governance (USDC, USDT, PAI)<br/>Last Fetch: {governanceLastVaultStableCoinValue ? `$${getFormattedNumberToLocale(Number(governanceLastVaultStableCoinValue.toFixed(2)))}` : 0}
-                                                </>
-                                            }>
-                                            <Button
-                                                color='inherit'
-                                                sx={{
-                                                    borderRadius:'17px',
-                                                }}
-                                            >   
-                                                <Grid container
-                                                    sx={{
-                                                        verticalAlign: 'bottom'}}
-                                                >
-                                                    <Typography variant="h4">
-                                                        {governanceTotalVaultStableCoinValue ? `$${getFormattedNumberToLocale(Number(governanceTotalVaultStableCoinValue.toFixed(2)))}` : 0}
-                                                    </Typography>
-                                                </Grid>
-                                            </Button>
-                                        </Tooltip>
-                                    </Box>
-                                </Grid>
+    <Grid item xs={12} md={5}>
+      {/* STICKY TOOLBAR */}
+      <Box
+        sx={{
+          position: "sticky",
+          top: 12,
+          zIndex: 10,
+          p: 1.5,
+          borderRadius: "18px",
+          background: "rgba(0,0,0,0.35)",
+          border: "1px solid rgba(255,255,255,0.08)",
+        }}
+      >
+        <Stack spacing={1.25}>
+          <TextField
+            fullWidth
+            size="small"
+            label="Search DAOs, governance address, mint…"
+            value={searchFilter || ""}
+            onChange={(e) => setSearchFilter(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+          />
 
-                                <Grid item xs={12} md={6} lg={3} key={1}>
-                                    <Box
-                                        sx={{
-                                            borderRadius:'24px',
-                                            m:2,
-                                            ml:0,
-                                            p:1,
-                                            background: 'rgba(0, 0, 0, 0.2)',
-                                        }}
-                                    >
-                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'center'}}>
-                                            <>Total Treasury Sol Value</>
-                                        </Typography>
-                                        <Tooltip title={<>
-                                                The total value of deposited Solana in all SPL Governance accounts<br/>Last Fetch: {governanceLastVaultSolValue ? `$${getFormattedNumberToLocale(Number(governanceLastVaultSolValue.toFixed(2)))}` : 0}
-                                                </>
-                                            }>
-                                            <Button
-                                                color='inherit'
-                                                sx={{
-                                                    borderRadius:'17px',
-                                                }}
-                                            >   
-                                                <Grid container
-                                                    sx={{
-                                                        verticalAlign: 'bottom'}}
-                                                >
-                                                    <Typography variant="h4">
-                                                        {governanceTotalVaultSolValue ? `$${getFormattedNumberToLocale(Number(governanceTotalVaultSolValue.toFixed(2)))}` : 0}
-                                                    </Typography>
-                                                </Grid>
-                                            </Button>
-                                        </Tooltip>
-                                    </Box>
-                                </Grid>
+          <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+              <Chip
+                icon={<VerifiedIcon />}
+                label="Verified"
+                color={filterVerified ? "primary" : "default"}
+                variant={filterVerified ? "filled" : "outlined"}
+                size="small"
+                onClick={() => setFilterVerified((v) => !v)}
+              />
+              <Chip
+                icon={<HowToVoteIcon />}
+                label="Voting now"
+                color={filterActiveVoting ? "primary" : "default"}
+                variant={filterActiveVoting ? "filled" : "outlined"}
+                size="small"
+                onClick={() => setFilterActiveVoting((v) => !v)}
+              />
+              <Chip
+                icon={<AccountBalanceIcon />}
+                label="Has treasury"
+                color={filterHasTreasury ? "primary" : "default"}
+                variant={filterHasTreasury ? "filled" : "outlined"}
+                size="small"
+                onClick={() => setFilterHasTreasury((v) => !v)}
+              />
+            </Stack>
 
-                                <Grid item xs={12} md={6} lg={3} key={1}>
-                                    <Box
-                                        sx={{
-                                            borderRadius:'24px',
-                                            m:2,
-                                            ml:0,
-                                            p:1,
-                                            background: 'rgba(0, 0, 0, 0.2)',
-                                        }}
-                                    >
-                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'center'}}>
-                                            <>Total Treasury Sol</>
-                                        </Typography>
-                                        <Tooltip title={<>
-                                                The total Solana deposited in all SPL Governance accounts<br/>Last Fetch: {governanceLastVaultSol ? `$${getFormattedNumberToLocale(Number(governanceLastVaultSol.toFixed(2)))}` : 0}
-                                                </>
-                                            }>
-                                            <Button
-                                                color='inherit'
-                                                sx={{
-                                                    borderRadius:'17px',
-                                                }}
-                                            >   
-                                                <Grid container
-                                                    sx={{
-                                                        verticalAlign: 'bottom'}}
-                                                >
-                                                    <Typography variant="h4">
-                                                        {governanceTotalVaultSol ? <>{getFormattedNumberToLocale(Number(governanceTotalVaultSol.toFixed(2)))}<Typography variant="caption">Sol</Typography></> : 0}
-                                                    </Typography>
-                                                </Grid>
-                                            </Button>
-                                        </Tooltip>
-                                    </Box>
-                                </Grid>
-                                */}
-                                <Grid item xs={12} md={6} lg={4} key={1}>
-                                    <Box
-                                        sx={{
-                                            borderRadius:'24px',
-                                            m:2,
-                                            p:1,
-                                            background: 'rgba(0, 0, 0, 0.2)',
-                                        }}
-                                    >
-                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'center'}}>
-                                            <>Unique Voters</>
-                                        </Typography>
-                                        <Tooltip title={<>
-                                                All time members throughout all governances:
-                                                <br/>Current Voting Records: {governanceTotalVotingRecordMembers ? getFormattedNumberToLocale(governanceTotalVotingRecordMembers) : 0}
-                                                <br/>Last Fetch Voting Records: {governanceLastMembers ? getFormattedNumberToLocale(governanceLastMembers) : 0}
-                                                </>
-                                            }>
-                                            <Button
-                                                color='inherit'
-                                                sx={{
-                                                    borderRadius:'17px',
-                                                }}
-                                            >   
-                                                <Grid container
-                                                    sx={{
-                                                        verticalAlign: 'bottom'}}
-                                                >
-                                                    <Typography variant="h4">
-                                                        {governanceTotalMembers ? getFormattedNumberToLocale(governanceTotalMembers) : 0}
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              value={viewMode}
+              onChange={(_, v) => v && setViewMode(v)}
+            >
+              <ToggleButton value="grid">
+                <ViewModuleIcon fontSize="small" />
+              </ToggleButton>
+              <ToggleButton value="list">
+                <ViewListIcon fontSize="small" />
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Stack>
+        </Stack>
+      </Box>
+    </Grid>
+  </Grid>
 
-                                                    </Typography>
-                                                </Grid>
-                                            </Button>
-                                        </Tooltip>
-                                    </Box>
-                                </Grid>
+  <Divider sx={{ my: 2, opacity: 0.15 }} />
 
-                                <Grid item xs={12} md={6} lg={4} key={1}>
-                                    <Box
-                                        sx={{
-                                            borderRadius:'24px',
-                                            m:2,
-                                            mr:0,
-                                            p:1,
-                                            background: 'rgba(0, 0, 0, 0.2)',
-                                        }}
-                                    >
-                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'center'}}>
-                                            <>Proposals</>
-                                        </Typography>
-                                        <Tooltip title={<>
-                                                All time proposals from all governances<br/>Last Fetch: {governanceLastProposals ? getFormattedNumberToLocale(governanceLastProposals) : 0}
-                                                </>
-                                            }>
-                                            <Button
-                                                color='inherit'
-                                                sx={{
-                                                    borderRadius:'17px',
-                                                }}
-                                            >   
-                                                <Grid container
-                                                    sx={{
-                                                        verticalAlign: 'bottom'}}
-                                                >
-                                                    <Typography variant="h4">
-                                                        {governanceTotalProposals ? getFormattedNumberToLocale(governanceTotalProposals) : 0}
-                                                    </Typography>
-                                                </Grid>
-                                            </Button>
-                                        </Tooltip>
-                                    </Box>
-                                </Grid>
+  {/* Optional “Latest Activity” stays, but it looks better below the hero */}
+  {(!searchFilter || (searchFilter && searchFilter.length <= 0)) && (
+    <Box sx={{ mb: 1 }}>
+      <GovernanceRealtimeInfo
+        governanceLookup={governanceLookup}
+        governanceAddress={"GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"}
+        title={"Latest Activity"}
+        expanded={true}
+      />
+    </Box>
+  )}
 
-                                <Grid item xs={12} md={6} lg={4} key={1}>
-                                    <Box
-                                        sx={{
-                                            borderRadius:'24px',
-                                            m:2,
-                                            p:1,
-                                            background: 'rgba(0, 0, 0, 0.2)',
-                                        }}
-                                    >
-                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'center'}}>
-                                            <>Voters Participating in Multisigs</>
-                                        </Typography>
-                                        <Tooltip title={<>
-                                                Voters that are also participating in Squads Multisigs
-                                                </>
-                                            }>
-                                            <Button
-                                                color='inherit'
-                                                sx={{
-                                                    borderRadius:'17px',
-                                                }}
-                                            >   
-                                                <Grid container
-                                                    sx={{
-                                                        verticalAlign: 'bottom'}}
-                                                >
-                                                    <Typography variant="h4">
-                                                        {governanceTotalParticipatingMultisigs && <>{governanceTotalParticipatingMultisigs > 0  ? getFormattedNumberToLocale(governanceTotalParticipatingMultisigs) : `-`}</>}
-                                                    </Typography>
-                                                </Grid>
-                                            </Button>
-                                        </Tooltip>
-                                    </Box>
-                                </Grid>
-                            
-                            </Grid>
-                        </Box>
-                        </>
-                    }
-                    
-                    <GovernanceDirectorySorting />
-                    
-                    <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
-                        
-                        {governanceLookup.map((item: any,key:number) => {
-                            const metadata = (item?.gspl && item.gspl?.metadataUri) ? metadataMap[item.gspl.metadataUri] : {};
-                            return (
-                            <>
-                            {searchFilter ?
-                                <>
-                                    {item.governanceName.replace(/\s+/g, '').toUpperCase()
-                                        .includes(searchFilter.trim().replace(/\s+/g, '').toUpperCase()) ?
-                                        <Grid item xs={12} sm={6} md={4} key={key}>
-                                            <GovernanceDirectoryCardView 
-                                                item={item}
-                                                metadata={metadata} 
-                                            />
-                                        </Grid>
-                                        :
-                                        <>
-                                            {isValidSolanaPublicKey(searchFilter.trim()) && 
-                                                (item.governanceAddress.trim().includes(searchFilter.trim()) || 
-                                                (item?.communityMint && item.communityMint.trim().includes(searchFilter.trim())) || 
-                                                (item?.councilMint && item.councilMint.trim().includes(searchFilter.trim()))) && 
-                                                (
-                                                    <Grid item xs={12} sm={6} md={4} key={key}>
-                                                        <GovernanceDirectoryCardView 
-                                                            item={item}
-                                                            metadata={metadata} 
-                                                        />
-                                                    </Grid>
-                                                )
-                                            }
-                                        </>
-                                    }
-                                </>
-                                :
-                                <Grid item xs={12} sm={6} key={key}>
-                                    {/*(item.realm.owner !== 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw') &&
-                                        console.log(item.realm.account.name+": "+item.realm.owner)
-                                    */}
-                                    <GovernanceDirectoryCardView 
-                                        item={item}
-                                        metadata={metadata} 
-                                    />
-                                </Grid>
-                            }
-                            </>
-                            )
-                        })}
-                    </Grid>
+  <GovernanceDirectorySorting />
 
-                    <ScrollTop {...props}>
-                        <Fab size="small" aria-label="scroll back to top">
-                        <KeyboardArrowUpIcon />
-                        </Fab>
-                    </ScrollTop>
-                </Box>
+  {/* LIST */}
+  <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }} sx={{ mt: 0.5 }}>
+    {filteredGovernances.map((item: any, key: number) => {
+      const metadata = item?.gspl?.metadataUri ? metadataMap[item.gspl.metadataUri] : {};
+      return (
+        <Grid
+          item
+          key={item?.governanceAddress || key}
+          xs={12}
+          sm={viewMode === "grid" ? 6 : 12}
+          md={viewMode === "grid" ? 4 : 12}
+        >
+          <GovernanceDirectoryCardView item={item} metadata={metadata} />
+        </Grid>
+      );
+    })}
+  </Grid>
+
+  <ScrollTop {...props}>
+    <Fab size="small" aria-label="scroll back to top">
+      <KeyboardArrowUpIcon />
+    </Fab>
+  </ScrollTop>
+</Box>
             )
         } else{
             return(

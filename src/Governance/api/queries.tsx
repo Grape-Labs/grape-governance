@@ -2005,143 +2005,89 @@ function toHexLike(ts: any) {
   return "0";
 }
 
-function isVotingState(state: number) {
-  // adjust to your needs:
-  // commonly: 2 = Voting, 3 = Completing? depends on program/IDL mapping
-  return state === 2; 
+function toNum(x: any): number {
+  const n = typeof x === "string" ? Number(x) : Number(x);
+  return Number.isFinite(n) ? n : -1;
+}
+
+function isVotingState(state: any) {
+  // SPL Governance: Voting is typically 2
+  // keep this strict, but normalize first
+  return toNum(state) === 2;
+}
+
+function govKey(x: any): string {
+  return x?.toBase58?.() || (typeof x === "string" ? x : String(x || ""));
 }
 
 export async function buildDirectoryFromGraphQL(options?: {
   includeMembers?: boolean;
   proposalScanLimit?: number;
 }) {
-  const includeMembers = options?.includeMembers ?? false;
   const proposalScanLimit = options?.proposalScanLimit ?? 5000;
 
-  // 1) load your verified list (GSPL)
-  const gspldir = await initGrapeGovernanceDirectory();
+  const allProps = await getAllProposalsFromAllPrograms();
+  const all = Array.isArray(allProps) ? allProps : [];
 
-  // 2) prepare program list (default + your custom program deployments)
-  const programs = [
-    { owner: "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw", name: "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw" },
-    ...(() => {
-      const unique: any[] = [];
-      govOwners.forEach(({ owner, name }) => {
-        if (!unique.some((u) => u.owner === owner)) unique.push({ owner, name });
-      });
-      return unique;
-    })(),
-  ];
+  // ✅ GLOBAL SORT FIRST (so slice doesn’t throw away active voting proposals)
+  const sortedAll = all
+    .slice()
+    .sort((a: any, b: any) => toNum(b?.account?.draftAt) - toNum(a?.account?.draftAt));
 
-  const directory: DirectoryItem[] = [];
+  const props = sortedAll.slice(0, proposalScanLimit);
 
-  for (const prog of programs) {
-    const programName = prog.name;   // your queries use programName_* tables
-    const programId = prog.owner;    // actual programId pubkey
+  const votingProposalsByGovernance: Record<string, any[]> = {};
+  const latestByGov: Record<string, number> = {};
 
-    // A) realms (name + mints)
-    const realms = await getRealmsIndexed(programName);
-    const realmByPk = new Map<string, any>();
-    (realms || []).forEach((r: any) => {
-      realmByPk.set(r.pubkey.toBase58(), r);
+  for (const p of props) {
+    const acct = p?.account;
+    if (!acct) continue;
+
+    const governancePk = acct?.governance?.toBase58?.() || String(acct?.governance || "");
+    if (!governancePk) continue;
+
+    const latestByGov: Record<string, number> = {};
+
+for (const p of props) {
+  const acct = p?.account;
+  if (!acct) continue;
+
+  const g = govKey(acct?.governance);
+  if (!g) continue;
+
+  const draftAt = acct?.draftAt ? Number(acct.draftAt) : 0;
+  if (!latestByGov[g] || draftAt > latestByGov[g]) latestByGov[g] = draftAt;
+}
+
+    if (!isVotingState(acct?.state)) continue;
+
+    const votingAt = acct?.votingAt != null ? toNum(acct.votingAt) : null;
+    const maxVotingTime = acct?.maxVotingTime != null ? toNum(acct.maxVotingTime) : null;
+
+    const votingEndsAt =
+      votingAt != null && maxVotingTime != null ? votingAt + maxVotingTime : null;
+
+    (votingProposalsByGovernance[governancePk] ||= []).push({
+      pubkey: p?.pubkey?.toBase58?.() || String(p?.pubkey),
+      name: acct?.name || "",
+      state: toNum(acct?.state),
+      votingAt,
+      votingEndsAt,
+      draftAt,
     });
-
-    // B) governances (rules)
-    const governances = await getAllGovernancesIndexed(null, programId);
-    // governances shape: { pubkey, account: { realm, ... activeProposalCount / proposalsCount } }
-
-    // C) latest proposals scan for lastProposalDate + voting counts
-    let latestByGovernance = new Map<string, number>();
-    let votingCountByGovernance = new Map<string, number>();
-
-    try {
-      const { data } = await client.query({
-        query: GET_QUERY_LATEST_PROPOSALS(programName, proposalScanLimit),
-        fetchPolicy: "no-cache",
-      });
-
-      const v2 = data?.[`${programName}_ProposalV2`] || [];
-      const v1 = data?.[`${programName}_ProposalV1`] || [];
-      const all = [...v2, ...v1];
-
-      for (const p of all) {
-        const gov = p.governance;
-        const draftAt = p.draftAt ?? 0;
-        const state = p.state ?? -1;
-
-        if (!latestByGovernance.has(gov)) {
-          // first seen is newest because query sorted desc
-          latestByGovernance.set(gov, Number(draftAt) || 0);
-        }
-        if (typeof state === "number" && isVotingState(state)) {
-          votingCountByGovernance.set(gov, (votingCountByGovernance.get(gov) || 0) + 1);
-        }
-      }
-    } catch (e) {
-      console.warn("Latest proposal scan failed for program", programName, e);
-    }
-
-    // D) member counts per realm (optional)
-    const uniqueMembersByRealm = new Map<string, number>();
-    if (includeMembers) {
-      // NOTE: this can still be heavy if you have a lot of realms.
-      // You can add a throttle / only do this for top realms after sorting.
-      for (const [realmPk] of realmByPk.entries()) {
-        try {
-          const { data } = await client.query({
-            query: GET_QUERY_REALM_UNIQUE_MEMBERS(programName, realmPk),
-            fetchPolicy: "no-cache",
-          });
-
-          const v2 = data?.[`${programName}_TokenOwnerRecordV2`]?.length || 0;
-          const v1 = data?.[`${programName}_TokenOwnerRecordV1`]?.length || 0;
-          uniqueMembersByRealm.set(realmPk, Math.max(v2, v1));
-        } catch (e) {
-          // swallow; realm can be too large
-        }
-      }
-    }
-
-    // E) normalize to your directory format
-    for (const g of governances || []) {
-      const governanceAddress = g.pubkey.toBase58();
-      const realmPk = g.account.realm.toBase58();
-
-      const realm = realmByPk.get(realmPk);
-      const governanceName = realm?.account?.name || "Unknown Realm";
-
-      const totalProposals =
-        (typeof g.account.proposalsCount === "number" ? g.account.proposalsCount : 0) ||
-        (typeof g.account.activeProposalCount === "number" ? g.account.activeProposalCount : 0);
-
-      const lastProposalTs = latestByGovernance.get(governanceAddress) || 0;
-      const totalVoting = votingCountByGovernance.get(governanceAddress) || 0;
-
-      const totalMembers = includeMembers
-        ? (uniqueMembersByRealm.get(realmPk) || 0)
-        : 0;
-
-      const item: DirectoryItem = {
-        governanceAddress,
-        governanceName,
-        communityMint: realm?.account?.communityMint?.toBase58?.() || undefined,
-        councilMint: realm?.account?.config?.councilMint?.toBase58?.() || undefined,
-        totalMembers,
-        totalProposals,
-        totalProposalsVoting: totalVoting,
-        lastProposalDate: toHexLike(lastProposalTs),
-        timestamp: Math.floor(Date.now() / 1000),
-      };
-
-      // attach gspl verification (like you do now)
-      if (gspldir?.length) {
-        const match = gspldir.find((d: any) => d.name === item.governanceName);
-        if (match) item.gspl = match;
-      }
-
-      directory.push(item);
-    }
   }
 
-  return { directory, gspldir };
+  for (const gov of Object.keys(votingProposalsByGovernance)) {
+    votingProposalsByGovernance[gov].sort(
+      (a, b) => toNum(b.votingAt) - toNum(a.votingAt)
+    );
+  }
+
+  const directory = Object.keys(latestByGov).map((governanceAddress) => ({
+    governanceAddress,
+    totalProposalsVoting: (votingProposalsByGovernance[governanceAddress] || []).length,
+    lastProposalDate: toHexLike(latestByGov[governanceAddress] || 0),
+  }));
+
+  return { directory, votingProposalsByGovernance };
 }
