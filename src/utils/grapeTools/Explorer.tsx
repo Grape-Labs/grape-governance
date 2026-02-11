@@ -65,6 +65,29 @@ import { trimAddress } from "./WalletAddress";
 import { ValidateCurve } from "../grapeTools/WalletAddress";
 import { decodeMetadata } from "../grapeTools/utils";
 
+type ExplorerMeta = {
+  name?: string | null;
+  image?: string | null;
+  twitter?: string | null;
+  sol?: number | null;
+  fetchedAt: number;
+};
+
+const META_CACHE = new Map<string, ExplorerMeta>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function getCached(address: string) {
+  const hit = META_CACHE.get(address);
+  if (!hit) return null;
+  if (Date.now() - hit.fetchedAt > CACHE_TTL_MS) return null;
+  return hit;
+}
+
+function setCached(address: string, patch: Partial<ExplorerMeta>) {
+  const prev = META_CACHE.get(address) || ({ fetchedAt: Date.now() } as ExplorerMeta);
+  META_CACHE.set(address, { ...prev, ...patch, fetchedAt: Date.now() });
+}
+
 const StyledMenu = styled(Menu)(({ theme }) => ({
   "& .MuiPaper-root": {
     borderRadius: 14,
@@ -294,6 +317,21 @@ export default function ExplorerView(props: any) {
       // ignore
     }
   }, [address, connection]);
+
+  React.useEffect(() => {
+    if (!address) return;
+
+    const cached = getCached(address);
+    if (!cached) return;
+
+    if (cached.name) { setSolanaDomain(cached.name); setHasSolanaDomain(true); }
+    if (cached.image) { setProfilePictureUrl(cached.image); setHasProfilePicture(true); }
+    if (typeof cached.sol === "number") setSolBalance(cached.sol);
+    if (cached.twitter) setTwitterRegistration(cached.twitter);
+
+    metaFetchedRef.current = true; // prevents refetch
+    setLoadingMeta(false);
+    }, [address]);
 
   // Seed from memberMap immediately (fast path)
   React.useEffect(() => {
