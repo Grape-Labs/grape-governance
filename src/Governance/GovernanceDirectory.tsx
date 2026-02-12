@@ -664,7 +664,7 @@ export function GovernanceDirectoryView(props: Props) {
           >
             <Box
               component="img"
-              src={GRAPE_LOGO_SQUARE}
+              src={OG_LOGO_SQUARE}
               alt="OG Reputation Space"
               sx={{
                 width: 50,
@@ -714,7 +714,7 @@ export function GovernanceDirectoryView(props: Props) {
           >
             <Box
               component="img"
-              src={OG_LOGO_SQUARE}
+              src={GRAPE_LOGO_SQUARE}
               alt="Grape Verification"
               sx={{
                 width: 50,
