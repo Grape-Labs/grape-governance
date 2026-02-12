@@ -5,7 +5,6 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 //import '@ionic/react/css/core.css';
 //import { setupIonicReact } from '@ionic/react';
 
-import { AdminView } from "./Admin/Admin";
 //import GovernanceAppPageView from "./GovernanceCached/v2/page";
 //import FrictionlessView from "./Frictionless/FrictionlessView";
 import { MyGovernanceView } from "./Governance/MyGovernance";
@@ -381,9 +380,6 @@ function DashboardContent() {
                                                   <Route path=":handlekey" element={<GovernanceReputationView />} />
                                               </Route>
                                               */}
-                                              <Route path="admin/*" element={<AdminView />} >
-                                                  <Route path=":handlekey" element={<AdminView />} />
-                                              </Route>
                                               
                                               <Route path="*" element={<NotFound />} />
                                             </Routes>
