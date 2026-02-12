@@ -841,8 +841,13 @@ function RenderGovernanceTable(props:any) {
 
 export function GovernanceCachedView(props: any) {
     const [searchParams, setSearchParams] = useSearchParams();
-    const {handlekey} = useParams<{ handlekey: string }>();
+    const { handlekey, proposal: routeProposalPk } = useParams<{ handlekey: string; proposal?: string }>();
     const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
+    const sharedProposalPk =
+      searchParams.get("proposal") ||
+      searchParams.get("proposalPk") ||
+      routeProposalPk ||
+      null;
     const showGovernanceTitle = props.showGovernanceTitle !== undefined ? props.showGovernanceTitle : true;
     const background = null; //props?.background ? props.background : null;
     const textColor = null; //props?.textColor ? props.background : null;
@@ -891,6 +896,31 @@ export function GovernanceCachedView(props: any) {
     const [votesForWallet, setVotesForWallet] = React.useState(null);
     const [gspl, setGSPL] = React.useState(null);
     const [gsplMetadata, setGSPLMetadata] = React.useState(null);
+
+    const sharedProposalItem = React.useMemo(() => {
+        if (!sharedProposalPk || !proposals || !Array.isArray(proposals)) {
+            return null;
+        }
+
+        return (
+            proposals.find((proposalItem: any) => {
+                const proposalKey = proposalItem?.pubkey?.toBase58?.()
+                    || proposalItem?.pubkey?.toString?.()
+                    || null;
+                return proposalKey === sharedProposalPk;
+            }) || null
+        );
+    }, [sharedProposalPk, proposals]);
+
+    const governanceShareTitle = sharedProposalItem?.account?.name
+        ? `${sharedProposalItem.account.name} ${realmName ? `| ${realmName}` : ''}`
+        : `${realmName || governanceAddress} Governance`;
+    const governanceShareDescription = sharedProposalItem?.account?.name
+        ? `Proposal ${sharedProposalItem.account.name}${realmName ? ` in ${realmName}` : ''} powered by Governance.so by Grape`
+        : `${realmName || governanceAddress} powered by Governance.so by Grape`;
+    const governanceShareUrl = sharedProposalPk
+        ? `https://governance.so/proposal/${governanceAddress}/${sharedProposalPk}`
+        : `https://governance.so/dao/${governanceAddress}`;
 
     const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
@@ -1671,6 +1701,24 @@ export function GovernanceCachedView(props: any) {
                                 color: 'white',
                             }} 
                         > 
+                            <Helmet>
+                                <meta name="description" content={governanceShareDescription} />
+                                <title>{governanceShareTitle}</title>
+
+                                <meta property="og:url" content={governanceShareUrl}/>
+                                <meta property="og:type" content="website"/>
+                                <meta property="og:title" content={governanceShareTitle}/>
+                                <meta property="og:description" content={governanceShareDescription}/>
+                                <meta property="og:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplashv2.png"/>
+
+                                <meta name="twitter:card" content="summary_large_image"/>
+                                <meta name="twitter:title" content={governanceShareTitle}/>
+                                <meta name="twitter:site" content="@grapeprotocol"/>
+                                <meta name="twitter:description" content={governanceShareDescription}/>
+                                <meta name="twitter:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplashv2.png"/>
+                                <meta name="twitter:image:alt" content={governanceShareTitle}/>
+                            </Helmet>
+
                             {realm &&
                                 <>
                                     <Grid container
