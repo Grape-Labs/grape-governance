@@ -18,6 +18,7 @@ import { Link } from "react-router-dom";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import HowToVoteIcon from "@mui/icons-material/HowToVote";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import { GRAPE_LOGO } from "../utils/grapeTools/constants";
 import { toRealmsV2Image } from "../utils/grapeTools/utils";
 
@@ -47,6 +48,11 @@ export default function GovernanceDirectoryCardView(props: any) {
 
   const votingCount = Number(item?.totalProposalsVoting || 0);
   const votingList: any[] = Array.isArray(item?.votingProposals) ? item.votingProposals : [];
+  const lastProposalTimestamp = Number(`0x${item?.lastProposalDate || "0"}`);
+  const lastProposalLabel =
+    lastProposalTimestamp > 0
+      ? new Date(lastProposalTimestamp * 1000).toLocaleDateString()
+      : "No recent proposal";
 
   const tint = React.useMemo(
     () => hashColor(String(item?.governanceAddress || name)),
@@ -233,6 +239,11 @@ export default function GovernanceDirectoryCardView(props: any) {
             </Grid>
           )}
         </Grid>
+
+        <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 1.2, opacity: 0.75 }}>
+          <AccessTimeIcon sx={{ fontSize: 14 }} />
+          <Typography variant="caption">{lastProposalLabel}</Typography>
+        </Stack>
 
         {/* Voting proposals preview */}
         {votingList.length > 0 && (

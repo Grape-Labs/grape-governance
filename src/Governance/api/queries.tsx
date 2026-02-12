@@ -2038,31 +2038,28 @@ export async function buildDirectoryFromGraphQL(options?: {
 
   const votingProposalsByGovernance: Record<string, any[]> = {};
   const latestByGov: Record<string, number> = {};
+  const totalProposalsByGovernance: Record<string, number> = {};
 
   for (const p of props) {
     const acct = p?.account;
     if (!acct) continue;
 
-    const governancePk = acct?.governance?.toBase58?.() || String(acct?.governance || "");
+    const governancePk = govKey(acct?.governance);
     if (!governancePk) continue;
 
-    const latestByGov: Record<string, number> = {};
-
-for (const p of props) {
-  const acct = p?.account;
-  if (!acct) continue;
-
-  const g = govKey(acct?.governance);
-  if (!g) continue;
-
-  const draftAt = acct?.draftAt ? Number(acct.draftAt) : 0;
-  if (!latestByGov[g] || draftAt > latestByGov[g]) latestByGov[g] = draftAt;
-}
+    const draftAt = Math.max(0, toNum(acct?.draftAt));
+    totalProposalsByGovernance[governancePk] =
+      (totalProposalsByGovernance[governancePk] || 0) + 1;
+    if (!latestByGov[governancePk] || draftAt > latestByGov[governancePk]) {
+      latestByGov[governancePk] = draftAt;
+    }
 
     if (!isVotingState(acct?.state)) continue;
 
-    const votingAt = acct?.votingAt != null ? toNum(acct.votingAt) : null;
-    const maxVotingTime = acct?.maxVotingTime != null ? toNum(acct.maxVotingTime) : null;
+    const parsedVotingAt = acct?.votingAt != null ? toNum(acct.votingAt) : -1;
+    const parsedMaxVotingTime = acct?.maxVotingTime != null ? toNum(acct.maxVotingTime) : -1;
+    const votingAt = parsedVotingAt > 0 ? parsedVotingAt : null;
+    const maxVotingTime = parsedMaxVotingTime > 0 ? parsedMaxVotingTime : null;
 
     const votingEndsAt =
       votingAt != null && maxVotingTime != null ? votingAt + maxVotingTime : null;
@@ -2079,12 +2076,22 @@ for (const p of props) {
 
   for (const gov of Object.keys(votingProposalsByGovernance)) {
     votingProposalsByGovernance[gov].sort(
-      (a, b) => toNum(b.votingAt) - toNum(a.votingAt)
+      (a, b) => {
+        const voteSort = toNum(b.votingAt) - toNum(a.votingAt);
+        if (voteSort !== 0) return voteSort;
+        return toNum(b.draftAt) - toNum(a.draftAt);
+      }
     );
   }
 
-  const directory = Object.keys(latestByGov).map((governanceAddress) => ({
+  const governanceKeys = new Set([
+    ...Object.keys(totalProposalsByGovernance),
+    ...Object.keys(votingProposalsByGovernance),
+  ]);
+
+  const directory = Array.from(governanceKeys).map((governanceAddress) => ({
     governanceAddress,
+    totalProposals: totalProposalsByGovernance[governanceAddress] || 0,
     totalProposalsVoting: (votingProposalsByGovernance[governanceAddress] || []).length,
     lastProposalDate: toHexLike(latestByGov[governanceAddress] || 0),
   }));
