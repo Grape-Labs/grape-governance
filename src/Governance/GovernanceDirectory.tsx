@@ -132,7 +132,7 @@ function ScrollTop(props: Props) {
 export function GovernanceDirectoryView(props: Props) {
   const [metadataMap, setMetadataMap] = React.useState<{ [key: string]: any }>({});
   const [governanceLookup, setGovernanceLookup] = React.useState<GovernanceLookupItem[]>([]);
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
