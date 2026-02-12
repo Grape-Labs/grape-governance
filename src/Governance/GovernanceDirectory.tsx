@@ -34,8 +34,11 @@ import ViewListIcon from '@mui/icons-material/ViewList';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 
 import { PublicKey } from '@solana/web3.js';
+import GRAPE_LOGO_SQUARE from '../public/grape_logo_square.png';
+import OG_LOGO_SQUARE from '../public/og_logo_square.png';
 
 import GovernanceRealtimeInfo from './GovernanceRealtimeInfo';
 import GovernanceDirectoryCardView from './GovernanceDirectoryCardView';
@@ -178,7 +181,25 @@ export function GovernanceDirectoryView(props: Props) {
         return Number.isFinite(parsed) ? parsed : 0;
       };
 
-      const getRealmGovernanceKeys = (cachedItem: any): string[] => {
+      const getRealmGovernanceContext = (
+        cachedItem: any
+      ): { expectedRealmKey: string | null; keys: string[] } => {
+        const realmCandidates = [
+          governanceKey(cachedItem?.realm),
+          governanceKey(cachedItem?.governance?.account?.realm),
+          governanceKey(cachedItem?.governance?.realm),
+          governanceKey(cachedItem?.governanceAddress),
+        ].filter((candidate) => isValidSolanaPublicKey(candidate));
+
+        const expectedRealmKey = realmCandidates.length > 0 ? realmCandidates[0] : null;
+
+        const belongsToExpectedRealm = (entry: any): boolean => {
+          if (!expectedRealmKey) return true;
+          const entryRealm = governanceKey(entry?.account?.realm || entry?.realm);
+          if (!entryRealm) return true;
+          return entryRealm === expectedRealmKey;
+        };
+
         const keys = new Set<string>();
 
         const realmKey = governanceKey(cachedItem?.governanceAddress);
@@ -192,19 +213,34 @@ export function GovernanceDirectoryView(props: Props) {
         for (const keyList of governanceKeyLists) {
           if (!Array.isArray(keyList)) continue;
           for (const entry of keyList) {
+            if (!belongsToExpectedRealm(entry)) continue;
             const entryKey = governanceKey(entry?.pubkey);
             if (entryKey) keys.add(entryKey);
           }
         }
 
-        const primaryGovernanceKey = governanceKey(cachedItem?.governance?.pubkey);
+        const primaryGovernanceEntry = cachedItem?.governance;
+        const primaryGovernanceKey = governanceKey(primaryGovernanceEntry?.pubkey);
+        const primaryGovernanceRealm = governanceKey(
+          primaryGovernanceEntry?.account?.realm || primaryGovernanceEntry?.realm
+        );
         if (primaryGovernanceKey) keys.add(primaryGovernanceKey);
 
-        return Array.from(keys);
+        if (
+          expectedRealmKey &&
+          primaryGovernanceKey &&
+          primaryGovernanceRealm &&
+          primaryGovernanceRealm !== expectedRealmKey
+        ) {
+          keys.delete(primaryGovernanceKey);
+        }
+
+        return { expectedRealmKey, keys: Array.from(keys) };
       };
 
       const mergedItems: GovernanceLookupItem[] = [];
       const consumedGovernanceKeys = new Set<string>();
+      const governanceToRealm = new Map<string, string>();
 
       for (const cachedItem of cachedLookup || []) {
         const governanceAddress = governanceKey(cachedItem?.governanceAddress);
@@ -220,7 +256,12 @@ export function GovernanceDirectoryView(props: Props) {
               .toLowerCase()
           );
 
-        const realmGovernanceKeys = getRealmGovernanceKeys(cachedItem);
+        const { expectedRealmKey, keys: realmGovernanceKeys } = getRealmGovernanceContext(cachedItem);
+        if (expectedRealmKey) {
+          for (const realmGovernanceKey of realmGovernanceKeys) {
+            governanceToRealm.set(realmGovernanceKey, expectedRealmKey);
+          }
+        }
 
         let totalProposalsFromGraphQL = 0;
         let latestProposalTimestampFromGraphQL = 0;
@@ -298,6 +339,7 @@ export function GovernanceDirectoryView(props: Props) {
 
       for (const [governanceAddress, gqlItem] of gqlByGovernance.entries()) {
         if (consumedGovernanceKeys.has(governanceAddress)) continue;
+        if (governanceToRealm.has(governanceAddress)) continue;
 
         const votingProposals = Array.isArray(votingProposalsByGovernance?.[governanceAddress])
           ? votingProposalsByGovernance[governanceAddress]
@@ -593,6 +635,108 @@ export function GovernanceDirectoryView(props: Props) {
         backdropFilter: 'blur(10px)',
       }}
     >
+      <Grid container spacing={1.5} sx={{ mb: 2.25 }}>
+        <Grid item xs={12} md={6}>
+          <Box
+            component="a"
+            href="https://vine.governance.so"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              p: 1.5,
+              borderRadius: '16px',
+              textDecoration: 'none',
+              color: 'inherit',
+              background:
+                'linear-gradient(120deg, rgba(18, 120, 255, 0.26), rgba(0, 178, 128, 0.18))',
+              border: '1px solid rgba(255,255,255,0.14)',
+              transition: 'transform 120ms ease, border-color 120ms ease, background 120ms ease',
+              '&:hover': {
+                transform: 'translateY(-1px)',
+                borderColor: 'rgba(255,255,255,0.24)',
+                background:
+                  'linear-gradient(120deg, rgba(18, 120, 255, 0.33), rgba(0, 178, 128, 0.24))',
+              },
+            }}
+          >
+            <Box
+              component="img"
+              src={GRAPE_LOGO_SQUARE}
+              alt="OG Reputation Space"
+              sx={{
+                width: 50,
+                height: 50,
+                borderRadius: '12px',
+                objectFit: 'cover',
+                border: '1px solid rgba(255,255,255,0.16)',
+              }}
+            />
+            <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, letterSpacing: 0.2 }}>
+                OG Reputation Spaces
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.84 }}>
+                On-chain reputation by Grape
+              </Typography>
+            </Box>
+            <OpenInNewIcon fontSize="small" sx={{ opacity: 0.85 }} />
+          </Box>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Box
+            component="a"
+            href="https://verification.governance.so"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              p: 1.5,
+              borderRadius: '16px',
+              textDecoration: 'none',
+              color: 'inherit',
+              background:
+                'linear-gradient(120deg, rgba(255, 170, 0, 0.24), rgba(255, 97, 61, 0.2))',
+              border: '1px solid rgba(255,255,255,0.14)',
+              transition: 'transform 120ms ease, border-color 120ms ease, background 120ms ease',
+              '&:hover': {
+                transform: 'translateY(-1px)',
+                borderColor: 'rgba(255,255,255,0.24)',
+                background:
+                  'linear-gradient(120deg, rgba(255, 170, 0, 0.3), rgba(255, 97, 61, 0.27))',
+              },
+            }}
+          >
+            <Box
+              component="img"
+              src={OG_LOGO_SQUARE}
+              alt="Grape Verification"
+              sx={{
+                width: 50,
+                height: 50,
+                borderRadius: '12px',
+                objectFit: 'cover',
+                border: '1px solid rgba(255,255,255,0.16)',
+              }}
+            />
+            <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, letterSpacing: 0.2 }}>
+                Grape Verification
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.84 }}>
+                On-chain verification by Grape
+              </Typography>
+            </Box>
+            <OpenInNewIcon fontSize="small" sx={{ opacity: 0.85 }} />
+          </Box>
+        </Grid>
+      </Grid>
+
       <Grid container spacing={2} alignItems="center" id="back-to-top-anchor">
         <Grid item xs={12} md={7} sx={{ textAlign: 'left' }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }} useFlexGap flexWrap="wrap">
