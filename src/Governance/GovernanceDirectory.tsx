@@ -262,8 +262,7 @@ export function GovernanceDirectoryView(props: Props) {
 
   const loadGovernanceDirectory = React.useCallback(
     async (forceRefresh = false) => {
-      const shouldRefresh = forceRefresh || governanceLookup.length > 0;
-      if (shouldRefresh) {
+      if (forceRefresh) {
         setRefreshing(true);
       } else {
         setLoading(true);
@@ -329,7 +328,7 @@ export function GovernanceDirectoryView(props: Props) {
         setRefreshing(false);
       }
     },
-    [buildMergedDirectory, governanceLookup.length]
+    [buildMergedDirectory]
   );
 
   React.useEffect(() => {
