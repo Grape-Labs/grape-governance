@@ -2011,8 +2011,9 @@ function toNum(x: any): number {
 }
 
 function isVotingState(state: any) {
-  // SPL Governance: Voting is typically 2
-  // keep this strict, but normalize first
+  // SPL Governance voting is typically state=2, but some indexers may return string enums.
+  const normalized = String(state ?? "").trim().toUpperCase();
+  if (normalized === "VOTING") return true;
   return toNum(state) === 2;
 }
 
@@ -2024,17 +2025,18 @@ export async function buildDirectoryFromGraphQL(options?: {
   includeMembers?: boolean;
   proposalScanLimit?: number;
 }) {
-  const proposalScanLimit = options?.proposalScanLimit ?? 5000;
+  const proposalScanLimit = options?.proposalScanLimit ?? 0;
 
   const allProps = await getAllProposalsFromAllPrograms();
   const all = Array.isArray(allProps) ? allProps : [];
 
-  // ✅ GLOBAL SORT FIRST (so slice doesn’t throw away active voting proposals)
-  const sortedAll = all
-    .slice()
-    .sort((a: any, b: any) => toNum(b?.account?.draftAt) - toNum(a?.account?.draftAt));
-
-  const props = sortedAll.slice(0, proposalScanLimit);
+  const props =
+    proposalScanLimit && proposalScanLimit > 0
+      ? all
+          .slice()
+          .sort((a: any, b: any) => toNum(b?.account?.draftAt) - toNum(a?.account?.draftAt))
+          .slice(0, proposalScanLimit)
+      : all;
 
   const votingProposalsByGovernance: Record<string, any[]> = {};
   const latestByGov: Record<string, number> = {};
