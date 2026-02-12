@@ -158,12 +158,6 @@ export function GovernanceDirectoryView(props: Props) {
       cachedLookup: any[],
       gsplEntries: any[]
     ) => {
-      const cacheByGovernance = new Map<string, any>();
-      for (const item of cachedLookup || []) {
-        const key = governanceKey(item?.governanceAddress);
-        if (key) cacheByGovernance.set(key, item);
-      }
-
       const gsplByName = new Map<string, any>();
       for (const gsplEntry of gsplEntries || []) {
         const name = String(gsplEntry?.name || '')
@@ -172,17 +166,52 @@ export function GovernanceDirectoryView(props: Props) {
         if (name) gsplByName.set(name, gsplEntry);
       }
 
-      const mergedItems: GovernanceLookupItem[] = [];
-      const seen = new Set<string>();
-
+      const gqlByGovernance = new Map<string, any>();
       for (const gqlItem of gqlDirectory || []) {
-        const governanceAddress = governanceKey(gqlItem?.governanceAddress);
+        const key = governanceKey(gqlItem?.governanceAddress);
+        if (!key) continue;
+        gqlByGovernance.set(key, gqlItem);
+      }
+
+      const getHexTimestamp = (value: any): number => {
+        const parsed = Number(`0x${String(value || '0').replace(/^0x/i, '')}`);
+        return Number.isFinite(parsed) ? parsed : 0;
+      };
+
+      const getRealmGovernanceKeys = (cachedItem: any): string[] => {
+        const keys = new Set<string>();
+
+        const realmKey = governanceKey(cachedItem?.governanceAddress);
+        if (realmKey) keys.add(realmKey);
+
+        const governanceKeyLists = [
+          cachedItem?.governances,
+          cachedItem?.governanceRules,
+        ];
+
+        for (const keyList of governanceKeyLists) {
+          if (!Array.isArray(keyList)) continue;
+          for (const entry of keyList) {
+            const entryKey = governanceKey(entry?.pubkey);
+            if (entryKey) keys.add(entryKey);
+          }
+        }
+
+        const primaryGovernanceKey = governanceKey(cachedItem?.governance?.pubkey);
+        if (primaryGovernanceKey) keys.add(primaryGovernanceKey);
+
+        return Array.from(keys);
+      };
+
+      const mergedItems: GovernanceLookupItem[] = [];
+      const consumedGovernanceKeys = new Set<string>();
+
+      for (const cachedItem of cachedLookup || []) {
+        const governanceAddress = governanceKey(cachedItem?.governanceAddress);
         if (!governanceAddress) continue;
 
-        const cachedItem = cacheByGovernance.get(governanceAddress) || {};
         const governanceName =
           cachedItem?.governanceName || `Governance ${governanceAddress.slice(0, 6)}...`;
-
         const gsplMatch =
           cachedItem?.gspl ||
           gsplByName.get(
@@ -191,68 +220,105 @@ export function GovernanceDirectoryView(props: Props) {
               .toLowerCase()
           );
 
-        const votingProposals = Array.isArray(votingProposalsByGovernance?.[governanceAddress])
-          ? votingProposalsByGovernance[governanceAddress]
-          : [];
+        const realmGovernanceKeys = getRealmGovernanceKeys(cachedItem);
+
+        let totalProposalsFromGraphQL = 0;
+        let latestProposalTimestampFromGraphQL = 0;
+        let totalVotingFromGraphQL = 0;
+        const votingProposalAccumulator: any[] = [];
+
+        for (const realmGovernanceKey of realmGovernanceKeys) {
+          const gqlItem = gqlByGovernance.get(realmGovernanceKey);
+          if (gqlItem) {
+            consumedGovernanceKeys.add(realmGovernanceKey);
+            totalProposalsFromGraphQL += toNumeric(gqlItem?.totalProposals, 0);
+            totalVotingFromGraphQL += toNumeric(gqlItem?.totalProposalsVoting, 0);
+            latestProposalTimestampFromGraphQL = Math.max(
+              latestProposalTimestampFromGraphQL,
+              getHexTimestamp(gqlItem?.lastProposalDate)
+            );
+          }
+
+          const votingProposals = Array.isArray(votingProposalsByGovernance?.[realmGovernanceKey])
+            ? votingProposalsByGovernance[realmGovernanceKey]
+            : [];
+          if (votingProposals.length > 0) {
+            consumedGovernanceKeys.add(realmGovernanceKey);
+            votingProposalAccumulator.push(...votingProposals);
+          }
+        }
+
+        const dedupedVotingProposals: any[] = [];
+        const seenProposalPubkeys = new Set<string>();
+        for (const proposal of votingProposalAccumulator) {
+          const proposalKey = String(proposal?.pubkey || '');
+          if (!proposalKey) continue;
+          if (seenProposalPubkeys.has(proposalKey)) continue;
+          seenProposalPubkeys.add(proposalKey);
+          dedupedVotingProposals.push(proposal);
+        }
+
+        dedupedVotingProposals.sort(
+          (a, b) => toNumeric(b?.votingAt, 0) - toNumeric(a?.votingAt, 0)
+        );
+
+        const cachedLastProposalTimestamp = getHexTimestamp(cachedItem?.lastProposalDate);
+        const mergedLastProposalTimestamp = Math.max(
+          latestProposalTimestampFromGraphQL,
+          cachedLastProposalTimestamp
+        );
 
         mergedItems.push({
           ...cachedItem,
           governanceAddress,
           governanceName,
           gspl: gsplMatch,
-          votingProposals,
+          votingProposals: dedupedVotingProposals,
           totalMembers: toNumeric(cachedItem?.totalMembers, 0),
-          totalProposals: toNumeric(gqlItem?.totalProposals, toNumeric(cachedItem?.totalProposals, 0)),
-          totalProposalsVoting: toNumeric(
-            gqlItem?.totalProposalsVoting,
-            votingProposals.length || toNumeric(cachedItem?.totalProposalsVoting, 0)
-          ),
+          totalProposals:
+            totalProposalsFromGraphQL > 0
+              ? totalProposalsFromGraphQL
+              : toNumeric(cachedItem?.totalProposals, 0),
+          totalProposalsVoting:
+            dedupedVotingProposals.length > 0
+              ? dedupedVotingProposals.length
+              : totalVotingFromGraphQL > 0
+              ? totalVotingFromGraphQL
+              : toNumeric(cachedItem?.totalProposalsVoting, 0),
           totalVaultValue: toNumeric(cachedItem?.totalVaultValue, 0),
           totalVaultStableCoinValue: toNumeric(cachedItem?.totalVaultStableCoinValue, 0),
           totalVaultSol: toNumeric(cachedItem?.totalVaultSol, 0),
           totalVaultSolValue: toNumeric(cachedItem?.totalVaultSolValue, 0),
           lastProposalDate:
-            gqlItem?.lastProposalDate && gqlItem.lastProposalDate !== '0'
-              ? gqlItem.lastProposalDate
-              : cachedItem?.lastProposalDate || '0',
+            mergedLastProposalTimestamp > 0
+              ? mergedLastProposalTimestamp.toString(16)
+              : '0',
         });
-
-        seen.add(governanceAddress);
       }
 
-      for (const cachedItem of cachedLookup || []) {
-        const governanceAddress = governanceKey(cachedItem?.governanceAddress);
-        if (!governanceAddress || seen.has(governanceAddress)) continue;
-
-        const governanceName =
-          cachedItem?.governanceName || `Governance ${governanceAddress.slice(0, 6)}...`;
-        const gsplMatch =
-          cachedItem?.gspl ||
-          gsplByName.get(
-            String(governanceName)
-              .trim()
-              .toLowerCase()
-          );
+      for (const [governanceAddress, gqlItem] of gqlByGovernance.entries()) {
+        if (consumedGovernanceKeys.has(governanceAddress)) continue;
 
         const votingProposals = Array.isArray(votingProposalsByGovernance?.[governanceAddress])
           ? votingProposalsByGovernance[governanceAddress]
           : [];
 
         mergedItems.push({
-          ...cachedItem,
           governanceAddress,
-          governanceName,
-          gspl: gsplMatch,
+          governanceName: `Governance ${governanceAddress.slice(0, 6)}...`,
           votingProposals,
-          totalMembers: toNumeric(cachedItem?.totalMembers, 0),
-          totalProposals: toNumeric(cachedItem?.totalProposals, 0),
-          totalProposalsVoting: votingProposals.length || toNumeric(cachedItem?.totalProposalsVoting, 0),
-          totalVaultValue: toNumeric(cachedItem?.totalVaultValue, 0),
-          totalVaultStableCoinValue: toNumeric(cachedItem?.totalVaultStableCoinValue, 0),
-          totalVaultSol: toNumeric(cachedItem?.totalVaultSol, 0),
-          totalVaultSolValue: toNumeric(cachedItem?.totalVaultSolValue, 0),
-          lastProposalDate: cachedItem?.lastProposalDate || '0',
-        });
+          totalMembers: 0,
+          totalProposals: toNumeric(gqlItem?.totalProposals, 0),
+          totalProposalsVoting:
+            votingProposals.length > 0
+              ? votingProposals.length
+              : toNumeric(gqlItem?.totalProposalsVoting, 0),
+          totalVaultValue: 0,
+          totalVaultStableCoinValue: 0,
+          totalVaultSol: 0,
+          totalVaultSolValue: 0,
+          lastProposalDate: gqlItem?.lastProposalDate || '0',
+        } as GovernanceLookupItem);
       }
 
       return mergedItems;
@@ -273,7 +339,7 @@ export function GovernanceDirectoryView(props: Props) {
       try {
         const [gsplEntriesRaw, graphQLResult, cachedLookupRaw, masterMembersRaw] = await Promise.all([
           initGrapeGovernanceDirectory().catch(() => []),
-          buildDirectoryFromGraphQL({ includeMembers: false, proposalScanLimit: 5000 }).catch(
+          buildDirectoryFromGraphQL({ includeMembers: false, proposalScanLimit: 0 }).catch(
             () => ({ directory: [], votingProposalsByGovernance: {} })
           ),
           fetchGovernanceLookupFile(GGAPI_STORAGE_POOL).catch(() => null),
