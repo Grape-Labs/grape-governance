@@ -289,7 +289,12 @@ export default function GovernanceDirectoryCardView(props: any) {
             borderRadius: "14px",
             background: "rgba(255,255,255,0.10)",
             border: "1px solid rgba(255,255,255,0.10)",
-            "&:hover": { background: "rgba(255,255,255,0.14)" },
+            color: "rgba(255,255,255,0.98)",
+            fontWeight: 700,
+            "&:hover": {
+              background: "rgba(255,255,255,0.18)",
+              color: "#fff",
+            },
           }}
         >
           Open
