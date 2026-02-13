@@ -1300,19 +1300,19 @@ export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:stri
 }
 
 export const getAllProposalsFromAllPrograms = async () => {
-    // default instance
-    console.log("Fetching Proposals from Default Governance ProgramID");
-    const allProposals = await getAllProposalsIndexed (null, null, null);
-    
-    // prepare all custom programId instances and pass as a single fetch
     const uniqueOwners = [];
     govOwners.forEach(govOwner => {
         const { owner, name, dao } = govOwner;
         const uniqueOwner = { owner, name, dao };
         if (!uniqueOwners.some(u => u.owner === owner)) {
-        uniqueOwners.push(uniqueOwner);
+            uniqueOwners.push(uniqueOwner);
         }
     });
+
+    // default instance
+    console.log("Fetching Proposals from Default Governance ProgramID");
+    const allProposals = await getAllProposalsIndexed (null, null, null);
+
     console.log("allProposals: "+JSON.stringify(allProposals))
 
     // passing uniqueOwners array will do everything in a single call
@@ -1334,6 +1334,43 @@ export const getAllProposalsFromAllPrograms = async () => {
     //    resProps = allProposals.slice(0, 3000);
 
     return resProps;
+}
+
+export const getAllGovernancesFromAllPrograms = async () => {
+    const uniqueOwners = [];
+    govOwners.forEach(govOwner => {
+        const { owner, name, dao } = govOwner;
+        const uniqueOwner = { owner, name, dao };
+        if (!uniqueOwners.some(u => u.owner === owner)) {
+            uniqueOwners.push(uniqueOwner);
+        }
+    });
+
+    console.log("Fetching Governances from Default Governance ProgramID");
+    const defaultGovernances = await getAllGovernancesIndexed(null, null).catch(() => []);
+
+    console.log("Fetching Governances from Custom Governance Deployments");
+    const customGovernanceBatches = await Promise.all(
+        uniqueOwners.map((ownerItem) =>
+            getAllGovernancesIndexed(null, ownerItem.name).catch(() => [])
+        )
+    );
+
+    const allGovernances = [
+        ...(Array.isArray(defaultGovernances) ? defaultGovernances : []),
+        ...customGovernanceBatches.flat(),
+    ];
+
+    const deduped = [];
+    const seenGovernanceKeys = new Set<string>();
+    for (const governance of allGovernances) {
+        const governancePk = governance?.pubkey?.toBase58?.();
+        if (!governancePk || seenGovernanceKeys.has(governancePk)) continue;
+        seenGovernanceKeys.add(governancePk);
+        deduped.push(governance);
+    }
+
+    return deduped;
 }
 
 export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any, uniqueOwners?:string[]) => {
@@ -2029,6 +2066,15 @@ export async function buildDirectoryFromGraphQL(options?: {
 
   const allProps = await getAllProposalsFromAllPrograms();
   const all = Array.isArray(allProps) ? allProps : [];
+  const allGovernances = await getAllGovernancesFromAllPrograms();
+  const governanceToRealm = new Map<string, string>();
+
+  for (const governance of allGovernances || []) {
+    const governancePk = govKey(governance?.pubkey);
+    const realmPk = govKey(governance?.account?.realm);
+    if (!governancePk || !realmPk) continue;
+    governanceToRealm.set(governancePk, realmPk);
+  }
 
   const props =
     proposalScanLimit && proposalScanLimit > 0
@@ -2039,8 +2085,9 @@ export async function buildDirectoryFromGraphQL(options?: {
       : all;
 
   const votingProposalsByGovernance: Record<string, any[]> = {};
-  const latestByGov: Record<string, number> = {};
-  const totalProposalsByGovernance: Record<string, number> = {};
+  const latestByRealm: Record<string, number> = {};
+  const totalProposalsByRealm: Record<string, number> = {};
+  const votingProposalPubkeysByRealm = new Map<string, Set<string>>();
 
   for (const p of props) {
     const acct = p?.account;
@@ -2048,16 +2095,18 @@ export async function buildDirectoryFromGraphQL(options?: {
 
     const governancePk = govKey(acct?.governance);
     if (!governancePk) continue;
+    const realmPk = governanceToRealm.get(governancePk);
+    if (!realmPk) continue;
 
     const draftAt = Math.max(0, toNum(acct?.draftAt));
-    totalProposalsByGovernance[governancePk] =
-      (totalProposalsByGovernance[governancePk] || 0) + 1;
-    if (!latestByGov[governancePk] || draftAt > latestByGov[governancePk]) {
-      latestByGov[governancePk] = draftAt;
+    totalProposalsByRealm[realmPk] = (totalProposalsByRealm[realmPk] || 0) + 1;
+    if (!latestByRealm[realmPk] || draftAt > latestByRealm[realmPk]) {
+      latestByRealm[realmPk] = draftAt;
     }
 
     if (!isVotingState(acct?.state)) continue;
 
+    const proposalPk = p?.pubkey?.toBase58?.() || String(p?.pubkey || '');
     const parsedVotingAt = acct?.votingAt != null ? toNum(acct.votingAt) : -1;
     const parsedMaxVotingTime = acct?.maxVotingTime != null ? toNum(acct.maxVotingTime) : -1;
     const votingAt = parsedVotingAt > 0 ? parsedVotingAt : null;
@@ -2067,13 +2116,20 @@ export async function buildDirectoryFromGraphQL(options?: {
       votingAt != null && maxVotingTime != null ? votingAt + maxVotingTime : null;
 
     (votingProposalsByGovernance[governancePk] ||= []).push({
-      pubkey: p?.pubkey?.toBase58?.() || String(p?.pubkey),
+      pubkey: proposalPk,
       name: acct?.name || "",
       state: toNum(acct?.state),
       votingAt,
       votingEndsAt,
       draftAt,
     });
+
+    if (proposalPk) {
+      if (!votingProposalPubkeysByRealm.has(realmPk)) {
+        votingProposalPubkeysByRealm.set(realmPk, new Set<string>());
+      }
+      votingProposalPubkeysByRealm.get(realmPk)!.add(proposalPk);
+    }
   }
 
   for (const gov of Object.keys(votingProposalsByGovernance)) {
@@ -2086,16 +2142,16 @@ export async function buildDirectoryFromGraphQL(options?: {
     );
   }
 
-  const governanceKeys = new Set([
-    ...Object.keys(totalProposalsByGovernance),
-    ...Object.keys(votingProposalsByGovernance),
+  const realmKeys = new Set([
+    ...Object.keys(totalProposalsByRealm),
+    ...Array.from(votingProposalPubkeysByRealm.keys()),
   ]);
 
-  const directory = Array.from(governanceKeys).map((governanceAddress) => ({
+  const directory = Array.from(realmKeys).map((governanceAddress) => ({
     governanceAddress,
-    totalProposals: totalProposalsByGovernance[governanceAddress] || 0,
-    totalProposalsVoting: (votingProposalsByGovernance[governanceAddress] || []).length,
-    lastProposalDate: toHexLike(latestByGov[governanceAddress] || 0),
+    totalProposals: totalProposalsByRealm[governanceAddress] || 0,
+    totalProposalsVoting: votingProposalPubkeysByRealm.get(governanceAddress)?.size || 0,
+    lastProposalDate: toHexLike(latestByRealm[governanceAddress] || 0),
   }));
 
   return { directory, votingProposalsByGovernance };
