@@ -316,16 +316,8 @@ export function GovernanceDirectoryView(props: Props) {
           gspl: gsplMatch,
           votingProposals: dedupedVotingProposals,
           totalMembers: toNumeric(cachedItem?.totalMembers, 0),
-          totalProposals:
-            totalProposalsFromGraphQL > 0
-              ? totalProposalsFromGraphQL
-              : toNumeric(cachedItem?.totalProposals, 0),
-          totalProposalsVoting:
-            dedupedVotingProposals.length > 0
-              ? dedupedVotingProposals.length
-              : totalVotingFromGraphQL > 0
-              ? totalVotingFromGraphQL
-              : toNumeric(cachedItem?.totalProposalsVoting, 0),
+          totalProposals: totalProposalsFromGraphQL,
+          totalProposalsVoting: dedupedVotingProposals.length || totalVotingFromGraphQL,
           totalVaultValue: toNumeric(cachedItem?.totalVaultValue, 0),
           totalVaultStableCoinValue: toNumeric(cachedItem?.totalVaultStableCoinValue, 0),
           totalVaultSol: toNumeric(cachedItem?.totalVaultSol, 0),

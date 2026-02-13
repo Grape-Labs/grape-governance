@@ -1300,19 +1300,19 @@ export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:stri
 }
 
 export const getAllProposalsFromAllPrograms = async () => {
-    // default instance
-    console.log("Fetching Proposals from Default Governance ProgramID");
-    const allProposals = await getAllProposalsIndexed (null, null, null);
-    
-    // prepare all custom programId instances and pass as a single fetch
     const uniqueOwners = [];
     govOwners.forEach(govOwner => {
         const { owner, name, dao } = govOwner;
         const uniqueOwner = { owner, name, dao };
         if (!uniqueOwners.some(u => u.owner === owner)) {
-        uniqueOwners.push(uniqueOwner);
+            uniqueOwners.push(uniqueOwner);
         }
     });
+
+    // default instance
+    console.log("Fetching Proposals from Default Governance ProgramID");
+    const allProposals = await getAllProposalsIndexed (null, null, null);
+
     console.log("allProposals: "+JSON.stringify(allProposals))
 
     // passing uniqueOwners array will do everything in a single call
@@ -1334,6 +1334,43 @@ export const getAllProposalsFromAllPrograms = async () => {
     //    resProps = allProposals.slice(0, 3000);
 
     return resProps;
+}
+
+export const getAllGovernancesFromAllPrograms = async () => {
+    const uniqueOwners = [];
+    govOwners.forEach(govOwner => {
+        const { owner, name, dao } = govOwner;
+        const uniqueOwner = { owner, name, dao };
+        if (!uniqueOwners.some(u => u.owner === owner)) {
+            uniqueOwners.push(uniqueOwner);
+        }
+    });
+
+    console.log("Fetching Governances from Default Governance ProgramID");
+    const defaultGovernances = await getAllGovernancesIndexed(null, null).catch(() => []);
+
+    console.log("Fetching Governances from Custom Governance Deployments");
+    const customGovernanceBatches = await Promise.all(
+        uniqueOwners.map((ownerItem) =>
+            getAllGovernancesIndexed(null, ownerItem.name).catch(() => [])
+        )
+    );
+
+    const allGovernances = [
+        ...(Array.isArray(defaultGovernances) ? defaultGovernances : []),
+        ...customGovernanceBatches.flat(),
+    ];
+
+    const deduped = [];
+    const seenGovernanceKeys = new Set<string>();
+    for (const governance of allGovernances) {
+        const governancePk = governance?.pubkey?.toBase58?.();
+        if (!governancePk || seenGovernanceKeys.has(governancePk)) continue;
+        seenGovernanceKeys.add(governancePk);
+        deduped.push(governance);
+    }
+
+    return deduped;
 }
 
 export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any, uniqueOwners?:string[]) => {
