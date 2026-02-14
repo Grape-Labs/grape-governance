@@ -141,7 +141,7 @@ export function GovernanceDirectoryView(props: Props) {
 
   const [searchFilter, setSearchFilter] = React.useState('');
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
-  const [filterVerified, setFilterVerified] = React.useState(false);
+  const [filterVerified, setFilterVerified] = React.useState(true);
   const [filterActiveVoting, setFilterActiveVoting] = React.useState(false);
   const [filterHasTreasury, setFilterHasTreasury] = React.useState(false);
 
