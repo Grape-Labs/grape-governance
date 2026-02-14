@@ -1901,19 +1901,63 @@ function GET_QUERY_REALMCONFIG(realmConfigPk?: string, realmOwner?: string) {
     return gql`${queryStr}`;
 }
 
+function resolvePublicKeyString(value?: any): string | null {
+    if (!value) return null;
+    try {
+        if (typeof value === 'string') {
+            const normalized = value.trim();
+            if (!normalized || normalized === 'null' || normalized === 'undefined') return null;
+            return new PublicKey(normalized).toBase58();
+        }
+        if (value?.toBase58) return value.toBase58();
+        return null;
+    } catch {
+        return null;
+    }
+}
+
 export const getRealmConfigIndexed = async (realmConfigPk?: any, realmOwner?: any, realmPk?: any) => {
-    const programId = realmOwner || findGovOwnerByDao(realmPk)?.owner || 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    const programName = findGovOwnerByDao(realmPk)?.name || programId;
+    const resolvedRealmPk = resolvePublicKeyString(realmConfigPk) || resolvePublicKeyString(realmPk);
+    if (!resolvedRealmPk) return null;
+
+    const resolvedRealmOwner = resolvePublicKeyString(realmOwner);
+    const programId = resolvedRealmOwner || findGovOwnerByDao(resolvedRealmPk)?.owner || 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programName = findGovOwnerByDao(resolvedRealmPk)?.name || programId;
+    const explicitRealmConfigAddress = resolvePublicKeyString(realmConfigPk);
+
+    const fetchViaRpcFallback = async () => {
+        if (explicitRealmConfigAddress){
+            const realmConfig = await getRealmConfig(
+                RPC_CONNECTION,
+                new PublicKey(explicitRealmConfigAddress)
+            )
+            return realmConfig;
+        }
+
+        if (programId && resolvedRealmPk){
+            const realmConfig = await tryGetRealmConfig(
+                RPC_CONNECTION,
+                new PublicKey(programId),
+                new PublicKey(resolvedRealmPk)
+            );
+            return realmConfig;
+        }
+
+        return null;
+    };
 
     try {
         const { data } = await client.query({
-            query: GET_QUERY_REALMCONFIG(realmConfigPk, realmOwner),
+            query: GET_QUERY_REALMCONFIG(resolvedRealmPk, programId),
             fetchPolicy: 'no-cache',
         });
 
         const result = data?.[programName + '_RealmConfig']?.[0];
 
-        if (!result) return null;
+        if (!result) {
+            // Common for newly-created realms while indexers catch up.
+            return await fetchViaRpcFallback();
+        }
 
         return {
             owner: programId,
@@ -1928,16 +1972,7 @@ export const getRealmConfigIndexed = async (realmConfigPk?: any, realmOwner?: an
         };
     } catch (e) {
         console.warn('Failed to fetch RealmConfig via Shyft index. Consider falling back to RPC.');
-        if (realmConfigPk){
-            const realmConfig = await getRealmConfig(
-                RPC_CONNECTION,
-                realmConfigPk
-            )
-            return realmConfig;
-        } else if (realmOwner && realmPk){
-            const realmConfig = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(realmOwner), new PublicKey(realmPk));
-            return realmConfig;
-        }
+        return await fetchViaRpcFallback();
     }
 };
 

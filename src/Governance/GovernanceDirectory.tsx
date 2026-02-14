@@ -42,6 +42,7 @@ import OG_LOGO_SQUARE from '../public/og_logo_square.png';
 
 import GovernanceRealtimeInfo from './GovernanceRealtimeInfo';
 import GovernanceDirectoryCardView from './GovernanceDirectoryCardView';
+import CreateSplGovernanceDaoButton from './CreateNewDAO/CreateSplGovernanceDaoButton';
 
 import { initGrapeGovernanceDirectory } from './api/gspl_queries';
 import { buildDirectoryFromGraphQL } from './api/queries';
@@ -908,6 +909,10 @@ export function GovernanceDirectoryView(props: Props) {
                 >
                   {refreshing ? 'Refreshing...' : 'Refresh'}
                 </Button>
+              </Stack>
+
+              <Stack direction="row" justifyContent="flex-end">
+                <CreateSplGovernanceDaoButton />
               </Stack>
             </Stack>
           </Box>
