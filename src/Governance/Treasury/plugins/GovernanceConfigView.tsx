@@ -13,6 +13,7 @@ import {
   GoverningTokenConfigAccountArgs,
   GoverningTokenType,
 } from '@solana/spl-governance';
+import { getMint } from '@solana/spl-token-v2';
 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { styled } from '@mui/material/styles';
@@ -104,6 +105,43 @@ function toBnString(value: any, fallback = '0'): string {
   }
 }
 
+function rawAmountToUiString(rawAmount: string, decimals: number): string {
+  const raw = new BN(toBnString(rawAmount, '0'));
+  if (decimals <= 0) return raw.toString();
+
+  const divisor = new BN(10).pow(new BN(decimals));
+  const whole = raw.div(divisor).toString();
+  const fraction = raw
+    .mod(divisor)
+    .toString()
+    .padStart(decimals, '0')
+    .replace(/0+$/, '');
+
+  return fraction ? `${whole}.${fraction}` : whole;
+}
+
+function uiAmountToRawBn(amount: string, decimals: number, label: string): BN {
+  const normalized = (amount || '').trim().replace(/,/g, '');
+  if (!normalized) return new BN(0);
+  if (!/^\d*\.?\d*$/.test(normalized)) {
+    throw new Error(`${label} must be a valid number`);
+  }
+
+  const [wholePartRaw, fractionPartRaw = ''] = normalized.split('.');
+  const wholePart = wholePartRaw || '0';
+  const fractionPart = fractionPartRaw || '';
+
+  if (fractionPart.length > decimals) {
+    throw new Error(`${label} supports up to ${decimals} decimal places`);
+  }
+
+  const base = new BN(10).pow(new BN(decimals));
+  const wholeBn = new BN(wholePart).mul(base);
+  const fractionPadded = fractionPart.padEnd(decimals, '0') || '0';
+  const fractionBn = new BN(fractionPadded);
+  return wholeBn.add(fractionBn);
+}
+
 function parseOptionalPublicKey(input: string): PublicKey | undefined {
   const value = (input || '').trim();
   if (!value) return undefined;
@@ -189,6 +227,8 @@ export default function GovernanceConfigView(props: any) {
   const [councilMint, setCouncilMint] = React.useState<string>('');
   const [communityMintMaxVoteWeightPct, setCommunityMintMaxVoteWeightPct] = React.useState<number>(100);
   const [minCommunityTokensToCreateGovernance, setMinCommunityTokensToCreateGovernance] = React.useState<string>('1');
+  const [communityMintDecimals, setCommunityMintDecimals] = React.useState<number>(0);
+  const [councilMintDecimals, setCouncilMintDecimals] = React.useState<number>(0);
 
   const [communityTokenType, setCommunityTokenType] = React.useState<GoverningTokenType>(GoverningTokenType.Liquid);
   const [communityVoterWeightAddin, setCommunityVoterWeightAddin] = React.useState<string>('');
@@ -229,7 +269,8 @@ export default function GovernanceConfigView(props: any) {
     }
   }, [realm]);
 
-  const initializeGovernanceConfig = React.useCallback(() => {
+  const initializeGovernanceConfig = React.useCallback(
+    (communityDecimals: number, councilDecimals: number) => {
     const cfg = rulesWallet?.account?.config;
     if (!cfg) return;
 
@@ -242,7 +283,9 @@ export default function GovernanceConfigView(props: any) {
 
     setCommunityVoteThresholdType(commThresholdType);
     setCommunityVoteThresholdValue(toSafeInt(cfg?.communityVoteThreshold?.value, 60));
-    setMinCommunityTokensToCreateProposal(minCommunityStr);
+    setMinCommunityTokensToCreateProposal(
+      minCommunityStr === U64_MAX ? '0' : rawAmountToUiString(minCommunityStr, communityDecimals)
+    );
     setDisableCommunityProposalCreation(minCommunityStr === U64_MAX);
 
     setBaseVotingTimeHours(toSafeFloat(cfg?.baseVotingTime, 72 * 3600) / 3600);
@@ -251,7 +294,9 @@ export default function GovernanceConfigView(props: any) {
     setDepositExemptProposalCount(toSafeInt(cfg?.depositExemptProposalCount, 0));
 
     setCommunityVoteTipping(voteTippingFromConfig(cfg?.communityVoteTipping, VoteTipping.Strict));
-    setMinCouncilTokensToCreateProposal(toBnString(cfg?.minCouncilTokensToCreateProposal, '1'));
+    setMinCouncilTokensToCreateProposal(
+      rawAmountToUiString(toBnString(cfg?.minCouncilTokensToCreateProposal, '1'), councilDecimals)
+    );
     setCouncilVoteThresholdType(councilThresholdType);
     setCouncilVoteThresholdValue(toSafeInt(cfg?.councilVoteThreshold?.value, 60));
     setCouncilVetoVoteThresholdType(councilVetoType);
@@ -259,9 +304,11 @@ export default function GovernanceConfigView(props: any) {
     setCommunityVetoVoteThresholdType(communityVetoType);
     setCommunityVetoVoteThresholdValue(toSafeInt(cfg?.communityVetoVoteThreshold?.value, 60));
     setCouncilVoteTipping(voteTippingFromConfig(cfg?.councilVoteTipping, VoteTipping.Strict));
-  }, [rulesWallet]);
+    },
+    [rulesWallet]
+  );
 
-  const initializeRealmConfig = React.useCallback(async () => {
+  const initializeRealmConfig = React.useCallback(async (communityDecimals: number) => {
     if (!realm) return;
 
     const authority = toBase58OrEmpty(realm?.account?.authority);
@@ -286,7 +333,7 @@ export default function GovernanceConfigView(props: any) {
     setRealmAuthority(authority);
     setCouncilMint(council);
     setCommunityMintMaxVoteWeightPct(pct);
-    setMinCommunityTokensToCreateGovernance(minCommunityToCreateGov);
+    setMinCommunityTokensToCreateGovernance(rawAmountToUiString(minCommunityToCreateGov, communityDecimals));
 
     try {
       const config = await getRealmConfigIndexed(null, realm?.owner, realm?.pubkey);
@@ -309,11 +356,54 @@ export default function GovernanceConfigView(props: any) {
     }
   }, [realm]);
 
+  const fetchMintDecimals = React.useCallback(async () => {
+    let nextCommunityDecimals = 0;
+    let nextCouncilDecimals = 0;
+
+    try {
+      const communityMintPk = realm?.account?.communityMint;
+      if (communityMintPk) {
+        const communityMintInfo = await getMint(RPC_CONNECTION as any, new PublicKey(toBase58OrEmpty(communityMintPk)));
+        nextCommunityDecimals = communityMintInfo?.decimals || 0;
+      }
+    } catch {
+      nextCommunityDecimals = 0;
+    }
+
+    try {
+      const councilMintPk = realm?.account?.config?.councilMint;
+      if (councilMintPk) {
+        const councilMintInfo = await getMint(RPC_CONNECTION as any, new PublicKey(toBase58OrEmpty(councilMintPk)));
+        nextCouncilDecimals = councilMintInfo?.decimals || 0;
+      }
+    } catch {
+      nextCouncilDecimals = 0;
+    }
+
+    return {
+      communityDecimals: nextCommunityDecimals,
+      councilDecimals: nextCouncilDecimals,
+    };
+  }, [realm]);
+
   React.useEffect(() => {
     if (!open) return;
-    initializeGovernanceConfig();
-    initializeRealmConfig();
-  }, [open, initializeGovernanceConfig, initializeRealmConfig]);
+    let cancelled = false;
+
+    (async () => {
+      const { communityDecimals, councilDecimals } = await fetchMintDecimals();
+      if (cancelled) return;
+
+      setCommunityMintDecimals(communityDecimals);
+      setCouncilMintDecimals(councilDecimals);
+      initializeGovernanceConfig(communityDecimals, councilDecimals);
+      initializeRealmConfig(communityDecimals);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, fetchMintDecimals, initializeGovernanceConfig, initializeRealmConfig]);
 
   const closeAll = () => {
     setOpen(false);
@@ -361,13 +451,21 @@ export default function GovernanceConfigView(props: any) {
           type: communityVoteThresholdType,
           value: thresholdValue(communityVoteThresholdValue, communityVoteThresholdType),
         }),
-        minCommunityTokensToCreateProposal: new BN(
-          disableCommunityProposalCreation ? U64_MAX : (minCommunityTokensToCreateProposal || '0')
-        ),
+        minCommunityTokensToCreateProposal: disableCommunityProposalCreation
+          ? new BN(U64_MAX)
+          : uiAmountToRawBn(
+              minCommunityTokensToCreateProposal,
+              communityMintDecimals,
+              'Min Community Tokens To Create Proposal'
+            ),
         minInstructionHoldUpTime: Math.max(0, Math.floor((minInstructionHoldUpTimeHours || 0) * 3600)),
         baseVotingTime: Math.max(3600, Math.floor((baseVotingTimeHours || 0) * 3600)),
         communityVoteTipping,
-        minCouncilTokensToCreateProposal: new BN(minCouncilTokensToCreateProposal || '0'),
+        minCouncilTokensToCreateProposal: uiAmountToRawBn(
+          minCouncilTokensToCreateProposal,
+          councilMintDecimals,
+          'Min Council Tokens To Create Proposal'
+        ),
         councilVoteThreshold: new VoteThreshold({
           type: councilVoteThresholdType,
           value: thresholdValue(councilVoteThresholdValue, councilVoteThresholdType),
@@ -439,7 +537,11 @@ export default function GovernanceConfigView(props: any) {
         authorityPk,
         councilMintPk,
         mintMaxVoteWeightSource,
-        new BN(minCommunityTokensToCreateGovernance || '0'),
+        uiAmountToRawBn(
+          minCommunityTokensToCreateGovernance,
+          communityMintDecimals,
+          'Min Community Tokens To Create Governance'
+        ),
         communityTokenConfig,
         councilTokenConfig,
         undefined
@@ -558,7 +660,7 @@ export default function GovernanceConfigView(props: any) {
                   <TextField
                     fullWidth
                     size="small"
-                    label="Min Community Tokens To Create Proposal"
+                    label={`Min Community Tokens To Create Proposal (decimals: ${communityMintDecimals})`}
                     value={minCommunityTokensToCreateProposal}
                     onChange={(e) => setMinCommunityTokensToCreateProposal(e.target.value || '0')}
                   />
@@ -569,7 +671,7 @@ export default function GovernanceConfigView(props: any) {
                 <TextField
                   fullWidth
                   size="small"
-                  label="Min Council Tokens To Create Proposal"
+                  label={`Min Council Tokens To Create Proposal (decimals: ${councilMintDecimals})`}
                   value={minCouncilTokensToCreateProposal}
                   onChange={(e) => setMinCouncilTokensToCreateProposal(e.target.value || '0')}
                 />
@@ -636,7 +738,7 @@ export default function GovernanceConfigView(props: any) {
                 <TextField
                   fullWidth
                   size="small"
-                  label="Council Vote Threshold (%)"
+                  label="Council Approval Threshold (%)"
                   type="number"
                   value={councilVoteThresholdValue}
                   onChange={(e) => setCouncilVoteThresholdValue(toSafeInt(e.target.value, 0))}
@@ -647,7 +749,7 @@ export default function GovernanceConfigView(props: any) {
                   select
                   fullWidth
                   size="small"
-                  label="Council Threshold Type"
+                  label="Council Approval Threshold Type"
                   value={councilVoteThresholdType}
                   onChange={(e) => setCouncilVoteThresholdType(Number(e.target.value) as VoteThresholdType)}
                 >
@@ -750,7 +852,7 @@ export default function GovernanceConfigView(props: any) {
                 <TextField
                   fullWidth
                   size="small"
-                  label="Min Community Tokens To Create Governance"
+                  label={`Min Community Tokens To Create Governance (decimals: ${communityMintDecimals})`}
                   value={minCommunityTokensToCreateGovernance}
                   onChange={(e) => setMinCommunityTokensToCreateGovernance(e.target.value || '0')}
                 />
