@@ -85,6 +85,23 @@ function governanceKey(value: any): string {
   return value?.toBase58?.() || (typeof value === 'string' ? value : String(value || ''));
 }
 
+function normalizeName(value: any): string {
+  return String(value || '').trim();
+}
+
+function hasNamedGovernance(governanceName: string, governanceAddress?: string): boolean {
+  const name = normalizeName(governanceName);
+  if (!name) return false;
+  if (name.toLowerCase() === 'governance') return false;
+
+  if (governanceAddress) {
+    const fallbackLabel = `Governance ${governanceAddress.slice(0, 6)}...`;
+    if (name === fallbackLabel) return false;
+  }
+
+  return true;
+}
+
 function isValidSolanaPublicKey(publicKeyString: string): boolean {
   if (typeof publicKeyString !== 'string' || publicKeyString.length === 0) {
     return false;
@@ -141,7 +158,7 @@ export function GovernanceDirectoryView(props: Props) {
 
   const [searchFilter, setSearchFilter] = React.useState('');
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
-  const [filterVerified, setFilterVerified] = React.useState(true);
+  const [filterVerified, setFilterVerified] = React.useState(false);
   const [filterActiveVoting, setFilterActiveVoting] = React.useState(false);
   const [filterHasTreasury, setFilterHasTreasury] = React.useState(false);
 
@@ -246,15 +263,41 @@ export function GovernanceDirectoryView(props: Props) {
         const governanceAddress = governanceKey(cachedItem?.governanceAddress);
         if (!governanceAddress) continue;
 
-        const governanceName =
-          cachedItem?.governanceName || `Governance ${governanceAddress.slice(0, 6)}...`;
+        const directGSPLMatch = cachedItem?.gspl || null;
+        const cachedNameCandidates = [
+          cachedItem?.governanceName,
+          cachedItem?.name,
+          cachedItem?.realmName,
+          cachedItem?.governance?.account?.name,
+          directGSPLMatch?.name,
+        ];
+
+        let governanceName = '';
+        for (const candidate of cachedNameCandidates) {
+          const normalized = normalizeName(candidate);
+          if (normalized) {
+            governanceName = normalized;
+            break;
+          }
+        }
+
         const gsplMatch =
-          cachedItem?.gspl ||
-          gsplByName.get(
-            String(governanceName)
-              .trim()
-              .toLowerCase()
-          );
+          directGSPLMatch ||
+          (governanceName
+            ? gsplByName.get(
+                String(governanceName)
+                  .trim()
+                  .toLowerCase()
+              )
+            : null);
+
+        if (!governanceName) {
+          governanceName = normalizeName(gsplMatch?.name);
+        }
+
+        if (!hasNamedGovernance(governanceName, governanceAddress)) {
+          continue;
+        }
 
         const { expectedRealmKey, keys: realmGovernanceKeys } = getRealmGovernanceContext(cachedItem);
         if (expectedRealmKey) {
@@ -333,13 +376,16 @@ export function GovernanceDirectoryView(props: Props) {
         if (consumedGovernanceKeys.has(governanceAddress)) continue;
         if (governanceToRealm.has(governanceAddress)) continue;
 
+        const governanceName = normalizeName(gqlItem?.governanceName || gqlItem?.name);
+        if (!hasNamedGovernance(governanceName, governanceAddress)) continue;
+
         const votingProposals = Array.isArray(votingProposalsByGovernance?.[governanceAddress])
           ? votingProposalsByGovernance[governanceAddress]
           : [];
 
         mergedItems.push({
           governanceAddress,
-          governanceName: `Governance ${governanceAddress.slice(0, 6)}...`,
+          governanceName,
           votingProposals,
           totalMembers: 0,
           totalProposals: toNumeric(gqlItem?.totalProposals, 0),
