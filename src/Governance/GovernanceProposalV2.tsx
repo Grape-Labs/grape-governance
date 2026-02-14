@@ -149,6 +149,34 @@ function trimAddress(addr: string) {
     return `${start}...${end}`;
 }
 
+const SUPPLY_FRACTION_BASE = new BN('10000000000');
+
+function toNumberOrNull(value: any): number | null {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    return n;
+}
+
+function getSupplyFractionPercentage(source: any, fallback?: any): number | null {
+    try {
+        if (source && Number(source?.type) === 0 && source?.value !== undefined && source?.value !== null) {
+            const raw = new BN(source.value.toString());
+            // SPL Governance percent = (supplyFraction / 10_000_000_000) * 100
+            const percent = raw.mul(new BN(10000)).div(SUPPLY_FRACTION_BASE).toNumber() / 100;
+            return percent;
+        }
+    } catch (e) {
+        console.log("ERR: getSupplyFractionPercentage source parse", e);
+    }
+
+    if (fallback !== undefined && fallback !== null) {
+        const fallbackStr = typeof fallback === 'string' ? fallback.replace(/,/g, '') : fallback;
+        return toNumberOrNull(fallbackStr);
+    }
+
+    return null;
+}
+
 const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
     height: 15,
     borderRadius: '17px',
@@ -543,17 +571,18 @@ export function GovernanceProposalV2View(props: any){
             setGoverningMintInfo(governingMintDetails);
             
             const communityWeight = governingMintDetails.value.data.parsed.info.supply - Number(realm.account.config.minCommunityTokensToCreateGovernance);
-            //console.log("communityWeight: "+communityWeight);
+            console.log("communityWeight: "+communityWeight);
             
             const communityMintMaxVoteWeightSource = realm.account.config?.communityMintMaxVoteWeightSource
-            let supplyFractionPercentage = null;
-            if (communityMintMaxVoteWeightSource?.fmtSupplyFractionPercentage)
-                supplyFractionPercentage = +communityMintMaxVoteWeightSource?.fmtSupplyFractionPercentage();
-            else 
-                supplyFractionPercentage = governance_item?.communityFmtSupplyFractionPercentage
+
+            console.log("communityMintMaxVoteWeightSource: "+JSON.stringify(communityMintMaxVoteWeightSource));
+            const supplyFractionPercentage = getSupplyFractionPercentage(
+                communityMintMaxVoteWeightSource,
+                governance_item?.communityFmtSupplyFractionPercentage
+            );
 
             // check if we have this cached
-            //console.log("supplyFractionPercentage: "+JSON.stringify(supplyFractionPercentage))
+            console.log("supplyFractionPercentage: "+JSON.stringify(supplyFractionPercentage))
             if (supplyFractionPercentage){
                 const communityVoteThreshold = governance.account.config.communityVoteThreshold
                 const councilVoteThreshold = governance.account.config.councilVoteThreshold
