@@ -1,682 +1,886 @@
-import { AnchorProvider, web3 } from '@coral-xyz/anchor';
-import { v4 as uuidv4 } from 'uuid';
-import { 
-    Signer, 
-    Connection, 
-    PublicKey, 
-    SystemProgram,
-    TransactionMessage, 
-    Transaction, 
-    VersionedTransaction, 
-    TransactionInstruction,
-    StakeProgram,
-    Authorized,
-    Lockup
-} from '@solana/web3.js';
-import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getOrCreateAssociatedTokenAccount, createAssociatedTokenAccount, createTransferInstruction } from "@solana/spl-token-v2";
-import moment from "moment";
-import axios from "axios";
-
+import React from 'react';
+import { PublicKey, TransactionInstruction } from '@solana/web3.js';
+import BN from 'bn.js';
 import {
-    getInstructionDataFromBase64,
-    serializeInstructionToBase64,
-    GoverningTokenConfigAccountArgs,
-    MintMaxVoteWeightSource,
-} from '@solana/spl-governance'
-
-import { 
-    RPC_CONNECTION,
-    SHYFT_KEY
-} from '../../../utils/grapeTools/constants';
+  createSetGovernanceConfig,
+  createSetRealmConfig,
+  GovernanceConfig,
+  VoteThreshold,
+  VoteThresholdType,
+  VoteTipping,
+  MintMaxVoteWeightSource,
+  MintMaxVoteWeightSourceType,
+  GoverningTokenConfigAccountArgs,
+  GoverningTokenType,
+} from '@solana/spl-governance';
 
 import { useWallet } from '@solana/wallet-adapter-react';
-import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
-import React, { useCallback, useEffect } from 'react';
-import { styled, useTheme } from '@mui/material/styles';
-
+import { styled } from '@mui/material/styles';
 import {
-    Avatar,
-    Chip,
-    Typography,
-    Button,
-    Grid,
-    Box,
-    Table,
-    Tooltip,
-    LinearProgress,
-    DialogTitle,
-    Dialog,
-    DialogContent,
-    DialogContentText,
-    DialogActions,
-    MenuItem,
-    TextField,
-    Stack,
-    Switch,
-    FormControl,
-    FormControlLabel,
-    InputAdornment,
-    InputLabel,
-    Select,
-    List,
-    ListItem,
-    ListItemIcon,
-    ListItemAvatar,
-    ListItemText,
-    SelectChangeEvent,
-    FormGroup,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  FormControl,
+  FormControlLabel,
+  Grid,
+  IconButton,
+  InputAdornment,
+  ListItemIcon,
+  MenuItem,
+  Switch,
+  Tab,
+  Tabs,
+  TextField,
+  Tooltip,
+  Typography,
 } from '@mui/material/';
+
+import SettingsIcon from '@mui/icons-material/Settings';
+import CloseIcon from '@mui/icons-material/Close';
 
 import { useSnackbar } from 'notistack';
 
-import CodeIcon from '@mui/icons-material/Code';
-import VerticalAlignBottomIcon from '@mui/icons-material/VerticalAlignBottom';
-import VerticalAlignTopIcon from '@mui/icons-material/VerticalAlignTop';
-import ContentPasteIcon from '@mui/icons-material/ContentPaste';
-import PersonIcon from '@mui/icons-material/Person';
-import SettingsIcon from '@mui/icons-material/Settings';
-import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
-import SendIcon from '@mui/icons-material/Send';
-import SettingsIcon from '@mui/icons-material/Settings';
-import GetAppIcon from '@mui/icons-material/GetApp';
-import CloseIcon from '@mui/icons-material/Close';
-import IconButton from '@mui/material/IconButton';
-import RefreshIcon from '@mui/icons-material/Refresh';
-
 import AdvancedProposalView from './AdvancedProposalView';
-import { createSetRealmConfig } from '@solana/spl-governance'; // Adjust the import path as needed
+import { getGrapeGovernanceProgramVersion } from '../../../utils/grapeTools/helpers';
+import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
+import { getRealmConfigIndexed } from '../../api/queries';
 
-export interface DialogTitleProps {
-    id: string;
-    children?: React.ReactNode;
-    onClose: () => void;
+const U64_MAX = '18446744073709551615';
+
+const BootstrapDialog = styled(Dialog)(({ theme }) => ({
+  '& .MuiDialogContent-root': {
+    padding: theme.spacing(2),
+  },
+  '& .MuiDialogActions-root': {
+    padding: theme.spacing(1),
+  },
+}));
+
+type TabMode = 'governance' | 'realm';
+
+function toBase58OrEmpty(value: any): string {
+  try {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (value?.toBase58) return value.toBase58();
+    return String(value);
+  } catch {
+    return '';
+  }
 }
-  
-const BootstrapDialogTitle = (props: DialogTitleProps) => {
-    const { children, onClose, ...other } = props;
-    
-    return (
-      <DialogTitle sx={{ m: 0, p: 2 }} {...other}>
-        {children}
-        {onClose ? (
+
+function toSafeInt(value: any, fallback = 0): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.floor(n);
+}
+
+function toSafeFloat(value: any, fallback = 0): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return n;
+}
+
+function toBnString(value: any, fallback = '0'): string {
+  try {
+    if (value === undefined || value === null) return fallback;
+    if (typeof value === 'string') {
+      if (value.startsWith('0x')) {
+        return new BN(value.slice(2), 16).toString();
+      }
+      if (value.length === 0) return fallback;
+      return value;
+    }
+    if (typeof value === 'number') return Math.floor(value).toString();
+    if (typeof value === 'bigint') return value.toString();
+    if (value?.toString) return value.toString();
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function parseOptionalPublicKey(input: string): PublicKey | undefined {
+  const value = (input || '').trim();
+  if (!value) return undefined;
+  return new PublicKey(value);
+}
+
+function parseRequiredPublicKey(input: string, label: string): PublicKey {
+  const value = (input || '').trim();
+  if (!value) throw new Error(`${label} is required`);
+  return new PublicKey(value);
+}
+
+function thresholdValue(value: number, type: VoteThresholdType): number | undefined {
+  if (type === VoteThresholdType.Disabled) return undefined;
+  const v = Math.max(0, Math.min(100, Math.floor(value || 0)));
+  return v;
+}
+
+function tokenTypeFromConfig(value: any, fallback: GoverningTokenType): GoverningTokenType {
+  const asInt = toSafeInt(value, fallback);
+  if (asInt === GoverningTokenType.Liquid) return GoverningTokenType.Liquid;
+  if (asInt === GoverningTokenType.Dormant) return GoverningTokenType.Dormant;
+  return GoverningTokenType.Membership;
+}
+
+function voteTippingFromConfig(value: any, fallback: VoteTipping): VoteTipping {
+  const asInt = toSafeInt(value, fallback);
+  if (asInt === VoteTipping.Early) return VoteTipping.Early;
+  if (asInt === VoteTipping.Disabled) return VoteTipping.Disabled;
+  return VoteTipping.Strict;
+}
+
+export default function GovernanceConfigView(props: any) {
+  const realm = props?.realm;
+  const rulesWallet = props?.rulesWallet;
+  const governanceNativeWallet = props?.governanceNativeWallet;
+  const handleCloseExtMenu = props?.handleCloseExtMenu;
+  const setExpandedLoader = props?.setExpandedLoader;
+  const setInstructions = props?.setInstructions;
+
+  const { publicKey } = useWallet();
+  const { enqueueSnackbar } = useSnackbar();
+
+  const governanceAddress = props?.governanceAddress || toBase58OrEmpty(realm?.pubkey);
+
+  const [open, setOpen] = React.useState(false);
+  const [openAdvanced, setOpenAdvanced] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const [tabMode, setTabMode] = React.useState<TabMode>('governance');
+
+  const [proposalTitle, setProposalTitle] = React.useState<string>('');
+  const [proposalDescription, setProposalDescription] = React.useState<string>('');
+  const [editProposalAddress, setEditProposalAddress] = React.useState<string | null>(null);
+  const [isDraft, setIsDraft] = React.useState(false);
+
+  const [governingMint, setGoverningMint] = React.useState<string>('');
+  const [isGoverningMintSelectable, setIsGoverningMintSelectable] = React.useState(true);
+  const [isGoverningMintCouncilSelected, setIsGoverningMintCouncilSelected] = React.useState(true);
+
+  // Governance config fields
+  const [communityVoteThresholdType, setCommunityVoteThresholdType] = React.useState<VoteThresholdType>(VoteThresholdType.YesVotePercentage);
+  const [communityVoteThresholdValue, setCommunityVoteThresholdValue] = React.useState<number>(60);
+  const [minCommunityTokensToCreateProposal, setMinCommunityTokensToCreateProposal] = React.useState<string>('1');
+  const [disableCommunityProposalCreation, setDisableCommunityProposalCreation] = React.useState(false);
+
+  const [baseVotingTimeHours, setBaseVotingTimeHours] = React.useState<number>(72);
+  const [minInstructionHoldUpTimeHours, setMinInstructionHoldUpTimeHours] = React.useState<number>(0);
+  const [votingCoolOffTimeHours, setVotingCoolOffTimeHours] = React.useState<number>(0);
+  const [depositExemptProposalCount, setDepositExemptProposalCount] = React.useState<number>(0);
+
+  const [communityVoteTipping, setCommunityVoteTipping] = React.useState<VoteTipping>(VoteTipping.Strict);
+  const [minCouncilTokensToCreateProposal, setMinCouncilTokensToCreateProposal] = React.useState<string>('1');
+  const [councilVoteThresholdType, setCouncilVoteThresholdType] = React.useState<VoteThresholdType>(VoteThresholdType.YesVotePercentage);
+  const [councilVoteThresholdValue, setCouncilVoteThresholdValue] = React.useState<number>(60);
+  const [councilVetoVoteThresholdType, setCouncilVetoVoteThresholdType] = React.useState<VoteThresholdType>(VoteThresholdType.YesVotePercentage);
+  const [councilVetoVoteThresholdValue, setCouncilVetoVoteThresholdValue] = React.useState<number>(60);
+  const [communityVetoVoteThresholdType, setCommunityVetoVoteThresholdType] = React.useState<VoteThresholdType>(VoteThresholdType.YesVotePercentage);
+  const [communityVetoVoteThresholdValue, setCommunityVetoVoteThresholdValue] = React.useState<number>(60);
+  const [councilVoteTipping, setCouncilVoteTipping] = React.useState<VoteTipping>(VoteTipping.Strict);
+
+  // Realm config fields
+  const [realmAuthority, setRealmAuthority] = React.useState<string>('');
+  const [councilMint, setCouncilMint] = React.useState<string>('');
+  const [communityMintMaxVoteWeightPct, setCommunityMintMaxVoteWeightPct] = React.useState<number>(100);
+  const [minCommunityTokensToCreateGovernance, setMinCommunityTokensToCreateGovernance] = React.useState<string>('1');
+
+  const [communityTokenType, setCommunityTokenType] = React.useState<GoverningTokenType>(GoverningTokenType.Liquid);
+  const [communityVoterWeightAddin, setCommunityVoterWeightAddin] = React.useState<string>('');
+  const [communityMaxVoterWeightAddin, setCommunityMaxVoterWeightAddin] = React.useState<string>('');
+
+  const [councilTokenType, setCouncilTokenType] = React.useState<GoverningTokenType>(GoverningTokenType.Membership);
+  const [councilVoterWeightAddin, setCouncilVoterWeightAddin] = React.useState<string>('');
+  const [councilMaxVoterWeightAddin, setCouncilMaxVoterWeightAddin] = React.useState<string>('');
+
+  const toggleGoverningMintSelected = React.useCallback(
+    (council: boolean) => {
+      const community = toBase58OrEmpty(realm?.account?.communityMint);
+      const councilMintPk = toBase58OrEmpty(realm?.account?.config?.councilMint);
+
+      if (council && councilMintPk) {
+        setIsGoverningMintCouncilSelected(true);
+        setGoverningMint(councilMintPk);
+      } else {
+        setIsGoverningMintCouncilSelected(false);
+        setGoverningMint(community);
+      }
+    },
+    [realm]
+  );
+
+  React.useEffect(() => {
+    const council = toBase58OrEmpty(realm?.account?.config?.councilMint);
+    const community = toBase58OrEmpty(realm?.account?.communityMint);
+
+    if (council) {
+      setIsGoverningMintCouncilSelected(true);
+      setGoverningMint(council);
+      setIsGoverningMintSelectable(Boolean(community));
+    } else {
+      setIsGoverningMintCouncilSelected(false);
+      setGoverningMint(community);
+      setIsGoverningMintSelectable(false);
+    }
+  }, [realm]);
+
+  const initializeGovernanceConfig = React.useCallback(() => {
+    const cfg = rulesWallet?.account?.config;
+    if (!cfg) return;
+
+    const commThresholdType = toSafeInt(cfg?.communityVoteThreshold?.type, VoteThresholdType.YesVotePercentage) as VoteThresholdType;
+    const councilThresholdType = toSafeInt(cfg?.councilVoteThreshold?.type, VoteThresholdType.YesVotePercentage) as VoteThresholdType;
+    const councilVetoType = toSafeInt(cfg?.councilVetoVoteThreshold?.type, VoteThresholdType.YesVotePercentage) as VoteThresholdType;
+    const communityVetoType = toSafeInt(cfg?.communityVetoVoteThreshold?.type, VoteThresholdType.YesVotePercentage) as VoteThresholdType;
+
+    const minCommunityStr = toBnString(cfg?.minCommunityTokensToCreateProposal, '1');
+
+    setCommunityVoteThresholdType(commThresholdType);
+    setCommunityVoteThresholdValue(toSafeInt(cfg?.communityVoteThreshold?.value, 60));
+    setMinCommunityTokensToCreateProposal(minCommunityStr);
+    setDisableCommunityProposalCreation(minCommunityStr === U64_MAX);
+
+    setBaseVotingTimeHours(toSafeFloat(cfg?.baseVotingTime, 72 * 3600) / 3600);
+    setMinInstructionHoldUpTimeHours(toSafeFloat(cfg?.minInstructionHoldUpTime, 0) / 3600);
+    setVotingCoolOffTimeHours(toSafeFloat(cfg?.votingCoolOffTime, 0) / 3600);
+    setDepositExemptProposalCount(toSafeInt(cfg?.depositExemptProposalCount, 0));
+
+    setCommunityVoteTipping(voteTippingFromConfig(cfg?.communityVoteTipping, VoteTipping.Strict));
+    setMinCouncilTokensToCreateProposal(toBnString(cfg?.minCouncilTokensToCreateProposal, '1'));
+    setCouncilVoteThresholdType(councilThresholdType);
+    setCouncilVoteThresholdValue(toSafeInt(cfg?.councilVoteThreshold?.value, 60));
+    setCouncilVetoVoteThresholdType(councilVetoType);
+    setCouncilVetoVoteThresholdValue(toSafeInt(cfg?.councilVetoVoteThreshold?.value, 60));
+    setCommunityVetoVoteThresholdType(communityVetoType);
+    setCommunityVetoVoteThresholdValue(toSafeInt(cfg?.communityVetoVoteThreshold?.value, 60));
+    setCouncilVoteTipping(voteTippingFromConfig(cfg?.councilVoteTipping, VoteTipping.Strict));
+  }, [rulesWallet]);
+
+  const initializeRealmConfig = React.useCallback(async () => {
+    if (!realm) return;
+
+    const authority = toBase58OrEmpty(realm?.account?.authority);
+    const council = toBase58OrEmpty(realm?.account?.config?.councilMint);
+    const minCommunityToCreateGov = toBnString(
+      realm?.account?.config?.minCommunityTokensToCreateGovernance,
+      '1'
+    );
+
+    let pct = 100;
+    try {
+      const src = realm?.account?.config?.communityMintMaxVoteWeightSource;
+      const sourceValue = Number(toBnString(src?.value, MintMaxVoteWeightSource.SUPPLY_FRACTION_BASE.toString()));
+      const base = Number(MintMaxVoteWeightSource.SUPPLY_FRACTION_BASE.toString());
+      if (base > 0 && Number.isFinite(sourceValue)) {
+        pct = Math.max(0, Math.min(100, (sourceValue / base) * 100));
+      }
+    } catch {
+      pct = 100;
+    }
+
+    setRealmAuthority(authority);
+    setCouncilMint(council);
+    setCommunityMintMaxVoteWeightPct(pct);
+    setMinCommunityTokensToCreateGovernance(minCommunityToCreateGov);
+
+    try {
+      const config = await getRealmConfigIndexed(null, realm?.owner, realm?.pubkey);
+      const commCfg = config?.account?.communityTokenConfig;
+      const cCfg = config?.account?.councilTokenConfig;
+
+      if (commCfg) {
+        setCommunityTokenType(tokenTypeFromConfig(commCfg?.tokenType, GoverningTokenType.Liquid));
+        setCommunityVoterWeightAddin(toBase58OrEmpty(commCfg?.voterWeightAddin));
+        setCommunityMaxVoterWeightAddin(toBase58OrEmpty(commCfg?.maxVoterWeightAddin));
+      }
+
+      if (cCfg) {
+        setCouncilTokenType(tokenTypeFromConfig(cCfg?.tokenType, GoverningTokenType.Membership));
+        setCouncilVoterWeightAddin(toBase58OrEmpty(cCfg?.voterWeightAddin));
+        setCouncilMaxVoterWeightAddin(toBase58OrEmpty(cCfg?.maxVoterWeightAddin));
+      }
+    } catch {
+      // keep defaults
+    }
+  }, [realm]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    initializeGovernanceConfig();
+    initializeRealmConfig();
+  }, [open, initializeGovernanceConfig, initializeRealmConfig]);
+
+  const closeAll = () => {
+    setOpen(false);
+    if (handleCloseExtMenu) handleCloseExtMenu();
+  };
+
+  const buildProposalObject = (
+    ix: TransactionInstruction[],
+    fallbackTitle: string,
+    fallbackDescription: string
+  ) => ({
+    title: (proposalTitle || '').trim() || fallbackTitle,
+    description: (proposalDescription || '').trim() || fallbackDescription,
+    ix,
+    aix: [],
+    nativeWallet: governanceNativeWallet,
+    governingMint,
+    draft: isDraft,
+    editProposalAddress,
+  });
+
+  const getProgramInfo = async () => {
+    const programId = parseRequiredPublicKey(
+      toBase58OrEmpty(realm?.owner || rulesWallet?.owner),
+      'Governance program ID'
+    );
+    const realmPk = parseRequiredPublicKey(toBase58OrEmpty(realm?.pubkey), 'Realm');
+    const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
+    return { programId, realmPk, programVersion };
+  };
+
+  const handleCreateGovernanceConfigProposal = async () => {
+    try {
+      if (!rulesWallet?.pubkey) {
+        enqueueSnackbar('Missing governance rules wallet', { variant: 'error' });
+        return;
+      }
+
+      setLoading(true);
+      const { programId, programVersion } = await getProgramInfo();
+      const governancePk = parseRequiredPublicKey(toBase58OrEmpty(rulesWallet.pubkey), 'Governance rules wallet');
+
+      const governanceConfig = new GovernanceConfig({
+        communityVoteThreshold: new VoteThreshold({
+          type: communityVoteThresholdType,
+          value: thresholdValue(communityVoteThresholdValue, communityVoteThresholdType),
+        }),
+        minCommunityTokensToCreateProposal: new BN(
+          disableCommunityProposalCreation ? U64_MAX : (minCommunityTokensToCreateProposal || '0')
+        ),
+        minInstructionHoldUpTime: Math.max(0, Math.floor((minInstructionHoldUpTimeHours || 0) * 3600)),
+        baseVotingTime: Math.max(3600, Math.floor((baseVotingTimeHours || 0) * 3600)),
+        communityVoteTipping,
+        minCouncilTokensToCreateProposal: new BN(minCouncilTokensToCreateProposal || '0'),
+        councilVoteThreshold: new VoteThreshold({
+          type: councilVoteThresholdType,
+          value: thresholdValue(councilVoteThresholdValue, councilVoteThresholdType),
+        }),
+        councilVetoVoteThreshold: new VoteThreshold({
+          type: councilVetoVoteThresholdType,
+          value: thresholdValue(councilVetoVoteThresholdValue, councilVetoVoteThresholdType),
+        }),
+        communityVetoVoteThreshold: new VoteThreshold({
+          type: communityVetoVoteThresholdType,
+          value: thresholdValue(communityVetoVoteThresholdValue, communityVetoVoteThresholdType),
+        }),
+        councilVoteTipping,
+        votingCoolOffTime: Math.max(0, Math.floor((votingCoolOffTimeHours || 0) * 3600)),
+        depositExemptProposalCount: Math.max(0, Math.floor(depositExemptProposalCount || 0)),
+      });
+
+      const ix = createSetGovernanceConfig(programId, programVersion, governancePk, governanceConfig);
+      const proposal = buildProposalObject(
+        [ix],
+        'Update Governance Config',
+        'Update SPL Governance configuration for this governance account.'
+      );
+
+      closeAll();
+      setInstructions(proposal);
+      setExpandedLoader(true);
+    } catch (e: any) {
+      console.error(e);
+      enqueueSnackbar(e?.message || 'Failed to build governance config proposal', { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateRealmConfigProposal = async () => {
+    try {
+      setLoading(true);
+      const { programId, realmPk, programVersion } = await getProgramInfo();
+
+      const authorityPk = parseRequiredPublicKey(realmAuthority, 'Realm authority');
+      const councilMintPk = parseOptionalPublicKey(councilMint);
+
+      const base = Number(MintMaxVoteWeightSource.SUPPLY_FRACTION_BASE.toString());
+      const pct = Math.max(0, Math.min(100, Number(communityMintMaxVoteWeightPct || 0)));
+      const sourceValue = Math.round((pct / 100) * base);
+
+      const mintMaxVoteWeightSource = new MintMaxVoteWeightSource({
+        type: MintMaxVoteWeightSourceType.SupplyFraction,
+        value: new BN(sourceValue.toString()),
+      });
+
+      const communityTokenConfig = new GoverningTokenConfigAccountArgs({
+        voterWeightAddin: parseOptionalPublicKey(communityVoterWeightAddin),
+        maxVoterWeightAddin: parseOptionalPublicKey(communityMaxVoterWeightAddin),
+        tokenType: communityTokenType,
+      });
+
+      const councilTokenConfig = new GoverningTokenConfigAccountArgs({
+        voterWeightAddin: parseOptionalPublicKey(councilVoterWeightAddin),
+        maxVoterWeightAddin: parseOptionalPublicKey(councilMaxVoterWeightAddin),
+        tokenType: councilTokenType,
+      });
+
+      const ix = await createSetRealmConfig(
+        programId,
+        programVersion,
+        realmPk,
+        authorityPk,
+        councilMintPk,
+        mintMaxVoteWeightSource,
+        new BN(minCommunityTokensToCreateGovernance || '0'),
+        communityTokenConfig,
+        councilTokenConfig,
+        undefined
+      );
+
+      const proposal = buildProposalObject(
+        [ix],
+        'Update Realm Config',
+        'Update SPL Governance realm-level configuration.'
+      );
+
+      closeAll();
+      setInstructions(proposal);
+      setExpandedLoader(true);
+    } catch (e: any) {
+      console.error(e);
+      enqueueSnackbar(e?.message || 'Failed to build realm config proposal', { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <Tooltip title="Manage Governance + Realm Settings" placement="right">
+        <MenuItem onClick={publicKey ? () => setOpen(true) : undefined}>
+          <ListItemIcon>
+            <SettingsIcon fontSize="small" />
+          </ListItemIcon>
+          Governance Config
+        </MenuItem>
+      </Tooltip>
+
+      <BootstrapDialog
+        fullWidth
+        maxWidth="md"
+        open={open}
+        onClose={closeAll}
+        PaperProps={{
+          style: {
+            background: '#13151C',
+            border: '1px solid rgba(255,255,255,0.05)',
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '20px',
+          },
+        }}
+      >
+        <DialogTitle sx={{ m: 0, p: 2 }}>
+          SPL Governance Config Editor
           <IconButton
             aria-label="close"
-            onClick={onClose}
-            sx={{
-              position: 'absolute',
-              right: 8,
-              top: 8,
-              color: (theme) => theme.palette.grey[500],
-            }}
+            onClick={closeAll}
+            sx={{ position: 'absolute', right: 8, top: 8, color: (theme) => theme.palette.grey[500] }}
           >
             <CloseIcon />
           </IconButton>
-        ) : null}
-      </DialogTitle>
-    );
-};
+        </DialogTitle>
 
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-    '& .MuiDialogContent-root': {
-      padding: theme.spacing(2),
-    },
-    '& .MuiDialogActions-root': {
-      padding: theme.spacing(1),
-    },
-}));
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2, textAlign: 'center' }}>
+            Build proposal instructions to update Governance and Realm configuration.
+          </DialogContentText>
 
-export default function GovernanceSettingsView(props: any) {
-    const setReload = props?.setReload;
-    const governanceLookup = props.governanceLookup;
-    const governanceRulesWallet = props.governanceRulesWallet;
-    const [editProposalAddress, setEditProposalAddress] = React.useState(props?.editProposalAddress);
-    const governingTokenMint = props.governingTokenMint;
-    
-    const preSelectedTokenAta = props?.preSelectedTokenAta;
-    const useButtonText = props?.useButtonText;
-    const useButtonType = props?.useButtonType;
+          <Tabs
+            value={tabMode}
+            onChange={(_, value) => setTabMode(value)}
+            textColor="inherit"
+            indicatorColor="secondary"
+            sx={{ mb: 2 }}
+          >
+            <Tab value="governance" label="Governance Config" />
+            <Tab value="realm" label="Realm Config" />
+          </Tabs>
 
-    const masterWallet = props?.masterWallet;
-    const usdcValue = props?.usdcValue;
-    const realm = props?.realm;
-    const governanceAddress = props.governanceAddress || realm.pubkey.toBase58();
-    const rulesWallet = props?.rulesWallet;
-    const handleCloseExtMenu = props?.handleCloseExtMenu;
-    const expandedLoader = props?.expandedLoader;
-    const setExpandedLoader = props?.setExpandedLoader;
-    const instructions = props?.instructions;
-    const setInstructions = props?.setInstructions;
+          {tabMode === 'governance' && (
+            <Grid container spacing={1.2}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Community Vote Threshold (%)"
+                  type="number"
+                  value={communityVoteThresholdValue}
+                  onChange={(e) => setCommunityVoteThresholdValue(toSafeInt(e.target.value, 0))}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth size="small">
+                  <TextField
+                    select
+                    label="Community Threshold Type"
+                    value={communityVoteThresholdType}
+                    onChange={(e) => setCommunityVoteThresholdType(Number(e.target.value) as VoteThresholdType)}
+                  >
+                    <MenuItem value={VoteThresholdType.YesVotePercentage}>Yes %</MenuItem>
+                    <MenuItem value={VoteThresholdType.QuorumPercentage}>Quorum %</MenuItem>
+                    <MenuItem value={VoteThresholdType.Disabled}>Disabled</MenuItem>
+                  </TextField>
+                </FormControl>
+              </Grid>
 
-    const governanceNativeWallet = props?.governanceNativeWallet;
-    const { publicKey } = useWallet();
-    const wallet = useWallet();
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={disableCommunityProposalCreation}
+                      onChange={(e) => setDisableCommunityProposalCreation(e.target.checked)}
+                    />
+                  }
+                  label="Disable community proposal creation (set u64 max)"
+                />
+              </Grid>
 
-    const [loading, setLoading] = React.useState(false);
-    const [open, setPropOpen] = React.useState(false);
-    const [openAdvanced, setOpenAdvanced] = React.useState(false);
-    const [proposalTitle, setProposalTitle] = React.useState<string | null>(null);
-    const [proposalDescription, setProposalDescription] = React.useState<string | null>(null);
-    const [governingMint, setGoverningMint] = React.useState<string | null>(null);
-    const [isGoverningMintSelectable, setIsGoverningMintSelectable] = React.useState(true);
-    const [isGoverningMintCouncilSelected, setIsGoverningMintCouncilSelected] = React.useState(true);
-    const [isDraft, setIsDraft] = React.useState(false);
-    
-    // Governance Settings State Variables
-    const [minCommunityTokensEnabled, setMinCommunityTokensEnabled] = React.useState<boolean>(false);
-    const [communityMintSupplyFactor, setCommunityMintSupplyFactor] = React.useState<number | null>(null);
-    const [communityTokenType, setCommunityTokenType] = React.useState<string | null>(null); // Disabled
-    const [communityVoterWeightAddIn, setCommunityVoterWeightAddIn] = React.useState<number | null>(null);
-    const [communityMaxVoterWeightAddIn, setCommunityMaxVoterWeightAddIn] = React.useState<number | null>(null);
-    const [councilTokenType, setCouncilTokenType] = React.useState<string | null>(null); // Membership
-    const [councilVoterWeightAddIn, setCouncilVoterWeightAddIn] = React.useState<number | null>(null);
-    const [councilMaxVoterWeightAddIn, setCouncilMaxVoterWeightAddIn] = React.useState<number | null>(null);
+              {!disableCommunityProposalCreation && (
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Min Community Tokens To Create Proposal"
+                    value={minCommunityTokensToCreateProposal}
+                    onChange={(e) => setMinCommunityTokensToCreateProposal(e.target.value || '0')}
+                  />
+                </Grid>
+              )}
 
-    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
-    const onError = useCallback(
-        (error: WalletError) => {
-            enqueueSnackbar(error.message ? `${error.name}: ${error.message}` : error.name, { variant: 'error' });
-            console.error(error);
-        },
-        [enqueueSnackbar]
-    );
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Min Council Tokens To Create Proposal"
+                  value={minCouncilTokensToCreateProposal}
+                  onChange={(e) => setMinCouncilTokensToCreateProposal(e.target.value || '0')}
+                />
+              </Grid>
 
-    const toggleGoverningMintSelected = (council: boolean) => {
-        if (council){
-            setIsGoverningMintCouncilSelected(true);
-            setGoverningMint(realm?.account.config.councilMint);
-        } else{
-            setIsGoverningMintCouncilSelected(false);
-            setGoverningMint(realm?.communityMint);
-        }
-    }
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Base Voting Time (hours)"
+                  type="number"
+                  value={baseVotingTimeHours}
+                  onChange={(e) => setBaseVotingTimeHours(toSafeFloat(e.target.value, 1))}
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Instruction Hold-up (hours)"
+                  type="number"
+                  value={minInstructionHoldUpTimeHours}
+                  onChange={(e) => setMinInstructionHoldUpTimeHours(toSafeFloat(e.target.value, 0))}
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Voting Cool-off (hours)"
+                  type="number"
+                  value={votingCoolOffTimeHours}
+                  onChange={(e) => setVotingCoolOffTimeHours(toSafeFloat(e.target.value, 0))}
+                />
+              </Grid>
 
-    const handleAdvancedToggle = () => {
-        setOpenAdvanced(!openAdvanced);
-    }
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Deposit Exempt Proposal Count"
+                  type="number"
+                  value={depositExemptProposalCount}
+                  onChange={(e) => setDepositExemptProposalCount(toSafeInt(e.target.value, 0))}
+                />
+              </Grid>
 
-    const handleCloseDialog = () => {
-        setPropOpen(false);
-        if (handleCloseExtMenu)
-            handleCloseExtMenu();
-    }
-
-    const handleClickOpen = () => {
-        setPropOpen(true);
-    };
-
-    const handleClose = () => {
-        setPropOpen(false);
-        if (handleCloseExtMenu)
-            handleCloseExtMenu();
-    };
-
-    // Helper function to split instructions into chunks
-    const chunkInstructions = (instructions: TransactionInstruction[], chunkSize: number) => {
-        const chunks: TransactionInstruction[][] = [];
-        for (let i = 0; i < instructions.length; i += chunkSize) {
-            chunks.push(instructions.slice(i, i + chunkSize));
-        }
-        return chunks;
-    };
-
-    const simulateIx = async (transaction: Transaction): Promise<boolean> => {
-        try {
-            const { blockhash } = await RPC_CONNECTION.getLatestBlockhash();
-            const payerKey = new PublicKey(governanceNativeWallet);
-            const transactionIxs: TransactionInstruction[] = transaction.instructions;
-
-            for (const instructionChunk of chunkInstructions(transactionIxs, 10)) { // Adjust chunk size as needed
-                const message = new TransactionMessage({
-                    payerKey,
-                    recentBlockhash: blockhash,
-                    instructions: instructionChunk,
-                }).compileToV0Message();
-
-                const versionedTx = new VersionedTransaction(message);
-
-                // Simulate the chunk
-                const simulationResult = await RPC_CONNECTION.simulateTransaction(versionedTx);
-
-                if (simulationResult.value.err) {
-                    console.error("Chunk simulation failed with error:", simulationResult.value.err);
-                    return false;
-                }
-
-                console.log("Chunk simulation successful.");
-            }
-
-            return true;
-        } catch (error) {
-            console.error("Error simulating large transaction:", error);
-            return false;
-        }
-    };
-
-    // Function to create Governance Configuration Instructions
-    const createGovernanceConfigInstructions = async (): Promise<TransactionInstruction[]> => {
-        try {
-            // Define the realm public key
-            const realmPubkey = new PublicKey(governanceAddress);
-
-            // Define the realm authority public key (the authority that can configure the realm)
-            const realmAuthority = new PublicKey("REALM_AUTHORITY_PUBKEY"); // Replace with the actual realm authority public key
-
-            // Define the council mint public key (if applicable)
-            const councilMint = new PublicKey("COUNCIL_MINT_PUBKEY"); // Replace with the actual council mint public key or undefined if not applicable
-
-            // Define the community mint max vote weight source
-            const communityMintMaxVoteWeightSource = MintMaxVoteWeightSource.FULL_SUPPLY_FRACTION; // Example value, adjust as needed
-
-            // Define the minimum community tokens to create governance
-            const minCommunityTokensToCreateGovernance = minCommunityTokensEnabled ? new BN(1_000_000) : null; // Example value, adjust as needed
-
-            // Define the community token config
-            const communityTokenConfig: GoverningTokenConfigAccountArgs = {
-                voterWeightAddin: communityVoterWeightAddIn,
-                maxVoterWeightAddin: communityMaxVoterWeightAddIn,
-                tokenType: communityTokenType, // Assuming communityTokenType is defined
-            };
-
-            // Define the council token config (if applicable)
-            const councilTokenConfig: GoverningTokenConfigAccountArgs = {
-                voterWeightAddin: councilVoterWeightAddIn,
-                maxVoterWeightAddin: councilMaxVoterWeightAddIn,
-                tokenType: councilTokenType, // Assuming councilTokenType is defined
-            };
-
-            // Define the payer public key (the account that will pay for the transaction)
-            const payer = new PublicKey("PAYER_PUBKEY"); // Replace with the actual payer public key
-
-            // Create the set realm config instruction
-            const setRealmConfigIx = await createSetRealmConfig(
-                new PublicKey("GOVERNANCE_PROGRAM_ID"), // Replace with the actual governance program ID
-                1, // Program version
-                realmPubkey,
-                realmAuthority,
-                councilMint,
-                communityMintMaxVoteWeightSource,
-                minCommunityTokensToCreateGovernance,
-                communityTokenConfig,
-                councilTokenConfig,
-                payer
-            );
-
-            return [setRealmConfigIx];
-        } catch (error) {
-            console.error("Error creating governance config instructions:", error);
-            throw error;
-        }
-    };
-
-    const handleSetGovernanceConfig = async () => {
-        if (handleCloseExtMenu)
-            handleCloseExtMenu();
-        setPropOpen(false);
-
-        try {
-            // Validate required fields
-            if (
-                communityMintSupplyFactor === null ||
-                communityVoterWeightAddIn === null ||
-                communityMaxVoterWeightAddIn === null ||
-                councilTokenType === null ||
-                councilVoterWeightAddIn === null ||
-                councilMaxVoterWeightAddIn === null
-            ) {
-                enqueueSnackbar("Please fill in all required fields.", { variant: 'error' });
-                return;
-            }
-
-            // Create governance configuration instructions
-            const governanceIxs = await createGovernanceConfigInstructions();
-
-            // Create Transaction object
-            const transaction = new Transaction().add(...governanceIxs);
-
-            // Simulate transaction
-            const status = await simulateIx(transaction);
-            if (!status) {
-                enqueueSnackbar("Transaction simulation failed", { variant: 'error' });
-                return;
-            }
-
-            // Prepare proposal instruction
-            const propIx = {
-                title: "Update Settings",
-                description: `Updating governance settings with the provided configurations.`,
-                ix: governanceIxs,
-                aix: [], // Additional instructions if any
-                nativeWallet: governanceNativeWallet,
-                governingMint: governingMint,
-                draft: isDraft,
-            };
-
-            console.log("propIx: ", JSON.stringify(propIx));
-
-            // Set instructions and trigger loader
-            setInstructions(propIx);
-            setExpandedLoader(true);
-        } catch (error) {
-            enqueueSnackbar("Failed to create governance configuration instructions.", { variant: 'error' });
-            console.error('Failed to create governance configuration instructions:', error);
-        }
-    };
-
-    useEffect(() => { 
-        setIsGoverningMintSelectable(false);
-        if (realm && realm?.account.config?.councilMint){
-            setGoverningMint(realm?.account.config.councilMint);
-            setIsGoverningMintCouncilSelected(true);
-            if (realm && realm?.account?.communityMint){
-                if (Number(rulesWallet.account.config.minCommunityTokensToCreateProposal) !== 18446744073709551615){
-                    setGoverningMint(realm?.account.communityMint);
-                    setIsGoverningMintSelectable(true);
-                    setIsGoverningMintCouncilSelected(false);
-                }
-            }
-        } else {
-            if (realm && realm?.account?.communityMint){
-                setGoverningMint(realm?.account.communityMint);
-                setIsGoverningMintCouncilSelected(false);
-            }
-        }
-    }, []);
-
-    return (
-        <>
-            <Tooltip title="Manage Governance Settings" placement="right">
-                {useButtonText && useButtonType === 1 ?
-                <>
-                    <Button onClick={publicKey && handleClickOpen} fullWidth color='primary' size="large" variant="contained" sx={{backgroundColor:'rgba(255,255,255,0.05)',pl:2,pr:2,ml:1,mr:1}}>
-                        {useButtonText}
-                    </Button>
-                </>
-                :
-                <>
-                    {useButtonText && (useButtonType === 2 || useButtonType === 3) ? 
-                        <>  
-                            <Button color={'inherit'} variant='text' 
-                                onClick={publicKey && handleClickOpen} 
-                                sx={{m:0,p:0,
-                                    '&:hover .MuiSvgIcon-root': {
-                                        opacity: 1,
-                                    },
-                                }}
-                                startIcon={
-                                    <SettingsIcon 
-                                        fontSize={'small'} 
-                                        sx={{
-                                            color:'rgba(255,255,255,0.25)',
-                                            opacity: 0,
-                                            pl:1,
-                                            fontSize:"10px"}} />
-                                }>
-                                <Typography variant={useButtonType === 2 ? `h5`:`subtitle1`} sx={{color:'white'}}>
-                                    {useButtonText}
-                                </Typography>
-                            </Button>
-                        </>
-                    :
-                        <>
-                            <MenuItem disabled onClick={publicKey && handleClickOpen}>
-                                <ListItemIcon>
-                                    <SettingsIcon fontSize="small" />
-                                </ListItemIcon>
-                                Settings
-                            </MenuItem>
-                        </>
-                    }
-                </>}
-            </Tooltip>
-            
-            <BootstrapDialog 
-                fullWidth={true}
-                open={open} onClose={handleClose}
-                PaperProps={{
-                    style: {
-                        background: '#13151C',
-                        border: '1px solid rgba(255,255,255,0.05)',
-                        borderTop: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: '20px'
-                    }
-                    }}
+              <Grid item xs={12} md={6}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Community Vote Tipping"
+                  value={communityVoteTipping}
+                  onChange={(e) => setCommunityVoteTipping(Number(e.target.value) as VoteTipping)}
                 >
-                <BootstrapDialogTitle 
-                    id='governance-settings-dialog'
-                    onClose={handleCloseDialog}
+                  <MenuItem value={VoteTipping.Strict}>Strict</MenuItem>
+                  <MenuItem value={VoteTipping.Early}>Early</MenuItem>
+                  <MenuItem value={VoteTipping.Disabled}>Disabled</MenuItem>
+                </TextField>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Council Vote Threshold (%)"
+                  type="number"
+                  value={councilVoteThresholdValue}
+                  onChange={(e) => setCouncilVoteThresholdValue(toSafeInt(e.target.value, 0))}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Council Threshold Type"
+                  value={councilVoteThresholdType}
+                  onChange={(e) => setCouncilVoteThresholdType(Number(e.target.value) as VoteThresholdType)}
                 >
-                    Manage Governance Settings
-                </BootstrapDialogTitle>
-                <DialogContent>
-                    
-                    <DialogContentText sx={{textAlign:'center'}}>
-                        Update Wallet Settings
-                    </DialogContentText>
-                    
-                    <FormControl fullWidth sx={{mt:2, mb:2}}>
-                        <Grid container spacing={2}>
-                            {/* 1. Toggle for "Min community tokens to create governance" */}
-                            <Grid item xs={12}>
-                                <FormControlLabel
-                                    control={
-                                        <Switch
-                                            checked={minCommunityTokensEnabled}
-                                            onChange={(e) => setMinCommunityTokensEnabled(e.target.checked)}
-                                            name="minCommunityTokensEnabled"
-                                            color="primary"
-                                        />
-                                    }
-                                    label="Enable Minimum Community Tokens to Create Governance"
-                                />
-                            </Grid>
+                  <MenuItem value={VoteThresholdType.YesVotePercentage}>Yes %</MenuItem>
+                  <MenuItem value={VoteThresholdType.QuorumPercentage}>Quorum %</MenuItem>
+                  <MenuItem value={VoteThresholdType.Disabled}>Disabled</MenuItem>
+                </TextField>
+              </Grid>
 
-                            {/* 2. Community mint supply factor (max vote weight) */}
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Community Mint Supply Factor (Max Vote Weight)"
-                                    id="communityMintSupplyFactor"
-                                    type="number"
-                                    value={communityMintSupplyFactor ?? ''}
-                                    onChange={(e) => setCommunityMintSupplyFactor(parseFloat(e.target.value))}
-                                    variant="filled"
-                                    required
-                                    helperText="Set the maximum vote weight factor for the community mint."
-                                    inputProps={{ min: "0", step: "0.1" }}
-                                    sx={{ m: 0.65 }}
-                                />
-                            </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Council Veto Threshold (%)"
+                  type="number"
+                  value={councilVetoVoteThresholdValue}
+                  onChange={(e) => setCouncilVetoVoteThresholdValue(toSafeInt(e.target.value, 0))}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Council Veto Threshold Type"
+                  value={councilVetoVoteThresholdType}
+                  onChange={(e) => setCouncilVetoVoteThresholdType(Number(e.target.value) as VoteThresholdType)}
+                >
+                  <MenuItem value={VoteThresholdType.YesVotePercentage}>Yes %</MenuItem>
+                  <MenuItem value={VoteThresholdType.QuorumPercentage}>Quorum %</MenuItem>
+                  <MenuItem value={VoteThresholdType.Disabled}>Disabled</MenuItem>
+                </TextField>
+              </Grid>
 
-                            {/* 3. Community token type (disabled) */}
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Community Token Type"
-                                    id="communityTokenType"
-                                    type="text"
-                                    value={communityTokenType ?? 'Standard'}
-                                    variant="filled"
-                                    disabled
-                                    helperText="The type of community token. This field is disabled."
-                                    sx={{ m: 0.65 }}
-                                />
-                            </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Community Veto Threshold (%)"
+                  type="number"
+                  value={communityVetoVoteThresholdValue}
+                  onChange={(e) => setCommunityVetoVoteThresholdValue(toSafeInt(e.target.value, 0))}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Community Veto Threshold Type"
+                  value={communityVetoVoteThresholdType}
+                  onChange={(e) => setCommunityVetoVoteThresholdType(Number(e.target.value) as VoteThresholdType)}
+                >
+                  <MenuItem value={VoteThresholdType.YesVotePercentage}>Yes %</MenuItem>
+                  <MenuItem value={VoteThresholdType.QuorumPercentage}>Quorum %</MenuItem>
+                  <MenuItem value={VoteThresholdType.Disabled}>Disabled</MenuItem>
+                </TextField>
+              </Grid>
 
-                            {/* 4. Community voter weight add-in */}
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Community Voter Weight Add-In"
-                                    id="communityVoterWeightAddIn"
-                                    type="number"
-                                    value={communityVoterWeightAddIn ?? ''}
-                                    onChange={(e) => setCommunityVoterWeightAddIn(parseFloat(e.target.value))}
-                                    variant="filled"
-                                    required
-                                    helperText="Add-in value to adjust community voter weight."
-                                    inputProps={{ min: "0", step: "0.1" }}
-                                    sx={{ m: 0.65 }}
-                                />
-                            </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Council Vote Tipping"
+                  value={councilVoteTipping}
+                  onChange={(e) => setCouncilVoteTipping(Number(e.target.value) as VoteTipping)}
+                >
+                  <MenuItem value={VoteTipping.Strict}>Strict</MenuItem>
+                  <MenuItem value={VoteTipping.Early}>Early</MenuItem>
+                  <MenuItem value={VoteTipping.Disabled}>Disabled</MenuItem>
+                </TextField>
+              </Grid>
+            </Grid>
+          )}
 
-                            {/* 5. Community max voter weight add-in */}
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Community Max Voter Weight Add-In"
-                                    id="communityMaxVoterWeightAddIn"
-                                    type="number"
-                                    value={communityMaxVoterWeightAddIn ?? ''}
-                                    onChange={(e) => setCommunityMaxVoterWeightAddIn(parseFloat(e.target.value))}
-                                    variant="filled"
-                                    required
-                                    helperText="Maximum add-in value for community voter weight."
-                                    inputProps={{ min: "0", step: "0.1" }}
-                                    sx={{ m: 0.65 }}
-                                />
-                            </Grid>
+          {tabMode === 'realm' && (
+            <Grid container spacing={1.2}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Realm Authority"
+                  value={realmAuthority}
+                  onChange={(e) => setRealmAuthority(e.target.value)}
+                />
+              </Grid>
 
-                            {/* 6. Council token type (membership) */}
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Council Token Type (Membership)"
-                                    id="councilTokenType"
-                                    type="text"
-                                    value={councilTokenType ?? 'Membership'}
-                                    onChange={(e) => setCouncilTokenType(e.target.value)}
-                                    variant="filled"
-                                    required
-                                    helperText="The type of council token."
-                                    sx={{ m: 0.65 }}
-                                />
-                            </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Council Mint (optional)"
+                  value={councilMint}
+                  onChange={(e) => setCouncilMint(e.target.value)}
+                />
+              </Grid>
 
-                            {/* 7. Council voter weight add-in */}
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Council Voter Weight Add-In"
-                                    id="councilVoterWeightAddIn"
-                                    type="number"
-                                    value={councilVoterWeightAddIn ?? ''}
-                                    onChange={(e) => setCouncilVoterWeightAddIn(parseFloat(e.target.value))}
-                                    variant="filled"
-                                    required
-                                    helperText="Add-in value to adjust council voter weight."
-                                    inputProps={{ min: "0", step: "0.1" }}
-                                    sx={{ m: 0.65 }}
-                                />
-                            </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Min Community Tokens To Create Governance"
+                  value={minCommunityTokensToCreateGovernance}
+                  onChange={(e) => setMinCommunityTokensToCreateGovernance(e.target.value || '0')}
+                />
+              </Grid>
 
-                            {/* 8. Council max voter weight add-in */}
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Council Max Voter Weight Add-In"
-                                    id="councilMaxVoterWeightAddIn"
-                                    type="number"
-                                    value={councilMaxVoterWeightAddIn ?? ''}
-                                    onChange={(e) => setCouncilMaxVoterWeightAddIn(parseFloat(e.target.value))}
-                                    variant="filled"
-                                    required
-                                    helperText="Maximum add-in value for council voter weight."
-                                    inputProps={{ min: "0", step: "0.1" }}
-                                    sx={{ m: 0.65 }}
-                                />
-                            </Grid>
-                        </Grid>
-                    </FormControl>
-                
-                    {openAdvanced ? 
-                        <>
-                            <AdvancedProposalView 
-                                governanceAddress={governanceAddress}
-                                proposalTitle={proposalTitle}
-                                setProposalTitle={setProposalTitle}
-                                proposalDescription={proposalDescription}
-                                setProposalDescription={setProposalDescription}
-                                toggleGoverningMintSelected={toggleGoverningMintSelected}
-                                isGoverningMintCouncilSelected={isGoverningMintCouncilSelected}
-                                isGoverningMintSelectable={isGoverningMintSelectable}
-                                isDraft={isDraft}
-                                setIsDraft={setIsDraft}
-                                setEditProposalAddress={setEditProposalAddress}
-                                editProposalAddress={editProposalAddress}
-                            />
-                            
-                        </>
-                    :
-                        <></>
-                    }
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Community Mint Max Vote Weight (%)"
+                  type="number"
+                  value={communityMintMaxVoteWeightPct}
+                  onChange={(e) => setCommunityMintMaxVoteWeightPct(toSafeFloat(e.target.value, 100))}
+                  InputProps={{
+                    endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                  }}
+                />
+              </Grid>
 
-                    <Box alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2, textAlign:'center'}}>
-                        <Typography variant="caption">Made with ❤️ by Grape</Typography>
-                    </Box>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Community Token Type"
+                  value={communityTokenType}
+                  onChange={(e) => setCommunityTokenType(Number(e.target.value) as GoverningTokenType)}
+                >
+                  <MenuItem value={GoverningTokenType.Liquid}>Liquid</MenuItem>
+                  <MenuItem value={GoverningTokenType.Membership}>Membership</MenuItem>
+                  <MenuItem value={GoverningTokenType.Dormant}>Dormant</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Community Voter Weight Addin"
+                  value={communityVoterWeightAddin}
+                  onChange={(e) => setCommunityVoterWeightAddin(e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Community Max Voter Weight Addin"
+                  value={communityMaxVoterWeightAddin}
+                  onChange={(e) => setCommunityMaxVoterWeightAddin(e.target.value)}
+                />
+              </Grid>
 
-                    <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p:0, pb:1 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', p:0 }}>
-                        {(publicKey) ?
-                                <Button
-                                    size='small'
-                                    onClick={handleAdvancedToggle}
-                                    sx={{
-                                        p:1,
-                                        borderRadius:'17px',
-                                        justifyContent: 'flex-start',
-                                        '&:hover .MuiSvgIcon-root.claimIcon': {
-                                            color:'rgba(255,255,255,0.90)'
-                                        }
-                                    }}
-                                    startIcon={
-                                        <>
-                                            <SettingsIcon 
-                                                className="claimIcon"
-                                                sx={{
-                                                    color:'rgba(255,255,255,0.25)',
-                                                    fontSize:"14px!important"}} />
-                                        </>
-                                    }
-                                >
-                                    Advanced
-                                </Button>
-                        : <></>
-                        }
-                        </Box>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Council Token Type"
+                  value={councilTokenType}
+                  onChange={(e) => setCouncilTokenType(Number(e.target.value) as GoverningTokenType)}
+                >
+                  <MenuItem value={GoverningTokenType.Liquid}>Liquid</MenuItem>
+                  <MenuItem value={GoverningTokenType.Membership}>Membership</MenuItem>
+                  <MenuItem value={GoverningTokenType.Dormant}>Dormant</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Council Voter Weight Addin"
+                  value={councilVoterWeightAddin}
+                  onChange={(e) => setCouncilVoterWeightAddin(e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Council Max Voter Weight Addin"
+                  value={councilMaxVoterWeightAddin}
+                  onChange={(e) => setCouncilMaxVoterWeightAddin(e.target.value)}
+                />
+              </Grid>
+            </Grid>
+          )}
 
-                        <Box sx={{ display: 'flex', p:0 }}>
-                            
-                            {(publicKey) ?
-                                <Button 
-                                    autoFocus 
-                                    onClick={handleSetGovernanceConfig}
-                                    sx={{
-                                        p:1,
-                                        borderRadius:'17px',
-                                        '&:hover .MuiSvgIcon-root.claimNowIcon': {
-                                            color:'rgba(255,255,255,0.90)'
-                                        }
-                                    }}
-                                    startIcon={
-                                    <>
-                                        <SettingsIcon 
-                                            sx={{
-                                                color:'rgba(255,255,255,0.25)',
-                                                fontSize:"14px!important"}}
-                                        />
-                                    </>
-                                    }
-                                >
-                                    Create Proposal
-                                </Button>
-                            : <></>
-                            }
-                        </Box>
-                    </DialogActions>
-                    
-                </DialogContent> 
-            </BootstrapDialog>
-        </>
-    )
+          {openAdvanced ? (
+            <Box sx={{ mt: 2 }}>
+              <AdvancedProposalView
+                governanceAddress={governanceAddress}
+                proposalTitle={proposalTitle}
+                setProposalTitle={setProposalTitle}
+                proposalDescription={proposalDescription}
+                setProposalDescription={setProposalDescription}
+                toggleGoverningMintSelected={toggleGoverningMintSelected}
+                isGoverningMintCouncilSelected={isGoverningMintCouncilSelected}
+                isGoverningMintSelectable={isGoverningMintSelectable}
+                isDraft={isDraft}
+                setIsDraft={setIsDraft}
+                setEditProposalAddress={setEditProposalAddress}
+                editProposalAddress={editProposalAddress}
+              />
+            </Box>
+          ) : null}
+
+          <Box sx={{ mt: 1.5, textAlign: 'center' }}>
+            <Typography variant="caption">Made with ❤️ by Grape</Typography>
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', px: 2, pb: 2 }}>
+          <Button
+            size="small"
+            onClick={() => setOpenAdvanced((v) => !v)}
+            startIcon={<SettingsIcon sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '14px!important' }} />}
+          >
+            Advanced
+          </Button>
+
+          <Button
+            autoFocus
+            disabled={loading || !publicKey}
+            onClick={tabMode === 'governance' ? handleCreateGovernanceConfigProposal : handleCreateRealmConfigProposal}
+            startIcon={<SettingsIcon sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '14px!important' }} />}
+          >
+            {loading ? 'Building...' : 'Create Proposal'}
+          </Button>
+        </DialogActions>
+      </BootstrapDialog>
+    </>
+  );
 }
-
