@@ -16,9 +16,11 @@ import {
   GoverningTokenConfigAccountArgs,
   GoverningTokenType,
   MintMaxVoteWeightSource,
+  SetRealmAuthorityAction,
   VoteThreshold,
   VoteThresholdType,
   VoteTipping,
+  createSetRealmAuthority,
   getNativeTreasuryAddress,
   withCreateGovernance,
   withDepositGoverningTokens,
@@ -361,6 +363,24 @@ export default function CreateSplGovernanceDaoButton() {
     [buildDefaultGovernanceConfig, connection, publicKey, sendAndConfirm]
   );
 
+  const transferRealmAuthorityToGovernance = React.useCallback(
+    async (realmPk: PublicKey, governancePk: PublicKey) => {
+      if (!publicKey) throw new Error('Wallet not connected');
+
+      const ix = createSetRealmAuthority(
+        GOVERNANCE_PROGRAM_ID,
+        PROGRAM_VERSION,
+        realmPk,
+        publicKey,
+        governancePk,
+        SetRealmAuthorityAction.SetChecked
+      );
+
+      await sendAndConfirm([ix]);
+    },
+    [publicKey, sendAndConfirm]
+  );
+
   const handleCreateDao = async () => {
     if (!connected || !publicKey) {
       enqueueSnackbar('Connect your wallet first.', { variant: 'error' });
@@ -498,6 +518,7 @@ export default function CreateSplGovernanceDaoButton() {
           preferredGoverningMint,
           daoType
         );
+        await transferRealmAuthorityToGovernance(realmPk, treasuryInfo.governancePk);
       }
 
       if (createdMintsToLock.length > 0) {
