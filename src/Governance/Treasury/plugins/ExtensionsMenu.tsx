@@ -146,6 +146,17 @@ export default function ExtensionsMenuView(props: any) {
             setInstructions={setInstructions}
         />
         <Divider />
+        <GovernanceConfigView 
+            realm={realm}
+            handleCloseExtMenu={handleClose}
+            rulesWallet={rulesWallet}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader} 
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+        />
+        <Divider />
         <SendExtensionView
             realm={realm}
             handleCloseExtMenu={handleClose}
@@ -252,17 +263,6 @@ export default function ExtensionsMenuView(props: any) {
           usdcValue={usdcValue}
         />
         <ClaimExtensionView
-            realm={realm}
-            handleCloseExtMenu={handleClose}
-            rulesWallet={rulesWallet}
-            governanceNativeWallet={governanceNativeWallet}
-            expandedLoader={expandedLoader} 
-            setExpandedLoader={setExpandedLoader}
-            instructions={instructions}
-            setInstructions={setInstructions}
-        />
-        <Divider />
-        <GovernanceConfigView 
             realm={realm}
             handleCloseExtMenu={handleClose}
             rulesWallet={rulesWallet}
