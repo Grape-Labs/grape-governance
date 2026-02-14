@@ -12,6 +12,9 @@ import {
   MintMaxVoteWeightSourceType,
   GoverningTokenConfigAccountArgs,
   GoverningTokenType,
+  getTokenOwnerRecordAddress,
+  withCreateGovernance,
+  withCreateNativeTreasury,
 } from '@solana/spl-governance';
 import { getMint } from '@solana/spl-token-v2';
 
@@ -42,6 +45,7 @@ import {
 
 import SettingsIcon from '@mui/icons-material/Settings';
 import CloseIcon from '@mui/icons-material/Close';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 
 import { useSnackbar } from 'notistack';
 
@@ -237,6 +241,8 @@ export default function GovernanceConfigView(props: any) {
   const [councilTokenType, setCouncilTokenType] = React.useState<GoverningTokenType>(GoverningTokenType.Membership);
   const [councilVoterWeightAddin, setCouncilVoterWeightAddin] = React.useState<string>('');
   const [councilMaxVoterWeightAddin, setCouncilMaxVoterWeightAddin] = React.useState<string>('');
+  const [newRealmWalletLabel, setNewRealmWalletLabel] = React.useState<string>('');
+  const [createNativeTreasuryForNewWallet, setCreateNativeTreasuryForNewWallet] = React.useState<boolean>(true);
 
   const toggleGoverningMintSelected = React.useCallback(
     (council: boolean) => {
@@ -435,18 +441,9 @@ export default function GovernanceConfigView(props: any) {
     return { programId, realmPk, programVersion };
   };
 
-  const handleCreateGovernanceConfigProposal = async () => {
-    try {
-      if (!rulesWallet?.pubkey) {
-        enqueueSnackbar('Missing governance rules wallet', { variant: 'error' });
-        return;
-      }
-
-      setLoading(true);
-      const { programId, programVersion } = await getProgramInfo();
-      const governancePk = parseRequiredPublicKey(toBase58OrEmpty(rulesWallet.pubkey), 'Governance rules wallet');
-
-      const governanceConfig = new GovernanceConfig({
+  const buildGovernanceConfigFromForm = React.useCallback(
+    () =>
+      new GovernanceConfig({
         communityVoteThreshold: new VoteThreshold({
           type: communityVoteThresholdType,
           value: thresholdValue(communityVoteThresholdValue, communityVoteThresholdType),
@@ -481,7 +478,42 @@ export default function GovernanceConfigView(props: any) {
         councilVoteTipping,
         votingCoolOffTime: Math.max(0, Math.floor((votingCoolOffTimeHours || 0) * 3600)),
         depositExemptProposalCount: Math.max(0, Math.floor(depositExemptProposalCount || 0)),
-      });
+      }),
+    [
+      communityVoteThresholdType,
+      communityVoteThresholdValue,
+      disableCommunityProposalCreation,
+      minCommunityTokensToCreateProposal,
+      communityMintDecimals,
+      minInstructionHoldUpTimeHours,
+      baseVotingTimeHours,
+      communityVoteTipping,
+      minCouncilTokensToCreateProposal,
+      councilMintDecimals,
+      councilVoteThresholdType,
+      councilVoteThresholdValue,
+      councilVetoVoteThresholdType,
+      councilVetoVoteThresholdValue,
+      communityVetoVoteThresholdType,
+      communityVetoVoteThresholdValue,
+      councilVoteTipping,
+      votingCoolOffTimeHours,
+      depositExemptProposalCount,
+    ]
+  );
+
+  const handleCreateGovernanceConfigProposal = async () => {
+    try {
+      if (!rulesWallet?.pubkey) {
+        enqueueSnackbar('Missing governance rules wallet', { variant: 'error' });
+        return;
+      }
+
+      setLoading(true);
+      const { programId, programVersion } = await getProgramInfo();
+      const governancePk = parseRequiredPublicKey(toBase58OrEmpty(rulesWallet.pubkey), 'Governance rules wallet');
+
+      const governanceConfig = buildGovernanceConfigFromForm();
 
       const ix = createSetGovernanceConfig(programId, programVersion, governancePk, governanceConfig);
       const proposal = buildProposalObject(
@@ -496,6 +528,83 @@ export default function GovernanceConfigView(props: any) {
     } catch (e: any) {
       console.error(e);
       enqueueSnackbar(e?.message || 'Failed to build governance config proposal', { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateRealmWalletProposal = async () => {
+    try {
+      if (!publicKey) {
+        enqueueSnackbar('Wallet not connected', { variant: 'error' });
+        return;
+      }
+
+      if (!rulesWallet?.pubkey) {
+        enqueueSnackbar('Missing governance rules wallet', { variant: 'error' });
+        return;
+      }
+
+      setLoading(true);
+      const { programId, realmPk, programVersion } = await getProgramInfo();
+      const realmAuthorityPk = parseRequiredPublicKey(realmAuthority, 'Realm authority');
+      const activeGovernancePk = parseRequiredPublicKey(
+        toBase58OrEmpty(rulesWallet?.pubkey),
+        'Active governance wallet'
+      );
+
+      if (realmAuthorityPk.toBase58() !== activeGovernancePk.toBase58()) {
+        throw new Error(
+          'Realm authority must match this governance wallet to add a realm wallet via proposal.'
+        );
+      }
+
+      const governingMintPk = parseRequiredPublicKey(
+        governingMint || toBase58OrEmpty(realm?.account?.communityMint),
+        'Governing mint'
+      );
+
+      const tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
+        programId,
+        realmPk,
+        governingMintPk,
+        publicKey
+      );
+
+      const ix: TransactionInstruction[] = [];
+      const createdGovernancePk = await withCreateGovernance(
+        ix,
+        programId,
+        programVersion,
+        realmPk,
+        undefined,
+        buildGovernanceConfigFromForm(),
+        tokenOwnerRecordPk,
+        realmAuthorityPk,
+        realmAuthorityPk
+      );
+
+      if (createNativeTreasuryForNewWallet) {
+        await withCreateNativeTreasury(ix, programId, programVersion, createdGovernancePk, realmAuthorityPk);
+      }
+
+      const walletLabel = (newRealmWalletLabel || '').trim();
+      const proposal = buildProposalObject(
+        ix,
+        walletLabel ? `Add Realm Wallet: ${walletLabel}` : 'Add Realm Wallet',
+        `Create a new governance wallet for this realm${
+          walletLabel ? ` (${walletLabel})` : ''
+        }. New governance: ${createdGovernancePk.toBase58()}${
+          createNativeTreasuryForNewWallet ? ' with native treasury initialization.' : '.'
+        }`
+      );
+
+      closeAll();
+      setInstructions(proposal);
+      setExpandedLoader(true);
+    } catch (e: any) {
+      console.error(e);
+      enqueueSnackbar(e?.message || 'Failed to build add wallet proposal', { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -937,6 +1046,45 @@ export default function GovernanceConfigView(props: any) {
                   onChange={(e) => setCouncilMaxVoterWeightAddin(e.target.value)}
                 />
               </Grid>
+
+              <Grid item xs={12}>
+                <Box
+                  sx={{
+                    mt: 1,
+                    pt: 1.5,
+                    borderTop: '1px solid rgba(255,255,255,0.08)',
+                  }}
+                >
+                  <Typography variant="subtitle2" sx={{ mb: 0.75 }}>
+                    Add New Realm Wallet
+                  </Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                    Builds a proposal to create a new governance wallet using the governance config values above.
+                  </Typography>
+                </Box>
+              </Grid>
+
+              <Grid item xs={12} md={8}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Wallet Label (optional)"
+                  value={newRealmWalletLabel}
+                  onChange={(e) => setNewRealmWalletLabel(e.target.value)}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={4}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={createNativeTreasuryForNewWallet}
+                      onChange={(e) => setCreateNativeTreasuryForNewWallet(e.target.checked)}
+                    />
+                  }
+                  label="Init Native Treasury"
+                />
+              </Grid>
             </Grid>
           )}
 
@@ -973,14 +1121,27 @@ export default function GovernanceConfigView(props: any) {
             Advanced
           </Button>
 
-          <Button
-            autoFocus
-            disabled={loading || !publicKey}
-            onClick={tabMode === 'governance' ? handleCreateGovernanceConfigProposal : handleCreateRealmConfigProposal}
-            startIcon={<SettingsIcon sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '14px!important' }} />}
-          >
-            {loading ? 'Building...' : 'Create Proposal'}
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {tabMode === 'realm' && (
+              <Button
+                disabled={loading || !publicKey}
+                onClick={handleCreateRealmWalletProposal}
+                startIcon={
+                  <AccountBalanceWalletIcon sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '14px!important' }} />
+                }
+              >
+                {loading ? 'Building...' : 'Add Wallet'}
+              </Button>
+            )}
+            <Button
+              autoFocus
+              disabled={loading || !publicKey}
+              onClick={tabMode === 'governance' ? handleCreateGovernanceConfigProposal : handleCreateRealmConfigProposal}
+              startIcon={<SettingsIcon sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '14px!important' }} />}
+            >
+              {loading ? 'Building...' : 'Create Proposal'}
+            </Button>
+          </Box>
         </DialogActions>
       </BootstrapDialog>
     </>
