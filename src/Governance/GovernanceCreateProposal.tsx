@@ -315,6 +315,10 @@ export default function GovernanceCreateProposalView(props: any){
       setIsCopied(true);
     };
 
+    const stopInputKeyPropagation = React.useCallback((event: React.KeyboardEvent) => {
+      event.stopPropagation();
+    }, []);
+
     /*
     function getTokenTypeString(tokenTypeValue: any) {
       const tokenTypeEnumKey = Object.keys(GoverningTokenType).find(
@@ -1962,15 +1966,7 @@ export default function GovernanceCreateProposalView(props: any){
                                     tabIndex={1} // Ensure Box is focusable
                                     onFocus={() => console.log("Title Field focused")}
                                     onBlur={() => console.log("Title Field blurred")}
-                                    onKeyDown={(e) => {
-                                      /*
-                                      if (e.key === 'G' || e.key === 'g') {
-                                          console.log("Refocusing field on 'G'");
-                                          if (e.target instanceof HTMLInputElement) {
-                                            e.target.focus(); // Safely access focus
-                                          }
-                                      }*/
-                                  }}
+                                    onKeyDown={stopInputKeyPropagation}
                                     onChange={(e) => {
                                         if (!title || title.length < maxTitleLen)
                                             setTitle(e.target.value)
@@ -1990,6 +1986,7 @@ export default function GovernanceCreateProposalView(props: any){
                                   multiline
                                   rows={4}
                                   value={description || ""}
+                                  onKeyDown={stopInputKeyPropagation}
                                   onChange={(e) => {
                                       const newValue = e.target.value;
                                       if (newValue.length <= maxDescriptionLen) {

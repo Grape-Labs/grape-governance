@@ -137,6 +137,10 @@ export default function AdvanvedProposalView(props: any){
         }
     }, [editProposalAddress]);
 
+    const stopInputKeyPropagation = (event: React.KeyboardEvent) => {
+        event.stopPropagation();
+    };
+
 
     return (
         <>
@@ -146,6 +150,7 @@ export default function AdvanvedProposalView(props: any){
                     borderRadius:'17px',
                     p:2,
                 }}
+                onKeyDown={stopInputKeyPropagation}
             >
                 
             <FormControl fullWidth  sx={{mb:2}}>
@@ -161,6 +166,7 @@ export default function AdvanvedProposalView(props: any){
                     value={proposalTitle}
                     InputLabelProps={{ shrink: true }}
                     onChange={(e) => setProposalTitle(e.target.value)}
+                    onKeyDown={stopInputKeyPropagation}
                     sx={{textAlign:"center"}}
                     />
                 
@@ -182,6 +188,7 @@ export default function AdvanvedProposalView(props: any){
                     value={proposalDescription}
                     InputLabelProps={{ shrink: true }}
                     onChange={(e) => setProposalDescription(e.target.value)}
+                    onKeyDown={stopInputKeyPropagation}
                     sx={{textAlign:"center"}}
                     />
 

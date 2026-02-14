@@ -1459,6 +1459,23 @@ const StakeAccountsView = () => {
                 setLoaderCreationComplete(false);
                 setLoaderSuccess(false);
                 setSimulationFailed(false);
+                const isDraft = instructions?.draft ? instructions.draft : true;
+                const proposalIxs = Array.isArray(instructions?.ix) ? instructions.ix : [];
+
+                if (proposalIxs.length === 0 && isDraft) {
+                    console.log("Draft proposal without instructions, skipping transaction simulation");
+                    setLoaderSuccess(true);
+                    return;
+                }
+
+                if (proposalIxs.length === 0 && !isDraft) {
+                    setLoadingText("No Instructions");
+                    setSimulationFailed(true);
+                    setLoaderCreationComplete(true);
+                    setLoaderSuccess(true);
+                    return;
+                }
+
                 const { blockhash, lastValidBlockHeight } = await RPC_CONNECTION.getLatestBlockhash('confirmed');
                 
                 let transaction = new Transaction({
@@ -1473,8 +1490,8 @@ const StakeAccountsView = () => {
                 //transaction.add(...instructions.ix);// we should simulate when sending back to the wallet...
                             
                 // Ensure instructions.ix is an array of TransactionInstruction
-                if (Array.isArray(instructions.ix) && instructions.ix.every(ix => ix instanceof TransactionInstruction)) {
-                    transaction.add(...instructions.ix);
+                if (proposalIxs.every(ix => ix instanceof TransactionInstruction)) {
+                    transaction.add(...proposalIxs);
                 } else {
                     console.error("instructions.ix is not an array of TransactionInstruction");
                 }
@@ -1583,6 +1600,15 @@ const StakeAccountsView = () => {
 
                 const isDraft = instructions.draft ? instructions.draft : true;
                 const returnTx = false;
+                const proposalIxs = Array.isArray(instructions?.ix) ? instructions.ix : [];
+
+                if (!isDraft && proposalIxs.length === 0) {
+                    setLoadingText("No Instructions");
+                    setProposalCreated(false);
+                    setLoadingPropCreation(false);
+                    setLoaderCreationComplete(true);
+                    return;
+                }
                 
                 const transaction = new Transaction();
                 const authTransaction = new Transaction();
@@ -1590,8 +1616,10 @@ const StakeAccountsView = () => {
                 // check which mint should be used (council or community)
                 // assume council for now but this should be toggled in the previous step or from the claim view
                 console.log("adding tx ix")
-                
-                transaction.add(...instructions.ix);
+
+                if (proposalIxs.length > 0) {
+                    transaction.add(...proposalIxs);
+                }
 
                 if (instructions?.aix && instructions.aix.length > 0){
                     authTransaction.add(...instructions.aix);
@@ -1652,7 +1680,7 @@ const StakeAccountsView = () => {
                 );
                 */
                 
-                const instructionsData = instructions.ix.map((ix) => ({
+                const instructionsData = proposalIxs.map((ix) => ({
                     data: createInstructionData(ix),
                     holdUpTime: undefined,
                     prerequisiteInstructions: [],
