@@ -26,6 +26,7 @@ import {
 } from '@mui/material/';
 
 import WalletCardView from './Treasury/WalletCardView';
+import CreateTreasuryWalletProposalButton from './Treasury/CreateTreasuryWalletProposalButton';
 import { GovernanceHeaderView } from './GovernanceHeaderView';
 import GovernanceNavigation from './GovernanceNavigation';
 
@@ -41,6 +42,17 @@ import {
   RPC_CONNECTION,
   GGAPI_STORAGE_POOL
 } from '../utils/grapeTools/constants';
+
+function toBase58OrEmpty(value: any): string {
+  try {
+    if (!value) return "";
+    if (typeof value === 'string') return value;
+    if (value?.toBase58) return value.toBase58();
+    return String(value);
+  } catch {
+    return "";
+  }
+}
 
 export function GovernanceTreasuryView(props: any) {
   const { address } = useParams<{ address: string }>();
@@ -117,7 +129,8 @@ export function GovernanceTreasuryView(props: any) {
 
   // main loader: gets all governances, computes native treasury, loads GSPL metadata
   const fetchGovernances = React.useCallback(async (addr: string, rlm: any, rulesWallet?: string | null) => {
-    const tmpGovernanceAddresses = await getAllGovernancesIndexed(addr);
+    const realmOwnerProgram = toBase58OrEmpty(rlm?.owner);
+    const tmpGovernanceAddresses = await getAllGovernancesIndexed(addr, realmOwnerProgram || undefined);
 
     if (!tmpGovernanceAddresses || !rlm) {
       setGovernanceWallets([]);
@@ -296,7 +309,14 @@ export function GovernanceTreasuryView(props: any) {
                 governanceAddress={governanceAddress}
                 gsplMetadata={gsplMetadata}
               />
-              <Grid item xs={6} container justifyContent="flex-end">
+              <Grid item xs={6} container justifyContent="flex-end" alignItems="center" sx={{ gap: 1 }}>
+                {!filterRulesWallet && (
+                  <CreateTreasuryWalletProposalButton
+                    realm={realm}
+                    governanceAddress={governanceAddress}
+                    governanceWallets={governanceWallets}
+                  />
+                )}
                 <GovernanceNavigation governanceAddress={governanceAddress} />
               </Grid>
             </Grid>

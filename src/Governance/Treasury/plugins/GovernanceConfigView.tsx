@@ -1,10 +1,12 @@
 import React from 'react';
-import { PublicKey, TransactionInstruction } from '@solana/web3.js';
+import { PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
 import BN from 'bn.js';
 import {
+  createSetRealmAuthority,
   createSetGovernanceConfig,
   createSetRealmConfig,
   GovernanceConfig,
+  SetRealmAuthorityAction,
   VoteThreshold,
   VoteThresholdType,
   VoteTipping,
@@ -12,13 +14,10 @@ import {
   MintMaxVoteWeightSourceType,
   GoverningTokenConfigAccountArgs,
   GoverningTokenType,
-  getTokenOwnerRecordAddress,
-  withCreateGovernance,
-  withCreateNativeTreasury,
 } from '@solana/spl-governance';
 import { getMint } from '@solana/spl-token-v2';
 
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { styled } from '@mui/material/styles';
 import {
   Box,
@@ -45,7 +44,6 @@ import {
 
 import SettingsIcon from '@mui/icons-material/Settings';
 import CloseIcon from '@mui/icons-material/Close';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 
 import { useSnackbar } from 'notistack';
 
@@ -186,7 +184,8 @@ export default function GovernanceConfigView(props: any) {
   const setExpandedLoader = props?.setExpandedLoader;
   const setInstructions = props?.setInstructions;
 
-  const { publicKey } = useWallet();
+  const { connection } = useConnection();
+  const { publicKey, sendTransaction } = useWallet();
   const { enqueueSnackbar } = useSnackbar();
 
   const governanceAddress = props?.governanceAddress || toBase58OrEmpty(realm?.pubkey);
@@ -194,6 +193,7 @@ export default function GovernanceConfigView(props: any) {
   const [open, setOpen] = React.useState(false);
   const [openAdvanced, setOpenAdvanced] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const [transferringAuthority, setTransferringAuthority] = React.useState(false);
   const [tabMode, setTabMode] = React.useState<TabMode>('governance');
 
   const [proposalTitle, setProposalTitle] = React.useState<string>('');
@@ -241,8 +241,6 @@ export default function GovernanceConfigView(props: any) {
   const [councilTokenType, setCouncilTokenType] = React.useState<GoverningTokenType>(GoverningTokenType.Membership);
   const [councilVoterWeightAddin, setCouncilVoterWeightAddin] = React.useState<string>('');
   const [councilMaxVoterWeightAddin, setCouncilMaxVoterWeightAddin] = React.useState<string>('');
-  const [newRealmWalletLabel, setNewRealmWalletLabel] = React.useState<string>('');
-  const [createNativeTreasuryForNewWallet, setCreateNativeTreasuryForNewWallet] = React.useState<boolean>(true);
 
   const toggleGoverningMintSelected = React.useCallback(
     (council: boolean) => {
@@ -441,6 +439,76 @@ export default function GovernanceConfigView(props: any) {
     return { programId, realmPk, programVersion };
   };
 
+  const handleTransferRealmAuthorityToRulesWallet = async () => {
+    try {
+      if (!publicKey || !sendTransaction) {
+        enqueueSnackbar('Connect wallet first.', { variant: 'error' });
+        return;
+      }
+
+      const targetAuthorityStr = toBase58OrEmpty(rulesWallet?.pubkey);
+      if (!targetAuthorityStr) {
+        enqueueSnackbar('No governance wallet available to transfer authority to.', { variant: 'error' });
+        return;
+      }
+
+      const currentAuthorityPk = parseRequiredPublicKey(realmAuthority, 'Realm authority');
+      if (currentAuthorityPk.toBase58() !== publicKey.toBase58()) {
+        enqueueSnackbar('Connected wallet is not the current realm authority.', { variant: 'error' });
+        return;
+      }
+
+      const targetAuthorityPk = new PublicKey(targetAuthorityStr);
+      if (targetAuthorityPk.toBase58() === currentAuthorityPk.toBase58()) {
+        enqueueSnackbar('Realm authority is already set to this governance wallet.', { variant: 'info' });
+        return;
+      }
+
+      setTransferringAuthority(true);
+      const { programId, realmPk, programVersion } = await getProgramInfo();
+
+      const ix = createSetRealmAuthority(
+        programId,
+        programVersion,
+        realmPk,
+        currentAuthorityPk,
+        targetAuthorityPk,
+        SetRealmAuthorityAction.SetChecked
+      );
+
+      const tx = new Transaction().add(ix);
+      const signature = await sendTransaction(tx, connection, {
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
+        maxRetries: 5,
+      } as any);
+
+      const latest = await connection.getLatestBlockhash('confirmed');
+      await connection.confirmTransaction(
+        {
+          signature,
+          blockhash: latest.blockhash,
+          lastValidBlockHeight: latest.lastValidBlockHeight,
+        },
+        'confirmed'
+      );
+
+      setRealmAuthority(targetAuthorityPk.toBase58());
+      enqueueSnackbar(`Realm authority transferred to ${targetAuthorityPk.toBase58()}`, { variant: 'success' });
+    } catch (e: any) {
+      console.error(e);
+      enqueueSnackbar(e?.message || 'Failed to transfer realm authority', { variant: 'error' });
+    } finally {
+      setTransferringAuthority(false);
+    }
+  };
+
+  const connectedWalletIsRealmAuthority =
+    Boolean(publicKey) && Boolean(realmAuthority) && publicKey!.toBase58() === realmAuthority.trim();
+  const rulesWalletStr = toBase58OrEmpty(rulesWallet?.pubkey);
+  const canTransferToRulesWallet =
+    connectedWalletIsRealmAuthority && Boolean(rulesWalletStr) && rulesWalletStr !== realmAuthority.trim();
+
   const buildGovernanceConfigFromForm = React.useCallback(
     () =>
       new GovernanceConfig({
@@ -528,83 +596,6 @@ export default function GovernanceConfigView(props: any) {
     } catch (e: any) {
       console.error(e);
       enqueueSnackbar(e?.message || 'Failed to build governance config proposal', { variant: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateRealmWalletProposal = async () => {
-    try {
-      if (!publicKey) {
-        enqueueSnackbar('Wallet not connected', { variant: 'error' });
-        return;
-      }
-
-      if (!rulesWallet?.pubkey) {
-        enqueueSnackbar('Missing governance rules wallet', { variant: 'error' });
-        return;
-      }
-
-      setLoading(true);
-      const { programId, realmPk, programVersion } = await getProgramInfo();
-      const realmAuthorityPk = parseRequiredPublicKey(realmAuthority, 'Realm authority');
-      const activeGovernancePk = parseRequiredPublicKey(
-        toBase58OrEmpty(rulesWallet?.pubkey),
-        'Active governance wallet'
-      );
-
-      if (realmAuthorityPk.toBase58() !== activeGovernancePk.toBase58()) {
-        throw new Error(
-          'Realm authority must match this governance wallet to add a realm wallet via proposal.'
-        );
-      }
-
-      const governingMintPk = parseRequiredPublicKey(
-        governingMint || toBase58OrEmpty(realm?.account?.communityMint),
-        'Governing mint'
-      );
-
-      const tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
-        programId,
-        realmPk,
-        governingMintPk,
-        publicKey
-      );
-
-      const ix: TransactionInstruction[] = [];
-      const createdGovernancePk = await withCreateGovernance(
-        ix,
-        programId,
-        programVersion,
-        realmPk,
-        undefined,
-        buildGovernanceConfigFromForm(),
-        tokenOwnerRecordPk,
-        realmAuthorityPk,
-        realmAuthorityPk
-      );
-
-      if (createNativeTreasuryForNewWallet) {
-        await withCreateNativeTreasury(ix, programId, programVersion, createdGovernancePk, realmAuthorityPk);
-      }
-
-      const walletLabel = (newRealmWalletLabel || '').trim();
-      const proposal = buildProposalObject(
-        ix,
-        walletLabel ? `Add Realm Wallet: ${walletLabel}` : 'Add Realm Wallet',
-        `Create a new governance wallet for this realm${
-          walletLabel ? ` (${walletLabel})` : ''
-        }. New governance: ${createdGovernancePk.toBase58()}${
-          createNativeTreasuryForNewWallet ? ' with native treasury initialization.' : '.'
-        }`
-      );
-
-      closeAll();
-      setInstructions(proposal);
-      setExpandedLoader(true);
-    } catch (e: any) {
-      console.error(e);
-      enqueueSnackbar(e?.message || 'Failed to build add wallet proposal', { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -947,6 +938,24 @@ export default function GovernanceConfigView(props: any) {
                 />
               </Grid>
 
+              {connectedWalletIsRealmAuthority && (
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="caption" sx={{ opacity: 0.85 }}>
+                      Connected wallet is current realm authority.
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={!canTransferToRulesWallet || transferringAuthority}
+                      onClick={handleTransferRealmAuthorityToRulesWallet}
+                    >
+                      {transferringAuthority ? 'Transferring...' : 'Transfer to Current Governance Wallet'}
+                    </Button>
+                  </Box>
+                </Grid>
+              )}
+
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
@@ -1047,44 +1056,6 @@ export default function GovernanceConfigView(props: any) {
                 />
               </Grid>
 
-              <Grid item xs={12}>
-                <Box
-                  sx={{
-                    mt: 1,
-                    pt: 1.5,
-                    borderTop: '1px solid rgba(255,255,255,0.08)',
-                  }}
-                >
-                  <Typography variant="subtitle2" sx={{ mb: 0.75 }}>
-                    Add New Realm Wallet
-                  </Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                    Builds a proposal to create a new governance wallet using the governance config values above.
-                  </Typography>
-                </Box>
-              </Grid>
-
-              <Grid item xs={12} md={8}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Wallet Label (optional)"
-                  value={newRealmWalletLabel}
-                  onChange={(e) => setNewRealmWalletLabel(e.target.value)}
-                />
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={createNativeTreasuryForNewWallet}
-                      onChange={(e) => setCreateNativeTreasuryForNewWallet(e.target.checked)}
-                    />
-                  }
-                  label="Init Native Treasury"
-                />
-              </Grid>
             </Grid>
           )}
 
@@ -1121,27 +1092,14 @@ export default function GovernanceConfigView(props: any) {
             Advanced
           </Button>
 
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            {tabMode === 'realm' && (
-              <Button
-                disabled={loading || !publicKey}
-                onClick={handleCreateRealmWalletProposal}
-                startIcon={
-                  <AccountBalanceWalletIcon sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '14px!important' }} />
-                }
-              >
-                {loading ? 'Building...' : 'Add Wallet'}
-              </Button>
-            )}
-            <Button
-              autoFocus
-              disabled={loading || !publicKey}
-              onClick={tabMode === 'governance' ? handleCreateGovernanceConfigProposal : handleCreateRealmConfigProposal}
-              startIcon={<SettingsIcon sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '14px!important' }} />}
-            >
-              {loading ? 'Building...' : 'Create Proposal'}
-            </Button>
-          </Box>
+          <Button
+            autoFocus
+            disabled={loading || !publicKey}
+            onClick={tabMode === 'governance' ? handleCreateGovernanceConfigProposal : handleCreateRealmConfigProposal}
+            startIcon={<SettingsIcon sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '14px!important' }} />}
+          >
+            {loading ? 'Building...' : 'Create Proposal'}
+          </Button>
         </DialogActions>
       </BootstrapDialog>
     </>
