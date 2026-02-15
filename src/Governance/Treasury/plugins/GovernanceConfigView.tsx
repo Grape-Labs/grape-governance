@@ -50,7 +50,7 @@ import { useSnackbar } from 'notistack';
 import AdvancedProposalView from './AdvancedProposalView';
 import { getGrapeGovernanceProgramVersion } from '../../../utils/grapeTools/helpers';
 import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
-import { getRealmConfigIndexed } from '../../api/queries';
+import { getAllTokenOwnerRecordsIndexed, getRealmConfigIndexed } from '../../api/queries';
 
 const U64_MAX = '18446744073709551615';
 
@@ -64,6 +64,13 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
 }));
 
 type TabMode = 'governance' | 'realm';
+type GovernanceSecurityGuideMode = 'balanced' | 'strict';
+
+const GOVERNANCE_FORM_DEFAULTS = {
+  minInstructionHoldUpTimeHours: 0,
+  votingCoolOffTimeHours: 0,
+  disableCommunityProposalCreation: false,
+};
 
 function toBase58OrEmpty(value: any): string {
   try {
@@ -176,6 +183,23 @@ function voteTippingFromConfig(value: any, fallback: VoteTipping): VoteTipping {
   return VoteTipping.Strict;
 }
 
+function percentile(sortedValues: number[], p: number): number {
+  if (!sortedValues.length) return 0;
+  const clamped = Math.max(0, Math.min(1, p));
+  const idx = (sortedValues.length - 1) * clamped;
+  const low = Math.floor(idx);
+  const high = Math.ceil(idx);
+  if (low === high) return sortedValues[low];
+  const w = idx - low;
+  return sortedValues[low] * (1 - w) + sortedValues[high] * w;
+}
+
+function formatSuggestedUiAmount(value: number, decimals: number): string {
+  if (!Number.isFinite(value) || value <= 0) return '0';
+  const maxDecimals = Math.min(6, Math.max(0, decimals));
+  return value.toFixed(maxDecimals).replace(/\.?0+$/, '');
+}
+
 export default function GovernanceConfigView(props: any) {
   const realm = props?.realm;
   const rulesWallet = props?.rulesWallet;
@@ -226,6 +250,45 @@ export default function GovernanceConfigView(props: any) {
   const [communityVetoVoteThresholdValue, setCommunityVetoVoteThresholdValue] = React.useState<number>(60);
   const [councilVoteTipping, setCouncilVoteTipping] = React.useState<VoteTipping>(VoteTipping.Strict);
 
+  const applyGovernanceSecurityGuide = React.useCallback((mode: GovernanceSecurityGuideMode) => {
+    // Guide updates are non-destructive: only fill fields that still look unset/default.
+    let changed = 0;
+    const recommendedHoldUp = mode === 'strict' ? 4 : 1;
+    const recommendedCoolOff = mode === 'strict' ? 8 : 1;
+
+    if (Number(minInstructionHoldUpTimeHours || 0) === GOVERNANCE_FORM_DEFAULTS.minInstructionHoldUpTimeHours) {
+      setMinInstructionHoldUpTimeHours(recommendedHoldUp);
+      changed++;
+    }
+
+    if (Number(votingCoolOffTimeHours || 0) === GOVERNANCE_FORM_DEFAULTS.votingCoolOffTimeHours) {
+      setVotingCoolOffTimeHours(recommendedCoolOff);
+      changed++;
+    }
+
+    if (
+      mode === 'strict' &&
+      disableCommunityProposalCreation === GOVERNANCE_FORM_DEFAULTS.disableCommunityProposalCreation
+    ) {
+      setDisableCommunityProposalCreation(true);
+      changed++;
+    }
+
+    if (changed > 0) {
+      enqueueSnackbar(
+        `${mode === 'strict' ? 'Strict' : 'Balanced'} guide applied to ${changed} unset field${changed === 1 ? '' : 's'}.`,
+        { variant: 'success' }
+      );
+    } else {
+      enqueueSnackbar('Guide skipped: existing values already set.', { variant: 'info' });
+    }
+  }, [
+    minInstructionHoldUpTimeHours,
+    votingCoolOffTimeHours,
+    disableCommunityProposalCreation,
+    enqueueSnackbar,
+  ]);
+
   // Realm config fields
   const [realmAuthority, setRealmAuthority] = React.useState<string>('');
   const [councilMint, setCouncilMint] = React.useState<string>('');
@@ -241,6 +304,17 @@ export default function GovernanceConfigView(props: any) {
   const [councilTokenType, setCouncilTokenType] = React.useState<GoverningTokenType>(GoverningTokenType.Membership);
   const [councilVoterWeightAddin, setCouncilVoterWeightAddin] = React.useState<string>('');
   const [councilMaxVoterWeightAddin, setCouncilMaxVoterWeightAddin] = React.useState<string>('');
+  const [communityMinProposalGuidance, setCommunityMinProposalGuidance] = React.useState<{
+    holders: number;
+    activeHolders: number;
+    balanced: string;
+    strict: string;
+    balancedEligiblePctAll: number;
+    strictEligiblePctAll: number;
+    balancedEligiblePctActive: number;
+    strictEligiblePctActive: number;
+  } | null>(null);
+  const [communityMinProposalGuidanceLoading, setCommunityMinProposalGuidanceLoading] = React.useState(false);
 
   const toggleGoverningMintSelected = React.useCallback(
     (council: boolean) => {
@@ -408,6 +482,97 @@ export default function GovernanceConfigView(props: any) {
       cancelled = true;
     };
   }, [open, fetchMintDecimals, initializeGovernanceConfig, initializeRealmConfig]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const realmPk = toBase58OrEmpty(realm?.pubkey);
+    const realmOwner = toBase58OrEmpty(realm?.owner);
+    const communityMint = toBase58OrEmpty(realm?.account?.communityMint);
+    if (!realmPk || !realmOwner || !communityMint) {
+      setCommunityMinProposalGuidance(null);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        setCommunityMinProposalGuidanceLoading(true);
+        const records = await getAllTokenOwnerRecordsIndexed(realmPk, realmOwner, undefined, communityMint);
+        if (cancelled) return;
+
+        const holderRows = (Array.isArray(records) ? records : [])
+          .map((item: any) => {
+            const raw = toBnString(item?.account?.governingTokenDepositAmount, '0');
+            const balance = Number(rawAmountToUiString(raw, communityMintDecimals));
+            const totalVotes = toSafeInt(item?.account?.totalVotesCount, 0);
+            const unrelinquished = toSafeInt(item?.account?.unrelinquishedVotesCount, 0);
+            const outstanding = toSafeInt(item?.account?.outstandingProposalCount, 0);
+            const isActive = totalVotes > 0 || unrelinquished > 0 || outstanding > 0;
+            return {
+              balance: Number.isFinite(balance) ? balance : 0,
+              isActive,
+            };
+          })
+          .filter((item: { balance: number }) => item.balance > 0);
+
+        if (!holderRows.length) {
+          setCommunityMinProposalGuidance(null);
+          return;
+        }
+
+        const allBalances = holderRows.map((item: { balance: number }) => item.balance).sort((a: number, b: number) => a - b);
+        const activeBalances = holderRows
+          .filter((item: { isActive: boolean }) => item.isActive)
+          .map((item: { balance: number }) => item.balance)
+          .sort((a: number, b: number) => a - b);
+
+        const holderCount = allBalances.length;
+        const activeCount = activeBalances.length;
+        const minActiveSample = Math.max(10, Math.ceil(holderCount * 0.05));
+        const scoringPool = activeCount >= minActiveSample ? activeBalances : allBalances;
+
+        // Higher anti-spam defaults:
+        // Balanced targets roughly top 25% of the activity-weighted cohort.
+        // Strict targets roughly top 10% of the activity-weighted cohort.
+        const balancedQuantile = percentile(scoringPool, 0.75);
+        const strictQuantile = percentile(scoringPool, 0.9);
+
+        // Enforce a supply-based floor so whales can't lower threshold by sparse activity.
+        const totalCommunityUiSupply = allBalances.reduce((acc: number, v: number) => acc + v, 0);
+        const balancedSupplyFloor = totalCommunityUiSupply * 0.0025; // 0.25%
+        const strictSupplyFloor = totalCommunityUiSupply * 0.005; // 0.50%
+
+        const minGranularity = communityMintDecimals > 0 ? 1 / Math.pow(10, Math.min(communityMintDecimals, 6)) : 1;
+        const balanced = Math.max(minGranularity, balancedQuantile, balancedSupplyFloor);
+        const strict = Math.max(minGranularity, strictQuantile, strictSupplyFloor);
+
+        const balancedEligibleAll = allBalances.filter((v: number) => v >= balanced).length;
+        const strictEligibleAll = allBalances.filter((v: number) => v >= strict).length;
+        const balancedEligibleActive = activeBalances.filter((v: number) => v >= balanced).length;
+        const strictEligibleActive = activeBalances.filter((v: number) => v >= strict).length;
+
+        setCommunityMinProposalGuidance({
+          holders: holderCount,
+          activeHolders: activeCount,
+          balanced: formatSuggestedUiAmount(balanced, communityMintDecimals),
+          strict: formatSuggestedUiAmount(strict, communityMintDecimals),
+          balancedEligiblePctAll: Number(((balancedEligibleAll / holderCount) * 100).toFixed(1)),
+          strictEligiblePctAll: Number(((strictEligibleAll / holderCount) * 100).toFixed(1)),
+          balancedEligiblePctActive: activeCount > 0 ? Number(((balancedEligibleActive / activeCount) * 100).toFixed(1)) : 0,
+          strictEligiblePctActive: activeCount > 0 ? Number(((strictEligibleActive / activeCount) * 100).toFixed(1)) : 0,
+        });
+      } catch (e) {
+        console.log('Failed to compute community proposal threshold guidance', e);
+        if (!cancelled) setCommunityMinProposalGuidance(null);
+      } finally {
+        if (!cancelled) setCommunityMinProposalGuidanceLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, realm, communityMintDecimals]);
 
   const closeAll = () => {
     setOpen(false);
@@ -718,6 +883,57 @@ export default function GovernanceConfigView(props: any) {
 
           {tabMode === 'governance' && (
             <Grid container spacing={1.2}>
+              <Grid item xs={12}>
+                <Box
+                  sx={{
+                    p: 1.25,
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    background: 'rgba(255,255,255,0.03)',
+                  }}
+                >
+                  <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                    Anti-spam Security Guide
+                  </Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.8, display: 'block', mb: 1 }}>
+                    Guides are non-destructive and only fill fields that are still unset/default.
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 0.75 }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => applyGovernanceSecurityGuide('balanced')}
+                    >
+                      Apply Balanced Guide
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => applyGovernanceSecurityGuide('strict')}
+                    >
+                      Apply Strict Guide
+                    </Button>
+                  </Box>
+                  <Typography variant="caption" sx={{ display: 'block', opacity: 0.75 }}>
+                    Recommended: community proposal threshold around 0.1%-0.5% of community voting supply,
+                    deposit exempt count at 0, council min at 1 (membership councils), and non-zero hold-up/cool-off.
+                  </Typography>
+                  {communityMinProposalGuidanceLoading ? (
+                    <Typography variant="caption" sx={{ display: 'block', opacity: 0.65, mt: 0.6 }}>
+                      Calculating holder-based recommendation...
+                    </Typography>
+                  ) : (
+                    communityMinProposalGuidance && (
+                      <Typography variant="caption" sx={{ display: 'block', opacity: 0.85, mt: 0.6 }}>
+                        Activity-weighted guide ({communityMinProposalGuidance.holders} holders, {communityMinProposalGuidance.activeHolders} active): Balanced{' '}
+                        <b>{communityMinProposalGuidance.balanced}</b> (~{communityMinProposalGuidance.balancedEligiblePctActive}% active / {communityMinProposalGuidance.balancedEligiblePctAll}% all) | Strict{' '}
+                        <b>{communityMinProposalGuidance.strict}</b> (~{communityMinProposalGuidance.strictEligiblePctActive}% active / {communityMinProposalGuidance.strictEligiblePctAll}% all).
+                      </Typography>
+                    )
+                  )}
+                </Box>
+              </Grid>
+
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth

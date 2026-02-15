@@ -308,6 +308,69 @@ export function GovernanceProposalV2View(props: any){
     const [vetoCount, setVetoCount] = React.useState<number | null>(null);
     const [vetoVoters, setVetoVoters] = React.useState<any[]>([]);
 
+    const normalizePkString = React.useCallback((value: any): string | null => {
+        try {
+            if (!value) return null;
+            if (typeof value === "string") return new PublicKey(value).toBase58();
+            if (value?.toBase58) return value.toBase58();
+            return new PublicKey(value).toBase58();
+        } catch {
+            try {
+                return typeof value === "string" ? value : String(value);
+            } catch {
+                return null;
+            }
+        }
+    }, []);
+
+    const tokenOwnerRecordToAuthor = React.useMemo(() => {
+        const map = new Map<string, string>();
+        if (!Array.isArray(memberMap)) return map;
+        for (const member of memberMap) {
+            const tor = normalizePkString(member?.pubkey);
+            const owner = normalizePkString(member?.account?.governingTokenOwner);
+            if (tor && owner && !map.has(tor)) {
+                map.set(tor, owner);
+            }
+        }
+        return map;
+    }, [memberMap, normalizePkString]);
+
+    const getProposalAuthorAddress = React.useCallback((item: any): string | null => {
+        const direct = normalizePkString(item?.account?.governingTokenOwner);
+        if (direct) return direct;
+
+        const tor = normalizePkString(item?.account?.tokenOwnerRecord);
+        if (tor && tokenOwnerRecordToAuthor.has(tor)) {
+            return tokenOwnerRecordToAuthor.get(tor) || null;
+        }
+        return null;
+    }, [normalizePkString, tokenOwnerRecordToAuthor]);
+
+    const proposalAuthorAddress = React.useMemo(() => {
+        const fromState = normalizePkString(proposalAuthor);
+        if (fromState) return fromState;
+        return getProposalAuthorAddress(thisitem);
+    }, [proposalAuthor, normalizePkString, getProposalAuthorAddress, thisitem]);
+
+    const authorVetoedProposalCount = React.useMemo(() => {
+        if (!proposalAuthorAddress) return 0;
+        const source = Array.isArray(cachedGovernance) && cachedGovernance.length > 0
+            ? cachedGovernance
+            : (thisitem ? [thisitem] : []);
+        let count = 0;
+        for (const proposal of source) {
+            if (Number(proposal?.account?.state) !== 9) continue;
+            const author = getProposalAuthorAddress(proposal);
+            if (author && author === proposalAuthorAddress) {
+                count++;
+            }
+        }
+        return count;
+    }, [proposalAuthorAddress, cachedGovernance, thisitem, getProposalAuthorAddress]);
+
+    const isFlaggedMaliciousAuthor = authorVetoedProposalCount > 3;
+
 
     const [snack, setSnack] = React.useState({ open: false, msg: "" });
     const showSnack = (msg) => setSnack({ open: true, msg });
@@ -784,6 +847,28 @@ export function GovernanceProposalV2View(props: any){
         }
         return stringValue;
     }
+
+    const extractFirstHttpUrl = (value?: string | null): string | null => {
+        if (!value) return null;
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+
+        try {
+            return new URL(trimmed).toString();
+        } catch {
+            // Fall through to extracting embedded URLs from mixed text.
+        }
+
+        const match = trimmed.match(/https?:\/\/[^\s<>"')\]]+/i);
+        if (!match?.[0]) return null;
+        const candidate = match[0].replace(/[.,;!?]+$/, '');
+
+        try {
+            return new URL(candidate).toString();
+        } catch {
+            return null;
+        }
+    };
 
     const getVotingParticipants = async () => {
         setLoadingParticipants(true);
@@ -2419,70 +2504,77 @@ export function GovernanceProposalV2View(props: any){
         votingResults.sort((a:any, b:any) => a?.vote.voterWeight < b?.vote.voterWeight ? 1 : -1); 
         
         try{
-            const cleanString = thisitem.account?.descriptionLink.replace(/(\s+)(https?:\/\/[a-zA-Z0-9\.\/]+)/g, '$2');
-            if (cleanString && cleanString.length > 0 && cleanString.includes("http")) {
-                let url: URL;
+            const descriptionUrl = extractFirstHttpUrl(thisitem.account?.descriptionLink);
+            if (descriptionUrl) {
+                let url: URL | null = null;
                 try {
-                    url = new URL(cleanString);
+                    url = new URL(descriptionUrl);
                 } catch (e) {
-                    // if cleanString is somehow not a valid absolute URL, bail safely
-                    console.warn("Invalid URL:", cleanString, e);
-                    return;
+                    // If description text includes malformed URL content, skip link-specific rendering only.
+                    console.warn("Invalid URL:", thisitem.account?.descriptionLink, e);
                 }
 
-                const hostname = (url.hostname || "").toLowerCase();
-                const parts = (url.pathname || "").split("/");
+                if (!url) {
+                    setGist(null);
+                    setGoogleDocs(null);
+                    setGitBook(null);
+                    setIrys(null);
+                } else {
 
-                // gist id is typically /{user}/{gistId}[...]
-                const gistId = parts.length > 2 ? parts[2] : null;
+                    const hostname = (url.hostname || "").toLowerCase();
+                    const parts = (url.pathname || "").split("/");
 
-                // reset (optional but prevents stale state)
-                setGist(null);
-                setGoogleDocs(null);
-                setGitBook(null);
-                setIrys(null);
+                    // gist id is typically /{user}/{gistId}[...]
+                    const gistId = parts.length > 2 ? parts[2] : null;
 
-                if (hostname === "gist.github.com") {
-                    setGist(gistId);
+                    // reset (optional but prevents stale state)
+                    setGist(null);
+                    setGoogleDocs(null);
+                    setGitBook(null);
+                    setIrys(null);
 
-                    const rpd = await resolveProposalDescription(cleanString);
+                    if (hostname === "gist.github.com") {
+                        setGist(gistId);
 
-                    const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
-                    const targetUrl =
-                    "https://shdw-drive.genesysgo.net/4HMWqo1YLwnxuVbh4c8KXMcZvQj4aw7oxnNmWVm4RmVV/Screenshot_2023-05-28_at_10.43.34.png";
+                        const rpd = await resolveProposalDescription(descriptionUrl);
 
-                    const stringWithPreviews = rpd.replace(imageUrlRegex, (match: string) => {
-                    if (match === targetUrl) return GIST_LOGO;
-                    return `![Image X](${match})`;
-                    });
+                        const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
+                        const targetUrl =
+                        "https://shdw-drive.genesysgo.net/4HMWqo1YLwnxuVbh4c8KXMcZvQj4aw7oxnNmWVm4RmVV/Screenshot_2023-05-28_at_10.43.34.png";
 
-                    setProposalDescription(stringWithPreviews);
-                } else if (hostname === "docs.google.com") {
-                    setGoogleDocs(cleanString); // store the URL (or a flag if you prefer)
-                } else if (hostname.includes("gitbook.io")) {
-                    setGitBook(cleanString); // store the URL (or a flag)
-                } else if (hostname.endsWith("irys.xyz")) {
-                    setIrysLoading(true);
-                    setIrysError(null);
-                    setIrysUrl(url.href);
-
-                    try {
-                        const raw = await fetchIrysText(url.href);
-
-                        // Sanitize. Keep basic formatting tags; block scripts, onclick, etc.
-                        const safe = DOMPurify.sanitize(raw, {
-                        USE_PROFILES: { html: true },
-                        // Optional: if you want to allow images and links (safe defaults are ok)
-                        // ADD_TAGS: ["img"],
-                        // ADD_ATTR: ["target", "rel"],
+                        const stringWithPreviews = rpd.replace(imageUrlRegex, (match: string) => {
+                        if (match === targetUrl) return GIST_LOGO;
+                        return `![Image X](${match})`;
                         });
 
-                        setIrysHtml(safe);
-                    } catch (e: any) {
-                        setIrysHtml(null);
-                        setIrysError(e?.message || "Failed to load Irys content");
-                    } finally {
-                        setIrysLoading(false);
+                        setProposalDescription(stringWithPreviews);
+                    } else if (hostname === "docs.google.com") {
+                        setGoogleDocs(descriptionUrl); // store the URL (or a flag if you prefer)
+                    } else if (hostname.includes("gitbook.io")) {
+                        setGitBook(descriptionUrl); // store the URL (or a flag)
+                    } else if (hostname.endsWith("irys.xyz")) {
+                        setIrysLoading(true);
+                        setIrysError(null);
+                        setIrysUrl(url.href);
+
+                        try {
+                            const raw = await fetchIrysText(url.href);
+
+                            // Sanitize. Keep basic formatting tags; block scripts, onclick, etc.
+                            const safe = DOMPurify.sanitize(raw, {
+                            USE_PROFILES: { html: true },
+                            // Optional: if you want to allow images and links (safe defaults are ok)
+                            // ADD_TAGS: ["img"],
+                            // ADD_ATTR: ["target", "rel"],
+                            });
+
+                            setIrysHtml(safe);
+                        } catch (e: any) {
+                            setIrysHtml(null);
+                            setIrysError(e?.message || "Failed to load Irys content");
+                        } finally {
+                            setIrysLoading(false);
+                        }
                     }
                 }
             }
@@ -3172,6 +3264,22 @@ export function GovernanceProposalV2View(props: any){
                         {moment.unix(Number(thisitem.account?.draftAt)).format("MMMM D, YYYY, h:mm a")}
                       </Button>
                     </Tooltip>
+                    {isFlaggedMaliciousAuthor && (
+                      <Tooltip title={`Author has ${authorVetoedProposalCount} vetoed proposals. Flagged as malicious.`}>
+                        <Chip
+                          size="small"
+                          icon={<WarningIcon sx={{ fontSize: '0.9rem !important' }} />}
+                          label={`Risk: ${authorVetoedProposalCount} vetoed`}
+                          sx={{
+                            height: 22,
+                            fontSize: '0.7rem',
+                            borderRadius: '8px',
+                            backgroundColor: 'rgba(244, 67, 54, 0.22)',
+                            color: 'rgba(255,255,255,0.95)',
+                          }}
+                        />
+                      </Tooltip>
+                    )}
                   </Stack>
 
                   <Typography variant="subtitle1" sx={{ mt: 0.5 }}>
