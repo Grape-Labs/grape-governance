@@ -221,7 +221,9 @@ export function VoteForProposal(props:any){
         border: "1px solid rgba(255,255,255,0.10)",
         borderRadius: 16,
         color: "#fff",
-        minWidth: 340,
+        minWidth: 0,
+        width: "min(340px, calc(100vw - 24px))",
+        maxWidth: "calc(100vw - 24px)",
         boxShadow: "0 18px 55px rgba(0,0,0,0.65)",
         overflow: "hidden",
     },
@@ -446,12 +448,9 @@ export function VoteForProposal(props:any){
         }
     }
 
-    // Chunked vote sender for: own vote + delegate votes (all or single)
-    // Notes:
-    // - Sends multiple transactions when voting with many delegates to avoid tx size/compute limits
-    // - Uses simulateTransaction for actionable logs
-    // - Uses the SAME blockhash for send+confirm per tx (important!)
-    // - Fixes memberItem mint comparison bug
+    // Single-vote sender:
+    // - Casts one vote instruction per action (own or one delegated owner)
+    // - Prevents "cast all delegated votes" multi-instruction flow which can fail on-chain
     const handleVote = async (
     type: Number,
     delegate?: string,
@@ -466,6 +465,13 @@ export function VoteForProposal(props:any){
 
         const wOwner = !!withOwnerRecord;
         const wAllDelegates = !!withAllDelegates;
+
+        if (wAllDelegates) {
+        enqueueSnackbar("Casting all delegated votes at once is disabled. Vote one delegate at a time.", {
+            variant: "warning",
+        });
+        return;
+        }
 
         setAnchorElYes(false);
         setAnchorElNo(false);
@@ -534,7 +540,9 @@ export function VoteForProposal(props:any){
 
         // Helper: has already voted?
         const hasVoted = (owner58: string) =>
-        votingParticipants.some((p: any) => p.governingTokenOwner === owner58);
+        (Array.isArray(votingParticipants) ? votingParticipants : []).some(
+            (p: any) => p.governingTokenOwner === owner58
+        );
 
         // Add "own vote" (optional)
         if (wOwner) {
@@ -565,9 +573,7 @@ export function VoteForProposal(props:any){
         }
 
         // Add delegate votes
-        if (delegatedItems && delegatedItems.length) {
-        let addCnt = ixs.length; // count of votes we intend to include
-
+        if (delegatedItems && delegatedItems.length && delegate) {
         for (const delegateItem of delegatedItems) {
             const owner58 = delegateItem?.account?.governingTokenOwner?.toBase58?.();
             if (!owner58) continue;
@@ -575,31 +581,6 @@ export function VoteForProposal(props:any){
             // skip if already voted
             if (hasVoted(owner58)) continue;
 
-            // Determine whether this delegate should be included
-            if (wAllDelegates) {
-            // quorum limiting: only include up to quorum
-            if (quorum && quorum > 0 && addCnt >= quorum) {
-                continue;
-            }
-
-            const ix = await createCastVoteTransaction(
-                realm,
-                publicKey,
-                transactionData,
-                delegateItem,
-                owner58, // delegator
-                isCommunityVote,
-                multiChoice,
-                type
-            );
-
-            if (ix) {
-                ixs.push(ix);
-                addCnt++;
-                console.log("Adding delegate vote for:", owner58);
-            }
-            } else if (delegate) {
-            // single delegate mode
             if (delegate === owner58) {
                 const ix = await createCastVoteTransaction(
                 realm,
@@ -614,7 +595,6 @@ export function VoteForProposal(props:any){
                 if (ix) ixs.push(ix);
                 break;
             }
-            }
         }
         }
 
@@ -627,33 +607,10 @@ export function VoteForProposal(props:any){
         return;
         }
 
-        // -------------------------
-        // Chunk & send transactions
-        // -------------------------
-        // Start small. Increase to 3–4 if you confirm it works reliably.
-        const CHUNK_SIZE = 2;
-
-        // Make instruction chunks
-        const chunks: any[][] = [];
-        for (let i = 0; i < ixs.length; i += CHUNK_SIZE) {
-        chunks.push(ixs.slice(i, i + CHUNK_SIZE));
-        }
-
-        enqueueSnackbar(
-        chunks.length > 1
-            ? `Preparing to cast ${ixs.length} votes in ${chunks.length} transactions…`
-            : `Preparing to cast vote…`,
-        { variant: "info" }
-        );
-
+        enqueueSnackbar("Preparing to cast vote…", { variant: "info" });
         const snackprogress = (key: any) => <CircularProgress sx={{ padding: "10px" }} />;
-
-        // Send each chunk as its own transaction
-        const sigs: string[] = [];
-
-        for (let i = 0; i < chunks.length; i++) {
         const voteTx = new Transaction();
-        for (const ix of chunks[i]) voteTx.add(ix);
+        voteTx.add(ixs[0]);
 
         // IMPORTANT: use same blockhash for send+confirm for this tx
         const { blockhash, lastValidBlockHeight } = await RPC_CONNECTION.getLatestBlockhash(
@@ -678,7 +635,7 @@ export function VoteForProposal(props:any){
             console.warn("simulateTransaction failed (continuing):", e);
         }
 
-        const cnfrmkey = enqueueSnackbar(`Confirming transaction ${i + 1}/${chunks.length}`, {
+        const cnfrmkey = enqueueSnackbar(`Confirming transaction`, {
             variant: "info",
             action: snackprogress,
             persist: true,
@@ -695,7 +652,6 @@ export function VoteForProposal(props:any){
             "confirmed"
             );
 
-            sigs.push(signature);
             closeSnackbar(cnfrmkey);
 
             const action = (key: any) => (
@@ -708,20 +664,14 @@ export function VoteForProposal(props:any){
             </Button>
             );
 
-            enqueueSnackbar(
-            chunks.length > 1
-                ? `Vote transaction ${i + 1}/${chunks.length} confirmed`
-                : `Vote confirmed`,
-            { variant: "success", action }
-            );
+            enqueueSnackbar(`Vote confirmed`, { variant: "success", action });
         } catch (e: any) {
             closeSnackbar(cnfrmkey);
             console.error("vote tx failed:", e);
             enqueueSnackbar(e?.message ? `${e.name}: ${e.message}` : e?.name || "Vote failed", {
             variant: "error",
             });
-            return; // stop on first failure; change if you want to continue remaining chunks
-        }
+            return;
         }
 
         // Refresh participants after last tx
@@ -879,12 +829,21 @@ export function VoteForProposal(props:any){
                     sx={{
                       borderRadius: "18px",
                       overflow: "hidden",
+                      width: { xs: "100%", sm: "auto" },
+                      maxWidth: "100%",
                       "& .MuiButton-root": { textTransform: "none" },
                     }}
                   >
                     <Button
                       onClick={handleVoteYes}
-                      sx={{ borderRadius: 0, px: 2, py: 1, minWidth: 210 }}
+                      sx={{
+                        borderRadius: 0,
+                        px: { xs: 1.25, sm: 2 },
+                        py: 1,
+                        minWidth: { xs: 0, sm: 210 },
+                        width: { xs: "100%", sm: "auto" },
+                        maxWidth: "100%",
+                      }}
                     >
                       {title && subtitle && showIcon ? (
                         <Grid container direction="column" alignItems="center">
@@ -897,9 +856,9 @@ export function VoteForProposal(props:any){
                             </Grid>
                           </Grid>
 
-                          <Grid item sx={{ minWidth: "140px" }}>
+                          <Grid item sx={{ minWidth: { xs: 0, sm: "140px" }, width: "100%" }}>
                             <Divider sx={{ my: 0.5, opacity: 0.35 }} />
-                            <Typography sx={{ fontSize: "11px", opacity: 0.9 }}>
+                            <Typography sx={{ fontSize: "11px", opacity: 0.9, textAlign: "center" }}>
                               {subtitle}
                             </Typography>
                           </Grid>
@@ -983,9 +942,8 @@ export function VoteForProposal(props:any){
                         })}
 
                       <Divider />
-
-                      <MenuItem onClick={() => handleVote(0, null, true, true)}>
-                        Vote with all my delegated Voting Power
+                      <MenuItem disabled>
+                        Cast delegated votes one at a time
                       </MenuItem>
                     </MenuList>
                   </ClickAwayListener>
@@ -994,42 +952,67 @@ export function VoteForProposal(props:any){
             ) : (
               <>
                 {/* NO: keep your existing behavior (button + separate caret/menu) */}
-                {!hasVoted && (
-                  <Button
+                {!hasVoted ? (
+                  <ButtonGroup
                     variant="outlined"
                     color="error"
-                    onClick={handleVoteNo}
-                    sx={{ borderRadius: "17px", textTransform: "none" }}
+                    sx={{
+                      borderRadius: "18px",
+                      overflow: "hidden",
+                      width: { xs: "100%", sm: "auto" },
+                      maxWidth: "100%",
+                      "& .MuiButton-root": { textTransform: "none" },
+                    }}
                   >
-                    {title && subtitle && showIcon ? (
-                      <Grid container direction="column" alignItems="center">
-                        <Grid item>
-                          <Grid container direction="row" alignItems="center">
-                            <Grid item>
-                              {type === 0 ? (
-                                <ThumbUpIcon fontSize="small" sx={{ mr: 0.25, ml: 0.25 }} />
-                              ) : (
-                                <ThumbDownIcon fontSize="small" sx={{ mr: 0.25, ml: 0.25 }} />
-                              )}
+                    <Button
+                      onClick={handleVoteNo}
+                      sx={{
+                        borderRadius: 0,
+                        px: { xs: 1.25, sm: 2 },
+                        py: 1,
+                        minWidth: { xs: 0, sm: 210 },
+                        width: { xs: "100%", sm: "auto" },
+                        maxWidth: "100%",
+                      }}
+                    >
+                      {title && subtitle && showIcon ? (
+                        <Grid container direction="column" alignItems="center">
+                          <Grid item>
+                            <Grid container direction="row" alignItems="center">
+                              <Grid item>
+                                <ThumbDownIcon fontSize="small" sx={{ mr: 0.5 }} />
+                              </Grid>
+                              <Grid item>{title}</Grid>
                             </Grid>
-                            <Grid item>{title}</Grid>
+                          </Grid>
+                          <Grid item sx={{ minWidth: { xs: 0, sm: "140px" }, width: "100%" }}>
+                            <Divider sx={{ my: 0.5, opacity: 0.35 }} />
+                            <Typography sx={{ fontSize: "11px", opacity: 0.9, textAlign: "center" }}>
+                              {subtitle}
+                            </Typography>
                           </Grid>
                         </Grid>
+                      ) : (
+                        <>Vote NO</>
+                      )}
+                    </Button>
 
-                        <Grid item sx={{ minWidth: "100px" }}>
-                          <Divider />
-                          <Grid sx={{ mt: 0.5 }}>
-                            <Typography sx={{ fontSize: "10px" }}>{subtitle}</Typography>
-                          </Grid>
-                        </Grid>
-                      </Grid>
-                    ) : (
-                      <>Vote NO</>
+                    {(delegatedVoterRecord && delegatedVoterRecord.length > 0) && (
+                      <Button
+                        size="small"
+                        aria-controls={openDelegateNo ? "basic-no-menu" : undefined}
+                        aria-haspopup="true"
+                        aria-expanded={openDelegateNo ? "true" : undefined}
+                        onClick={handleDelegateOpenNoToggle}
+                        sx={{ borderRadius: 0, px: 1.1, minWidth: 44 }}
+                      >
+                        <ArrowDropDownIcon />
+                      </Button>
                     )}
-                  </Button>
-                )}
+                  </ButtonGroup>
+                ) : null}
 
-                {(delegatedVoterRecord && delegatedVoterRecord.length > 0) && (
+                {(hasVoted && delegatedVoterRecord && delegatedVoterRecord.length > 0) && (
                   <>
                     <Button
                       size="small"
@@ -1084,9 +1067,8 @@ export function VoteForProposal(props:any){
                             })}
 
                           <Divider />
-
-                          <MenuItem onClick={() => handleVote(1, null, true, true)}>
-                            Vote with all my delegated Voting Power
+                          <MenuItem disabled>
+                            Cast delegated votes one at a time
                           </MenuItem>
                         </MenuList>
                       </ClickAwayListener>

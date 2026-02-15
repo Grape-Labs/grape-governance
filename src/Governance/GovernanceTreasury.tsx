@@ -276,6 +276,15 @@ export function GovernanceTreasuryView(props: any) {
     }
   };
 
+  const realmAuthorityWallet = toBase58OrEmpty(realm?.account?.authority);
+  const hasRealmAuthorityWallet =
+    Array.isArray(governanceWallets) &&
+    governanceWallets.some((item: any) => toBase58OrEmpty(item?.pubkey) === realmAuthorityWallet);
+  const showCreateTreasuryWalletButton =
+    Boolean(realmAuthorityWallet) &&
+    Boolean(hasRealmAuthorityWallet) &&
+    (!filterRulesWallet || filterRulesWallet === realmAuthorityWallet);
+
   return (
     <>
       {(loading && !governanceWallets) ? (
@@ -310,7 +319,7 @@ export function GovernanceTreasuryView(props: any) {
                 gsplMetadata={gsplMetadata}
               />
               <Grid item xs={6} container justifyContent="flex-end" alignItems="center" sx={{ gap: 1 }}>
-                {!filterRulesWallet && (
+                {showCreateTreasuryWalletButton && (
                   <CreateTreasuryWalletProposalButton
                     realm={realm}
                     governanceAddress={governanceAddress}

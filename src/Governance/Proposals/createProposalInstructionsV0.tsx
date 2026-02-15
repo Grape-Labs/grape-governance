@@ -77,7 +77,14 @@ export async function createProposalInstructionsV0(
   _returnTx?: boolean,
   payer: PublicKey = walletPk,
   editAddress?: PublicKey,
-  callbacks?: Parameters<typeof sendTransactionsV3>[0]['callbacks']
+  callbacks?: Parameters<typeof sendTransactionsV3>[0]['callbacks'],
+  proposalConfig?: {
+    options?: string[]
+    voteType?: 'single' | 'multi'
+    useDenyOption?: boolean
+    maxVoterOptions?: number
+    maxWinningOptions?: number
+  }
 ): Promise<{ address: PublicKey; transactionSuccess: boolean }> {
   const programId = new PublicKey(token_realm_program_id)
   const signatory = walletPk
@@ -142,8 +149,50 @@ export async function createProposalInstructionsV0(
 
   const baseInstructions: TransactionInstruction[] = []
 
-  const voteType = VoteType.SINGLE_CHOICE
-  const options = ['Approve']
+  const requestedOptions = Array.isArray(proposalConfig?.options)
+    ? proposalConfig.options
+        .map((item) => `${item ?? ''}`.trim())
+        .filter((item) => !!item)
+    : []
+
+  const options = requestedOptions.length > 0 ? requestedOptions : ['Approve']
+
+  const isMultiChoice =
+    proposalConfig?.voteType === 'multi' || (proposalConfig?.voteType !== 'single' && options.length > 1)
+
+  const maxVoterOptions = isMultiChoice
+    ? Math.max(
+        1,
+        Math.min(
+          proposalConfig?.maxVoterOptions ?? options.length,
+          options.length
+        )
+      )
+    : 1
+
+  const maxWinningOptions = isMultiChoice
+    ? Math.max(
+        1,
+        Math.min(
+          proposalConfig?.maxWinningOptions ?? options.length,
+          options.length
+        )
+      )
+    : 1
+
+  const voteType = isMultiChoice
+    ? VoteType.MULTI_CHOICE(
+        MultiChoiceType.FullWeight,
+        1,
+        maxVoterOptions,
+        maxWinningOptions
+      )
+    : VoteType.SINGLE_CHOICE
+
+  const useDenyOption =
+    proposalConfig?.useDenyOption !== undefined
+      ? !!proposalConfig.useDenyOption
+      : !isMultiChoice
 
   let proposalAddress: PublicKey
 
@@ -162,7 +211,7 @@ export async function createProposalInstructionsV0(
       proposalIndex,
       voteType,
       options,
-      true,
+      useDenyOption,
       payer
     )
 

@@ -30,7 +30,11 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Divider,
   Grid,
+  List,
+  ListItem,
+  ListItemText,
   Tooltip,
   Typography,
   CircularProgress,
@@ -70,6 +74,12 @@ export type VetoVoteRowProps = {
   caption?: string;
 
   vetoCount?: number; // number of VoteRecords that are VoteKind.Veto for this proposal
+  vetoVoters?: Array<{
+    id?: string;
+    governingTokenOwner?: string;
+    voteAddress?: string;
+    voterWeight?: number | null;
+  }>;
 };
 
 // ----------------------------
@@ -143,8 +153,21 @@ function detectVetoMode(realm: AnyRealm, proposal: AnyProposal): VetoMode {
   return { ok: false, reason: "no council mint" };
 }
 
-function canShowVetoRow(realm: AnyRealm, proposal: AnyProposal, walletPk58?: string) {
-  if (!walletPk58) return false;
+function canShowVetoRow(
+  realm: AnyRealm,
+  proposal: AnyProposal,
+  vetoCount?: number,
+  vetoVoters?: Array<any>
+) {
+  const hasVetoHistory =
+    proposal?.account?.state === 9 ||
+    (typeof vetoCount === "number" && vetoCount > 0) ||
+    (Array.isArray(vetoVoters) && vetoVoters.length > 0);
+
+  // Always allow showing history/review UI when there are vetoes or proposal is vetoed.
+  if (hasVetoHistory) return true;
+
+  // Casting veto action is only relevant while voting.
   if (!isVotingState(proposal)) return false;
 
   const mode = detectVetoMode(realm, proposal);
@@ -174,27 +197,41 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
   const [openConfirm, setOpenConfirm] = React.useState(false);
+  const [openVetoVoters, setOpenVetoVoters] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
 
   const walletPk58 = publicKey?.toBase58?.();
   const isBlacklisted = !!walletPk58 && BLACKLIST_WALLETS.includes(walletPk58);
+  const mode = detectVetoMode(realm, proposal);
+  const vetoCount = props.vetoCount;
+  const vetoVoters = (Array.isArray(props.vetoVoters) ? props.vetoVoters : []).filter(
+    (item) => !!(item?.governingTokenOwner || item?.voteAddress)
+  );
+  const hasVetoVoters = vetoVoters.length > 0;
+  const proposalWasVetoed = proposal?.account?.state === 9;
+  const canCastNow = isVotingState(proposal);
 
   // Don’t render unless it applies
-  if (!canShowVetoRow(realm, proposal, walletPk58)) return null;
+  if (!canShowVetoRow(realm, proposal, vetoCount, vetoVoters)) return null;
 
-  const mode = detectVetoMode(realm, proposal);
-  if (!mode.ok) return null;
+  const title = props.title ?? (mode.ok ? mode.label : "Veto");
+  const caption =
+    props.caption ??
+    (proposalWasVetoed
+      ? "This proposal is vetoed. Review wallets that cast veto votes."
+      : mode.ok
+      ? mode.caption
+      : "Veto activity for this proposal");
 
-  const title = props.title ?? mode.label;
-  const caption = props.caption ?? mode.caption;
-
-  const vetoCount = props.vetoCount;
-
-  const vetoMint58 = mode.vetoMint58;
+  const vetoMint58 = mode.ok ? mode.vetoMint58 : "";
   const councilMint58 = getCouncilMint58(realm);
 
   const handleVetoVote = async () => {
     try {
+      if (!mode.ok) {
+        enqueueSnackbar("Veto mode is not available for this proposal.", { variant: "error" });
+        return;
+      }
       if (!publicKey) {
         enqueueSnackbar("Wallet not connected.", { variant: "error" });
         return;
@@ -345,28 +382,140 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
           </Grid>
 
           <Grid item>
-            <Tooltip title={`Open ${title.toLowerCase()}`}>
-              <span>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="inherit"
-                  onClick={() => setOpenConfirm(true)}
-                  disabled={busy}
-                  endIcon={busy ? <CircularProgress size={14} /> : <ChevronRightIcon fontSize="small" />}
-                  sx={{
-                    borderRadius: "17px",
-                    textTransform: "none",
-                    borderColor: "rgba(255,255,255,0.12)",
-                  }}
-                >
-                  Veto
-                </Button>
-              </span>
-            </Tooltip>
+            <Grid container spacing={1}>
+              {(hasVetoVoters || (typeof vetoCount === "number" && vetoCount > 0) || proposalWasVetoed) && (
+                <Grid item>
+                  <Tooltip title="View veto voters">
+                    <span>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="inherit"
+                        onClick={() => setOpenVetoVoters(true)}
+                        sx={{
+                          borderRadius: "17px",
+                          textTransform: "none",
+                          borderColor: "rgba(255,255,255,0.12)",
+                        }}
+                      >
+                        Veto Voters
+                      </Button>
+                    </span>
+                  </Tooltip>
+                </Grid>
+              )}
+
+              {canCastNow && (
+                <Grid item>
+                  <Tooltip title={publicKey ? `Open ${title.toLowerCase()}` : "Connect wallet to cast veto"}>
+                    <span>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="inherit"
+                        onClick={() => setOpenConfirm(true)}
+                        disabled={busy || !publicKey}
+                        endIcon={busy ? <CircularProgress size={14} /> : <ChevronRightIcon fontSize="small" />}
+                        sx={{
+                          borderRadius: "17px",
+                          textTransform: "none",
+                          borderColor: "rgba(255,255,255,0.12)",
+                        }}
+                      >
+                        Veto
+                      </Button>
+                    </span>
+                  </Tooltip>
+                </Grid>
+              )}
+            </Grid>
           </Grid>
         </Grid>
       </Box>
+
+      <Dialog
+        open={openVetoVoters}
+        onClose={() => setOpenVetoVoters(false)}
+        PaperProps={{
+          style: {
+            background: "#13151C",
+            borderRadius: "20px",
+            border: "1px solid rgba(255,255,255,0.08)",
+          },
+        }}
+      >
+        <DialogTitle>Veto voters</DialogTitle>
+        <DialogContent>
+          {hasVetoVoters ? (
+            <List sx={{ minWidth: { xs: 280, sm: 520 }, maxWidth: "100%" }}>
+              {vetoVoters.map((item, index) => {
+                const walletAddress = item?.governingTokenOwner || "";
+                const voteAddress = item?.voteAddress || "";
+                const voterWeight = item?.voterWeight;
+                return (
+                  <React.Fragment key={`${item?.id || walletAddress || voteAddress || index}-${index}`}>
+                    <ListItem
+                      secondaryAction={
+                        <Grid container spacing={1} justifyContent="flex-end" sx={{ mr: 2 }}>
+                          {walletAddress && (
+                            <Grid item>
+                              <Button
+                                size="small"
+                                color="inherit"
+                                target="_blank"
+                                href={`https://explorer.solana.com/address/${walletAddress}`}
+                                sx={{ borderRadius: "17px", textTransform: "none" }}
+                              >
+                                Wallet
+                              </Button>
+                            </Grid>
+                          )}
+                          {voteAddress && (
+                            <Grid item>
+                              <Button
+                                size="small"
+                                color="inherit"
+                                target="_blank"
+                                href={`https://explorer.solana.com/address/${voteAddress}`}
+                                sx={{ borderRadius: "17px", textTransform: "none" }}
+                              >
+                                Vote Record
+                              </Button>
+                            </Grid>
+                          )}
+                        </Grid>
+                      }
+                    >
+                      <ListItemText
+                        primary={
+                          walletAddress
+                            ? shortenString(walletAddress, 8, 8)
+                            : voteAddress
+                            ? shortenString(voteAddress, 8, 8)
+                            : `Veto voter #${index + 1}`
+                        }
+                        secondary={
+                          voterWeight !== null && voterWeight !== undefined && Number.isFinite(Number(voterWeight))
+                            ? `Weight: ${Number(voterWeight).toLocaleString()}`
+                            : "Weight unavailable"
+                        }
+                      />
+                    </ListItem>
+                    {index < vetoVoters.length - 1 && <Divider sx={{ borderColor: "rgba(255,255,255,0.08)" }} />}
+                  </React.Fragment>
+                );
+              })}
+            </List>
+          ) : (
+            <DialogContentText sx={{ color: "#ccc" }}>
+              No veto voter records were found for this proposal.
+            </DialogContentText>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenVetoVoters(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={openConfirm}

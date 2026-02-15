@@ -1461,14 +1461,15 @@ const StakeAccountsView = () => {
                 setSimulationFailed(false);
                 const isDraft = instructions?.draft ? instructions.draft : true;
                 const proposalIxs = Array.isArray(instructions?.ix) ? instructions.ix : [];
+                const allowNoInstructions = !!instructions?.allowNoInstructions;
 
-                if (proposalIxs.length === 0 && isDraft) {
-                    console.log("Draft proposal without instructions, skipping transaction simulation");
+                if (proposalIxs.length === 0 && (isDraft || allowNoInstructions)) {
+                    console.log("Proposal without executable instructions, skipping transaction simulation");
                     setLoaderSuccess(true);
                     return;
                 }
 
-                if (proposalIxs.length === 0 && !isDraft) {
+                if (proposalIxs.length === 0 && !isDraft && !allowNoInstructions) {
                     setLoadingText("No Instructions");
                     setSimulationFailed(true);
                     setLoaderCreationComplete(true);
@@ -1601,8 +1602,9 @@ const StakeAccountsView = () => {
                 const isDraft = instructions.draft ? instructions.draft : true;
                 const returnTx = false;
                 const proposalIxs = Array.isArray(instructions?.ix) ? instructions.ix : [];
+                const allowNoInstructions = !!instructions?.allowNoInstructions;
 
-                if (!isDraft && proposalIxs.length === 0) {
+                if (!isDraft && proposalIxs.length === 0 && !allowNoInstructions) {
                     setLoadingText("No Instructions");
                     setProposalCreated(false);
                     setLoadingPropCreation(false);
@@ -1707,7 +1709,25 @@ const StakeAccountsView = () => {
                 instructions.editProposalAddress
                     ? new PublicKey(instructions.editProposalAddress)
                     : undefined,
-                undefined                                  // callbacks (optional)
+                undefined,                                  // callbacks (optional)
+                {
+                    options: Array.isArray(instructions?.proposalOptions)
+                        ? instructions.proposalOptions
+                        : undefined,
+                    voteType: instructions?.proposalVoteType,
+                    useDenyOption:
+                        instructions?.proposalUseDenyOption !== undefined
+                            ? !!instructions.proposalUseDenyOption
+                            : undefined,
+                    maxVoterOptions:
+                        typeof instructions?.proposalMaxVoterOptions === "number"
+                            ? instructions.proposalMaxVoterOptions
+                            : undefined,
+                    maxWinningOptions:
+                        typeof instructions?.proposalMaxWinningOptions === "number"
+                            ? instructions.proposalMaxWinningOptions
+                            : undefined,
+                }
                 );
                 
                 
