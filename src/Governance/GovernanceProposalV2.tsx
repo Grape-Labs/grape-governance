@@ -1834,6 +1834,58 @@ export function GovernanceProposalV2View(props: any){
                                             const stakeAcc = accountInstruction.accounts?.[0]?.pubkey;
                                             let authAcc = accountInstruction.accounts?.[1]?.pubkey;
                                             let toAcc: string | undefined = accountInstruction.accounts?.[2]?.pubkey;
+                                            const normalizePk = (pk?: unknown): string | null => {
+                                                try {
+                                                    return pk ? new PublicKey(pk as string).toBase58() : null;
+                                                } catch {
+                                                    return typeof pk === "string" ? pk : null;
+                                                }
+                                            };
+                                            const stakeAccStr = normalizePk(stakeAcc);
+
+                                            const findDelegatedLamports = (): BN | null => {
+                                                if (!stakeAccStr) return null;
+                                                const allStakeIxs = instructionItem.account.instructions || [];
+
+                                                // If this delegate comes from a split flow, use the split amount first.
+                                                for (const ix of allStakeIxs) {
+                                                    try {
+                                                        const ixProgramId = new PublicKey(ix.programId).toBase58();
+                                                        const ixData = ix.data || [];
+                                                        if (ixProgramId !== "Stake11111111111111111111111111111111111111") continue;
+                                                        if (ixData.length < 12) continue;
+                                                        if (U32(ixData, 0).toNumber() !== 3) continue; // Split
+
+                                                        const splitStakeAcc = normalizePk(ix.accounts?.[1]?.pubkey);
+                                                        if (splitStakeAcc === stakeAccStr) {
+                                                            return U64(ixData, 4);
+                                                        }
+                                                    } catch (e) {
+                                                        console.log("Stake split lookup decode error", e);
+                                                    }
+                                                }
+
+                                                // Otherwise, use the stake account funding from create account.
+                                                for (const ix of allStakeIxs) {
+                                                    try {
+                                                        const ixProgramId = new PublicKey(ix.programId).toBase58();
+                                                        const ixData = ix.data || [];
+                                                        if (ixProgramId !== "11111111111111111111111111111111") continue;
+                                                        if (ixData.length < 12) continue;
+                                                        if (U32(ixData, 0).toNumber() !== 0) continue; // CreateAccount
+
+                                                        const account0 = normalizePk(ix.accounts?.[0]?.pubkey);
+                                                        const account1 = normalizePk(ix.accounts?.[1]?.pubkey);
+                                                        if (account0 === stakeAccStr || account1 === stakeAccStr) {
+                                                            return U64(ixData, 4);
+                                                        }
+                                                    } catch (e) {
+                                                        console.log("System create account lookup decode error", e);
+                                                    }
+                                                }
+
+                                                return null;
+                                            };
 
                                             const names: Record<number,string> = {
                                                 0: "Initialize",
@@ -1868,7 +1920,15 @@ export function GovernanceProposalV2View(props: any){
                                                 } else if (tag === 2 /* Delegate */) {
                                                 const voteAcc = accountInstruction.accounts?.[1]?.pubkey;
                                                 authAcc = accountInstruction.accounts?.[5]?.pubkey || accountInstruction.accounts?.[2]?.pubkey;
-                                                extra = ` – Delegate ${shortPk(stakeAcc)} to vote ${shortPk(voteAcc)}`;
+                                                const delegatedLamportsBN = findDelegatedLamports();
+                                                if (delegatedLamportsBN) {
+                                                    const delegatedSolStr = toDecimalAmount(delegatedLamportsBN, 9);
+                                                    amountLamports = delegatedLamportsBN.toString();
+                                                    amountSol = Number(delegatedSolStr);
+                                                    extra = ` – Delegate ${formatAmount(delegatedSolStr)} SOL from ${shortPk(stakeAcc)} to vote ${shortPk(voteAcc)}`;
+                                                } else {
+                                                    extra = ` – Delegate ${shortPk(stakeAcc)} to vote ${shortPk(voteAcc)}`;
+                                                }
                                                 } else if (tag === 5 /* Deactivate */) {
                                                 authAcc = accountInstruction.accounts?.[2]?.pubkey;
                                                 extra = ` – Deactivate stake ${shortPk(stakeAcc)}`;

@@ -983,14 +983,57 @@ export default function StakeValidatorView(props: any){
 
         const parsedData: any = (accountInfo.value as any)?.data?.parsed;
         const parsedInfo: any = parsedData?.info;
-        const delegation = parsedInfo?.stake?.delegation;
-        const activeStakeLamports = delegation?.stake != null ? Number(delegation.stake) : 0;
-        if (activeStakeLamports > 0) {
+        const epochInfo = await RPC_CONNECTION.getEpochInfo();
+
+        // Prefer runtime activation state over raw delegation.stake.
+        // Delegation stake can stay non-zero even after deactivation has fully cooled down.
+        let activationState: string | null = null;
+        let activationActiveLamports = 0;
+        try {
+            const getStakeActivation = (RPC_CONNECTION as any)?.getStakeActivation;
+            if (typeof getStakeActivation === "function") {
+                const activation = await getStakeActivation.call(
+                    RPC_CONNECTION,
+                    stakeAccountPubkey,
+                    epochInfo.epoch
+                );
+                if (activation?.state) {
+                    activationState = String(activation.state);
+                    activationActiveLamports = Number(activation.active || 0);
+                }
+            }
+        } catch (e) {
+            console.warn("getStakeActivation check failed, falling back to parsed delegation checks:", e);
+        }
+
+        if (activationState && activationState !== "inactive") {
             return {
                 ok: false,
-                reason: "Stake is still active/deactivating. Wait for cooldown to finish, then close.",
+                reason: `Stake is ${activationState}. Wait for cooldown to finish, then close.`,
                 lamports: totalLamports,
             };
+        }
+
+        if (!activationState) {
+            const delegation = parsedInfo?.stake?.delegation;
+            const deactivationEpochRaw = delegation?.deactivationEpoch;
+            const deactivationEpoch = Number(deactivationEpochRaw ?? 0);
+            const delegatedLamports = delegation?.stake != null ? Number(delegation.stake) : 0;
+            const U64_MAX_EPOCH = 18446744073709551615;
+
+            const appearsActive =
+                delegatedLamports > 0 &&
+                (deactivationEpochRaw == null ||
+                    deactivationEpoch >= U64_MAX_EPOCH ||
+                    deactivationEpoch > epochInfo.epoch);
+
+            if (appearsActive) {
+                return {
+                    ok: false,
+                    reason: "Stake appears active/deactivating. Wait for cooldown to finish, then close.",
+                    lamports: totalLamports,
+                };
+            }
         }
 
         const authorizedWithdrawer = parsedInfo?.meta?.authorized?.withdrawer;
@@ -1020,7 +1063,6 @@ export default function StakeValidatorView(props: any){
         }
 
         if (lockupEpoch > 0 && lockupEpoch < U64_MAX) {
-            const epochInfo = await RPC_CONNECTION.getEpochInfo();
             if (lockupEpoch > epochInfo.epoch) {
                 return {
                     ok: false,
