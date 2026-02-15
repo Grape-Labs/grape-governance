@@ -1635,7 +1635,7 @@ const StakeAccountsView = () => {
 
                 console.log("with Governing Mint: "+useGoverningMint)
 
-                console.log("sending to createProposalInstructionsLegacy");
+                console.log("sending to create proposal instructions");
                 if (instructions.editProposalAddress)
                     setLoadingText("Editing Proposal...");
                 else
@@ -1655,62 +1655,8 @@ const StakeAccountsView = () => {
                 
                 console.log("ix signers: "+JSON.stringify(instructions?.signers))
                 console.log("editProposalAddress: "+JSON.stringify(instructions?.editProposalAddress))
-                /*
-                const propResponse = await createProposalInstructionsLegacy(
-                    new PublicKey(programId),
-                    new PublicKey(governanceAddress),
-                    new PublicKey(ixRulesWallet),
-                    new PublicKey(useGoverningMint),
-                    publicKey,
-                    instructions.title,
-                    instructions.description,
-                    RPC_CONNECTION,
-                    transaction,
-                    //{transaction:transactions,signers:signers},
-                    authTransaction,
-                    anchorWallet,
-                    null,
-                    isDraft,
-                    returnTx,
-                    publicKey, 
-                    instructions.editProposalAddress ? new PublicKey(instructions.editProposalAddress) : null,
-                    null,
-                    null,
-                    null,
-                    instructions?.signers,
-                    null, // delegate
-                );
-                */
-                
-                const instructionsData = proposalIxs.map((ix) => ({
-                    data: createInstructionData(ix),
-                    holdUpTime: undefined,
-                    prerequisiteInstructions: [],
-                    chunkBy: 1,
-                }));
 
-                const propResponse = await createProposalInstructionsV0(
-                new PublicKey(programId),                 // token_realm_program_id
-                new PublicKey(governanceAddress),          // realmPk
-                new PublicKey(ixRulesWallet),              // governancePk
-                new PublicKey(useGoverningMint),           // governingTokenMint
-                publicKey,                                 // walletPk
-                instructions.title,
-                instructions.description,
-                RPC_CONNECTION,
-                new Transaction(),                         // transactionInstr (unused, keep empty)
-                authTransaction,
-                anchorWallet,
-                null,                                      // sendTransaction
-                instructionsData,                          // ⭐ THIS IS THE IMPORTANT PART
-                isDraft,
-                false,                                     // returnTx
-                publicKey,                                 // payer
-                instructions.editProposalAddress
-                    ? new PublicKey(instructions.editProposalAddress)
-                    : undefined,
-                undefined,                                  // callbacks (optional)
-                {
+                const proposalConfig = {
                     options: Array.isArray(instructions?.proposalOptions)
                         ? instructions.proposalOptions
                         : undefined,
@@ -1727,8 +1673,68 @@ const StakeAccountsView = () => {
                         typeof instructions?.proposalMaxWinningOptions === "number"
                             ? instructions.proposalMaxWinningOptions
                             : undefined,
+                };
+
+                const useVersionedTransactions = !!instructions?.useVersionedTransactions;
+                let propResponse = null;
+
+                if (useVersionedTransactions) {
+                    const instructionsData = proposalIxs.map((ix) => ({
+                        data: createInstructionData(ix),
+                        holdUpTime: undefined,
+                        prerequisiteInstructions: [],
+                        chunkBy: 1,
+                    }));
+
+                    propResponse = await createProposalInstructionsV0(
+                        new PublicKey(programId),                 // token_realm_program_id
+                        new PublicKey(governanceAddress),          // realmPk
+                        new PublicKey(ixRulesWallet),              // governancePk
+                        new PublicKey(useGoverningMint),           // governingTokenMint
+                        publicKey,                                 // walletPk
+                        instructions.title,
+                        instructions.description,
+                        RPC_CONNECTION,
+                        new Transaction(),                         // transactionInstr (unused, keep empty)
+                        authTransaction,
+                        anchorWallet,
+                        null,                                      // sendTransaction
+                        instructionsData,
+                        isDraft,
+                        false,                                     // returnTx
+                        publicKey,                                 // payer
+                        instructions.editProposalAddress
+                            ? new PublicKey(instructions.editProposalAddress)
+                            : undefined,
+                        undefined,
+                        proposalConfig
+                    );
+                } else {
+                    propResponse = await createProposalInstructionsLegacy(
+                        new PublicKey(programId),
+                        new PublicKey(governanceAddress),
+                        new PublicKey(ixRulesWallet),
+                        new PublicKey(useGoverningMint),
+                        publicKey,
+                        instructions.title,
+                        instructions.description,
+                        RPC_CONNECTION,
+                        transaction,
+                        authTransaction,
+                        anchorWallet,
+                        null,
+                        isDraft,
+                        returnTx,
+                        publicKey,
+                        instructions.editProposalAddress ? new PublicKey(instructions.editProposalAddress) : null,
+                        null,
+                        null,
+                        null,
+                        instructions?.signers,
+                        null, // delegate
+                        proposalConfig
+                    );
                 }
-                );
                 
                 
                 setLoaderCreationComplete(false);

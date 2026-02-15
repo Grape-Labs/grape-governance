@@ -222,7 +222,7 @@ export default function StakeValidatorView(props: any){
 
     // Unstaking state
     const [unstakeAddress, setUnstakeAddress] = React.useState('');
-    const [unstakeAction, setUnstakeAction] = React.useState<'deactivate' | 'withdraw'>('deactivate');
+    const [unstakeAction, setUnstakeAction] = React.useState<'deactivate' | 'withdraw' | 'close'>('deactivate');
     const [unstakeAmount, setUnstakeAmount] = React.useState(''); // empty = full amount
     const [unstakeSeed, setUnstakeSeed] = React.useState<string | null>(null);
     const [stakeAccounts, setStakeAccounts] = React.useState<any[]>([]);
@@ -927,7 +927,7 @@ export default function StakeValidatorView(props: any){
     }
 
     // Handle withdraw (after cooldown is complete)
-    const handleWithdrawIx = async (stakeAccountAddress: string, lamports: number) => {
+    const handleWithdrawIx = async (stakeAccountAddress: string, lamports: number, isCloseAction = false) => {
         if (handleCloseExtMenu)
             handleCloseExtMenu();
         setPropOpen(false);
@@ -943,8 +943,14 @@ export default function StakeValidatorView(props: any){
             }
 
             const propIx = {
-                title: proposalTitle || "Withdraw Stake",
-                description: proposalDescription || `Withdraw ${(lamports / web3.LAMPORTS_PER_SOL).toFixed(4)} SOL from stake account ${stakeAccountAddress}`,
+                title: proposalTitle || (isCloseAction ? "Close Stake Account" : "Withdraw Stake"),
+                description:
+                    proposalDescription ||
+                    (
+                        isCloseAction
+                            ? `Close stake account ${stakeAccountAddress} and withdraw ${(lamports / web3.LAMPORTS_PER_SOL).toFixed(4)} SOL to treasury`
+                            : `Withdraw ${(lamports / web3.LAMPORTS_PER_SOL).toFixed(4)} SOL from stake account ${stakeAccountAddress}`
+                    ),
                 ix: withdrawIxs,
                 aix: [],
                 nativeWallet: governanceNativeWallet,
@@ -953,14 +959,88 @@ export default function StakeValidatorView(props: any){
                 editProposalAddress: editProposalAddress,
             }
 
-            console.log("propIx (withdraw): ", JSON.stringify(propIx));
+            console.log(`propIx (${isCloseAction ? "close" : "withdraw"}): `, JSON.stringify(propIx));
             setInstructions(propIx);
             setExpandedLoader(true);
         } catch (error) {
-            enqueueSnackbar("Failed to create withdraw instructions", { variant: 'error' });
-            console.error('Failed to create withdraw instructions:', error);
+            enqueueSnackbar(isCloseAction ? "Failed to create close instructions" : "Failed to create withdraw instructions", { variant: 'error' });
+            console.error(`Failed to create ${isCloseAction ? "close" : "withdraw"} instructions:`, error);
         }
     }
+
+    const getCloseStakeValidation = async (stakeAccountAddress: string) => {
+        const stakeAccountPubkey = new PublicKey(stakeAccountAddress);
+        const accountInfo = await RPC_CONNECTION.getParsedAccountInfo(stakeAccountPubkey);
+
+        if (!accountInfo || !accountInfo.value) {
+            return { ok: false, reason: "Stake account not found", lamports: 0 };
+        }
+
+        const totalLamports = Number(accountInfo.value.lamports || 0);
+        if (totalLamports <= 0) {
+            return { ok: false, reason: "Stake account has no balance to close", lamports: 0 };
+        }
+
+        const parsedData: any = (accountInfo.value as any)?.data?.parsed;
+        const parsedInfo: any = parsedData?.info;
+        const delegation = parsedInfo?.stake?.delegation;
+        const activeStakeLamports = delegation?.stake != null ? Number(delegation.stake) : 0;
+        if (activeStakeLamports > 0) {
+            return {
+                ok: false,
+                reason: "Stake is still active/deactivating. Wait for cooldown to finish, then close.",
+                lamports: totalLamports,
+            };
+        }
+
+        const authorizedWithdrawer = parsedInfo?.meta?.authorized?.withdrawer;
+        if (
+            authorizedWithdrawer &&
+            new PublicKey(authorizedWithdrawer).toBase58() !== new PublicKey(governanceNativeWallet).toBase58()
+        ) {
+            return {
+                ok: false,
+                reason: "Governance treasury is not the withdraw authority for this stake account",
+                lamports: totalLamports,
+            };
+        }
+
+        const lockup = parsedInfo?.meta?.lockup;
+        const nowTs = Math.floor(Date.now() / 1000);
+        const lockupUnix = lockup?.unixTimestamp != null ? Number(lockup.unixTimestamp) : 0;
+        const lockupEpoch = lockup?.epoch != null ? Number(lockup.epoch) : 0;
+        const U64_MAX = Number.MAX_SAFE_INTEGER; // treat absurdly large values as "no lockup"
+
+        if (lockupUnix > nowTs && lockupUnix < U64_MAX) {
+            return {
+                ok: false,
+                reason: `Lockup active until ${moment.unix(lockupUnix).format("YYYY-MM-DD HH:mm:ss")} UTC`,
+                lamports: totalLamports,
+            };
+        }
+
+        if (lockupEpoch > 0 && lockupEpoch < U64_MAX) {
+            const epochInfo = await RPC_CONNECTION.getEpochInfo();
+            if (lockupEpoch > epochInfo.epoch) {
+                return {
+                    ok: false,
+                    reason: `Lockup active until epoch ${lockupEpoch}`,
+                    lamports: totalLamports,
+                };
+            }
+        }
+
+        return { ok: true, reason: null, lamports: totalLamports };
+    };
+
+    const handleCloseStakeIx = async (stakeAccountAddress: string) => {
+        const closeValidation = await getCloseStakeValidation(stakeAccountAddress);
+        if (!closeValidation.ok) {
+            enqueueSnackbar(closeValidation.reason || "Stake account is not closable yet", { variant: 'warning' });
+            return;
+        }
+        await handleWithdrawIx(stakeAccountAddress, closeValidation.lamports, true);
+    };
 
     // Handle unstake action based on dropdown selection
     const handleUnstakeAction = async () => {
@@ -1042,6 +1122,12 @@ export default function StakeValidatorView(props: any){
                     // Full withdrawal
                     await handleWithdrawIx(unstakeAddress, totalLamports);
                 }
+            } else if (unstakeAction === 'close') {
+                if (isPartial) {
+                    enqueueSnackbar("Close always withdraws full account balance. Leave amount empty.", { variant: 'warning' });
+                    return;
+                }
+                await handleCloseStakeIx(unstakeAddress);
             }
         } catch (error) {
             enqueueSnackbar("Failed to process unstake action", { variant: 'error' });
@@ -1241,7 +1327,7 @@ export default function StakeValidatorView(props: any){
                     {/* ==================== UNSTAKE TAB ==================== */}
                     <TabPanel value={tabValue} index={1}>
                         <DialogContentText sx={{textAlign:'center', mb: 2}}>
-                            Deactivate or withdraw from a stake account
+                            Deactivate, withdraw, or close a stake account
                         </DialogContentText>
 
                         <FormControl fullWidth>
@@ -1252,13 +1338,21 @@ export default function StakeValidatorView(props: any){
                                         fullWidth
                                         label="Action"
                                         value={unstakeAction}
-                                        onChange={(e) => setUnstakeAction(e.target.value as 'deactivate' | 'withdraw')}
+                                        onChange={(e) => {
+                                            const nextAction = e.target.value as 'deactivate' | 'withdraw' | 'close';
+                                            setUnstakeAction(nextAction);
+                                            if (nextAction === 'close') {
+                                                setUnstakeAmount('');
+                                            }
+                                        }}
                                         variant="filled"
                                         sx={{ m: 0.65 }}
                                         helperText={
                                             unstakeAction === 'deactivate' 
                                                 ? "Deactivate begins the cooldown period (~2-3 days). Stake remains locked until the epoch ends."
-                                                : "Withdraw returns SOL to the governance wallet. Only works on inactive/deactivated accounts."
+                                                : unstakeAction === 'withdraw'
+                                                ? "Withdraw returns SOL to the governance wallet. Works when inactive/deactivated."
+                                                : "Close withdraws the full balance and removes the stake account once fully inactive and unlocked."
                                         }
                                     >
                                         <MenuItem value="deactivate">
@@ -1271,6 +1365,12 @@ export default function StakeValidatorView(props: any){
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                 <GetAppIcon fontSize="small" />
                                                 Withdraw Stake
+                                            </Box>
+                                        </MenuItem>
+                                        <MenuItem value="close">
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <CloseIcon fontSize="small" />
+                                                Close Stake Account
                                             </Box>
                                         </MenuItem>
                                     </TextField>
@@ -1289,6 +1389,7 @@ export default function StakeValidatorView(props: any){
                                         sx={{ m: 0.65 }}
                                     />
                                 </Grid>
+                                {unstakeAction !== 'close' && (
                                 <Grid item xs={12}>
                                     <TextField 
                                         fullWidth 
@@ -1309,6 +1410,7 @@ export default function StakeValidatorView(props: any){
                                         sx={{ m: 0.65 }}
                                     />
                                 </Grid>
+                                )}
                                 {unstakeAction === 'deactivate' && unstakeAmount && (
                                     <Grid item xs={12}>
                                         <TextField 
@@ -1410,7 +1512,7 @@ export default function StakeValidatorView(props: any){
                                                     if (isActive) {
                                                         setUnstakeAction('deactivate');
                                                     } else if (isInactive || isDeactivating) {
-                                                        setUnstakeAction('withdraw');
+                                                        setUnstakeAction(isInactive ? 'close' : 'withdraw');
                                                     }
                                                 }}
                                                 secondaryAction={
@@ -1683,10 +1785,12 @@ export default function StakeValidatorView(props: any){
                                             startIcon={
                                                 unstakeAction === 'deactivate' 
                                                     ? <LockOpenIcon sx={{ color:'rgba(255,255,255,0.25)', fontSize:"14px!important"}} />
-                                                    : <GetAppIcon sx={{ color:'rgba(255,255,255,0.25)', fontSize:"14px!important"}} />
+                                                    : unstakeAction === 'withdraw'
+                                                    ? <GetAppIcon sx={{ color:'rgba(255,255,255,0.25)', fontSize:"14px!important"}} />
+                                                    : <CloseIcon sx={{ color:'rgba(255,255,255,0.25)', fontSize:"14px!important"}} />
                                             }
                                         >
-                                            {unstakeAction === 'deactivate' ? 'Deactivate' : 'Withdraw'}
+                                            {unstakeAction === 'deactivate' ? 'Deactivate' : unstakeAction === 'withdraw' ? 'Withdraw' : 'Close Account'}
                                         </Button>
                                     ) : (
                                         <Button 

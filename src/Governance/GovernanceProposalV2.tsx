@@ -1829,10 +1829,11 @@ export function GovernanceProposalV2View(props: any){
                                                 data: accountInstruction.data,
                                             };
                                         } else if (programId === "Stake11111111111111111111111111111111111111") {
-                                            const tag = accountInstruction.data?.[0] ?? 255;
-                                            const stakeAcc = accountInstruction.accounts[0]?.pubkey;
-                                            const authAcc  = accountInstruction.accounts[1]?.pubkey;
-                                            const toAcc    = accountInstruction.accounts[2]?.pubkey;
+                                            const data = accountInstruction.data || [];
+                                            const tag = data.length >= 4 ? U32(data, 0).toNumber() : 255;
+                                            const stakeAcc = accountInstruction.accounts?.[0]?.pubkey;
+                                            let authAcc = accountInstruction.accounts?.[1]?.pubkey;
+                                            let toAcc: string | undefined = accountInstruction.accounts?.[2]?.pubkey;
 
                                             const names: Record<number,string> = {
                                                 0: "Initialize",
@@ -1851,18 +1852,39 @@ export function GovernanceProposalV2View(props: any){
                                             };
                                             let title = names[tag] || "UnknownStakeInstruction";
                                             let extra = "";
+                                            let amountLamports: string | null = null;
+                                            let amountSol: number | null = null;
 
                                             try {
                                                 if (tag === 4 /* Withdraw */) {
-                                                // layout: tag(1) + lamports u64 at offset 1
-                                                const lamportsBN = U64(accountInstruction.data, 1);
+                                                // layout: u32 instruction + u64 lamports
+                                                const lamportsBN = U64(data, 4);
                                                 const solStr = toDecimalAmount(lamportsBN, 9);
+                                                amountLamports = lamportsBN.toString();
+                                                amountSol = Number(solStr);
+                                                toAcc = accountInstruction.accounts?.[1]?.pubkey;
+                                                authAcc = accountInstruction.accounts?.[4]?.pubkey;
                                                 extra = ` – Withdraw ${formatAmount(solStr)} SOL to ${shortPk(toAcc)}`;
                                                 } else if (tag === 2 /* Delegate */) {
-                                                const voteAcc = accountInstruction.accounts[2]?.pubkey;
+                                                const voteAcc = accountInstruction.accounts?.[1]?.pubkey;
+                                                authAcc = accountInstruction.accounts?.[5]?.pubkey || accountInstruction.accounts?.[2]?.pubkey;
                                                 extra = ` – Delegate ${shortPk(stakeAcc)} to vote ${shortPk(voteAcc)}`;
                                                 } else if (tag === 5 /* Deactivate */) {
+                                                authAcc = accountInstruction.accounts?.[2]?.pubkey;
                                                 extra = ` – Deactivate stake ${shortPk(stakeAcc)}`;
+                                                } else if (tag === 3 /* Split */) {
+                                                // layout: u32 instruction + u64 lamports
+                                                const lamportsBN = U64(data, 4);
+                                                const solStr = toDecimalAmount(lamportsBN, 9);
+                                                amountLamports = lamportsBN.toString();
+                                                amountSol = Number(solStr);
+                                                toAcc = accountInstruction.accounts?.[1]?.pubkey;
+                                                authAcc = accountInstruction.accounts?.[2]?.pubkey;
+                                                extra = ` – Split ${formatAmount(solStr)} SOL to ${shortPk(toAcc)}`;
+                                                } else if (tag === 7 /* Merge */) {
+                                                toAcc = accountInstruction.accounts?.[1]?.pubkey;
+                                                authAcc = accountInstruction.accounts?.[4]?.pubkey;
+                                                extra = ` – Merge ${shortPk(toAcc)} into ${shortPk(stakeAcc)}`;
                                                 }
                                             } catch (e) {
                                                 console.log("Stake decode error", e);
@@ -1874,19 +1896,22 @@ export function GovernanceProposalV2View(props: any){
                                                 stakeAccount: stakeAcc,
                                                 authority: authAcc,
                                                 destination: toAcc,
+                                                lamports: amountLamports,
+                                                amount: amountSol,
                                                 description: `Stake: ${title}${extra}`,
-                                                data: accountInstruction.data,
+                                                data,
                                             };  
                                         } else if (programId === "11111111111111111111111111111111") {
                                             // You already handle raw SOL Transfer above.
                                             // Augment with CreateAccount / TransferWithSeed recognition.
-                                            const tag = accountInstruction.data?.[0] ?? 255;
+                                            const data = accountInstruction.data || [];
+                                            const tag = data.length >= 4 ? U32(data, 0).toNumber() : 255;
 
                                             if (tag !== 2 /* transfer */) {
                                                 try {
                                                 if (tag === 0 /* CreateAccount */) {
-                                                    const lamports = U64(accountInstruction.data, 1);
-                                                    const space    = U64(accountInstruction.data, 9); // u64
+                                                    const lamports = U64(data, 4);
+                                                    const space    = U64(data, 12); // u64
                                                     const newAcc   = accountInstruction.accounts[0]?.pubkey; // new
                                                     const funder   = accountInstruction.accounts[1]?.pubkey; // from
                                                     const solStr   = toDecimalAmount(lamports, 9);
@@ -1912,8 +1937,8 @@ export function GovernanceProposalV2View(props: any){
                                                     data: accountInstruction.data,
                                                     };
                                                 } else if (tag === 11 /* TransferWithSeed */) {
-                                                    // tag(1) + lamports u64 at 1
-                                                    const lamports = U64(accountInstruction.data, 1);
+                                                    // layout: u32 instruction + u64 lamports
+                                                    const lamports = U64(data, 4);
                                                     const solStr = toDecimalAmount(lamports, 9);
                                                     const from = accountInstruction.accounts[0]?.pubkey;
                                                     const to   = accountInstruction.accounts[1]?.pubkey;
@@ -1923,7 +1948,7 @@ export function GovernanceProposalV2View(props: any){
                                                     from, to,
                                                     lamports: Number(solStr),
                                                     description: `TransferWithSeed ${formatAmount(solStr)} SOL from ${shortPk(from)} to ${shortPk(to)}`,
-                                                    data: accountInstruction.data,
+                                                    data,
                                                     };
                                                 }
                                                 // else fall back to your existing SOL Transfer branch above (already handled)

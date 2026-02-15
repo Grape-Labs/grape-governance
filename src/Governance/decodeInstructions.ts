@@ -5,6 +5,7 @@ import {
   StakeProgram,
   VersionedMessage,
   CompiledInstruction,
+  TransactionInstruction,
 } from '@solana/web3.js';
 
 import { SystemInstruction, StakeInstruction } from '@solana/web3.js';
@@ -113,12 +114,27 @@ function ixAccountsToPubkeys(ix: CompiledInstruction, allKeys: PublicKey[]) {
   return ix.accounts.map(i => allKeys[i]);
 }
 
+function compiledIxToTxIx(ix: CompiledInstruction, allKeys: PublicKey[]): TransactionInstruction {
+  const programId = allKeys[ix.programIdIndex];
+  const keys = ix.accounts.map((index) => ({
+    pubkey: allKeys[index],
+    isSigner: false,
+    isWritable: false,
+  }));
+  return new TransactionInstruction({
+    programId,
+    keys,
+    data: Buffer.from(ix.data),
+  });
+}
+
 /* ----------- Decoders: System / Stake / Memo ----------- */
 function tryDecodeSystem(ix: CompiledInstruction, allKeys: PublicKey[]): DecodedIxSummary | null {
   try {
-    const t = SystemInstruction.decodeInstructionType(ix as any);
+    const txIx = compiledIxToTxIx(ix, allKeys);
+    const t = SystemInstruction.decodeInstructionType(txIx as any);
     if (t === 'Transfer') {
-      const { fromPubkey, toPubkey, lamports } = SystemInstruction.decodeTransfer(ix as any);
+      const { fromPubkey, toPubkey, lamports } = SystemInstruction.decodeTransfer(txIx as any);
       const sol = Number(lamports) / 1_000_000_000;
       return {
         program: 'SystemProgram',
@@ -138,11 +154,44 @@ function tryDecodeSystem(ix: CompiledInstruction, allKeys: PublicKey[]): Decoded
   } catch { return null; }
 }
 
-function tryDecodeStake(ix: CompiledInstruction): DecodedIxSummary | null {
+function tryDecodeStake(ix: CompiledInstruction, allKeys: PublicKey[]): DecodedIxSummary | null {
   try {
-    const t = StakeInstruction.decodeInstructionType(ix as any);
+    const txIx = compiledIxToTxIx(ix, allKeys);
+    const t = StakeInstruction.decodeInstructionType(txIx as any);
+    const stakeIx = StakeInstruction as any;
+
+    if (t === 'Deactivate') {
+      const { stakePubkey, authorizedPubkey } = stakeIx.decodeDeactivate(txIx as any);
+      return {
+        program: 'Stake',
+        type: 'stake.deactivate',
+        pubkey: stakePubkey?.toBase58?.() ?? null,
+        description: `Deactivate stake account (authorized: ${authorizedPubkey?.toBase58?.() ?? 'unknown'})`,
+        data: Array.from(ix.data),
+      };
+    }
+
+    if (t === 'Withdraw') {
+      const decoded = stakeIx.decodeWithdraw(txIx as any);
+      const lamports = Number(decoded?.lamports ?? 0);
+      const sol = lamports / 1_000_000_000;
+      return {
+        program: 'Stake',
+        type: 'stake.withdraw',
+        pubkey: decoded?.stakePubkey?.toBase58?.() ?? null,
+        destinationAta: decoded?.toPubkey?.toBase58?.() ?? null,
+        amount: Number(sol.toLocaleString(undefined, { maximumFractionDigits: 6 }).replace(/,/g, '')),
+        mint: SOL_MINT,
+        name: 'SOL',
+        logoURI:
+          'https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/So11111111111111111111111111111111111111112.png',
+        description: `${sol.toLocaleString(undefined, { maximumFractionDigits: 6 })} SOL to ${decoded?.toPubkey?.toBase58?.() ?? 'unknown'}`,
+        data: Array.from(ix.data),
+      };
+    }
+
     if (t === 'Delegate') {
-      const { stakePubkey, authorizedPubkey, votePubkey } = StakeInstruction.decodeDelegate(ix as any);
+      const { stakePubkey, authorizedPubkey, votePubkey } = stakeIx.decodeDelegate(txIx as any);
       return {
         program: 'Stake',
         type: 'stake.delegate',
@@ -152,10 +201,60 @@ function tryDecodeStake(ix: CompiledInstruction): DecodedIxSummary | null {
         data: Array.from(ix.data),
       };
     }
-    if (t === 'Initialize') {
-      const { stakePubkey } = StakeInstruction.decodeInitialize(ix as any);
-      return { program: 'Stake', type: 'stake.initialize', pubkey: stakePubkey.toBase58(), data: Array.from(ix.data) };
+
+    if (t === 'Split') {
+      const decoded = stakeIx.decodeSplit(txIx as any);
+      const lamports = Number(decoded?.lamports ?? 0);
+      const sol = lamports / 1_000_000_000;
+      return {
+        program: 'Stake',
+        type: 'stake.split',
+        pubkey: decoded?.stakePubkey?.toBase58?.() ?? null,
+        destinationAta: decoded?.splitStakePubkey?.toBase58?.() ?? null,
+        amount: Number(sol.toLocaleString(undefined, { maximumFractionDigits: 6 }).replace(/,/g, '')),
+        mint: SOL_MINT,
+        name: 'SOL',
+        description: `Split ${sol.toLocaleString(undefined, { maximumFractionDigits: 6 })} SOL to ${decoded?.splitStakePubkey?.toBase58?.() ?? 'new stake account'}`,
+        data: Array.from(ix.data),
+      };
     }
+
+    if (t === 'Initialize') {
+      const decoded = stakeIx.decodeInitialize(txIx as any);
+      return {
+        program: 'Stake',
+        type: 'stake.initialize',
+        pubkey: decoded?.stakePubkey?.toBase58?.() ?? null,
+        description: decoded?.authorized
+          ? `Initialize stake (staker: ${decoded.authorized.staker?.toBase58?.() ?? 'unknown'}, withdrawer: ${decoded.authorized.withdrawer?.toBase58?.() ?? 'unknown'})`
+          : undefined,
+        data: Array.from(ix.data),
+      };
+    }
+
+    if (t === 'Authorize') {
+      const decoded = stakeIx.decodeAuthorize(txIx as any);
+      return {
+        program: 'Stake',
+        type: 'stake.authorize',
+        pubkey: decoded?.stakePubkey?.toBase58?.() ?? null,
+        description: `Authorize ${decoded?.stakeAuthorizationType ?? 'stake'} to ${decoded?.newAuthorizedPubkey?.toBase58?.() ?? 'unknown'}`,
+        data: Array.from(ix.data),
+      };
+    }
+
+    if (t === 'Merge' && typeof stakeIx.decodeMerge === 'function') {
+      const decoded = stakeIx.decodeMerge(txIx as any);
+      return {
+        program: 'Stake',
+        type: 'stake.merge',
+        pubkey: decoded?.destinationStakePubkey?.toBase58?.() ?? decoded?.stakePubkey?.toBase58?.() ?? null,
+        destinationAta: decoded?.sourceStakePubkey?.toBase58?.() ?? null,
+        description: 'Merge stake accounts',
+        data: Array.from(ix.data),
+      };
+    }
+
     return { program: 'Stake', type: `stake.${t}`, data: Array.from(ix.data) };
   } catch { return null; }
 }
@@ -425,7 +524,7 @@ export function decodeCompiledInstructions(
     }
 
     if (programId.equals(StakeProgram.programId)) {
-      const st = tryDecodeStake(ix);
+      const st = tryDecodeStake(ix, allKeys);
       if (st) { st.ix = attachIxId?.(ix); summaries.push(st); continue; }
     }
 

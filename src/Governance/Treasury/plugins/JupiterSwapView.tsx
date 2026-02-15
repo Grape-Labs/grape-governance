@@ -455,6 +455,7 @@ const splitJupiterInstructions = (swapIxs: any) => {
         governingMint: governingMint,
         draft: isDraft,
         editProposalAddress: editProposalAddress,
+        useVersionedTransactions: true,
       };
 
       setInstructions(propIx);
