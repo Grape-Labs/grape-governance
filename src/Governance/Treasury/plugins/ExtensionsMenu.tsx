@@ -63,6 +63,7 @@ import DemoExtensionView from './DemoView';
 import GovernanceConfigView from './GovernanceConfigView';
 import DraftProposalView from './DraftProposalView';
 import CreatePollView from './CreatePollView';
+import SnsDomainView from './SnsDomainView';
 import MemoIxView from './MemoIxView';
 import BatchSendView from './BatchSendView';
 import JupiterSwapView from './JupiterSwapView';
@@ -201,6 +202,16 @@ export default function ExtensionsMenuView(props: any) {
             rulesWallet={rulesWallet}
             governanceNativeWallet={governanceNativeWallet}
             expandedLoader={expandedLoader} 
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+        />
+        <SnsDomainView
+            realm={realm}
+            handleCloseExtMenu={handleClose}
+            rulesWallet={rulesWallet}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader}
             setExpandedLoader={setExpandedLoader}
             instructions={instructions}
             setInstructions={setInstructions}

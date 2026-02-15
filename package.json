@@ -54,7 +54,7 @@
         "@apollo/client": "3.11.8",
         "@blockworks-foundation/mangolana": "^0.0.1-beta.15",
         "@blockworks-foundation/voter-stake-registry-client": "^0.2.3",
-        "@bonfida/spl-name-service": "0.1.55",
+        "@bonfida/spl-name-service": "^3.0.16",
         "@cardinal/namespaces": "^4.1.56",
         "@cardinal/token-manager": "2.0.0",
         "@coral-xyz/anchor": "^0.29.0",

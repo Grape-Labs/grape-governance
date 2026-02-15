@@ -1,5 +1,5 @@
 import { Connection, PublicKey } from "@solana/web3.js";
-import { NAME_PROGRAM_ID, NameRegistryState } from "@bonfida/spl-name-service";
+import { NAME_PROGRAM_ID, NameRegistryState } from "./snsCompat";
 import { getHashedName, getNameAccountKey } from "./name-service";
 import BN from "bn.js";
 

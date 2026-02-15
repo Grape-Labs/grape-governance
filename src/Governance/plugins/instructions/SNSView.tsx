@@ -24,7 +24,7 @@ import {
     getTwitterRegistry,
     transferNameOwnership,
     ROOT_DOMAIN_ACCOUNT,
-} from '@bonfida/spl-name-service';
+} from '../../../utils/web3/snsCompat';
 
 import { styled } from '@mui/material/styles';
 

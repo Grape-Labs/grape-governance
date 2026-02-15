@@ -291,6 +291,7 @@ export default function GovernanceConfigView(props: any) {
 
   // Realm config fields
   const [realmAuthority, setRealmAuthority] = React.useState<string>('');
+  const [communityMint, setCommunityMint] = React.useState<string>('');
   const [councilMint, setCouncilMint] = React.useState<string>('');
   const [communityMintMaxVoteWeightPct, setCommunityMintMaxVoteWeightPct] = React.useState<number>(100);
   const [minCommunityTokensToCreateGovernance, setMinCommunityTokensToCreateGovernance] = React.useState<string>('1');
@@ -390,6 +391,7 @@ export default function GovernanceConfigView(props: any) {
     if (!realm) return;
 
     const authority = toBase58OrEmpty(realm?.account?.authority);
+    const community = toBase58OrEmpty(realm?.account?.communityMint);
     const council = toBase58OrEmpty(realm?.account?.config?.councilMint);
     const minCommunityToCreateGov = toBnString(
       realm?.account?.config?.minCommunityTokensToCreateGovernance,
@@ -409,6 +411,7 @@ export default function GovernanceConfigView(props: any) {
     }
 
     setRealmAuthority(authority);
+    setCommunityMint(community);
     setCouncilMint(council);
     setCommunityMintMaxVoteWeightPct(pct);
     setMinCommunityTokensToCreateGovernance(rawAmountToUiString(minCommunityToCreateGov, communityDecimals));
@@ -1154,6 +1157,16 @@ export default function GovernanceConfigView(props: any) {
                 />
               </Grid>
 
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Community Mint (immutable in SPL Governance)"
+                  value={communityMint}
+                  disabled
+                />
+              </Grid>
+
               {connectedWalletIsRealmAuthority && (
                 <Grid item xs={12}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
@@ -1180,6 +1193,11 @@ export default function GovernanceConfigView(props: any) {
                   value={councilMint}
                   onChange={(e) => setCouncilMint(e.target.value)}
                 />
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="caption" sx={{ opacity: 0.75 }}>
+                  SPL Governance does not support changing the community mint of an existing realm. To change it, create a new realm and migrate governance.
+                </Typography>
               </Grid>
 
               <Grid item xs={12} md={6}>
