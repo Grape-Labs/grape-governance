@@ -62,6 +62,7 @@ import TokenManagerView from './TokenManagerView';
 import DemoExtensionView from './DemoView';
 import GovernanceConfigView from './GovernanceConfigView';
 import DraftProposalView from './DraftProposalView';
+import CreatePollView from './CreatePollView';
 import MemoIxView from './MemoIxView';
 import BatchSendView from './BatchSendView';
 import JupiterSwapView from './JupiterSwapView';
@@ -158,6 +159,16 @@ export default function ExtensionsMenuView(props: any) {
             setInstructions={setInstructions}
         />
         <DraftProposalView
+            realm={realm}
+            handleCloseExtMenu={handleClose}
+            rulesWallet={rulesWallet}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader}
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+        />
+        <CreatePollView
             realm={realm}
             handleCloseExtMenu={handleClose}
             rulesWallet={rulesWallet}

@@ -157,6 +157,17 @@ function toNumberOrNull(value: any): number | null {
     return n;
 }
 
+function toBase58Safe(value: any): string {
+    try {
+        if (!value) return "";
+        if (typeof value === "string") return value;
+        if (value?.toBase58) return value.toBase58();
+        return String(value);
+    } catch {
+        return "";
+    }
+}
+
 function getSupplyFractionPercentage(source: any, fallback?: any): number | null {
     try {
         if (source && Number(source?.type) === 0 && source?.value !== undefined && source?.value !== null) {
@@ -295,6 +306,7 @@ export function GovernanceProposalV2View(props: any){
     const [loadingMessage, setLoadingMessage] = React.useState(null);
 
     const [vetoCount, setVetoCount] = React.useState<number | null>(null);
+    const [vetoVoters, setVetoVoters] = React.useState<any[]>([]);
 
 
     const [snack, setSnack] = React.useState({ open: false, msg: "" });
@@ -2018,6 +2030,38 @@ export function GovernanceProposalV2View(props: any){
         // If you want it in React state (so you can pass it to <VetoVoteRow />)
         setVetoCount?.(vetoCount); // or setProposalVetoCount(vetoCount)
 
+        const vetoWalletMap = new Map<string, any>();
+        rawVoteRecords.forEach((it: any, index: number) => {
+            const v = it?.account?.vote ?? it?.vote?.vote;
+            const isVeto = v?.voteType === VoteKind.Veto || v?.veto === true;
+            if (!isVeto) return;
+
+            const governingTokenOwner =
+                toBase58Safe(it?.account?.governingTokenOwner) ||
+                toBase58Safe(it?.governingTokenOwner) ||
+                toBase58Safe(it?.vote?.governingTokenOwner);
+            const voteAddress = toBase58Safe(it?.pubkey) || toBase58Safe(it?.voteAddress);
+            const voterWeightRaw =
+                it?.account?.voterWeight ??
+                it?.vote?.voterWeight ??
+                it?.account?.voteWeight?.yes ??
+                it?.account?.voteWeight?.no ??
+                it?.vote?.voteWeight?.yes ??
+                it?.vote?.voteWeight?.no;
+            const voterWeight = voterWeightRaw !== undefined && voterWeightRaw !== null ? Number(voterWeightRaw) : null;
+
+            const key = `${governingTokenOwner || voteAddress || index}`;
+            if (!vetoWalletMap.has(key)) {
+                vetoWalletMap.set(key, {
+                    id: key,
+                    governingTokenOwner,
+                    voteAddress,
+                    voterWeight: Number.isFinite(voterWeight) ? voterWeight : null,
+                });
+            }
+        });
+        setVetoVoters(Array.from(vetoWalletMap.values()));
+
         const voteResults = voteRecord;//JSON.parse(JSON.stringify(voteRecord));
         //console.log("1 voteResults.. " + JSON.stringify(voteResults))
         const votingResults = [];
@@ -3053,8 +3097,8 @@ export function GovernanceProposalV2View(props: any){
                 <Grid item xs={12} md={6} sx={{ display: "flex", justifyContent: { xs: "center", md: "flex-end" } }}>
                   {thisitem?.account?.voteType?.type === 1 ? null : (
                     <Grid container spacing={1} sx={{ maxWidth: 520 }} justifyContent="center">
-                      <Grid item xs={6}>
-                        <Box sx={{ display: "flex", justifyContent: "center" }}>
+                      <Grid item xs={12} sm={6}>
+                        <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
                           
                             {realm && (
                               <VoteForProposal
@@ -3097,8 +3141,8 @@ export function GovernanceProposalV2View(props: any){
                         </Box>
                       </Grid>
 
-                      <Grid item xs={6}>
-                        <Box sx={{ display: "flex", justifyContent: "center" }}>
+                      <Grid item xs={12} sm={6}>
+                        <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
                             {realm && (
                               <VoteForProposal
                                 title={`${
@@ -3419,6 +3463,7 @@ export function GovernanceProposalV2View(props: any){
                                                     sendTransaction={sendTransaction}
                                                     getVotingParticipants={getVotingParticipants}
                                                     vetoCount={vetoCount ?? undefined}
+                                                    vetoVoters={vetoVoters}
                                                     />
 
 

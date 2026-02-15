@@ -111,6 +111,7 @@ export default function CreateTreasuryWalletProposalButton(props: any) {
   const [walletLabel, setWalletLabel] = React.useState('');
   const [proposalTitle, setProposalTitle] = React.useState('');
   const [proposalDescription, setProposalDescription] = React.useState('');
+  const [editProposalAddress, setEditProposalAddress] = React.useState('');
   const [createNativeTreasury, setCreateNativeTreasury] = React.useState(true);
   const [isDraft, setIsDraft] = React.useState(true);
   const [governingMintChoice, setGoverningMintChoice] = React.useState<'community' | 'council'>('community');
@@ -118,13 +119,22 @@ export default function CreateTreasuryWalletProposalButton(props: any) {
   const communityMint = toBase58OrEmpty(realm?.account?.communityMint);
   const councilMint = toBase58OrEmpty(realm?.account?.config?.councilMint);
   const hasCouncilMint = Boolean(councilMint);
+  const realmAuthorityWallet = toBase58OrEmpty(realm?.account?.authority);
+  const hasAuthorityGovernanceWallet = governanceWallets.some(
+    (item: any) => toBase58OrEmpty(item?.pubkey) === realmAuthorityWallet
+  );
 
   React.useEffect(() => {
     if (!open) return;
-    if (!selectedRulesWallet && governanceWallets.length > 0) {
-      setSelectedRulesWallet(toBase58OrEmpty(governanceWallets[0]?.pubkey));
+    const authorityStr = toBase58OrEmpty(realm?.account?.authority);
+    if (!authorityStr) return;
+    const authorityWallet = governanceWallets.find(
+      (item: any) => toBase58OrEmpty(item?.pubkey) === authorityStr
+    );
+    if (authorityWallet) {
+      setSelectedRulesWallet(toBase58OrEmpty(authorityWallet?.pubkey));
     }
-  }, [open, selectedRulesWallet, governanceWallets]);
+  }, [open, governanceWallets, realm]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -147,19 +157,6 @@ export default function CreateTreasuryWalletProposalButton(props: any) {
         return;
       }
 
-      if (!selectedRulesWallet) {
-        enqueueSnackbar('Select governance rules wallet.', { variant: 'error' });
-        return;
-      }
-
-      const rulesWallet = governanceWallets.find(
-        (item: any) => toBase58OrEmpty(item?.pubkey) === selectedRulesWallet
-      );
-      if (!rulesWallet) {
-        enqueueSnackbar('Selected governance wallet not found.', { variant: 'error' });
-        return;
-      }
-
       const selectedMint =
         governingMintChoice === 'council' ? councilMint || communityMint : communityMint || councilMint;
       if (!selectedMint) {
@@ -171,70 +168,48 @@ export default function CreateTreasuryWalletProposalButton(props: any) {
 
       const programId = new PublicKey(toBase58OrEmpty(realm?.owner));
       const realmPk = new PublicKey(toBase58OrEmpty(realm?.pubkey || governanceAddress));
-      const governancePk = new PublicKey(selectedRulesWallet);
       const governingMintPk = new PublicKey(selectedMint);
-      const createAuthorityPk = governancePk;
 
-      const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
-      const governanceTokenOwnerRecordPk = await getTokenOwnerRecordAddress(
-        programId,
-        realmPk,
-        governingMintPk,
-        governancePk
-      );
-      const governanceTorAccountInfo = await RPC_CONNECTION.getAccountInfo(governanceTokenOwnerRecordPk);
-
-      const walletTokenOwnerRecordPk = await getTokenOwnerRecordAddress(
-        programId,
-        realmPk,
-        governingMintPk,
-        publicKey
-      );
-      const walletTorAccountInfo = await RPC_CONNECTION.getAccountInfo(walletTokenOwnerRecordPk);
-
-      const indexedRealmAuthorityStr = toBase58OrEmpty(realm?.account?.authority);
-      let effectiveRealmAuthorityPk = indexedRealmAuthorityStr
-        ? new PublicKey(indexedRealmAuthorityStr)
-        : null;
-
+      let realmAuthorityStr = toBase58OrEmpty(realm?.account?.authority);
       try {
         const rpcRealm = await getRealm(RPC_CONNECTION, realmPk);
         const rpcRealmAuthorityStr = toBase58OrEmpty(rpcRealm?.account?.authority);
         if (rpcRealmAuthorityStr) {
-          effectiveRealmAuthorityPk = new PublicKey(rpcRealmAuthorityStr);
+          realmAuthorityStr = rpcRealmAuthorityStr;
         }
-      } catch (realmFetchErr) {
-        console.log('Unable to fetch realm authority from RPC, using indexed realm authority');
+      } catch {
+        console.log('Unable to fetch realm from RPC, using indexed authority');
       }
 
-      const isRealmAuthorityGovernance =
-        Boolean(effectiveRealmAuthorityPk) &&
-        effectiveRealmAuthorityPk!.toBase58() === governancePk.toBase58();
+      if (!realmAuthorityStr) {
+        throw new Error('Realm authority is missing; cannot build treasury wallet proposal.');
+      }
 
-      const tokenOwnerRecordPk = governanceTorAccountInfo
-        ? governanceTokenOwnerRecordPk
-        : walletTorAccountInfo
-          ? walletTokenOwnerRecordPk
-          : governanceTokenOwnerRecordPk;
-
-      if (!governanceTorAccountInfo && !walletTorAccountInfo && !isRealmAuthorityGovernance) {
+      const authorityGovernance = governanceWallets.find(
+        (item: any) => toBase58OrEmpty(item?.pubkey) === realmAuthorityStr
+      );
+      if (!authorityGovernance) {
         throw new Error(
-          'No token owner record found for selected governance or your wallet for this mint. You need membership in the selected governing mint first.'
+          `Realm authority ${realmAuthorityStr} is not a governance wallet. Transfer realm authority to a governance wallet first.`
         );
       }
 
-      if (!governanceTorAccountInfo && !isRealmAuthorityGovernance) {
-        if (governanceWallets.length > 1) {
-          throw new Error(
-            'Selected governance has no token owner record for the chosen mint and is not the realm authority governance. Choose a different governing mint or governance wallet.'
-          );
-        }
-
-        enqueueSnackbar(
-          'Only one governance wallet found. Proceeding with your wallet token owner record for proposal creation.',
-          { variant: 'info' }
+      const rulesWallet = authorityGovernance;
+      const governancePk = new PublicKey(toBase58OrEmpty(authorityGovernance?.pubkey));
+      const createAuthorityPk = governancePk;
+      const authorityAccountInfo = await RPC_CONNECTION.getAccountInfo(createAuthorityPk);
+      if (!authorityAccountInfo) {
+        throw new Error(
+          `Realm authority governance ${createAuthorityPk.toBase58()} does not exist on-chain yet. Wait for finalization/indexing and retry.`
         );
       }
+      const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
+      const tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
+        programId,
+        realmPk,
+        governingMintPk,
+        createAuthorityPk
+      );
 
       const ix: TransactionInstruction[] = [];
       const governanceConfig = buildGovernanceConfigFromRules(rulesWallet?.account?.config);
@@ -266,6 +241,9 @@ export default function CreateTreasuryWalletProposalButton(props: any) {
       const description =
         (proposalDescription || '').trim() ||
         `Create a new treasury wallet governance${label ? ` (${label})` : ''}. New governance: ${createdGovernancePk.toBase58()}${createNativeTreasury ? ' with native treasury initialization.' : '.'}`;
+      const editAddress = (editProposalAddress || '').trim()
+        ? new PublicKey((editProposalAddress || '').trim())
+        : undefined;
 
       const response = await createProposalInstructionsV0(
         programId,
@@ -283,12 +261,13 @@ export default function CreateTreasuryWalletProposalButton(props: any) {
         instructionsData,
         isDraft,
         false,
-        publicKey
+        publicKey,
+        editAddress
       );
 
       enqueueSnackbar(
         response?.address
-          ? `Created proposal ${response.address.toBase58()}`
+          ? `${editAddress ? 'Updated' : 'Created'} proposal ${response.address.toBase58()}`
           : 'Created treasury wallet proposal',
         { variant: 'success' }
       );
@@ -313,7 +292,7 @@ export default function CreateTreasuryWalletProposalButton(props: any) {
             color="inherit"
             startIcon={<AddCircleOutlineIcon />}
             onClick={() => setOpen(true)}
-            disabled={!publicKey || governanceWallets.length === 0}
+            disabled={!publicKey || governanceWallets.length === 0 || !hasAuthorityGovernanceWallet}
             sx={{ borderRadius: '12px', textTransform: 'none' }}
           >
             New Treasury Wallet
@@ -333,15 +312,18 @@ export default function CreateTreasuryWalletProposalButton(props: any) {
 
           <Grid container spacing={1.2} sx={{ mt: 0.5 }}>
             <Grid item xs={12}>
-              <InputLabel id="rules-wallet-select-label">Governance Rules Wallet</InputLabel>
+              <InputLabel id="rules-wallet-select-label">Primary Governance Wallet (Realm Authority)</InputLabel>
               <Select
                 fullWidth
                 size="small"
                 labelId="rules-wallet-select-label"
                 value={selectedRulesWallet}
+                disabled
                 onChange={(e) => setSelectedRulesWallet(e.target.value)}
               >
-                {governanceWallets.map((item: any, idx: number) => {
+                {governanceWallets
+                  .filter((item: any) => toBase58OrEmpty(item?.pubkey) === toBase58OrEmpty(realm?.account?.authority))
+                  .map((item: any, idx: number) => {
                   const pubkey = toBase58OrEmpty(item?.pubkey);
                   const nativeWallet = toBase58OrEmpty(item?.nativeTreasuryAddress);
                   return (
@@ -349,7 +331,7 @@ export default function CreateTreasuryWalletProposalButton(props: any) {
                       {pubkey.slice(0, 8)}...{pubkey.slice(-4)} ({nativeWallet.slice(0, 6)}...{nativeWallet.slice(-4)})
                     </MenuItem>
                   );
-                })}
+                  })}
               </Select>
             </Grid>
 
@@ -395,6 +377,16 @@ export default function CreateTreasuryWalletProposalButton(props: any) {
                 minRows={3}
                 value={proposalDescription}
                 onChange={(e) => setProposalDescription(e.target.value)}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Existing Proposal Address (optional)"
+                value={editProposalAddress}
+                onChange={(e) => setEditProposalAddress(e.target.value)}
+                helperText="If set, instructions are added to this proposal instead of creating a new one."
               />
             </Grid>
 
