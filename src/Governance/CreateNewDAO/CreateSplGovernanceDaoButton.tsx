@@ -8,6 +8,7 @@ import {
   createInitializeMintInstruction,
   createMintToInstruction,
   createSetAuthorityInstruction,
+  getAccount,
   getAssociatedTokenAddress,
   getMinimumBalanceForRentExemptMint,
 } from '@solana/spl-token-v2';
@@ -89,6 +90,7 @@ export default function CreateSplGovernanceDaoButton() {
 
   const [realmName, setRealmName] = React.useState('');
   const [minCommunityTokens, setMinCommunityTokens] = React.useState('1');
+  const [depositExemptProposalCount, setDepositExemptProposalCount] = React.useState(5);
 
   const [multisigMembers, setMultisigMembers] = React.useState('');
 
@@ -116,6 +118,7 @@ export default function CreateSplGovernanceDaoButton() {
     setDaoType('multisig');
     setRealmName('');
     setMinCommunityTokens('1');
+    setDepositExemptProposalCount(5);
     setCommunityMint('');
     setUseCouncil(false);
     setCouncilMembers('');
@@ -281,6 +284,10 @@ export default function CreateSplGovernanceDaoButton() {
   const buildDefaultGovernanceConfig = React.useCallback((type: DaoType) => {
     const communityThresholdType =
       type === 'multisig' ? VoteThresholdType.Disabled : VoteThresholdType.YesVotePercentage;
+    const boundedDepositExemptProposalCount = Math.max(
+      5,
+      Math.min(10, Math.floor(Number(depositExemptProposalCount || 5)))
+    );
 
     return new GovernanceConfig({
       communityVoteThreshold: new VoteThreshold({
@@ -306,9 +313,9 @@ export default function CreateSplGovernanceDaoButton() {
       }),
       councilVoteTipping: VoteTipping.Strict,
       votingCoolOffTime: 0,
-      depositExemptProposalCount: 0,
+      depositExemptProposalCount: boundedDepositExemptProposalCount,
     });
-  }, []);
+  }, [depositExemptProposalCount]);
 
   const createInitialTreasuryGovernance = React.useCallback(
     async (realmPk: PublicKey, governingMintPk: PublicKey, type: DaoType) => {
@@ -322,10 +329,22 @@ export default function CreateSplGovernanceDaoButton() {
         ASSOCIATED_TOKEN_PROGRAM_ID
       );
 
-      const sourceAccount = await connection.getAccountInfo(sourceAta);
-      if (!sourceAccount) {
+      let sourceAmount = new BN(0);
+      try {
+        const sourceTokenAccount = await getAccount(
+          connection as any,
+          sourceAta,
+          'confirmed',
+          TOKEN_PROGRAM_ID
+        );
+        sourceAmount = new BN(sourceTokenAccount.amount.toString());
+      } catch {
+        sourceAmount = new BN(0);
+      }
+
+      if (sourceAmount.lt(new BN(1))) {
         throw new Error(
-          `No governance token account found for ${publicKey.toBase58()}. Ensure creator holds at least 1 voting token.`
+          `Creator must hold at least 1 governing token (${governingMintPk.toBase58()}) before creating the initial treasury governance.`
         );
       }
 
@@ -406,6 +425,7 @@ export default function CreateSplGovernanceDaoButton() {
       return;
     }
 
+    let createdRealmPk: PublicKey | null = null;
     try {
       setSubmitting(true);
 
@@ -422,6 +442,9 @@ export default function CreateSplGovernanceDaoButton() {
 
       if (daoType === 'multisig') {
         councilMembersPks = parseUniquePublicKeys(multisigMembers, 'member');
+        if (createInitialTreasury && !councilMembersPks.some((m) => m.equals(publicKey))) {
+          councilMembersPks = [publicKey, ...councilMembersPks];
+        }
         if (!councilMembersPks.length) {
           throw new Error('At least one council member is required for Multi-sig DAO.');
         }
@@ -452,6 +475,9 @@ export default function CreateSplGovernanceDaoButton() {
 
         if (useCouncil) {
           councilMembersPks = parseUniquePublicKeys(councilMembers, 'council member');
+          if (createInitialTreasury && !councilMembersPks.some((m) => m.equals(publicKey))) {
+            councilMembersPks = [publicKey, ...councilMembersPks];
+          }
           if (councilMembersPks.length > MAX_MEMBERS) {
             throw new Error(
               `Community DAO council setup currently supports up to ${MAX_MEMBERS} members per create flow.`
@@ -489,6 +515,35 @@ export default function CreateSplGovernanceDaoButton() {
         });
       }
 
+      if (createInitialTreasury && !councilMintPk) {
+        const creatorCommunityAta = await getAssociatedTokenAddress(
+          communityMintPk,
+          publicKey,
+          false,
+          TOKEN_PROGRAM_ID,
+          ASSOCIATED_TOKEN_PROGRAM_ID
+        );
+
+        let creatorCommunityAmount = new BN(0);
+        try {
+          const creatorCommunityAccount = await getAccount(
+            connection as any,
+            creatorCommunityAta,
+            'confirmed',
+            TOKEN_PROGRAM_ID
+          );
+          creatorCommunityAmount = new BN(creatorCommunityAccount.amount.toString());
+        } catch {
+          creatorCommunityAmount = new BN(0);
+        }
+
+        if (creatorCommunityAmount.lt(new BN(1))) {
+          throw new Error(
+            `Creator wallet must hold at least 1 community token (${communityMintPk.toBase58()}) to create the initial treasury governance. Add a council or disable initial treasury setup.`
+          );
+        }
+      }
+
       const realmPk = await withCreateRealm(
         setupInstructions,
         GOVERNANCE_PROGRAM_ID,
@@ -503,6 +558,7 @@ export default function CreateSplGovernanceDaoButton() {
         communityTokenConfig,
         councilTokenConfig
       );
+      createdRealmPk = realmPk;
 
       await sendAndConfirm(setupInstructions, setupSigners);
 
@@ -534,6 +590,12 @@ export default function CreateSplGovernanceDaoButton() {
       navigate(`/dao/${realmPk.toBase58()}`);
     } catch (e: any) {
       console.error(e);
+      if (createdRealmPk) {
+        enqueueSnackbar(
+          `Realm ${createdRealmPk.toBase58()} was created, but post-setup failed. You may need to finish treasury/authority setup manually.`,
+          { variant: 'warning' }
+        );
+      }
       enqueueSnackbar(e?.message || 'Failed to create DAO', { variant: 'error' });
     } finally {
       setSubmitting(false);
@@ -598,6 +660,23 @@ export default function CreateSplGovernanceDaoButton() {
               value={minCommunityTokens}
               onChange={(e) => setMinCommunityTokens(e.target.value)}
               helperText="Realm-level minimum to create governance accounts."
+            />
+
+            <TextField
+              fullWidth
+              size="small"
+              type="number"
+              label="Deposit Exempt Proposal Count"
+              value={depositExemptProposalCount}
+              onChange={(e) => {
+                const next = Number(e.target.value);
+                if (!Number.isFinite(next)) {
+                  setDepositExemptProposalCount(5);
+                  return;
+                }
+                setDepositExemptProposalCount(Math.max(5, Math.min(10, Math.floor(next))));
+              }}
+              helperText="Recommended range for new DAOs: 5-10."
             />
 
             <FormControlLabel

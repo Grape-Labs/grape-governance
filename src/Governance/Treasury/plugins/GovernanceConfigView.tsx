@@ -20,6 +20,7 @@ import { getMint } from '@solana/spl-token-v2';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { styled } from '@mui/material/styles';
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -65,6 +66,16 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
 
 type TabMode = 'governance' | 'realm';
 type GovernanceSecurityGuideMode = 'balanced' | 'strict';
+type RepairSeverity = 'critical' | 'warning' | 'info';
+type RepairIssue = {
+  id: string;
+  severity: RepairSeverity;
+  title: string;
+  description: string;
+  tab?: TabMode;
+  actionLabel?: string;
+  action?: () => void;
+};
 
 const GOVERNANCE_FORM_DEFAULTS = {
   minInstructionHoldUpTimeHours: 0,
@@ -163,6 +174,17 @@ function parseRequiredPublicKey(input: string, label: string): PublicKey {
   return new PublicKey(value);
 }
 
+function isValidPublicKeyString(input: string): boolean {
+  try {
+    const value = (input || '').trim();
+    if (!value) return false;
+    new PublicKey(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function thresholdValue(value: number, type: VoteThresholdType): number | undefined {
   if (type === VoteThresholdType.Disabled) return undefined;
   const v = Math.max(0, Math.min(100, Math.floor(value || 0)));
@@ -216,6 +238,7 @@ export default function GovernanceConfigView(props: any) {
 
   const [open, setOpen] = React.useState(false);
   const [openAdvanced, setOpenAdvanced] = React.useState(false);
+  const [repairMode, setRepairMode] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [transferringAuthority, setTransferringAuthority] = React.useState(false);
   const [tabMode, setTabMode] = React.useState<TabMode>('governance');
@@ -677,6 +700,240 @@ export default function GovernanceConfigView(props: any) {
   const canTransferToRulesWallet =
     connectedWalletIsRealmAuthority && Boolean(rulesWalletStr) && rulesWalletStr !== realmAuthority.trim();
 
+  const parseUiNumberish = React.useCallback((value: string): number => {
+    const n = Number((value || '').replace(/,/g, '').trim());
+    return Number.isFinite(n) ? n : NaN;
+  }, []);
+
+  const applyRealmRepairGuide = React.useCallback(() => {
+    let changed = 0;
+
+    const currentAuthority = toBase58OrEmpty(realm?.account?.authority);
+    if (!realmAuthority && currentAuthority) {
+      setRealmAuthority(currentAuthority);
+      changed++;
+    }
+
+    const maxVotePct = Number(communityMintMaxVoteWeightPct);
+    if (!Number.isFinite(maxVotePct) || maxVotePct <= 0 || maxVotePct > 100) {
+      setCommunityMintMaxVoteWeightPct(100);
+      changed++;
+    }
+
+    const minGovThreshold = parseUiNumberish(minCommunityTokensToCreateGovernance);
+    if (!Number.isFinite(minGovThreshold) || minGovThreshold <= 0) {
+      setMinCommunityTokensToCreateGovernance('1');
+      changed++;
+    }
+
+    if (councilMint && !isValidPublicKeyString(councilMint)) {
+      setCouncilMint('');
+      changed++;
+    }
+
+    if (changed > 0) {
+      enqueueSnackbar(`Realm repair guide applied to ${changed} field${changed === 1 ? '' : 's'}.`, {
+        variant: 'success',
+      });
+    } else {
+      enqueueSnackbar('Realm repair guide found no local changes to apply.', { variant: 'info' });
+    }
+  }, [
+    realm,
+    realmAuthority,
+    communityMintMaxVoteWeightPct,
+    minCommunityTokensToCreateGovernance,
+    councilMint,
+    parseUiNumberish,
+    enqueueSnackbar,
+  ]);
+
+  const applyGovernanceRepairGuide = React.useCallback(() => {
+    let changed = 0;
+
+    const minCreateProposal = parseUiNumberish(minCommunityTokensToCreateProposal);
+    if (!disableCommunityProposalCreation && (!Number.isFinite(minCreateProposal) || minCreateProposal <= 0)) {
+      setMinCommunityTokensToCreateProposal(communityMinProposalGuidance?.strict || '1');
+      changed++;
+    }
+
+    if (Number(minInstructionHoldUpTimeHours || 0) <= 0) {
+      setMinInstructionHoldUpTimeHours(1);
+      changed++;
+    }
+    if (Number(votingCoolOffTimeHours || 0) <= 0) {
+      setVotingCoolOffTimeHours(1);
+      changed++;
+    }
+    if (Number(depositExemptProposalCount || 0) > 0) {
+      setDepositExemptProposalCount(0);
+      changed++;
+    }
+
+    if (changed > 0) {
+      enqueueSnackbar(`Governance repair guide applied to ${changed} field${changed === 1 ? '' : 's'}.`, {
+        variant: 'success',
+      });
+    } else {
+      enqueueSnackbar('Governance repair guide found no local changes to apply.', { variant: 'info' });
+    }
+  }, [
+    minCommunityTokensToCreateProposal,
+    disableCommunityProposalCreation,
+    communityMinProposalGuidance,
+    minInstructionHoldUpTimeHours,
+    votingCoolOffTimeHours,
+    depositExemptProposalCount,
+    parseUiNumberish,
+    enqueueSnackbar,
+  ]);
+
+  const repairIssues = React.useMemo<RepairIssue[]>(() => {
+    const issues: RepairIssue[] = [];
+
+    if (!realmAuthority) {
+      issues.push({
+        id: 'realm-authority-missing',
+        severity: 'critical',
+        title: 'Realm authority is missing',
+        description: 'Load/refresh realm config before creating repair proposals.',
+        tab: 'realm',
+      });
+    } else if (!isValidPublicKeyString(realmAuthority)) {
+      issues.push({
+        id: 'realm-authority-invalid',
+        severity: 'critical',
+        title: 'Realm authority is invalid',
+        description: 'Realm authority must be a valid public key.',
+        tab: 'realm',
+      });
+    }
+
+    if (rulesWalletStr && realmAuthority && realmAuthority !== rulesWalletStr) {
+      issues.push({
+        id: 'realm-authority-mismatch',
+        severity: 'warning',
+        title: 'Realm authority is not the current governance wallet',
+        description:
+          canTransferToRulesWallet
+            ? `Transfer authority to ${rulesWalletStr} to keep treasury and config management proposal-driven.`
+            : `Current authority (${realmAuthority}) differs from governance wallet (${rulesWalletStr}).`,
+        tab: 'realm',
+        actionLabel: canTransferToRulesWallet ? 'Transfer Authority' : undefined,
+        action: canTransferToRulesWallet ? handleTransferRealmAuthorityToRulesWallet : undefined,
+      });
+    }
+
+    if (!communityMint || !isValidPublicKeyString(communityMint)) {
+      issues.push({
+        id: 'community-mint-invalid',
+        severity: 'critical',
+        title: 'Community mint is missing or invalid',
+        description: 'Community mint is immutable after realm creation. If incorrect, create a new realm and migrate.',
+        tab: 'realm',
+      });
+    }
+
+    if (councilMint && !isValidPublicKeyString(councilMint)) {
+      issues.push({
+        id: 'council-mint-invalid',
+        severity: 'warning',
+        title: 'Council mint input is invalid',
+        description: 'Clear or replace with a valid mint before building the realm config proposal.',
+        tab: 'realm',
+        actionLabel: 'Clear Council Mint',
+        action: () => setCouncilMint(''),
+      });
+    }
+
+    const realmPct = Number(communityMintMaxVoteWeightPct);
+    if (!Number.isFinite(realmPct) || realmPct <= 0 || realmPct > 100) {
+      issues.push({
+        id: 'realm-max-vote-pct-invalid',
+        severity: 'warning',
+        title: 'Community max vote weight % is out of range',
+        description: 'Value should be > 0 and <= 100.',
+        tab: 'realm',
+        actionLabel: 'Set to 100%',
+        action: () => setCommunityMintMaxVoteWeightPct(100),
+      });
+    }
+
+    const minGovCreate = parseUiNumberish(minCommunityTokensToCreateGovernance);
+    if (!Number.isFinite(minGovCreate) || minGovCreate <= 0) {
+      issues.push({
+        id: 'realm-min-create-governance-invalid',
+        severity: 'warning',
+        title: 'Min community tokens to create governance is too low',
+        description: 'Set a positive threshold to reduce governance wallet spam.',
+        tab: 'realm',
+        actionLabel: 'Set to 1',
+        action: () => setMinCommunityTokensToCreateGovernance('1'),
+      });
+    }
+
+    const minCreateProposal = parseUiNumberish(minCommunityTokensToCreateProposal);
+    if (!disableCommunityProposalCreation && (!Number.isFinite(minCreateProposal) || minCreateProposal <= 0)) {
+      issues.push({
+        id: 'gov-min-create-proposal-invalid',
+        severity: 'warning',
+        title: 'Min community tokens to create proposal is too low',
+        description: 'Set a positive threshold or disable community proposal creation.',
+        tab: 'governance',
+        actionLabel: 'Apply Strict Guide',
+        action: () => applyGovernanceSecurityGuide('strict'),
+      });
+    }
+
+    if (Number(minInstructionHoldUpTimeHours || 0) <= 0 || Number(votingCoolOffTimeHours || 0) <= 0) {
+      issues.push({
+        id: 'gov-timing-open',
+        severity: 'info',
+        title: 'Proposal timing protections are minimal',
+        description: 'Hold-up and cool-off at zero increase execution risk and reduce reaction time.',
+        tab: 'governance',
+        actionLabel: 'Apply Balanced Guide',
+        action: () => applyGovernanceSecurityGuide('balanced'),
+      });
+    }
+
+    if (Number(depositExemptProposalCount || 0) > 0) {
+      issues.push({
+        id: 'gov-deposit-exempt',
+        severity: 'info',
+        title: 'Deposit exempt proposal count is non-zero',
+        description: 'Keeping this at 0 helps reduce proposal spam in most DAOs.',
+        tab: 'governance',
+        actionLabel: 'Set to 0',
+        action: () => setDepositExemptProposalCount(0),
+      });
+    }
+
+    return issues;
+  }, [
+    realmAuthority,
+    rulesWalletStr,
+    canTransferToRulesWallet,
+    handleTransferRealmAuthorityToRulesWallet,
+    communityMint,
+    councilMint,
+    communityMintMaxVoteWeightPct,
+    minCommunityTokensToCreateGovernance,
+    minCommunityTokensToCreateProposal,
+    disableCommunityProposalCreation,
+    minInstructionHoldUpTimeHours,
+    votingCoolOffTimeHours,
+    depositExemptProposalCount,
+    parseUiNumberish,
+    applyGovernanceSecurityGuide,
+  ]);
+
+  const repairCounts = React.useMemo(() => ({
+    critical: repairIssues.filter((i) => i.severity === 'critical').length,
+    warning: repairIssues.filter((i) => i.severity === 'warning').length,
+    info: repairIssues.filter((i) => i.severity === 'info').length,
+  }), [repairIssues]);
+
   const buildGovernanceConfigFromForm = React.useCallback(
     () =>
       new GovernanceConfig({
@@ -872,6 +1129,99 @@ export default function GovernanceConfigView(props: any) {
           <DialogContentText sx={{ mb: 2, textAlign: 'center' }}>
             Build proposal instructions to update Governance and Realm configuration.
           </DialogContentText>
+
+          <Box
+            sx={{
+              mb: 2,
+              p: 1.25,
+              borderRadius: '12px',
+              border: '1px solid rgba(255,255,255,0.12)',
+              background: repairMode ? 'rgba(255,193,7,0.06)' : 'rgba(255,255,255,0.03)',
+            }}
+          >
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={repairMode}
+                  onChange={(e) => setRepairMode(e.target.checked)}
+                />
+              }
+              label="Repair Mode"
+            />
+            <Typography variant="caption" sx={{ display: 'block', opacity: 0.75, mb: repairMode ? 1 : 0 }}>
+              Detect common misconfigurations and apply safe local fixes before creating repair proposals.
+            </Typography>
+
+            {repairMode && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Typography variant="caption" sx={{ opacity: 0.85 }}>
+                  Found {repairCounts.critical} critical, {repairCounts.warning} warning, {repairCounts.info} advisory issue
+                  {(repairCounts.critical + repairCounts.warning + repairCounts.info) === 1 ? '' : 's'}.
+                </Typography>
+
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      setTabMode('realm');
+                      applyRealmRepairGuide();
+                    }}
+                  >
+                    Apply Realm Safe Repairs
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      setTabMode('governance');
+                      applyGovernanceRepairGuide();
+                    }}
+                  >
+                    Apply Governance Safe Repairs
+                  </Button>
+                </Box>
+
+                {repairIssues.length === 0 ? (
+                  <Alert severity="success">No common repair issues detected in current form state.</Alert>
+                ) : (
+                  repairIssues.map((issue) => (
+                    <Alert
+                      key={issue.id}
+                      severity={
+                        issue.severity === 'critical'
+                          ? 'error'
+                          : issue.severity === 'warning'
+                          ? 'warning'
+                          : 'info'
+                      }
+                      action={
+                        issue.action && issue.actionLabel ? (
+                          <Button
+                            color="inherit"
+                            size="small"
+                            onClick={() => {
+                              if (issue.tab) setTabMode(issue.tab);
+                              issue.action && issue.action();
+                            }}
+                          >
+                            {issue.actionLabel}
+                          </Button>
+                        ) : undefined
+                      }
+                    >
+                      <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>
+                        {issue.title}
+                      </Typography>
+                      <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                        {issue.description}
+                      </Typography>
+                    </Alert>
+                  ))
+                )}
+              </Box>
+            )}
+          </Box>
 
           <Tabs
             value={tabMode}

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { PublicKey, TokenAmount, Connection, Transaction, TransactionInstruction } from '@solana/web3.js';
+import { Buffer } from 'buffer';
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import axios from "axios";
 import moment from 'moment';
@@ -249,6 +250,80 @@ export default function WalletCardView(props:any) {
 
     const { publicKey } = useWallet();
     const anchorWallet = useAnchorWallet();
+
+    const toPublicKeySafe = (value: any): PublicKey | null => {
+        try {
+            if (!value) return null;
+            if (value instanceof PublicKey) return value;
+            if (value?.toBase58) return new PublicKey(value.toBase58());
+            return new PublicKey(value);
+        } catch {
+            return null;
+        }
+    };
+
+    const toInstructionDataBuffer = (value: any): Buffer => {
+        if (!value) return Buffer.alloc(0);
+        if (Buffer.isBuffer(value)) return value;
+        if (value instanceof Uint8Array) return Buffer.from(value);
+        if (Array.isArray(value)) return Buffer.from(value);
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (/^[0-9a-fA-F]+$/.test(trimmed) && trimmed.length % 2 === 0) {
+                return Buffer.from(trimmed, 'hex');
+            }
+            try {
+                return Buffer.from(trimmed, 'base64');
+            } catch {
+                return Buffer.alloc(0);
+            }
+        }
+        try {
+            return Buffer.from(value);
+        } catch {
+            return Buffer.alloc(0);
+        }
+    };
+
+    const normalizeInstruction = (ix: any): TransactionInstruction | null => {
+        if (!ix) return null;
+        if (ix instanceof TransactionInstruction) return ix;
+
+        const programId = toPublicKeySafe(ix?.programId || ix?.program_id || ix?.program);
+        const rawKeys = Array.isArray(ix?.keys) ? ix.keys : Array.isArray(ix?.accounts) ? ix.accounts : [];
+        if (!programId) return null;
+
+        const keys = rawKeys
+            .map((k: any) => {
+                const pubkey = toPublicKeySafe(k?.pubkey ?? k?.publicKey ?? k);
+                if (!pubkey) return null;
+                return {
+                    pubkey,
+                    isSigner: !!(k?.isSigner ?? k?.is_signer),
+                    isWritable: !!(k?.isWritable ?? k?.is_writable),
+                };
+            })
+            .filter(Boolean) as Array<{ pubkey: PublicKey; isSigner: boolean; isWritable: boolean }>;
+
+        const data = toInstructionDataBuffer(ix?.data);
+
+        try {
+            return new TransactionInstruction({
+                programId,
+                keys,
+                data,
+            });
+        } catch {
+            return null;
+        }
+    };
+
+    const normalizeInstructionArray = (raw: any): TransactionInstruction[] => {
+        const arr = Array.isArray(raw) ? raw : raw ? [raw] : [];
+        return arr
+            .map((ix: any) => normalizeInstruction(ix))
+            .filter((ix: TransactionInstruction | null): ix is TransactionInstruction => !!ix);
+    };
 
     const handleClickOpenDialog = (event:any) => {
         setOpenDialog(true);
@@ -1460,8 +1535,17 @@ const StakeAccountsView = () => {
                 setLoaderSuccess(false);
                 setSimulationFailed(false);
                 const isDraft = instructions?.draft ? instructions.draft : true;
-                const proposalIxs = Array.isArray(instructions?.ix) ? instructions.ix : [];
+                const rawProposalIxs = Array.isArray(instructions?.ix) ? instructions.ix : instructions?.ix ? [instructions.ix] : [];
+                const proposalIxs = normalizeInstructionArray(instructions?.ix);
                 const allowNoInstructions = !!instructions?.allowNoInstructions;
+
+                if (rawProposalIxs.length > 0 && proposalIxs.length === 0) {
+                    setLoadingText("Invalid Instructions");
+                    setSimulationFailed(true);
+                    setLoaderCreationComplete(true);
+                    setLoaderSuccess(true);
+                    return;
+                }
 
                 if (proposalIxs.length === 0 && (isDraft || allowNoInstructions)) {
                     console.log("Proposal without executable instructions, skipping transaction simulation");
@@ -1487,15 +1571,8 @@ const StakeAccountsView = () => {
 
                 console.log("ix: "+JSON.stringify(instructions.ix));
                 console.log("aix: "+JSON.stringify(instructions.aix));
-
-                //transaction.add(...instructions.ix);// we should simulate when sending back to the wallet...
-                            
-                // Ensure instructions.ix is an array of TransactionInstruction
-                if (proposalIxs.every(ix => ix instanceof TransactionInstruction)) {
-                    transaction.add(...proposalIxs);
-                } else {
-                    console.error("instructions.ix is not an array of TransactionInstruction");
-                }
+                console.log(`normalized ix count: ${proposalIxs.length}`);
+                transaction.add(...proposalIxs);
 
                 // Ensure instructions.aix is an array of TransactionInstruction
                 /*if (instructions.aix && Array.isArray(instructions.aix) && instructions.aix.every(aix => aix instanceof TransactionInstruction)) {
@@ -1601,8 +1678,17 @@ const StakeAccountsView = () => {
 
                 const isDraft = instructions.draft ? instructions.draft : true;
                 const returnTx = false;
-                const proposalIxs = Array.isArray(instructions?.ix) ? instructions.ix : [];
+                const rawProposalIxs = Array.isArray(instructions?.ix) ? instructions.ix : instructions?.ix ? [instructions.ix] : [];
+                const proposalIxs = normalizeInstructionArray(instructions?.ix);
                 const allowNoInstructions = !!instructions?.allowNoInstructions;
+
+                if (rawProposalIxs.length > 0 && proposalIxs.length === 0) {
+                    setLoadingText("Invalid Instructions");
+                    setProposalCreated(false);
+                    setLoadingPropCreation(false);
+                    setLoaderCreationComplete(true);
+                    return;
+                }
 
                 if (!isDraft && proposalIxs.length === 0 && !allowNoInstructions) {
                     setLoadingText("No Instructions");
@@ -1623,8 +1709,9 @@ const StakeAccountsView = () => {
                     transaction.add(...proposalIxs);
                 }
 
-                if (instructions?.aix && instructions.aix.length > 0){
-                    authTransaction.add(...instructions.aix);
+                const authIxs = normalizeInstructionArray(instructions?.aix);
+                if (authIxs.length > 0){
+                    authTransaction.add(...authIxs);
                 }
 
                 let signers = null;
