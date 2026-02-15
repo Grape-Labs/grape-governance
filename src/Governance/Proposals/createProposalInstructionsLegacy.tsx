@@ -115,6 +115,13 @@ export async function createProposalInstructionsLegacy(
     startIndex?: number,
     signers?: Keypair[][],
     delegate?: PublicKey,
+    proposalConfig?: {
+      options?: string[]
+      voteType?: 'single' | 'multi'
+      useDenyOption?: boolean
+      maxVoterOptions?: number
+      maxWinningOptions?: number
+    },
   ): Promise<any>{//Promise<Transaction> {
 
 
@@ -158,17 +165,48 @@ export async function createProposalInstructionsLegacy(
       // Explicitly request the version before making RPC calls to work around race conditions in resolving
       // the version for RealmInfo
       
-      // V2 Approve/Deny configuration
-      const options = ['Approve'];
-      const isMulti = options && options.length > 1
-      const useDenyOption = !isMulti
-      
+      const requestedOptions = Array.isArray(proposalConfig?.options)
+        ? proposalConfig.options
+            .map((item) => `${item ?? ''}`.trim())
+            .filter((item) => !!item)
+        : []
+      const options = requestedOptions.length > 0 ? requestedOptions : ['Approve']
+
+      const isMulti =
+        proposalConfig?.voteType === 'multi' ||
+        (proposalConfig?.voteType !== 'single' && options.length > 1)
+
+      const maxVoterOptions = isMulti
+        ? Math.max(
+            1,
+            Math.min(
+              proposalConfig?.maxVoterOptions ?? options.length,
+              options.length
+            )
+          )
+        : 1
+
+      const maxWinningOptions = isMulti
+        ? Math.max(
+            1,
+            Math.min(
+              proposalConfig?.maxWinningOptions ?? options.length,
+              options.length
+            )
+          )
+        : 1
+
+      const useDenyOption =
+        proposalConfig?.useDenyOption !== undefined
+          ? !!proposalConfig.useDenyOption
+          : !isMulti
+
       const voteType = isMulti
       ? VoteType.MULTI_CHOICE(
           MultiChoiceType.FullWeight,
           1,
-          options.length,
-          options.length
+          maxVoterOptions,
+          maxWinningOptions
         )
       : VoteType.SINGLE_CHOICE
 
