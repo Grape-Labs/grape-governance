@@ -163,10 +163,17 @@ export function GovernanceProposalDialog(props: any){
                     <Button 
                         onClick={handleClickOpen}
                         color='inherit'
-                        sx={{textAlign:'left',textTransform:'none',borderRadius:'17px'}}>
+                        sx={{
+                            width: '100%',
+                            justifyContent: 'flex-start',
+                            textAlign: 'left',
+                            textTransform:'none',
+                            borderRadius:'17px',
+                            px: 1,
+                        }}>
                           <Typography variant="h6" 
                             color={(state === 2) ? `white` : `gray`}
-                            sx={{ textDecoration: isCancelled ? 'line-through' : 'none' }}>
+                            sx={{ textDecoration: isCancelled ? 'line-through' : 'none', textAlign: 'left', width: '100%' }}>
                               
                                 {isValidDescription(title) ?
                                     `${title}`
