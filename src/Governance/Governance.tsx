@@ -182,6 +182,60 @@ const GOVERNANCE_STATE = {
     9:'Vetoed',
 }
 
+const normalizePkString = (pk: any): string | null => {
+    try {
+        if (!pk) return null;
+        if (typeof pk?.toBase58 === 'function') return pk.toBase58();
+        if (typeof pk === 'string') return new PublicKey(pk).toBase58();
+        return null;
+    } catch {
+        return null;
+    }
+};
+
+const parseRawVoteWeight = (raw: any): bigint => {
+    try {
+        if (raw === null || raw === undefined) return 0n;
+        if (typeof raw === 'bigint') return raw;
+        if (typeof raw === 'number') {
+            if (!Number.isFinite(raw)) return 0n;
+            return BigInt(Math.trunc(raw));
+        }
+        if (typeof raw === 'string') {
+            const value = raw.trim();
+            if (!value) return 0n;
+            if (value.startsWith('0x') || value.startsWith('0X')) return BigInt(value);
+            if (/^-?\d+$/.test(value)) return BigInt(value);
+            const n = Number(value);
+            return Number.isFinite(n) ? BigInt(Math.trunc(n)) : 0n;
+        }
+        return BigInt(raw?.toString?.() || 0);
+    } catch {
+        return 0n;
+    }
+};
+
+const voteWeightToUi = (raw: any, decimals = 0): number => {
+    const d = Math.max(0, Number(decimals || 0));
+    const value = parseRawVoteWeight(raw);
+    if (d === 0) return Number(value);
+    const base = 10n ** BigInt(d);
+    const whole = value / base;
+    const frac = value % base;
+    return Number(whole) + Number(frac) / Math.pow(10, d);
+};
+
+const formatCompactNumber = (value: any): string => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return '0';
+    const compact = new Intl.NumberFormat('en-US', {
+        notation: 'compact',
+        compactDisplay: 'short',
+        maximumFractionDigits: 2,
+    }).format(n);
+    return compact.replace(/K/g, 'k').replace(/M/g, 'm').replace(/B/g, 'b').replace(/T/g, 't');
+};
+
 TablePaginationActions.propTypes = {
     count: PropTypes.number.isRequired,
     onPageChange: PropTypes.func.isRequired,
@@ -1140,6 +1194,8 @@ export function GovernanceCachedView(props: any) {
                     let passed = 0;
                     let defeated = 0;
                     let ttvc = 0;
+                    let ttcvc = 0;
+                    const councilMint = normalizePkString(grealm?.account?.config?.councilMint);
                     
                     const rpcprops = new Array();
                     for (const props of gprops){
@@ -1162,18 +1218,28 @@ export function GovernanceCachedView(props: any) {
                                 passed++;
                             else if (prop.account?.state === 7)
                                 defeated++;
-                        
-                            if (prop.account?.yesVotesCount && prop.account?.noVotesCount){
-                                //console.log("tmap: "+JSON.stringify(tokenMap));
-                                //console.log("item a: "+JSON.stringify(prop))
-                                if (tokenMap){
-                                    ttvc += +(((Number(prop.account?.yesVotesCount) + Number(prop.account?.noVotesCount))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
-                                }
-                                
-                            } else if (prop.account?.options) {
-                                //console.log("item b: "+JSON.stringify(prop))
-                                if (tokenMap){
-                                    ttvc += +(((Number("0x"+prop.account?.options[0].voteWeight) + Number("0x"+prop.account?.denyVoteWeight))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
+
+                            const proposalMint = normalizePkString(prop.account?.governingTokenMint);
+                            const isCouncilProposal = !!councilMint && !!proposalMint && councilMint === proposalMint;
+                            const voteDecimals = isCouncilProposal ? 0 : (gTD || 0);
+
+                            let yesVotes = 0;
+                            let noVotes = 0;
+
+                            if (prop.account?.yesVotesCount !== undefined || prop.account?.noVotesCount !== undefined) {
+                                yesVotes = voteWeightToUi(prop.account?.yesVotesCount || 0, voteDecimals);
+                                noVotes = voteWeightToUi(prop.account?.noVotesCount || 0, voteDecimals);
+                            } else if (prop.account?.options?.length > 0 || prop.account?.denyVoteWeight !== undefined) {
+                                yesVotes = voteWeightToUi(prop.account?.options?.[0]?.voteWeight || 0, voteDecimals);
+                                noVotes = voteWeightToUi(prop.account?.denyVoteWeight || 0, voteDecimals);
+                            }
+
+                            const castedVotesForProposal = yesVotes + noVotes;
+                            if (Number.isFinite(castedVotesForProposal) && castedVotesForProposal >= 0) {
+                                if (isCouncilProposal) {
+                                    ttcvc += castedVotesForProposal;
+                                } else {
+                                    ttvc += castedVotesForProposal;
                                 }
                             }
                         
@@ -1187,6 +1253,7 @@ export function GovernanceCachedView(props: any) {
                     setTotalActualProposals(+defeated+passed);
                     setTotalProposals(sortedResults.length);
                     setTotalVotesCasted(ttvc);
+                    setTotalCouncilVotesCasted(ttcvc);
                     setAllProposals(allprops);
                     setProposals(sortedResults);
 
@@ -1840,7 +1907,7 @@ export function GovernanceCachedView(props: any) {
                                                     >
                                                         <Tooltip title={<>
                                                                     Total votes casted for this governnace
-                                                                    {(totalCouncilVotesCasted && totalVotesCasted) ?
+                                                                    {(totalCouncilVotesCasted !== null && totalCouncilVotesCasted !== undefined && totalVotesCasted !== null && totalVotesCasted !== undefined) ?
                                                                         <><br/>Community/Council</>
                                                                     :<></>
                                                                     }
@@ -1856,20 +1923,21 @@ export function GovernanceCachedView(props: any) {
                                                                     sx={{
                                                                         verticalAlign: 'bottom'}}
                                                                     >
-                                                                        {totalVotesCasted ?
+                                                                        {(totalVotesCasted !== null && totalVotesCasted !== undefined) ?
                                                                             <Typography variant="h4">
-                                                                                {getFormattedNumberToLocale(totalVotesCasted)} 
+                                                                                {formatCompactNumber(totalVotesCasted)} 
                                                                             </Typography>
-                                                                        :<></>
+                                                                        :
+                                                                            <Typography variant="h4">0</Typography>
                                                                         }
 
                                                                         <Typography variant="h4" color="#999">
-                                                                            {(totalCouncilVotesCasted && totalVotesCasted) ?
+                                                                            {(totalCouncilVotesCasted !== null && totalCouncilVotesCasted !== undefined && totalVotesCasted !== null && totalVotesCasted !== undefined) ?
                                                                                 <>/</>
                                                                             :<></>
                                                                             }
-                                                                            {totalCouncilVotesCasted ?
-                                                                                <>{totalCouncilVotesCasted}</>
+                                                                            {(totalCouncilVotesCasted !== null && totalCouncilVotesCasted !== undefined) ?
+                                                                                <>{formatCompactNumber(totalCouncilVotesCasted)}</>
                                                                             :<></>
                                                                             }
                                                                         </Typography>
