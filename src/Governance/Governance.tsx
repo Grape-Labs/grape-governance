@@ -325,14 +325,103 @@ function RenderGovernanceTable(props:any) {
     const token = props.token;
     const { publicKey } = useWallet();
     const [propTokenDecimals, setPropTokenDecimals] = React.useState(token?.decimals || 6);
-    const [filteredGovernance, setFilteredGovernance] = React.useState(null);
+    const [filteredGovernance, setFilteredGovernance] = React.useState('');
     //const [filterState, setFilterState] = React.useState(true);
     const filterState = props.filterState;
     const setFilterState = props.setFilterState;
+    const [statusFilter, setStatusFilter] = React.useState('all');
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
+    const searchQuery = (filteredGovernance || '').trim().toLowerCase();
+    const proposalCounters = React.useMemo(() => {
+        const list = Array.isArray(proposals) ? proposals : [];
+        let voting = 0;
+        let draft = 0;
+        let passed = 0;
+        let defeated = 0;
+        let polls = 0;
+        for (const item of list) {
+            const state = Number(item?.account?.state);
+            const isPoll = Number(item?.account?.voteType?.type) === 1;
+            if (state === 2) voting++;
+            if (state === 0) draft++;
+            if (state === 3 || state === 5) passed++;
+            if (state === 7 || state === 9) defeated++;
+            if (isPoll) polls++;
+        }
+        return {
+            all: list.length,
+            voting,
+            draft,
+            passed,
+            defeated,
+            polls,
+        };
+    }, [proposals]);
+
+    const getProposalVoteStats = React.useCallback((item: any) => {
+        const councilMint = realm?.account?.config?.councilMint
+            ? new PublicKey(realm.account.config.councilMint).toBase58()
+            : null;
+        const proposalMint = normalizePkString(item?.account?.governingTokenMint);
+        const isCouncilVote = !!councilMint && !!proposalMint && councilMint === proposalMint;
+        const decimals = isCouncilVote ? 0 : Number(governingTokenDecimals || 0);
+        const hasLegacy = item?.account?.yesVotesCount !== undefined || item?.account?.noVotesCount !== undefined;
+        const yes = hasLegacy
+            ? voteWeightToUi(item?.account?.yesVotesCount || 0, decimals)
+            : voteWeightToUi(item?.account?.options?.[0]?.voteWeight || 0, decimals);
+        const no = hasLegacy
+            ? voteWeightToUi(item?.account?.noVotesCount || 0, decimals)
+            : voteWeightToUi(item?.account?.denyVoteWeight || 0, decimals);
+        const total = Math.max(0, yes + no);
+        const yesPct = total > 0 ? (yes / total) * 100 : 0;
+        return { yes, no, total, yesPct };
+    }, [realm, governingTokenDecimals]);
+
+    const getProposalStateAccent = (state: number) => {
+        if (state === 2) return '#58a6ff';
+        if (state === 3 || state === 5) return '#4caf50';
+        if (state === 7 || state === 9) return '#ef5350';
+        if (state === 0) return '#ffb74d';
+        return 'rgba(255,255,255,0.2)';
+    };
+
+    const filteredProposals = React.useMemo(() => {
+        if (!Array.isArray(proposals)) return [];
+        let scoped = proposals;
+        if (statusFilter !== 'all') {
+            scoped = proposals.filter((item: any) => {
+                const state = Number(item?.account?.state);
+                const isPoll = Number(item?.account?.voteType?.type) === 1;
+                if (statusFilter === 'voting') return state === 2;
+                if (statusFilter === 'draft') return state === 0;
+                if (statusFilter === 'passed') return state === 3 || state === 5;
+                if (statusFilter === 'defeated') return state === 7 || state === 9;
+                if (statusFilter === 'polls') return isPoll;
+                return true;
+            });
+        }
+        if (!searchQuery) return scoped;
+        return scoped.filter((item: any) => {
+            const name = item?.account?.name?.toLowerCase?.() || '';
+            const desc = item?.account?.descriptionLink?.toLowerCase?.() || '';
+            const pk =
+                item?.pubkey?.toBase58?.()?.toLowerCase?.() ||
+                item?.pubkey?.toString?.()?.toLowerCase?.() ||
+                '';
+            return name.includes(searchQuery) || desc.includes(searchQuery) || pk.includes(searchQuery);
+        });
+    }, [proposals, searchQuery, statusFilter]);
+
+    const visibleProposals = React.useMemo(() => {
+        if (rowsPerPage > 0) {
+            return filteredProposals.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+        }
+        return filteredProposals;
+    }, [filteredProposals, rowsPerPage, page]);
+
     // Avoid a layout jump when reaching the last page with empty rows.
-    const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - proposals.length) : 0;
+    const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - filteredProposals.length) : 0;
     const [hasVoted, setHasVoted] = React.useState(false);
 
     const handleChangePage = (event:any, newPage:number) => {
@@ -347,6 +436,18 @@ function RenderGovernanceTable(props:any) {
     const handleFilterStateChange = () => {
         setFilterState(!filterState);
     }
+
+    React.useEffect(() => {
+        if (rowsPerPage <= 0) return;
+        const maxPage = Math.max(0, Math.ceil(filteredProposals.length / rowsPerPage) - 1);
+        if (page > maxPage) {
+            setPage(maxPage);
+        }
+    }, [filteredProposals.length, rowsPerPage, page]);
+
+    React.useEffect(() => {
+        setPage(0);
+    }, [statusFilter, searchQuery]);
     
     function GetProposalStatus(props: any){
         const thisitem = props.item;
@@ -508,22 +609,105 @@ function RenderGovernanceTable(props:any) {
     
         return (
             <>
-                <Box sx={{ display: 'flex', alignItems: 'flex-end', mb:2 }}>
-                    <SearchIcon sx={{ color: 'rgba(255,255,255,0.2)', mr: 1, my: 0.5 }} />
-                    <TextField 
-                        id="input-with-sx" 
-                        fullWidth 
-                        size='small'
-                        label="Search Proposals" 
-                        value={filteredGovernance}
-                        variant='standard'
-                        onChange={(e) => setFilteredGovernance(e.target.value)} />
+                <Box
+                    sx={{
+                        mb: 1.5,
+                        p: 1.2,
+                        borderRadius: '16px',
+                        background: 'linear-gradient(135deg, rgba(80,120,255,0.12) 0%, rgba(39,190,154,0.08) 100%)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                    }}
+                >
+                    <Box sx={{ display: 'flex', alignItems: 'flex-end', mb: 1 }}>
+                        <SearchIcon sx={{ color: 'rgba(255,255,255,0.35)', mr: 1, my: 0.5 }} />
+                        <TextField 
+                            id="input-with-sx" 
+                            fullWidth 
+                            size='small'
+                            label="Search Proposals" 
+                            value={filteredGovernance}
+                            variant='standard'
+                            onChange={(e) => setFilteredGovernance(e.target.value)} />
+                    </Box>
+
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.8, mb: 0.8 }}>
+                        <Button
+                            size="small"
+                            color="inherit"
+                            variant={statusFilter === 'all' ? 'contained' : 'outlined'}
+                            onClick={() => setStatusFilter('all')}
+                            sx={{ borderRadius: '12px', textTransform: 'none' }}
+                        >
+                            All ({proposalCounters.all})
+                        </Button>
+                        <Button
+                            size="small"
+                            color="inherit"
+                            variant={statusFilter === 'voting' ? 'contained' : 'outlined'}
+                            onClick={() => setStatusFilter('voting')}
+                            sx={{ borderRadius: '12px', textTransform: 'none' }}
+                        >
+                            Live ({proposalCounters.voting})
+                        </Button>
+                        <Button
+                            size="small"
+                            color="inherit"
+                            variant={statusFilter === 'draft' ? 'contained' : 'outlined'}
+                            onClick={() => setStatusFilter('draft')}
+                            sx={{ borderRadius: '12px', textTransform: 'none' }}
+                        >
+                            Draft ({proposalCounters.draft})
+                        </Button>
+                        <Button
+                            size="small"
+                            color="inherit"
+                            variant={statusFilter === 'passed' ? 'contained' : 'outlined'}
+                            onClick={() => setStatusFilter('passed')}
+                            sx={{ borderRadius: '12px', textTransform: 'none' }}
+                        >
+                            Passed ({proposalCounters.passed})
+                        </Button>
+                        <Button
+                            size="small"
+                            color="inherit"
+                            variant={statusFilter === 'defeated' ? 'contained' : 'outlined'}
+                            onClick={() => setStatusFilter('defeated')}
+                            sx={{ borderRadius: '12px', textTransform: 'none' }}
+                        >
+                            Defeated ({proposalCounters.defeated})
+                        </Button>
+                        <Button
+                            size="small"
+                            color="inherit"
+                            variant={statusFilter === 'polls' ? 'contained' : 'outlined'}
+                            onClick={() => setStatusFilter('polls')}
+                            sx={{ borderRadius: '12px', textTransform: 'none' }}
+                        >
+                            Polls ({proposalCounters.polls})
+                        </Button>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.75)' }}>
+                            Showing {filteredProposals.length.toLocaleString()} proposal{filteredProposals.length === 1 ? '' : 's'}
+                        </Typography>
+                        {!!searchQuery && (
+                            <Button
+                                size="small"
+                                color="inherit"
+                                onClick={() => setFilteredGovernance('')}
+                                sx={{ borderRadius: '14px', textTransform: 'none', minWidth: 0, px: 1.2 }}
+                            >
+                                Clear Search
+                            </Button>
+                        )}
+                    </Box>
                 </Box>
                 
-                <TableContainer component={Paper} sx={{background:'none'}}>
+                <TableContainer component={Paper} sx={{background:'none', maxHeight: '72vh'}}>
                     <Table sx={{ minWidth: 650 }}>
                         <StyledTable sx={{ minWidth: 500 }} size="small" aria-label="Portfolio Table">
-                            <TableHead>
+                            <TableHead sx={{ position: 'sticky', top: 0, zIndex: 2, background: 'rgba(13,13,13,0.95)' }}>
                                 <TableRow>
                                     <TableCell><Typography variant="caption" sx={{width:"50%"}}>Title</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"15%"}}><Typography variant="caption">Proposed</Typography></TableCell>
@@ -540,35 +724,27 @@ function RenderGovernanceTable(props:any) {
                                 {/*proposals && (proposals).map((item: any, index:number) => (*/}
                                 {proposals && 
                                 <>  
-                                    {(
-                                        (filteredGovernance && filteredGovernance.length > 3) ? 
-                                        proposals
-                                        .filter((item: any) => 
-                                            ( 
-                                                item.account?.name?.toLowerCase().includes(filteredGovernance.toLowerCase()) 
-                                            || 
-                                                item.account?.descriptionLink?.toLowerCase().includes(filteredGovernance.toLowerCase())
-                                            )
-                                        )
-                                        //.filter((item: any) => filterState ? (item.account?.state !== 6) : true)
-                                        : 
-                                        (rowsPerPage > 0
-                                            ? proposals
-                                                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                                                //.filter((item: any) => filterState ? (item.account?.state !== 6) : true)
-                                            : proposals
-                                        )
-                                        /*
-                                        rowsPerPage > 0
-                                        ? proposals.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                                        : proposals*/
-                                    ).map((item:any, index:number) => (
+                                    {visibleProposals.map((item:any, index:number) => {
+                                    const voteStats = getProposalVoteStats(item);
+                                    const isPoll = Number(item?.account?.voteType?.type) === 1;
+                                    return (
                                     <>
                                         {/*console.log("item ("+index+"): "+JSON.stringify(item))*/}
                                         {item?.pubkey && item?.account && item.account?.options && item.account?.options.length > 0 &&
                                             <>
                                                 
-                                                <TableRow key={index} sx={{borderBottom:"none"}}>
+                                                <TableRow
+                                                    key={index}
+                                                    sx={{
+                                                        borderBottom: "none",
+                                                        transition: 'background-color 180ms ease',
+                                                        '&:hover': { background: 'rgba(255,255,255,0.05)' },
+                                                        '& > .MuiTableCell-root:first-of-type': {
+                                                            borderLeft: `3px solid ${getProposalStateAccent(Number(item.account?.state))}`,
+                                                            pl: 1.2,
+                                                        },
+                                                    }}
+                                                >
                                                     <TableCell>
                                                         <GovernanceProposalDialog 
                                                             governanceType={governanceType} 
@@ -733,13 +909,18 @@ function RenderGovernanceTable(props:any) {
                                                         </>
                                                     */}
 
-                                                    {item?.account?.voteType?.type === 1 ?
+                                                    {isPoll ?
                                                         <TableCell 
-                                                            sx={{textAlign:'center'}}>Poll
+                                                            sx={{textAlign:'center'}}>
+                                                            <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.85)' }}>
+                                                                Poll
+                                                            </Typography>
+                                                            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                                                                {formatCompactNumber(voteStats.total)} responses
+                                                            </Typography>
                                                         </TableCell>
                                                     :
                                                         <TableCell>
-                                                            {(item.account?.options[0].voteWeight) ?
                                                                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                                                     <Tooltip title={
                                                                         <>
@@ -798,7 +979,7 @@ function RenderGovernanceTable(props:any) {
                                                                             <Box sx={{ width: '100%', mr: 1 }}>
                                                                                 <VotesLinearProgress 
                                                                                     variant="determinate" 
-                                                                                    value={(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100)} 
+                                                                                    value={voteStats.yesPct}
                                                                                     sx={{
                                                                                         bgcolor: (item.account?.state !== 2) ? 'gray' : 'inherit', // Background color when grayed out
                                                                                         '& .MuiLinearProgress-bar': {
@@ -811,23 +992,19 @@ function RenderGovernanceTable(props:any) {
                                                                                 <Typography
                                                                                     variant="caption"
                                                                                     color={(item.account?.state === 2) ? `white` : `gray`}
-                                                                                >{`${
-                                                                                    item.account.yesVotesCount ?
-                                                                                        Number(item.account.yesVotesCount) > 0 ?
-                                                                                            `${(((Number(item.account.yesVotesCount))/((Number(item.account.noVotesCount))+(Number(item.account.yesVotesCount))))*100).toFixed(2)}`
-                                                                                            :
-                                                                                            `0`
-                                                                                    :
-                                                                                    Number(item.account?.options[0].voteWeight) > 0 ?
-                                                                                        `${(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}`
-                                                                                    :
-                                                                                        `0`
-                                                                                    }%`}</Typography>
+                                                                                >{`${voteStats.yesPct.toFixed(2)}%`}</Typography>
                                                                             </Box>
                                                                         </Button>
                                                                     </Tooltip>
+                                                                    <Box sx={{ ml: 1, minWidth: 90, textAlign: 'right' }}>
+                                                                        <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.82)', lineHeight: 1.2 }}>
+                                                                            Y {formatCompactNumber(voteStats.yes)} / N {formatCompactNumber(voteStats.no)}
+                                                                        </Typography>
+                                                                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.55)', lineHeight: 1.2 }}>
+                                                                            {formatCompactNumber(voteStats.total)} total
+                                                                        </Typography>
+                                                                    </Box>
                                                                 </Box>
-                                                            :<></>}
                                                         </TableCell>
                                                     }
                                                     <GetProposalStatus item={item} cachedGovernance={cachedGovernance} castedVotesForWallet={votesForWallet} />
@@ -841,8 +1018,16 @@ function RenderGovernanceTable(props:any) {
                                             </>
                                         }
                                     </>
-
-                                ))}
+                                    )})}
+                                {visibleProposals.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={4} align="center" sx={{ py: 5, borderBottom: 'none' }}>
+                                            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>
+                                                No proposals match your search.
+                                            </Typography>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
                                 {/*emptyRows > 0 && (
                                     <TableRow style={{ height: 53 * emptyRows }}>
                                         <TableCell colSpan={5} />
@@ -857,7 +1042,7 @@ function RenderGovernanceTable(props:any) {
                                     <TablePagination
                                     rowsPerPageOptions={[5, 10, 25, { label: 'All', value: -1 }]}
                                     colSpan={6}
-                                    count={proposals && proposals.length}
+                                    count={filteredProposals.length}
                                     rowsPerPage={rowsPerPage}
                                     page={page}
                                     SelectProps={{
