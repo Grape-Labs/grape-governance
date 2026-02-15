@@ -19,7 +19,7 @@ import {
     NameRegistryState,
     performReverseLookup,
     getTwitterRegistry,
-} from '@bonfida/spl-name-service';
+} from '../../../utils/web3/snsCompat';
 
 import { styled } from '@mui/material/styles';
 

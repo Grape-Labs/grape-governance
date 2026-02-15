@@ -27,7 +27,7 @@ import {
     NameRegistryState,
     performReverseLookup,
     getTwitterRegistry,
-} from '@bonfida/spl-name-service';
+} from '../../../utils/web3/snsCompat';
 
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 

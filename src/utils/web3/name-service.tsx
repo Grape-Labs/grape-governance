@@ -5,7 +5,7 @@ import {
   TWITTER_ROOT_PARENT_REGISTRY_KEY,
   TWITTER_VERIFICATION_AUTHORITY,
   ReverseTwitterRegistryState,
-} from "@bonfida/spl-name-service";
+} from "./snsCompat";
 import { ethers } from "ethers";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { findProgramAddress } from "./program-address";
