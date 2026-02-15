@@ -34,7 +34,8 @@ import {
     FormGroup,
     FormControlLabel,
     Switch,
-    ButtonGroup
+    ButtonGroup,
+    Chip,
 } from '@mui/material/';
 
 import { Helmet } from 'react-helmet';
@@ -65,6 +66,7 @@ import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import CloseIcon from '@mui/icons-material/Close';
 import FirstPageIcon from '@mui/icons-material/FirstPage';
 import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft';
@@ -321,6 +323,7 @@ function RenderGovernanceTable(props:any) {
     //const [proposals, setProposals] = React.useState(props.proposals);
     const governanceToken = props.governanceToken;
     const proposals = props.proposals;
+    const allProposals = props?.allProposals;
     const nftBasedGovernance = props.nftBasedGovernance;
     const token = props.token;
     const { publicKey } = useWallet();
@@ -340,14 +343,31 @@ function RenderGovernanceTable(props:any) {
         let passed = 0;
         let defeated = 0;
         let polls = 0;
+        let withInstructions = 0;
         for (const item of list) {
             const state = Number(item?.account?.state);
             const isPoll = Number(item?.account?.voteType?.type) === 1;
+            const hasInstructions = (() => {
+                const v1Count = Number(item?.account?.instructionsCount ?? 0);
+                if (Number.isFinite(v1Count) && v1Count > 0) return true;
+                if (Array.isArray(item?.account?.options)) {
+                    return item.account.options.some((opt: any) => {
+                        const count = Number(opt?.instructionsCount ?? 0);
+                        const next = Number(opt?.instructionsNextIndex ?? 0);
+                        const exec = Number(opt?.instructionsExecutedCount ?? 0);
+                        return (Number.isFinite(count) && count > 0) ||
+                            (Number.isFinite(next) && next > 0) ||
+                            (Number.isFinite(exec) && exec > 0);
+                    });
+                }
+                return false;
+            })();
             if (state === 2) voting++;
             if (state === 0) draft++;
             if (state === 3 || state === 5) passed++;
             if (state === 7 || state === 9) defeated++;
             if (isPoll) polls++;
+            if (hasInstructions) withInstructions++;
         }
         return {
             all: list.length,
@@ -356,6 +376,7 @@ function RenderGovernanceTable(props:any) {
             passed,
             defeated,
             polls,
+            withInstructions,
         };
     }, [proposals]);
 
@@ -378,6 +399,90 @@ function RenderGovernanceTable(props:any) {
         return { yes, no, total, yesPct };
     }, [realm, governingTokenDecimals]);
 
+    const tokenOwnerRecordToAuthor = React.useMemo(() => {
+        const map = new Map<string, string>();
+        if (!Array.isArray(memberMap)) return map;
+        for (const member of memberMap) {
+            const tor = normalizePkString(member?.pubkey);
+            const owner = normalizePkString(member?.account?.governingTokenOwner);
+            if (tor && owner && !map.has(tor)) {
+                map.set(tor, owner);
+            }
+        }
+        return map;
+    }, [memberMap]);
+
+    const tokenOwnerRecordToMember = React.useMemo(() => {
+        const map = new Map<string, any>();
+        if (!Array.isArray(memberMap)) return map;
+        for (const member of memberMap) {
+            const tor = normalizePkString(member?.pubkey);
+            if (tor && !map.has(tor)) {
+                map.set(tor, member);
+            }
+        }
+        return map;
+    }, [memberMap]);
+
+    const shortAddress = (address?: string | null) => {
+        if (!address) return 'unknown';
+        if (address.length <= 10) return address;
+        return `${address.slice(0, 4)}...${address.slice(-4)}`;
+    };
+
+    const getProposalAuthorAddress = React.useCallback((item: any): string | null => {
+        const direct = normalizePkString(item?.account?.governingTokenOwner);
+        if (direct) return direct;
+
+        const tor = normalizePkString(item?.account?.tokenOwnerRecord);
+        if (tor && tokenOwnerRecordToAuthor.has(tor)) {
+            return tokenOwnerRecordToAuthor.get(tor) || null;
+        }
+        return null;
+    }, [tokenOwnerRecordToAuthor]);
+
+    const getProposalAuthorMeta = React.useCallback((item: any) => {
+        const author = getProposalAuthorAddress(item);
+        const proposalMint = normalizePkString(item?.account?.governingTokenMint);
+        const councilMint = normalizePkString(realm?.account?.config?.councilMint);
+        const isCouncil = !!councilMint && !!proposalMint && councilMint === proposalMint;
+        const proposalTypeLabel = isCouncil ? 'Council' : 'Community';
+        const voteDecimals = isCouncil ? 0 : Number(governingTokenDecimals || 0);
+
+        const tor = normalizePkString(item?.account?.tokenOwnerRecord);
+        let memberRecord: any = null;
+        if (tor && tokenOwnerRecordToMember.has(tor)) {
+            memberRecord = tokenOwnerRecordToMember.get(tor);
+        } else if (author && Array.isArray(memberMap)) {
+            memberRecord = memberMap.find((member: any) => {
+                const owner = normalizePkString(member?.account?.governingTokenOwner);
+                const mint = normalizePkString(member?.account?.governingTokenMint);
+                return owner === author && mint === proposalMint;
+            }) || null;
+        }
+
+        const rawDeposit = memberRecord?.account?.governingTokenDepositAmount;
+        const votingPower = voteWeightToUi(rawDeposit || 0, voteDecimals);
+
+        return {
+            author,
+            proposalTypeLabel,
+            votingPower,
+        };
+    }, [getProposalAuthorAddress, realm, governingTokenDecimals, tokenOwnerRecordToMember, memberMap]);
+
+    const authorVetoCounts = React.useMemo(() => {
+        const counts = new Map<string, number>();
+        const source = Array.isArray(allProposals) ? allProposals : (Array.isArray(proposals) ? proposals : []);
+        for (const proposal of source) {
+            if (Number(proposal?.account?.state) !== 9) continue; // vetoed
+            const author = getProposalAuthorAddress(proposal);
+            if (!author) continue;
+            counts.set(author, (counts.get(author) || 0) + 1);
+        }
+        return counts;
+    }, [allProposals, proposals, getProposalAuthorAddress]);
+
     const getProposalStateAccent = (state: number) => {
         if (state === 2) return '#58a6ff';
         if (state === 3 || state === 5) return '#4caf50';
@@ -398,6 +503,21 @@ function RenderGovernanceTable(props:any) {
                 if (statusFilter === 'passed') return state === 3 || state === 5;
                 if (statusFilter === 'defeated') return state === 7 || state === 9;
                 if (statusFilter === 'polls') return isPoll;
+                if (statusFilter === 'instructions') {
+                    const v1Count = Number(item?.account?.instructionsCount ?? 0);
+                    if (Number.isFinite(v1Count) && v1Count > 0) return true;
+                    if (Array.isArray(item?.account?.options)) {
+                        return item.account.options.some((opt: any) => {
+                            const count = Number(opt?.instructionsCount ?? 0);
+                            const next = Number(opt?.instructionsNextIndex ?? 0);
+                            const exec = Number(opt?.instructionsExecutedCount ?? 0);
+                            return (Number.isFinite(count) && count > 0) ||
+                                (Number.isFinite(next) && next > 0) ||
+                                (Number.isFinite(exec) && exec > 0);
+                        });
+                    }
+                    return false;
+                }
                 return true;
             });
         }
@@ -685,6 +805,15 @@ function RenderGovernanceTable(props:any) {
                         >
                             Polls ({proposalCounters.polls})
                         </Button>
+                        <Button
+                            size="small"
+                            color="inherit"
+                            variant={statusFilter === 'instructions' ? 'contained' : 'outlined'}
+                            onClick={() => setStatusFilter('instructions')}
+                            sx={{ borderRadius: '12px', textTransform: 'none' }}
+                        >
+                            With Instructions ({proposalCounters.withInstructions})
+                        </Button>
                     </Box>
 
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -704,10 +833,10 @@ function RenderGovernanceTable(props:any) {
                     </Box>
                 </Box>
                 
-                <TableContainer component={Paper} sx={{background:'none', maxHeight: '72vh'}}>
+                <TableContainer component={Paper} sx={{background:'none'}}>
                     <Table sx={{ minWidth: 650 }}>
                         <StyledTable sx={{ minWidth: 500 }} size="small" aria-label="Portfolio Table">
-                            <TableHead sx={{ position: 'sticky', top: 0, zIndex: 2, background: 'rgba(13,13,13,0.95)' }}>
+                            <TableHead>
                                 <TableRow>
                                     <TableCell><Typography variant="caption" sx={{width:"50%"}}>Title</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"15%"}}><Typography variant="caption">Proposed</Typography></TableCell>
@@ -727,6 +856,11 @@ function RenderGovernanceTable(props:any) {
                                     {visibleProposals.map((item:any, index:number) => {
                                     const voteStats = getProposalVoteStats(item);
                                     const isPoll = Number(item?.account?.voteType?.type) === 1;
+                                    const proposalAuthorMeta = getProposalAuthorMeta(item);
+                                    const vetoedByAuthor = proposalAuthorMeta?.author
+                                        ? (authorVetoCounts.get(proposalAuthorMeta.author) || 0)
+                                        : 0;
+                                    const isFlaggedMaliciousAuthor = vetoedByAuthor > 3;
                                     return (
                                     <>
                                         {/*console.log("item ("+index+"): "+JSON.stringify(item))*/}
@@ -746,21 +880,66 @@ function RenderGovernanceTable(props:any) {
                                                     }}
                                                 >
                                                     <TableCell>
-                                                        <GovernanceProposalDialog 
-                                                            governanceType={governanceType} 
-                                                            isCancelled={+item.account.state === 6 ? true : false} 
-                                                            isCouncil={realm.account.config?.councilMint ? new PublicKey(realm.account.config.councilMint).toBase58() === new PublicKey(item.account?.governingTokenMint).toBase58() : false} 
-                                                            state={item.account?.state} title={item.account?.name} 
-                                                            description={item.account?.descriptionLink} 
-                                                            governanceLookup={governanceLookup} 
-                                                            governanceAddress={governanceAddress} 
-                                                            cachedGovernance={(cachedGovernance !== proposals) ? proposals : cachedGovernance} 
-                                                            item={item} 
-                                                            realm={realm} 
-                                                            tokenMap={tokenMap} 
-                                                            memberMap={memberMap} 
-                                                            governanceToken={governanceToken}
-                                                        />
+                                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                                                            <GovernanceProposalDialog 
+                                                                governanceType={governanceType} 
+                                                                isCancelled={+item.account.state === 6 ? true : false} 
+                                                                isCouncil={realm.account.config?.councilMint ? new PublicKey(realm.account.config.councilMint).toBase58() === new PublicKey(item.account?.governingTokenMint).toBase58() : false} 
+                                                                state={item.account?.state} title={item.account?.name} 
+                                                                description={item.account?.descriptionLink} 
+                                                                governanceLookup={governanceLookup} 
+                                                                governanceAddress={governanceAddress} 
+                                                                cachedGovernance={(cachedGovernance !== proposals) ? proposals : cachedGovernance} 
+                                                                item={item} 
+                                                                realm={realm} 
+                                                                tokenMap={tokenMap} 
+                                                                memberMap={memberMap} 
+                                                                governanceToken={governanceToken}
+                                                            />
+                                                            <Tooltip
+                                                                title={
+                                                                    proposalAuthorMeta?.author
+                                                                        ? `${proposalAuthorMeta.author} • ${proposalAuthorMeta.proposalTypeLabel} power: ${getFormattedNumberToLocale(proposalAuthorMeta.votingPower)}`
+                                                                        : 'Author unavailable'
+                                                                }
+                                                            >
+                                                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.62)', pl: 1.8, display: 'block', textAlign: 'left' }}>
+                                                                    by {shortAddress(proposalAuthorMeta?.author)} • power {formatCompactNumber(proposalAuthorMeta?.votingPower || 0)}
+                                                                </Typography>
+                                                            </Tooltip>
+                                                            <Box sx={{ pl: 1.8, display: 'flex', gap: 0.75, alignItems: 'center', flexWrap: 'wrap' }}>
+                                                                <Chip
+                                                                    size="small"
+                                                                    label={`${proposalAuthorMeta?.proposalTypeLabel || 'Unknown'} Proposal`}
+                                                                    sx={{
+                                                                        height: 20,
+                                                                        fontSize: '0.65rem',
+                                                                        borderRadius: '8px',
+                                                                        backgroundColor:
+                                                                            proposalAuthorMeta?.proposalTypeLabel === 'Council'
+                                                                                ? 'rgba(103, 58, 183, 0.25)'
+                                                                                : 'rgba(46, 204, 113, 0.22)',
+                                                                        color: 'rgba(255,255,255,0.9)',
+                                                                    }}
+                                                                />
+                                                                {isFlaggedMaliciousAuthor && (
+                                                                    <Tooltip title={`Author has ${vetoedByAuthor} vetoed proposals. Flagged as malicious.`}>
+                                                                        <Chip
+                                                                            size="small"
+                                                                            icon={<WarningAmberIcon sx={{ fontSize: '0.8rem !important' }} />}
+                                                                            label={`Risk: ${vetoedByAuthor} vetoed`}
+                                                                            sx={{
+                                                                                height: 20,
+                                                                                fontSize: '0.65rem',
+                                                                                borderRadius: '8px',
+                                                                                backgroundColor: 'rgba(244, 67, 54, 0.22)',
+                                                                                color: 'rgba(255,255,255,0.95)',
+                                                                            }}
+                                                                        />
+                                                                    </Tooltip>
+                                                                )}
+                                                            </Box>
+                                                        </Box>
                                                     </TableCell>
                                                     <TableCell>
                                                         <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`}>
@@ -2236,6 +2415,7 @@ export function GovernanceCachedView(props: any) {
                                     realm={realm} 
                                     thisToken={thisToken} 
                                     proposals={proposals} 
+                                    allProposals={allProposals}
                                     nftBasedGovernance={nftBasedGovernance} 
                                     filterState={filterState}
                                     setFilterState={setFilterState}

@@ -1465,6 +1465,9 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
                             startVotingAt: account?.startVotingAt,
                             voteThreshold: account?.voteThreshold,
                             votingCompletedAt: account?.votingCompletedAt,
+                            instructionsCount: account?.instructionsCount,
+                            instructionsExecutedCount: account?.instructionsExecutedCount,
+                            instructionsNextIndex: account?.instructionsNextIndex,
                             yesVoteCount: account?.yesVoteCount ? parseInt(account.yesVoteCount) : "00",
                             noVoteCount: account?.noVoteCount ? parseInt(account.noVoteCount) : "00",
                         }
@@ -1549,6 +1552,9 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
                         startVotingAt: account?.startVotingAt,
                         voteThreshold: account?.voteThreshold,
                         votingCompletedAt: account?.votingCompletedAt,
+                        instructionsCount: account?.instructionsCount,
+                        instructionsExecutedCount: account?.instructionsExecutedCount,
+                        instructionsNextIndex: account?.instructionsNextIndex,
                         yesVoteCount: account?.yesVoteCount ? parseInt(account.yesVoteCount) : "00",
                         noVoteCount: account?.noVoteCount ? parseInt(account.noVoteCount) : "00",
                     }
