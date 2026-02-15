@@ -225,6 +225,7 @@ function formatSuggestedUiAmount(value: number, decimals: number): string {
 export default function GovernanceConfigView(props: any) {
   const realm = props?.realm;
   const rulesWallet = props?.rulesWallet;
+  const governanceWallets = props?.governanceWallets;
   const governanceNativeWallet = props?.governanceNativeWallet;
   const handleCloseExtMenu = props?.handleCloseExtMenu;
   const setExpandedLoader = props?.setExpandedLoader;
@@ -339,6 +340,19 @@ export default function GovernanceConfigView(props: any) {
     strictEligiblePctActive: number;
   } | null>(null);
   const [communityMinProposalGuidanceLoading, setCommunityMinProposalGuidanceLoading] = React.useState(false);
+  const [repairAuthorityTarget, setRepairAuthorityTarget] = React.useState<string>('');
+
+  const governanceWalletPubkeys = React.useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (Array.isArray(governanceWallets) ? governanceWallets : [])
+            .map((item: any) => toBase58OrEmpty(item?.pubkey))
+            .filter(Boolean)
+        )
+      ),
+    [governanceWallets]
+  );
 
   const toggleGoverningMintSelected = React.useCallback(
     (council: boolean) => {
@@ -370,6 +384,25 @@ export default function GovernanceConfigView(props: any) {
       setIsGoverningMintSelectable(false);
     }
   }, [realm]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    if (!governanceWalletPubkeys.length) return;
+
+    const currentAuthority = (realmAuthority || '').trim();
+    if (currentAuthority && governanceWalletPubkeys.includes(currentAuthority)) {
+      setRepairAuthorityTarget(currentAuthority);
+      return;
+    }
+
+    const rulesPk = toBase58OrEmpty(rulesWallet?.pubkey);
+    if (rulesPk && governanceWalletPubkeys.includes(rulesPk)) {
+      setRepairAuthorityTarget(rulesPk);
+      return;
+    }
+
+    setRepairAuthorityTarget(governanceWalletPubkeys[0]);
+  }, [open, governanceWalletPubkeys, realmAuthority, rulesWallet]);
 
   const initializeGovernanceConfig = React.useCallback(
     (communityDecimals: number, councilDecimals: number) => {
@@ -630,14 +663,14 @@ export default function GovernanceConfigView(props: any) {
     return { programId, realmPk, programVersion };
   };
 
-  const handleTransferRealmAuthorityToRulesWallet = async () => {
+  const handleTransferRealmAuthorityToWallet = async (targetAuthorityInput?: string) => {
     try {
       if (!publicKey || !sendTransaction) {
         enqueueSnackbar('Connect wallet first.', { variant: 'error' });
         return;
       }
 
-      const targetAuthorityStr = toBase58OrEmpty(rulesWallet?.pubkey);
+      const targetAuthorityStr = (targetAuthorityInput || repairAuthorityTarget || toBase58OrEmpty(rulesWallet?.pubkey)).trim();
       if (!targetAuthorityStr) {
         enqueueSnackbar('No governance wallet available to transfer authority to.', { variant: 'error' });
         return;
@@ -697,8 +730,11 @@ export default function GovernanceConfigView(props: any) {
   const connectedWalletIsRealmAuthority =
     Boolean(publicKey) && Boolean(realmAuthority) && publicKey!.toBase58() === realmAuthority.trim();
   const rulesWalletStr = toBase58OrEmpty(rulesWallet?.pubkey);
-  const canTransferToRulesWallet =
-    connectedWalletIsRealmAuthority && Boolean(rulesWalletStr) && rulesWalletStr !== realmAuthority.trim();
+  const selectedRepairAuthorityTarget = (repairAuthorityTarget || rulesWalletStr || '').trim();
+  const canTransferToSelectedGovernanceWallet =
+    connectedWalletIsRealmAuthority &&
+    Boolean(selectedRepairAuthorityTarget) &&
+    selectedRepairAuthorityTarget !== realmAuthority.trim();
 
   const parseUiNumberish = React.useCallback((value: string): number => {
     const n = Number((value || '').replace(/,/g, '').trim());
@@ -809,18 +845,26 @@ export default function GovernanceConfigView(props: any) {
       });
     }
 
-    if (rulesWalletStr && realmAuthority && realmAuthority !== rulesWalletStr) {
+    const authorityInKnownGovernanceWallets =
+      !!realmAuthority &&
+      (governanceWalletPubkeys.length === 0
+        ? realmAuthority === rulesWalletStr
+        : governanceWalletPubkeys.includes(realmAuthority));
+
+    if (realmAuthority && !authorityInKnownGovernanceWallets) {
       issues.push({
         id: 'realm-authority-mismatch',
         severity: 'warning',
-        title: 'Realm authority is not the current governance wallet',
+        title: 'Realm authority is not one of the known governance wallets',
         description:
-          canTransferToRulesWallet
-            ? `Transfer authority to ${rulesWalletStr} to keep treasury and config management proposal-driven.`
-            : `Current authority (${realmAuthority}) differs from governance wallet (${rulesWalletStr}).`,
+          canTransferToSelectedGovernanceWallet
+            ? `Transfer authority to ${selectedRepairAuthorityTarget} to keep treasury and config management proposal-driven.`
+            : `Current authority (${realmAuthority}) is outside the detected governance wallets for this realm.`,
         tab: 'realm',
-        actionLabel: canTransferToRulesWallet ? 'Transfer Authority' : undefined,
-        action: canTransferToRulesWallet ? handleTransferRealmAuthorityToRulesWallet : undefined,
+        actionLabel: canTransferToSelectedGovernanceWallet ? 'Transfer Authority' : undefined,
+        action: canTransferToSelectedGovernanceWallet
+          ? () => handleTransferRealmAuthorityToWallet(selectedRepairAuthorityTarget)
+          : undefined,
       });
     }
 
@@ -913,8 +957,10 @@ export default function GovernanceConfigView(props: any) {
   }, [
     realmAuthority,
     rulesWalletStr,
-    canTransferToRulesWallet,
-    handleTransferRealmAuthorityToRulesWallet,
+    governanceWalletPubkeys,
+    canTransferToSelectedGovernanceWallet,
+    selectedRepairAuthorityTarget,
+    handleTransferRealmAuthorityToWallet,
     communityMint,
     councilMint,
     communityMintMaxVoteWeightPct,
@@ -1158,6 +1204,22 @@ export default function GovernanceConfigView(props: any) {
                   Found {repairCounts.critical} critical, {repairCounts.warning} warning, {repairCounts.info} advisory issue
                   {(repairCounts.critical + repairCounts.warning + repairCounts.info) === 1 ? '' : 's'}.
                 </Typography>
+
+                {governanceWalletPubkeys.length > 0 && (
+                  <TextField
+                    select
+                    size="small"
+                    label="Repair Authority Target"
+                    value={selectedRepairAuthorityTarget}
+                    onChange={(e) => setRepairAuthorityTarget(e.target.value)}
+                  >
+                    {governanceWalletPubkeys.map((walletPk) => (
+                      <MenuItem key={walletPk} value={walletPk}>
+                        {walletPk}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
 
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   <Button
@@ -1519,17 +1581,33 @@ export default function GovernanceConfigView(props: any) {
 
               {connectedWalletIsRealmAuthority && (
                 <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                     <Typography variant="caption" sx={{ opacity: 0.85 }}>
                       Connected wallet is current realm authority.
                     </Typography>
+                    {governanceWalletPubkeys.length > 0 && (
+                      <TextField
+                        select
+                        size="small"
+                        label="Authority Target"
+                        value={selectedRepairAuthorityTarget}
+                        onChange={(e) => setRepairAuthorityTarget(e.target.value)}
+                        sx={{ minWidth: 300 }}
+                      >
+                        {governanceWalletPubkeys.map((walletPk) => (
+                          <MenuItem key={walletPk} value={walletPk}>
+                            {walletPk}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
                     <Button
                       size="small"
                       variant="outlined"
-                      disabled={!canTransferToRulesWallet || transferringAuthority}
-                      onClick={handleTransferRealmAuthorityToRulesWallet}
+                      disabled={!canTransferToSelectedGovernanceWallet || transferringAuthority}
+                      onClick={() => handleTransferRealmAuthorityToWallet(selectedRepairAuthorityTarget)}
                     >
-                      {transferringAuthority ? 'Transferring...' : 'Transfer to Current Governance Wallet'}
+                      {transferringAuthority ? 'Transferring...' : 'Transfer to Selected Governance Wallet'}
                     </Button>
                   </Box>
                 </Grid>
