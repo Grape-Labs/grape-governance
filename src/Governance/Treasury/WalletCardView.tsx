@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { PublicKey, TokenAmount, Connection, Transaction, TransactionInstruction } from '@solana/web3.js';
+import { Buffer } from 'buffer';
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import axios from "axios";
 import moment from 'moment';
@@ -238,6 +239,8 @@ export default function WalletCardView(props:any) {
     const [expandedLoader, setExpandedLoader] = React.useState(false);
     const [instructions, setInstructions] = React.useState(null);
     const [simulationFailed, setSimulationFailed] = React.useState(false);
+    const [simulationSummary, setSimulationSummary] = React.useState<any>(null);
+    const [showSimulationDetails, setShowSimulationDetails] = React.useState(false);
     const [openDialog, setOpenDialog] = React.useState(false);
     const [loadingPropCreation, setLoadingPropCreation] = React.useState(false);
     const [loadingText, setLoadingText] = React.useState(null);
@@ -249,6 +252,205 @@ export default function WalletCardView(props:any) {
 
     const { publicKey } = useWallet();
     const anchorWallet = useAnchorWallet();
+
+    const toPublicKeySafe = (value: any): PublicKey | null => {
+        try {
+            if (!value) return null;
+            if (value instanceof PublicKey) return value;
+            if (value?.toBase58) return new PublicKey(value.toBase58());
+            return new PublicKey(value);
+        } catch {
+            return null;
+        }
+    };
+
+    const toInstructionDataBuffer = (value: any): Buffer => {
+        if (!value) return Buffer.alloc(0);
+        if (Buffer.isBuffer(value)) return value;
+        if (value instanceof Uint8Array) return Buffer.from(value);
+        if (Array.isArray(value)) return Buffer.from(value);
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (/^[0-9a-fA-F]+$/.test(trimmed) && trimmed.length % 2 === 0) {
+                return Buffer.from(trimmed, 'hex');
+            }
+            try {
+                return Buffer.from(trimmed, 'base64');
+            } catch {
+                return Buffer.alloc(0);
+            }
+        }
+        try {
+            return Buffer.from(value);
+        } catch {
+            return Buffer.alloc(0);
+        }
+    };
+
+    const normalizeInstruction = (ix: any): TransactionInstruction | null => {
+        if (!ix) return null;
+        if (ix instanceof TransactionInstruction) return ix;
+
+        const programId = toPublicKeySafe(ix?.programId || ix?.program_id || ix?.program);
+        const rawKeys = Array.isArray(ix?.keys) ? ix.keys : Array.isArray(ix?.accounts) ? ix.accounts : [];
+        if (!programId) return null;
+
+        const keys = rawKeys
+            .map((k: any) => {
+                const pubkey = toPublicKeySafe(k?.pubkey ?? k?.publicKey ?? k);
+                if (!pubkey) return null;
+                return {
+                    pubkey,
+                    isSigner: !!(k?.isSigner ?? k?.is_signer),
+                    isWritable: !!(k?.isWritable ?? k?.is_writable),
+                };
+            })
+            .filter(Boolean) as Array<{ pubkey: PublicKey; isSigner: boolean; isWritable: boolean }>;
+
+        const data = toInstructionDataBuffer(ix?.data);
+
+        try {
+            return new TransactionInstruction({
+                programId,
+                keys,
+                data,
+            });
+        } catch {
+            return null;
+        }
+    };
+
+    const normalizeInstructionArray = (raw: any): TransactionInstruction[] => {
+        const arr = Array.isArray(raw) ? raw : raw ? [raw] : [];
+        return arr
+            .map((ix: any) => normalizeInstruction(ix))
+            .filter((ix: TransactionInstruction | null): ix is TransactionInstruction => !!ix);
+    };
+
+    const auditInstructionAccounts = async (
+        feePayer: PublicKey,
+        ixs: TransactionInstruction[]
+    ): Promise<{
+        checkedCount: number;
+        missingCount: number;
+        missingAccounts: Array<{ pubkey: string; roles: string[] }>;
+        error?: string;
+    }> => {
+        const accountRoleMap = new Map<string, Set<string>>();
+        const addAccountRole = (pubkey: PublicKey, role: string) => {
+            const key = pubkey.toBase58();
+            const current = accountRoleMap.get(key) || new Set<string>();
+            current.add(role);
+            accountRoleMap.set(key, current);
+        };
+
+        addAccountRole(feePayer, 'fee_payer');
+        ixs.forEach((ix, ixIdx) => {
+            addAccountRole(ix.programId, `program_id@ix${ixIdx}`);
+            ix.keys.forEach((k, keyIdx) => {
+                const role =
+                    `${k.isSigner ? 'signer' : 'account'}:${k.isWritable ? 'w' : 'r'}@ix${ixIdx}#${keyIdx}`;
+                addAccountRole(k.pubkey, role);
+            });
+        });
+
+        const pubkeys = Array.from(accountRoleMap.keys()).map((k) => new PublicKey(k));
+        try {
+            const accountInfos: Array<any> = [];
+            for (let i = 0; i < pubkeys.length; i += 100) {
+                const chunk = pubkeys.slice(i, i + 100);
+                const chunkInfos = await RPC_CONNECTION.getMultipleAccountsInfo(chunk, 'confirmed');
+                accountInfos.push(...chunkInfos);
+            }
+
+            const missingAccounts: Array<{ pubkey: string; roles: string[] }> = [];
+            for (let i = 0; i < pubkeys.length; i++) {
+                if (!accountInfos[i]) {
+                    const pubkey = pubkeys[i].toBase58();
+                    missingAccounts.push({
+                        pubkey,
+                        roles: Array.from(accountRoleMap.get(pubkey) || []),
+                    });
+                }
+            }
+
+            return {
+                checkedCount: pubkeys.length,
+                missingCount: missingAccounts.length,
+                missingAccounts,
+            };
+        } catch (e: any) {
+            return {
+                checkedCount: pubkeys.length,
+                missingCount: 0,
+                missingAccounts: [],
+                error: e?.message || `${e}`,
+            };
+        }
+    };
+
+    const resolveSimulationFeePayer = async (
+        connectedWalletPk: PublicKey | null,
+        nativeWalletPk: PublicKey | null,
+        ixs: TransactionInstruction[]
+    ): Promise<{
+        feePayer: PublicKey | null;
+        source: string;
+        checkedCount: number;
+    }> => {
+        const candidates: Array<{ pubkey: PublicKey; source: string }> = [];
+        const seen = new Set<string>();
+        const addCandidate = (pubkey: PublicKey | null, source: string) => {
+            if (!pubkey) return;
+            const key = pubkey.toBase58();
+            if (seen.has(key)) return;
+            seen.add(key);
+            candidates.push({ pubkey, source });
+        };
+
+        addCandidate(connectedWalletPk, 'connected_wallet');
+        addCandidate(nativeWalletPk, 'native_wallet');
+
+        ixs.forEach((ix) => {
+            ix.keys.forEach((keyMeta) => {
+                if (keyMeta.isSigner || keyMeta.isWritable) {
+                    addCandidate(keyMeta.pubkey, 'instruction_account');
+                }
+            });
+        });
+
+        if (candidates.length === 0) {
+            return { feePayer: null, source: 'none', checkedCount: 0 };
+        }
+
+        const cappedCandidates = candidates.slice(0, 48);
+        try {
+            const infos: Array<any> = [];
+            for (let i = 0; i < cappedCandidates.length; i += 100) {
+                const chunk = cappedCandidates.slice(i, i + 100).map((candidate) => candidate.pubkey);
+                const chunkInfos = await RPC_CONNECTION.getMultipleAccountsInfo(chunk, 'confirmed');
+                infos.push(...chunkInfos);
+            }
+
+            const firstExistingIdx = infos.findIndex((info) => !!info);
+            if (firstExistingIdx >= 0) {
+                const matched = cappedCandidates[firstExistingIdx];
+                return {
+                    feePayer: matched.pubkey,
+                    source: matched.source,
+                    checkedCount: cappedCandidates.length,
+                };
+            }
+        } catch (e) {
+            console.log('resolveSimulationFeePayer lookup error', e);
+        }
+
+        return {
+            feePayer: cappedCandidates[0].pubkey,
+            source: `${cappedCandidates[0].source}_missing`,
+            checkedCount: cappedCandidates.length,
+        };
+    };
 
     const handleClickOpenDialog = (event:any) => {
         setOpenDialog(true);
@@ -1459,18 +1661,45 @@ const StakeAccountsView = () => {
                 setLoaderCreationComplete(false);
                 setLoaderSuccess(false);
                 setSimulationFailed(false);
+                setSimulationSummary(null);
+                setShowSimulationDetails(false);
                 const isDraft = instructions?.draft ? instructions.draft : true;
-                const proposalIxs = Array.isArray(instructions?.ix) ? instructions.ix : [];
+                const rawProposalIxs = Array.isArray(instructions?.ix) ? instructions.ix : instructions?.ix ? [instructions.ix] : [];
+                const proposalIxs = normalizeInstructionArray(instructions?.ix);
                 const allowNoInstructions = !!instructions?.allowNoInstructions;
+
+                if (rawProposalIxs.length > 0 && proposalIxs.length === 0) {
+                    setLoadingText("Invalid Instructions");
+                    setSimulationSummary({
+                        status: 'invalid_instructions',
+                        message: 'instructions.ix could not be normalized to valid TransactionInstruction objects',
+                        normalizedInstructionCount: proposalIxs.length,
+                        rawInstructionCount: rawProposalIxs.length,
+                    });
+                    setSimulationFailed(true);
+                    setLoaderCreationComplete(true);
+                    setLoaderSuccess(true);
+                    return;
+                }
 
                 if (proposalIxs.length === 0 && (isDraft || allowNoInstructions)) {
                     console.log("Proposal without executable instructions, skipping transaction simulation");
+                    setSimulationSummary({
+                        status: 'skipped',
+                        message: 'Simulation skipped for draft/allowNoInstructions proposal with no executable instructions.',
+                        normalizedInstructionCount: proposalIxs.length,
+                    });
                     setLoaderSuccess(true);
                     return;
                 }
 
                 if (proposalIxs.length === 0 && !isDraft && !allowNoInstructions) {
                     setLoadingText("No Instructions");
+                    setSimulationSummary({
+                        status: 'no_instructions',
+                        message: 'No executable instructions were provided.',
+                        normalizedInstructionCount: proposalIxs.length,
+                    });
                     setSimulationFailed(true);
                     setLoaderCreationComplete(true);
                     setLoaderSuccess(true);
@@ -1478,24 +1707,38 @@ const StakeAccountsView = () => {
                 }
 
                 const { blockhash, lastValidBlockHeight } = await RPC_CONNECTION.getLatestBlockhash('confirmed');
+                const nativeWalletPk = toPublicKeySafe(instructions?.nativeWallet);
+                const feePayerResolution = await resolveSimulationFeePayer(
+                    publicKey || null,
+                    nativeWalletPk,
+                    proposalIxs
+                );
+                const simulationFeePayerPk = feePayerResolution.feePayer;
+                if (!simulationFeePayerPk) {
+                    setLoadingText("Missing Fee Payer");
+                    setSimulationSummary({
+                        status: 'missing_fee_payer',
+                        message: 'No valid simulation fee payer could be resolved.',
+                        normalizedInstructionCount: proposalIxs.length,
+                        simulationFeePayerSource: feePayerResolution.source,
+                        simulationFeePayerCandidatesChecked: feePayerResolution.checkedCount,
+                    });
+                    setSimulationFailed(true);
+                    setLoaderCreationComplete(true);
+                    setLoaderSuccess(true);
+                    return;
+                }
                 
                 let transaction = new Transaction({
-                    feePayer: new PublicKey(instructions.nativeWallet),
+                    feePayer: simulationFeePayerPk,
                     blockhash,
                     lastValidBlockHeight,
                 })
 
                 console.log("ix: "+JSON.stringify(instructions.ix));
                 console.log("aix: "+JSON.stringify(instructions.aix));
-
-                //transaction.add(...instructions.ix);// we should simulate when sending back to the wallet...
-                            
-                // Ensure instructions.ix is an array of TransactionInstruction
-                if (proposalIxs.every(ix => ix instanceof TransactionInstruction)) {
-                    transaction.add(...proposalIxs);
-                } else {
-                    console.error("instructions.ix is not an array of TransactionInstruction");
-                }
+                console.log(`normalized ix count: ${proposalIxs.length}`);
+                transaction.add(...proposalIxs);
 
                 // Ensure instructions.aix is an array of TransactionInstruction
                 /*if (instructions.aix && Array.isArray(instructions.aix) && instructions.aix.every(aix => aix instanceof TransactionInstruction)) {
@@ -1514,19 +1757,70 @@ const StakeAccountsView = () => {
                 console.log("Getting estimated fees");
                 const latestBlockHash = (await RPC_CONNECTION.getLatestBlockhash()).blockhash;
                 transaction.recentBlockhash = latestBlockHash;
-                transaction.feePayer = new PublicKey(instructions.nativeWallet);
+                transaction.feePayer = simulationFeePayerPk;
+
+                const accountAudit = await auditInstructionAccounts(simulationFeePayerPk, proposalIxs);
+                if (accountAudit.error) {
+                    setSimulationSummary({
+                        status: 'account_audit_error',
+                        message: `Account audit failed: ${accountAudit.error}`,
+                        normalizedInstructionCount: proposalIxs.length,
+                        simulationFeePayer: simulationFeePayerPk.toBase58(),
+                        simulationFeePayerSource: feePayerResolution.source,
+                        simulationFeePayerCandidatesChecked: feePayerResolution.checkedCount,
+                        nativeWallet: nativeWalletPk?.toBase58?.(),
+                        accountAudit,
+                    });
+                } else if (accountAudit.missingCount > 0) {
+                    setLoadingText(`Missing Accounts (${accountAudit.missingCount})`);
+                    setShowSimulationDetails(true);
+                    setSimulationSummary({
+                        status: 'account_audit_failed',
+                        message: `Account preflight found ${accountAudit.missingCount} missing account(s).`,
+                        normalizedInstructionCount: proposalIxs.length,
+                        simulationFeePayer: simulationFeePayerPk.toBase58(),
+                        simulationFeePayerSource: feePayerResolution.source,
+                        simulationFeePayerCandidatesChecked: feePayerResolution.checkedCount,
+                        nativeWallet: nativeWalletPk?.toBase58?.(),
+                        accountAudit,
+                    });
+                    setSimulationFailed(true);
+                    setLoaderCreationComplete(true);
+                    setLoaderSuccess(true);
+                    return;
+                }
+
                 const simulationResult = await RPC_CONNECTION.simulateTransaction(transaction);
+                const simValue = simulationResult?.value || {};
+                const simErr = simValue?.err || simulationResult?.err || null;
+                const simLogs = Array.isArray(simValue?.logs) ? simValue.logs : [];
+                const unitsConsumed = simValue?.unitsConsumed ?? null;
+                const returnData = simValue?.returnData || null;
+                setSimulationSummary({
+                    status: simErr ? 'failed' : 'ok',
+                    error: simErr,
+                    logs: simLogs,
+                    unitsConsumed,
+                    returnData,
+                    normalizedInstructionCount: proposalIxs.length,
+                    simulationFeePayer: simulationFeePayerPk.toBase58(),
+                    simulationFeePayerSource: feePayerResolution.source,
+                    simulationFeePayerCandidatesChecked: feePayerResolution.checkedCount,
+                    nativeWallet: nativeWalletPk?.toBase58?.(),
+                    accountAudit,
+                });
                 //console.log("sim results..."+JSON.stringify(simulationResult));
-                if (simulationResult?.err || simulationResult?.value?.err) {
+                if (simErr) {
                     console.error('Transaction simulation failed:', simulationResult);
+                    setLoadingText("Simulation Failed");
                     setSimulationFailed(true);
                     setLoaderCreationComplete(true);
                     //return;
                 } else {
                     console.log('simulationResult: '+JSON.stringify(simulationResult));
-                    const computeUnits = simulationResult.value?.unitsConsumed; //simulationResult.value?.transaction?.message.recentBlockhashFeeCalculator.totalFees;
+                    const computeUnits = unitsConsumed; //simulationResult.value?.transaction?.message.recentBlockhashFeeCalculator.totalFees;
                     //const lamportsPerSol = 1000000000;
-                    const sol = computeUnits / 10 ** 9;
+                    const sol = computeUnits ? computeUnits / 10 ** 9 : 0;
                     console.log(`Estimated fee: ${sol}`);
                     //setTransactionEstimatedFee(sol);//feeInLamports/10 ** 9;
                 }
@@ -1542,8 +1836,14 @@ const StakeAccountsView = () => {
             }
         } catch(e){
             console.log("ERR: "+e);
+            setSimulationSummary({
+                status: 'exception',
+                message: (e as any)?.message || `${e}`,
+            });
+            setLoadingText("Simulation Error");
             setSimulationFailed(true);
             setLoaderCreationComplete(true);
+            setLoaderSuccess(true);
         }
         
     }
@@ -1601,8 +1901,17 @@ const StakeAccountsView = () => {
 
                 const isDraft = instructions.draft ? instructions.draft : true;
                 const returnTx = false;
-                const proposalIxs = Array.isArray(instructions?.ix) ? instructions.ix : [];
+                const rawProposalIxs = Array.isArray(instructions?.ix) ? instructions.ix : instructions?.ix ? [instructions.ix] : [];
+                const proposalIxs = normalizeInstructionArray(instructions?.ix);
                 const allowNoInstructions = !!instructions?.allowNoInstructions;
+
+                if (rawProposalIxs.length > 0 && proposalIxs.length === 0) {
+                    setLoadingText("Invalid Instructions");
+                    setProposalCreated(false);
+                    setLoadingPropCreation(false);
+                    setLoaderCreationComplete(true);
+                    return;
+                }
 
                 if (!isDraft && proposalIxs.length === 0 && !allowNoInstructions) {
                     setLoadingText("No Instructions");
@@ -1623,8 +1932,9 @@ const StakeAccountsView = () => {
                     transaction.add(...proposalIxs);
                 }
 
-                if (instructions?.aix && instructions.aix.length > 0){
-                    authTransaction.add(...instructions.aix);
+                const authIxs = normalizeInstructionArray(instructions?.aix);
+                if (authIxs.length > 0){
+                    authTransaction.add(...authIxs);
                 }
 
                 let signers = null;
@@ -1789,7 +2099,7 @@ const StakeAccountsView = () => {
 
     React.useEffect(() => {     
         
-        if (expandedLoader && loaderCreationComplete){
+        if (expandedLoader && loaderCreationComplete && !simulationFailed){
             timer.current = window.setTimeout(() => {
                 setExpandedLoader(false);
                 setLoaderSuccess(false);
@@ -2972,6 +3282,7 @@ const StakeAccountsView = () => {
                     <ExtensionsMenuView 
                         realm={realm}
                         rulesWallet={rulesWallet}
+                        governanceWallets={governanceWallets}
                         governanceNativeWallet={walletAddress} 
                         expandedLoader={expandedLoader} 
                         setExpandedLoader={setExpandedLoader}
@@ -3080,6 +3391,94 @@ const StakeAccountsView = () => {
                                     <Grid item xs={12}>
                                         <Typography variant="caption" sx={{ color: red[500] }}>Proposal {proposalCreated ? `Creation` : `Tx Simulation`} Failed</Typography>
                                     </Grid>
+                                    {(simulationSummary) && (
+                                        <Grid item xs={12}>
+                                            <Button
+                                                size="small"
+                                                variant="text"
+                                                onClick={() => setShowSimulationDetails(!showSimulationDetails)}
+                                            >
+                                                {showSimulationDetails ? 'Hide' : 'Show'} Simulation Details
+                                            </Button>
+                                        </Grid>
+                                    )}
+                                    {(simulationSummary && showSimulationDetails) && (
+                                        <Grid item xs={12}>
+                                            <Box
+                                                sx={{
+                                                    mt: 0.5,
+                                                    p: 1,
+                                                    borderRadius: '8px',
+                                                    background: 'rgba(0,0,0,0.22)',
+                                                    border: '1px solid rgba(255,255,255,0.08)',
+                                                    maxHeight: 220,
+                                                    overflow: 'auto',
+                                                    textAlign: 'left',
+                                                }}
+                                            >
+                                                <Typography variant="caption" sx={{ display: 'block', opacity: 0.85 }}>
+                                                    Status: {simulationSummary?.status || '-'}
+                                                </Typography>
+                                                {simulationSummary?.normalizedInstructionCount !== undefined && (
+                                                    <Typography variant="caption" sx={{ display: 'block', opacity: 0.85 }}>
+                                                        Instructions: {simulationSummary.normalizedInstructionCount}
+                                                    </Typography>
+                                                )}
+                                                {simulationSummary?.unitsConsumed !== undefined && simulationSummary?.unitsConsumed !== null && (
+                                                    <Typography variant="caption" sx={{ display: 'block', opacity: 0.85 }}>
+                                                        Compute units: {simulationSummary.unitsConsumed}
+                                                    </Typography>
+                                                )}
+                                                {simulationSummary?.message && (
+                                                    <Typography variant="caption" sx={{ display: 'block', color: '#f8d7a3' }}>
+                                                        Message: {simulationSummary.message}
+                                                    </Typography>
+                                                )}
+                                                {simulationSummary?.simulationFeePayer && (
+                                                    <Typography variant="caption" sx={{ display: 'block', opacity: 0.85, wordBreak: 'break-all' }}>
+                                                        Simulation fee payer: {simulationSummary.simulationFeePayer}
+                                                        {simulationSummary?.simulationFeePayerSource ? ` (${simulationSummary.simulationFeePayerSource})` : ''}
+                                                    </Typography>
+                                                )}
+                                                {simulationSummary?.nativeWallet && (
+                                                    <Typography variant="caption" sx={{ display: 'block', opacity: 0.75, wordBreak: 'break-all' }}>
+                                                        Instruction native wallet: {simulationSummary.nativeWallet}
+                                                    </Typography>
+                                                )}
+                                                {simulationSummary?.accountAudit && (
+                                                    <Typography variant="caption" sx={{ display: 'block', opacity: 0.85 }}>
+                                                        Account audit: checked {simulationSummary.accountAudit.checkedCount || 0}
+                                                        {' '}| missing {simulationSummary.accountAudit.missingCount || 0}
+                                                    </Typography>
+                                                )}
+                                                {Array.isArray(simulationSummary?.accountAudit?.missingAccounts) &&
+                                                    simulationSummary.accountAudit.missingAccounts.length > 0 && (
+                                                    <Typography variant="caption" sx={{ display: 'block', color: '#ffcf91', whiteSpace: 'pre-wrap' }}>
+                                                        Missing accounts:
+                                                        {'\n'}
+                                                        {simulationSummary.accountAudit.missingAccounts
+                                                            .slice(0, 25)
+                                                            .map((acc: any) =>
+                                                                `${acc.pubkey} [${Array.isArray(acc.roles) ? acc.roles.slice(0, 3).join(', ') : ''}]`
+                                                            )
+                                                            .join('\n')}
+                                                    </Typography>
+                                                )}
+                                                {simulationSummary?.error && (
+                                                    <Typography variant="caption" sx={{ display: 'block', color: '#ff9f9f', whiteSpace: 'pre-wrap' }}>
+                                                        Error: {JSON.stringify(simulationSummary.error, null, 2)}
+                                                    </Typography>
+                                                )}
+                                                {Array.isArray(simulationSummary?.logs) && simulationSummary.logs.length > 0 && (
+                                                    <Typography variant="caption" sx={{ display: 'block', whiteSpace: 'pre-wrap', mt: 0.5 }}>
+                                                        Logs:
+                                                        {'\n'}
+                                                        {simulationSummary.logs.slice(-40).join('\n')}
+                                                    </Typography>
+                                                )}
+                                            </Box>
+                                        </Grid>
+                                    )}
                                     <Grid item xs={12}>
                                         <Typography variant="caption">A complete Governance Wallet Experience with ❤️ by Grape #OPOS</Typography>
                                     </Grid>
@@ -3123,6 +3522,95 @@ const StakeAccountsView = () => {
                             </Grid>
                         </Grid>
                     }
+                    {(simulationSummary && loaderSuccess && !simulationFailed) && (
+                        <Grid container justifyContent={'center'} alignContent={'center'} sx={{ mt: 1, textAlign: 'left' }}>
+                            <Grid item xs={12} sx={{ textAlign: 'center' }}>
+                                <Button
+                                    size="small"
+                                    variant="text"
+                                    onClick={() => setShowSimulationDetails(!showSimulationDetails)}
+                                >
+                                    {showSimulationDetails ? 'Hide' : 'Show'} Simulation Details
+                                </Button>
+                            </Grid>
+                            {showSimulationDetails && (
+                                <Grid item xs={12}>
+                                    <Box
+                                        sx={{
+                                            mt: 0.5,
+                                            p: 1,
+                                            borderRadius: '8px',
+                                            background: 'rgba(0,0,0,0.22)',
+                                            border: '1px solid rgba(255,255,255,0.08)',
+                                            maxHeight: 220,
+                                            overflow: 'auto',
+                                        }}
+                                    >
+                                        <Typography variant="caption" sx={{ display: 'block', opacity: 0.85 }}>
+                                            Status: {simulationSummary?.status || '-'}
+                                        </Typography>
+                                        {simulationSummary?.normalizedInstructionCount !== undefined && (
+                                            <Typography variant="caption" sx={{ display: 'block', opacity: 0.85 }}>
+                                                Instructions: {simulationSummary.normalizedInstructionCount}
+                                            </Typography>
+                                        )}
+                                        {simulationSummary?.unitsConsumed !== undefined && simulationSummary?.unitsConsumed !== null && (
+                                            <Typography variant="caption" sx={{ display: 'block', opacity: 0.85 }}>
+                                                Compute units: {simulationSummary.unitsConsumed}
+                                            </Typography>
+                                        )}
+                                        {simulationSummary?.message && (
+                                            <Typography variant="caption" sx={{ display: 'block', color: '#f8d7a3' }}>
+                                                Message: {simulationSummary.message}
+                                            </Typography>
+                                        )}
+                                        {simulationSummary?.simulationFeePayer && (
+                                            <Typography variant="caption" sx={{ display: 'block', opacity: 0.85, wordBreak: 'break-all' }}>
+                                                Simulation fee payer: {simulationSummary.simulationFeePayer}
+                                                {simulationSummary?.simulationFeePayerSource ? ` (${simulationSummary.simulationFeePayerSource})` : ''}
+                                            </Typography>
+                                        )}
+                                        {simulationSummary?.nativeWallet && (
+                                            <Typography variant="caption" sx={{ display: 'block', opacity: 0.75, wordBreak: 'break-all' }}>
+                                                Instruction native wallet: {simulationSummary.nativeWallet}
+                                            </Typography>
+                                        )}
+                                        {simulationSummary?.accountAudit && (
+                                            <Typography variant="caption" sx={{ display: 'block', opacity: 0.85 }}>
+                                                Account audit: checked {simulationSummary.accountAudit.checkedCount || 0}
+                                                {' '}| missing {simulationSummary.accountAudit.missingCount || 0}
+                                            </Typography>
+                                        )}
+                                        {Array.isArray(simulationSummary?.accountAudit?.missingAccounts) &&
+                                            simulationSummary.accountAudit.missingAccounts.length > 0 && (
+                                            <Typography variant="caption" sx={{ display: 'block', color: '#ffcf91', whiteSpace: 'pre-wrap' }}>
+                                                Missing accounts:
+                                                {'\n'}
+                                                {simulationSummary.accountAudit.missingAccounts
+                                                    .slice(0, 25)
+                                                    .map((acc: any) =>
+                                                        `${acc.pubkey} [${Array.isArray(acc.roles) ? acc.roles.slice(0, 3).join(', ') : ''}]`
+                                                    )
+                                                    .join('\n')}
+                                            </Typography>
+                                        )}
+                                        {simulationSummary?.error && (
+                                            <Typography variant="caption" sx={{ display: 'block', color: '#ff9f9f', whiteSpace: 'pre-wrap' }}>
+                                                Error: {JSON.stringify(simulationSummary.error, null, 2)}
+                                            </Typography>
+                                        )}
+                                        {Array.isArray(simulationSummary?.logs) && simulationSummary.logs.length > 0 && (
+                                            <Typography variant="caption" sx={{ display: 'block', whiteSpace: 'pre-wrap', mt: 0.5 }}>
+                                                Logs:
+                                                {'\n'}
+                                                {simulationSummary.logs.slice(-40).join('\n')}
+                                            </Typography>
+                                        )}
+                                    </Box>
+                                </Grid>
+                            )}
+                        </Grid>
+                    )}
                 </ListItem>
             </List>
         </Collapse>

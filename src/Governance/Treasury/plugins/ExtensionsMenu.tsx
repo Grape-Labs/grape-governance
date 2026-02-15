@@ -74,6 +74,7 @@ export default function ExtensionsMenuView(props: any) {
   const [open, setOpen] = React.useState(false);
   const realm = props?.realm;
   const rulesWallet = props?.rulesWallet;
+  const governanceWallets = props?.governanceWallets;
   const governanceNativeWallet = props?.governanceNativeWallet;
   const expandedLoader = props?.expandedLoader;
   const setExpandedLoader = props?.setExpandedLoader;
@@ -153,6 +154,7 @@ export default function ExtensionsMenuView(props: any) {
             realm={realm}
             handleCloseExtMenu={handleClose}
             rulesWallet={rulesWallet}
+            governanceWallets={governanceWallets}
             governanceNativeWallet={governanceNativeWallet}
             expandedLoader={expandedLoader} 
             setExpandedLoader={setExpandedLoader}
