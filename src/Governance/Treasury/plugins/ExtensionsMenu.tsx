@@ -1,62 +1,26 @@
 import * as React from 'react';
-
 import {
-    Typography,
-    Card,
-    CardHeader,
-    CardMedia,
-    CardContent,
-    CardActions,
-    Collapse,
-    Button,
-    Grid,
-    Box,
-    Paper,
-    Avatar,
-    Table,
-    TableContainer,
-    TableCell,
-    TableHead,
-    TableBody,
-    TableFooter,
-    TableRow,
-    TablePagination,
-    Tooltip,
-    CircularProgress,
-    LinearProgress,
-    IconButton,
-    Menu,
-    MenuItem,
-    List,
-    ListItem,
-    ListItemAvatar,
-    ListItemText,
-    Skeleton,
-    Badge,
-    Divider,
-    Chip,
-    Snackbar,
-    Alert,
-    Dialog,
-    DialogContentText,
-    MobileStepper,
-    Stepper,
-    Step,
-    StepButton,
-    ListItemIcon,
-    Switch,
-  } from '@mui/material/';
+  Divider,
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Switch,
+  Tooltip,
+} from '@mui/material/';
 
-import PersonAdd from '@mui/icons-material/PersonAdd';
-import Settings from '@mui/icons-material/Settings';
-import Logout from '@mui/icons-material/Logout';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import SettingsIcon from '@mui/icons-material/Settings';
+import HowToVoteIcon from '@mui/icons-material/HowToVote';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import AutoGraphIcon from '@mui/icons-material/AutoGraph';
+import BadgeIcon from '@mui/icons-material/Badge';
 
 import SendExtensionView from './SendView';
 import JupDcaExtensionView from './JupDcaView';
 import DirectoryExtensionView from './DirectoryView';
-import DistributorExtensionView from './DistributorView';
 import CustomIxView from './CustomIxView';
 import StakeValidatorView from './StakeValidatorView';
 import ClaimExtensionView from './ClaimView';
@@ -77,8 +41,11 @@ import CreateTreasuryWalletProposalButton from '../CreateTreasuryWalletProposalB
 export default function ExtensionsMenuView(props: any) {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [governanceToolsAnchorEl, setGovernanceToolsAnchorEl] = React.useState<null | HTMLElement>(null);
-  //const open = Boolean(anchorEl);
-  const [open, setOpen] = React.useState(false);
+  const [proposalToolsAnchorEl, setProposalToolsAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [treasuryToolsAnchorEl, setTreasuryToolsAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [defiToolsAnchorEl, setDefiToolsAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [identityToolsAnchorEl, setIdentityToolsAnchorEl] = React.useState<null | HTMLElement>(null);
+
   const realm = props?.realm;
   const rulesWallet = props?.rulesWallet;
   const governanceWallets = props?.governanceWallets;
@@ -94,48 +61,60 @@ export default function ExtensionsMenuView(props: any) {
   const masterWallet = props?.masterWallet;
   const usdcValue = props?.usdcValue;
 
+  const closeSubmenus = () => {
+    setGovernanceToolsAnchorEl(null);
+    setProposalToolsAnchorEl(null);
+    setTreasuryToolsAnchorEl(null);
+    setDefiToolsAnchorEl(null);
+    setIdentityToolsAnchorEl(null);
+  };
+
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
-    setOpen(true);
-  };
-
-  const handleOpenGovernanceTools = (event: React.MouseEvent<HTMLElement>) => {
-    setGovernanceToolsAnchorEl(event.currentTarget);
-  };
-
-  const handleCloseGovernanceTools = () => {
-    setGovernanceToolsAnchorEl(null);
-  };
-
-  const handleCloseAllMenus = () => {
-    handleCloseGovernanceTools();
-    handleClose();
   };
 
   const handleClose = () => {
     setAnchorEl(null);
-    setGovernanceToolsAnchorEl(null);
-    setOpen(false);
+    closeSubmenus();
   };
+
+  const handleCloseAllMenus = () => {
+    handleClose();
+  };
+
+  const handleOpenSubmenu =
+    (setter: React.Dispatch<React.SetStateAction<HTMLElement | null>>) =>
+    (event: React.MouseEvent<HTMLElement>) => {
+      event.stopPropagation();
+      closeSubmenus();
+      setter(event.currentTarget);
+    };
+
+  const menuOpen = Boolean(anchorEl);
+  const submenuPosition = {
+    transformOrigin: { horizontal: 'left' as const, vertical: 'top' as const },
+    anchorOrigin: { horizontal: 'right' as const, vertical: 'top' as const },
+  };
+
   return (
     <React.Fragment>
-        <Tooltip title="Extensions">
-          <IconButton
-            onClick={handleClick}
-            size="small"
-            aria-controls={open ? 'account-menu' : undefined}
-            aria-haspopup="true"
-            aria-expanded={open ? 'true' : undefined}
-          >
-            <ExtensionIcon />
-          </IconButton>
-        </Tooltip>
+      <Tooltip title="Extensions">
+        <IconButton
+          onClick={handleClick}
+          size="small"
+          aria-controls={menuOpen ? 'account-menu' : undefined}
+          aria-haspopup="true"
+          aria-expanded={menuOpen ? 'true' : undefined}
+        >
+          <ExtensionIcon />
+        </IconButton>
+      </Tooltip>
+
       <Menu
         anchorEl={anchorEl}
         id="account-menu"
-        open={open}
+        open={menuOpen}
         onClose={handleClose}
-        //onClick={handleClose}
         PaperProps={{
           elevation: 0,
           sx: {
@@ -166,28 +145,18 @@ export default function ExtensionsMenuView(props: any) {
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
         <DemoExtensionView
-            realm={realm}
-            handleCloseExtMenu={handleClose}
-            rulesWallet={rulesWallet}
-            governanceNativeWallet={governanceNativeWallet}
-            expandedLoader={expandedLoader} 
-            setExpandedLoader={setExpandedLoader}
-            instructions={instructions}
-            setInstructions={setInstructions}
+          realm={realm}
+          handleCloseExtMenu={handleCloseAllMenus}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
         />
+
         <Divider />
-        <MenuItem
-          onClick={handleOpenGovernanceTools}
-          aria-haspopup="true"
-          aria-expanded={Boolean(governanceToolsAnchorEl) ? 'true' : undefined}
-        >
-          <ListItemIcon>
-            <Settings fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Governance Tools</ListItemText>
-          <KeyboardArrowRightIcon fontSize="small" />
-        </MenuItem>
-        <Divider />
+
         <MenuItem
           onClick={(event) => {
             event.stopPropagation();
@@ -197,7 +166,7 @@ export default function ExtensionsMenuView(props: any) {
           }}
         >
           <ListItemIcon>
-            <Settings fontSize="small" />
+            <SettingsIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Queue Instructions Only</ListItemText>
           <Switch
@@ -212,55 +181,168 @@ export default function ExtensionsMenuView(props: any) {
             onClick={(event) => event.stopPropagation()}
           />
         </MenuItem>
+
         <Divider />
+
+        <MenuItem
+          onClick={handleOpenSubmenu(setGovernanceToolsAnchorEl)}
+          aria-haspopup="true"
+          aria-expanded={Boolean(governanceToolsAnchorEl) ? 'true' : undefined}
+        >
+          <ListItemIcon>
+            <SettingsIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Governance Tools</ListItemText>
+          <KeyboardArrowRightIcon fontSize="small" />
+        </MenuItem>
+
+        <MenuItem
+          onClick={handleOpenSubmenu(setProposalToolsAnchorEl)}
+          aria-haspopup="true"
+          aria-expanded={Boolean(proposalToolsAnchorEl) ? 'true' : undefined}
+        >
+          <ListItemIcon>
+            <HowToVoteIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Proposal Builder</ListItemText>
+          <KeyboardArrowRightIcon fontSize="small" />
+        </MenuItem>
+
+        <MenuItem
+          onClick={handleOpenSubmenu(setTreasuryToolsAnchorEl)}
+          aria-haspopup="true"
+          aria-expanded={Boolean(treasuryToolsAnchorEl) ? 'true' : undefined}
+        >
+          <ListItemIcon>
+            <AccountBalanceWalletIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Treasury Operations</ListItemText>
+          <KeyboardArrowRightIcon fontSize="small" />
+        </MenuItem>
+
+        <MenuItem
+          onClick={handleOpenSubmenu(setDefiToolsAnchorEl)}
+          aria-haspopup="true"
+          aria-expanded={Boolean(defiToolsAnchorEl) ? 'true' : undefined}
+        >
+          <ListItemIcon>
+            <AutoGraphIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>DeFi & Automation</ListItemText>
+          <KeyboardArrowRightIcon fontSize="small" />
+        </MenuItem>
+
+        <MenuItem
+          onClick={handleOpenSubmenu(setIdentityToolsAnchorEl)}
+          aria-haspopup="true"
+          aria-expanded={Boolean(identityToolsAnchorEl) ? 'true' : undefined}
+        >
+          <ListItemIcon>
+            <BadgeIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Identity & Claims</ListItemText>
+          <KeyboardArrowRightIcon fontSize="small" />
+        </MenuItem>
+      </Menu>
+
+      <Menu
+        anchorEl={governanceToolsAnchorEl}
+        id="governance-tools-submenu"
+        open={Boolean(governanceToolsAnchorEl)}
+        onClose={() => setGovernanceToolsAnchorEl(null)}
+        {...submenuPosition}
+      >
+        <GovernanceConfigView
+          realm={realm}
+          handleCloseExtMenu={handleCloseAllMenus}
+          rulesWallet={rulesWallet}
+          governanceWallets={governanceWallets}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
+        />
+        <DecommissionView
+          realm={realm}
+          handleCloseExtMenu={handleCloseAllMenus}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
+        />
+        <CreateTreasuryWalletProposalButton
+          realm={realm}
+          governanceAddress={props?.governanceAddress || realm?.pubkey?.toBase58?.()}
+          governanceWallets={governanceWallets}
+          handleCloseExtMenu={handleCloseAllMenus}
+          renderAsMenuItem
+        />
+      </Menu>
+
+      <Menu
+        anchorEl={proposalToolsAnchorEl}
+        id="proposal-tools-submenu"
+        open={Boolean(proposalToolsAnchorEl)}
+        onClose={() => setProposalToolsAnchorEl(null)}
+        {...submenuPosition}
+      >
         <DraftProposalView
-            realm={realm}
-            handleCloseExtMenu={handleClose}
-            rulesWallet={rulesWallet}
-            governanceNativeWallet={governanceNativeWallet}
-            expandedLoader={expandedLoader}
-            setExpandedLoader={setExpandedLoader}
-            instructions={instructions}
-            setInstructions={setInstructions}
+          realm={realm}
+          handleCloseExtMenu={handleCloseAllMenus}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
         />
         <CreatePollView
-            realm={realm}
-            handleCloseExtMenu={handleClose}
-            rulesWallet={rulesWallet}
-            governanceNativeWallet={governanceNativeWallet}
-            expandedLoader={expandedLoader}
-            setExpandedLoader={setExpandedLoader}
-            instructions={instructions}
-            setInstructions={setInstructions}
-            instructionQueue={instructionQueue}
-            clearInstructionQueue={clearInstructionQueue}
+          realm={realm}
+          handleCloseExtMenu={handleCloseAllMenus}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
+          instructionQueue={instructionQueue}
+          clearInstructionQueue={clearInstructionQueue}
         />
         <CustomIxView
-            realm={realm}
-            handleCloseExtMenu={handleClose}
-            rulesWallet={rulesWallet}
-            governanceNativeWallet={governanceNativeWallet}
-            expandedLoader={expandedLoader} 
-            setExpandedLoader={setExpandedLoader}
-            instructions={instructions}
-            setInstructions={setInstructions}
-        />
-        <Divider />
-        <SendExtensionView
-            realm={realm}
-            handleCloseExtMenu={handleClose}
-            rulesWallet={rulesWallet}
-            governanceNativeWallet={governanceNativeWallet}
-            expandedLoader={expandedLoader} 
-            setExpandedLoader={setExpandedLoader}
-            instructions={instructions}
-            setInstructions={setInstructions}
-            masterWallet={masterWallet}
-            usdcValue={usdcValue}
-        />
-        <BatchSendView
           realm={realm}
-          handleCloseExtMenu={handleClose}
+          handleCloseExtMenu={handleCloseAllMenus}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
+        />
+        <MemoIxView
+          realm={realm}
+          rulesWallet={rulesWallet}
+          handleCloseExtMenu={handleCloseAllMenus}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
+        />
+      </Menu>
+
+      <Menu
+        anchorEl={treasuryToolsAnchorEl}
+        id="treasury-tools-submenu"
+        open={Boolean(treasuryToolsAnchorEl)}
+        onClose={() => setTreasuryToolsAnchorEl(null)}
+        {...submenuPosition}
+      >
+        <SendExtensionView
+          realm={realm}
+          handleCloseExtMenu={handleCloseAllMenus}
           rulesWallet={rulesWallet}
           governanceNativeWallet={governanceNativeWallet}
           expandedLoader={expandedLoader}
@@ -270,72 +352,62 @@ export default function ExtensionsMenuView(props: any) {
           masterWallet={masterWallet}
           usdcValue={usdcValue}
         />
-        {/*(governanceNativeWallet === '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8' ||
-          governanceNativeWallet === '6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD'  ||
-          governanceNativeWallet === 'AWaMVkukciGYPEpJbnmSXPJzVxuuMFz1gWYBkznJ2qbq' 
-        ) && */}
-        <TokenManagerView
-            realm={realm}
-            handleCloseExtMenu={handleClose}
-            rulesWallet={rulesWallet}
-            governanceNativeWallet={governanceNativeWallet}
-            expandedLoader={expandedLoader} 
-            setExpandedLoader={setExpandedLoader}
-            instructions={instructions}
-            setInstructions={setInstructions}
-        />
-        <MemoIxView
+        <BatchSendView
           realm={realm}
+          handleCloseExtMenu={handleCloseAllMenus}
           rulesWallet={rulesWallet}
-          handleCloseExtMenu={handleClose}
           governanceNativeWallet={governanceNativeWallet}
-          expandedLoader={expandedLoader} 
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
+          masterWallet={masterWallet}
+          usdcValue={usdcValue}
+        />
+        <TokenManagerView
+          realm={realm}
+          handleCloseExtMenu={handleCloseAllMenus}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
           setExpandedLoader={setExpandedLoader}
           instructions={instructions}
           setInstructions={setInstructions}
         />
-        <SnsDomainView
-            realm={realm}
-            handleCloseExtMenu={handleClose}
-            rulesWallet={rulesWallet}
-            governanceNativeWallet={governanceNativeWallet}
-            expandedLoader={expandedLoader}
-            setExpandedLoader={setExpandedLoader}
-            instructions={instructions}
-            setInstructions={setInstructions}
-        />
-
-
         <StakeValidatorView
-            realm={realm}
-            handleCloseExtMenu={handleClose}
-            rulesWallet={rulesWallet}
-            governanceNativeWallet={governanceNativeWallet}
-            expandedLoader={expandedLoader} 
-            setExpandedLoader={setExpandedLoader}
-            instructions={instructions}
-            setInstructions={setInstructions}
+          realm={realm}
+          handleCloseExtMenu={handleCloseAllMenus}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
         />
-        
-        {/*(governanceNativeWallet === '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8' ||
-          governanceNativeWallet === '3BEvopNQ89zkM4r6ADva18i5fao1sqR1pmswyQyfj838'
-         ) && */}
-          <JupDcaExtensionView
-              realm={realm}
-              handleCloseExtMenu={handleClose}
-              rulesWallet={rulesWallet}
-              governanceNativeWallet={governanceNativeWallet}
-              expandedLoader={expandedLoader} 
-              setExpandedLoader={setExpandedLoader}
-              instructions={instructions}
-              setInstructions={setInstructions}
-              masterWallet={masterWallet}
-              usdcValue={usdcValue}
-          />
-        
+      </Menu>
+
+      <Menu
+        anchorEl={defiToolsAnchorEl}
+        id="defi-tools-submenu"
+        open={Boolean(defiToolsAnchorEl)}
+        onClose={() => setDefiToolsAnchorEl(null)}
+        {...submenuPosition}
+      >
+        <JupDcaExtensionView
+          realm={realm}
+          handleCloseExtMenu={handleCloseAllMenus}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
+          masterWallet={masterWallet}
+          usdcValue={usdcValue}
+        />
         <JupiterSwapView
           realm={realm}
-          handleCloseExtMenu={handleClose}
+          handleCloseExtMenu={handleCloseAllMenus}
           rulesWallet={rulesWallet}
           governanceNativeWallet={governanceNativeWallet}
           expandedLoader={expandedLoader}
@@ -345,7 +417,7 @@ export default function ExtensionsMenuView(props: any) {
         />
         <DriftTradeView
           realm={realm}
-          handleCloseExtMenu={handleClose}
+          handleCloseExtMenu={handleCloseAllMenus}
           rulesWallet={rulesWallet}
           governanceNativeWallet={governanceNativeWallet}
           expandedLoader={expandedLoader}
@@ -355,7 +427,26 @@ export default function ExtensionsMenuView(props: any) {
         />
         <StreamflowView
           realm={realm}
-          handleCloseExtMenu={handleClose}
+          handleCloseExtMenu={handleCloseAllMenus}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
+        />
+      </Menu>
+
+      <Menu
+        anchorEl={identityToolsAnchorEl}
+        id="identity-tools-submenu"
+        open={Boolean(identityToolsAnchorEl)}
+        onClose={() => setIdentityToolsAnchorEl(null)}
+        {...submenuPosition}
+      >
+        <SnsDomainView
+          realm={realm}
+          handleCloseExtMenu={handleCloseAllMenus}
           rulesWallet={rulesWallet}
           governanceNativeWallet={governanceNativeWallet}
           expandedLoader={expandedLoader}
@@ -364,61 +455,24 @@ export default function ExtensionsMenuView(props: any) {
           setInstructions={setInstructions}
         />
         <DirectoryExtensionView
-            realm={realm}
-            handleCloseExtMenu={handleClose}
-            rulesWallet={rulesWallet}
-            governanceNativeWallet={governanceNativeWallet}
-            expandedLoader={expandedLoader} 
-            setExpandedLoader={setExpandedLoader}
-            instructions={instructions}
-            setInstructions={setInstructions}
+          realm={realm}
+          handleCloseExtMenu={handleCloseAllMenus}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
         />
         <ClaimExtensionView
-            realm={realm}
-            handleCloseExtMenu={handleClose}
-            rulesWallet={rulesWallet}
-            governanceNativeWallet={governanceNativeWallet}
-            expandedLoader={expandedLoader} 
-            setExpandedLoader={setExpandedLoader}
-            instructions={instructions}
-            setInstructions={setInstructions}
-        />
-      </Menu>
-      <Menu
-        anchorEl={governanceToolsAnchorEl}
-        id="governance-tools-submenu"
-        open={Boolean(governanceToolsAnchorEl)}
-        onClose={handleCloseGovernanceTools}
-        transformOrigin={{ horizontal: 'left', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'top' }}
-      >
-        <GovernanceConfigView 
-            realm={realm}
-            handleCloseExtMenu={handleCloseAllMenus}
-            rulesWallet={rulesWallet}
-            governanceWallets={governanceWallets}
-            governanceNativeWallet={governanceNativeWallet}
-            expandedLoader={expandedLoader} 
-            setExpandedLoader={setExpandedLoader}
-            instructions={instructions}
-            setInstructions={setInstructions}
-        />
-        <DecommissionView
-            realm={realm}
-            handleCloseExtMenu={handleCloseAllMenus}
-            rulesWallet={rulesWallet}
-            governanceNativeWallet={governanceNativeWallet}
-            expandedLoader={expandedLoader}
-            setExpandedLoader={setExpandedLoader}
-            instructions={instructions}
-            setInstructions={setInstructions}
-        />
-        <CreateTreasuryWalletProposalButton
-            realm={realm}
-            governanceAddress={props?.governanceAddress || realm?.pubkey?.toBase58?.()}
-            governanceWallets={governanceWallets}
-            handleCloseExtMenu={handleCloseAllMenus}
-            renderAsMenuItem
+          realm={realm}
+          handleCloseExtMenu={handleCloseAllMenus}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
         />
       </Menu>
     </React.Fragment>

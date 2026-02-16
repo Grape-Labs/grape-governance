@@ -5,6 +5,7 @@ import { styled } from '@mui/material/styles';
 import {
   Box,
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -16,6 +17,7 @@ import {
   IconButton,
   ListItemIcon,
   MenuItem,
+  Stack,
   Switch,
   TextField,
   Tooltip,
@@ -28,7 +30,14 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { useSnackbar } from 'notistack';
 import BN from 'bn.js';
 import { getMint } from '@solana/spl-token-v2';
-import { ICluster, PROGRAM_ID, SolanaStreamClient, getBN } from '@streamflow/stream';
+import {
+  ICluster,
+  PROGRAM_ID,
+  SolanaStreamClient,
+  StreamDirection,
+  StreamType,
+  getBN,
+} from '@streamflow/stream';
 
 import AdvancedProposalView from './AdvancedProposalView';
 import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
@@ -150,6 +159,9 @@ export default function StreamflowView(props: any) {
   const [automaticWithdrawal, setAutomaticWithdrawal] = React.useState(false);
 
   const [isBuilding, setIsBuilding] = React.useState(false);
+  const [loadingCreatedStreams, setLoadingCreatedStreams] = React.useState(false);
+  const [createdStreamsError, setCreatedStreamsError] = React.useState<string | null>(null);
+  const [createdStreams, setCreatedStreams] = React.useState<Array<{ id: string; stream: any }>>([]);
 
   const streamflowCluster = React.useMemo(
     () => detectStreamflowCluster((RPC_CONNECTION as any)?.rpcEndpoint),
@@ -213,6 +225,50 @@ export default function StreamflowView(props: any) {
       setGoverningMint(realm?.account?.communityMint || realm?.communityMint);
     }
   };
+
+  const formatUnixTimestamp = (ts?: number): string => {
+    if (!ts || !Number.isFinite(ts) || ts <= 0) return 'N/A';
+    try {
+      return new Date(ts * 1000).toLocaleString();
+    } catch {
+      return 'N/A';
+    }
+  };
+
+  const fetchCreatedStreams = React.useCallback(async () => {
+    if (!governanceNativeWallet) {
+      setCreatedStreams([]);
+      setCreatedStreamsError('Missing governance native wallet');
+      return;
+    }
+
+    setLoadingCreatedStreams(true);
+    setCreatedStreamsError(null);
+    try {
+      const senderPk = new PublicKey(governanceNativeWallet);
+      const streamEntries = await streamflowClient.get({
+        address: senderPk.toBase58(),
+        direction: StreamDirection.Outgoing,
+        type: StreamType.All,
+      });
+
+      const mapped = (streamEntries || []).map(([id, stream]) => ({ id, stream }));
+      mapped.sort((a, b) => Number(b?.stream?.createdAt || 0) - Number(a?.stream?.createdAt || 0));
+      setCreatedStreams(mapped);
+    } catch (error: any) {
+      const message = error?.message || `${error}`;
+      setCreatedStreams([]);
+      setCreatedStreamsError(message);
+      console.error('Failed to fetch Streamflow streams', error);
+    } finally {
+      setLoadingCreatedStreams(false);
+    }
+  }, [governanceNativeWallet, streamflowClient]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    fetchCreatedStreams();
+  }, [open, fetchCreatedStreams]);
 
   const queueStreamflowStream = async () => {
     if (isBuilding) return;
@@ -601,6 +657,90 @@ export default function StreamflowView(props: any) {
               </Grid>
             </Grid>
           </FormControl>
+
+          <Box sx={{ mt: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+              <Typography variant="subtitle2">Created Streams</Typography>
+              <Button
+                size="small"
+                onClick={fetchCreatedStreams}
+                disabled={loadingCreatedStreams}
+                sx={{ minWidth: 'auto' }}
+              >
+                Refresh
+              </Button>
+            </Box>
+
+            {loadingCreatedStreams ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1 }}>
+                <CircularProgress size={16} />
+                <Typography variant="caption">Loading streams...</Typography>
+              </Box>
+            ) : null}
+
+            {!loadingCreatedStreams && createdStreamsError ? (
+              <Typography variant="caption" sx={{ color: 'error.main' }}>
+                Failed to load streams: {createdStreamsError}
+              </Typography>
+            ) : null}
+
+            {!loadingCreatedStreams && !createdStreamsError && createdStreams.length === 0 ? (
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                No created streams found for this treasury.
+              </Typography>
+            ) : null}
+
+            {!loadingCreatedStreams && !createdStreamsError && createdStreams.length > 0 ? (
+              <Stack spacing={1} sx={{ maxHeight: 220, overflowY: 'auto', pr: 0.5 }}>
+                {createdStreams.map(({ id, stream }) => {
+                  const isClosed = !!stream?.closed;
+                  const depositedRaw =
+                    stream?.depositedAmount && typeof stream.depositedAmount.toString === 'function'
+                      ? stream.depositedAmount.toString()
+                      : `${stream?.depositedAmount ?? '0'}`;
+                  return (
+                    <Box
+                      key={id}
+                      sx={{
+                        p: 1,
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: 1,
+                        background: 'rgba(255,255,255,0.02)',
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ display: 'block', fontWeight: 700 }}>
+                        {stream?.name || 'Unnamed Stream'}
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: 'block' }}>
+                        ID: {id}
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: 'block' }}>
+                        Recipient: {stream?.recipient || 'N/A'}
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: 'block' }}>
+                        Mint: {stream?.mint || 'N/A'}
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: 'block' }}>
+                        Deposited (raw): {depositedRaw}
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: 'block' }}>
+                        Start: {formatUnixTimestamp(Number(stream?.start || 0))}
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: 'block' }}>
+                        End: {formatUnixTimestamp(Number(stream?.end || 0))}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ display: 'block', color: isClosed ? 'warning.main' : 'success.main' }}
+                      >
+                        Status: {isClosed ? 'Closed' : 'Active'}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+              </Stack>
+            ) : null}
+          </Box>
 
           {openAdvanced ? (
             <AdvancedProposalView
