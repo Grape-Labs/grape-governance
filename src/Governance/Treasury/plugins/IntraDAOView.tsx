@@ -8,6 +8,7 @@ import {
 import {
   createInstructionData,
   getGovernance,
+  getProposal,
   getRealm,
   getSignatoryRecordAddress,
   getTokenOwnerRecordAddress,
@@ -18,7 +19,6 @@ import {
   withCreateTokenOwnerRecord,
   withDepositGoverningTokens,
   withInsertTransaction,
-  withSetGovernanceDelegate,
   withSignOffProposal,
 } from '@solana/spl-governance';
 import { getAssociatedTokenAddress, getMint } from '@solana/spl-token-v2';
@@ -57,6 +57,13 @@ import {
   parseMintNaturalAmountFromDecimalAsBN,
   shortenString,
 } from '../../../utils/grapeTools/helpers';
+import { createCastVoteTransaction } from '../../../utils/governanceTools/components/instructions/createVote';
+import {
+  getAllGovernancesIndexed,
+  getAllProposalsIndexed,
+  getProposalNewIndexed,
+  getRealmIndexed,
+} from '../../api/queries';
 
 export interface DialogTitleProps {
   id: string;
@@ -87,13 +94,22 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   '& .MuDialogActions-root': { padding: theme.spacing(1) },
 }));
 
-type IntraDaoAction = 'join' | 'deposit' | 'grant' | 'create';
+type IntraDaoAction = 'join' | 'deposit' | 'grant' | 'create' | 'vote';
 
 type JoinedDao = {
   realm: string;
   mint: string;
   tokenOwnerRecord: string;
   label: string;
+  daoName: string;
+};
+
+type LiveVoteProposal = {
+  pubkey: string;
+  title: string;
+  governance: string;
+  governingTokenMint: string;
+  votingAt: number;
 };
 
 function cleanValue(value: string): string {
@@ -192,13 +208,20 @@ export default function IntraDAOView(props: any) {
   const [targetGovernance, setTargetGovernance] = React.useState('');
   const [targetMint, setTargetMint] = React.useState('');
   const [depositAmount, setDepositAmount] = React.useState('');
-  const [delegateWallet, setDelegateWallet] = React.useState('');
+  const [grantParticipantWallet, setGrantParticipantWallet] = React.useState('');
+  const [grantAmount, setGrantAmount] = React.useState('');
   const [bulkGrantEnabled, setBulkGrantEnabled] = React.useState(false);
   const [bulkGrantRows, setBulkGrantRows] = React.useState('');
   const [targetProposalName, setTargetProposalName] = React.useState('IntraDAO Proposal');
   const [targetProposalDescription, setTargetProposalDescription] = React.useState(
     'Proposal created via IntraDAO extension'
   );
+  const [voteProposalAddress, setVoteProposalAddress] = React.useState('');
+  const [voteForProposal, setVoteForProposal] = React.useState(true);
+  const [voteProposalTitle, setVoteProposalTitle] = React.useState<string | null>(null);
+  const [isFetchingVoteProposalTitle, setIsFetchingVoteProposalTitle] = React.useState(false);
+  const [isFetchingLiveVoteProposals, setIsFetchingLiveVoteProposals] = React.useState(false);
+  const [liveVoteProposals, setLiveVoteProposals] = React.useState<LiveVoteProposal[]>([]);
 
   const [joinedDaos, setJoinedDaos] = React.useState<JoinedDao[]>([]);
   const [selectedJoinedDao, setSelectedJoinedDao] = React.useState('');
@@ -269,6 +292,15 @@ export default function IntraDAOView(props: any) {
     } else if (action === 'create') {
       setProposalTitle('IntraDAO: Create External Proposal');
       setProposalDescription('Create a proposal in another DAO using queued executable instructions.');
+    } else if (action === 'vote') {
+      setProposalTitle('IntraDAO: Vote for Proposal');
+      setProposalDescription('Cast a vote from treasury on a target DAO proposal.');
+    }
+  }, [action]);
+
+  React.useEffect(() => {
+    if (action === 'create') {
+      setIsDraft(true);
     }
   }, [action]);
 
@@ -301,6 +333,40 @@ export default function IntraDAOView(props: any) {
         localProgramId,
         ownerPk
       );
+      const uniqueRealms = Array.from(
+        new Set(
+          (ownerRecords || [])
+            .map((record) => record?.account?.realm?.toBase58?.())
+            .filter((pk): pk is string => !!pk)
+        )
+      );
+
+      const realmNameMap = new Map<string, string>();
+      await Promise.all(
+        uniqueRealms.map(async (realmPk) => {
+          try {
+            const indexedRealm = await getRealmIndexed(realmPk, localProgramId.toBase58());
+            const indexedName = cleanValue(indexedRealm?.account?.name || indexedRealm?.name || '');
+            if (indexedName) {
+              realmNameMap.set(realmPk, indexedName);
+              return;
+            }
+          } catch {
+            // Fallback to RPC below.
+          }
+
+          try {
+            const rpcRealm = await getRealm(RPC_CONNECTION, new PublicKey(realmPk));
+            const rpcName = cleanValue(rpcRealm?.account?.name || '');
+            if (rpcName) {
+              realmNameMap.set(realmPk, rpcName);
+            }
+          } catch {
+            // Ignore missing realm names.
+          }
+        })
+      );
+
       const dedupe = new Map<string, JoinedDao>();
 
       for (const record of ownerRecords || []) {
@@ -309,11 +375,13 @@ export default function IntraDAOView(props: any) {
         if (!realmPk || !mintPk) continue;
         const key = `${realmPk}:${mintPk}`;
         if (dedupe.has(key)) continue;
+        const daoName = realmNameMap.get(realmPk) || shortenString(realmPk, 4, 4);
         dedupe.set(key, {
           realm: realmPk,
           mint: mintPk,
           tokenOwnerRecord: record.pubkey.toBase58(),
-          label: `${shortenString(realmPk, 4, 4)} (${shortenString(mintPk, 4, 4)})`,
+          daoName,
+          label: `${daoName} (${realmPk}) · ${shortenString(mintPk, 4, 4)}`,
         });
       }
 
@@ -361,6 +429,152 @@ export default function IntraDAOView(props: any) {
 
     return { treasuryPk, realmPk, mintPk, programId, programVersion };
   };
+
+  const fetchVoteProposalTitle = React.useCallback(async () => {
+    if (action !== 'vote') {
+      setVoteProposalTitle(null);
+      return;
+    }
+    const proposalAddress = cleanValue(voteProposalAddress);
+    const proposalPk = toPublicKeySafe(proposalAddress);
+    if (!proposalPk) {
+      setVoteProposalTitle(null);
+      return;
+    }
+
+    try {
+      setIsFetchingVoteProposalTitle(true);
+      const targetRealmPk = toPublicKeySafe(cleanValue(targetRealm));
+      let targetRealmOwner: string | undefined;
+      if (targetRealmPk) {
+        try {
+          const targetRealmData = await getRealm(RPC_CONNECTION, targetRealmPk);
+          targetRealmOwner = targetRealmData?.owner?.toBase58?.() || targetRealmData?.owner;
+        } catch {
+          // Ignore realm-owner resolution failure; indexed lookup has fallback behavior.
+        }
+      }
+      const indexedProposal = await getProposalNewIndexed(
+        proposalPk.toBase58(),
+        targetRealmOwner,
+        targetRealmPk?.toBase58?.()
+      );
+      const resolvedTitle = cleanValue(
+        indexedProposal?.account?.name || indexedProposal?.name || ''
+      );
+      setVoteProposalTitle(resolvedTitle || null);
+    } catch (error) {
+      console.warn('Failed to resolve vote proposal title via Shyft index', error);
+      setVoteProposalTitle(null);
+    } finally {
+      setIsFetchingVoteProposalTitle(false);
+    }
+  }, [action, targetRealm, voteProposalAddress]);
+
+  const fetchLiveVoteProposals = React.useCallback(async () => {
+    if (action !== 'vote') {
+      setLiveVoteProposals([]);
+      return;
+    }
+
+    const targetRealmPk = toPublicKeySafe(cleanValue(targetRealm));
+    if (!targetRealmPk) {
+      setLiveVoteProposals([]);
+      return;
+    }
+
+    try {
+      setIsFetchingLiveVoteProposals(true);
+      const targetRealmData = await getRealm(RPC_CONNECTION, targetRealmPk);
+      const targetRealmOwner =
+        targetRealmData?.owner?.toBase58?.() ||
+        targetRealmData?.owner ||
+        'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
+      const governances = await getAllGovernancesIndexed(
+        targetRealmPk.toBase58(),
+        targetRealmOwner
+      );
+      const governanceKeys = Array.from(
+        new Set(
+          (governances || [])
+            .map((item: any) => item?.pubkey?.toBase58?.() || item?.pubkey)
+            .filter((key: any): key is string => !!key)
+        )
+      );
+
+      if (governanceKeys.length === 0) {
+        setLiveVoteProposals([]);
+        return;
+      }
+
+      const indexedProposals = await getAllProposalsIndexed(
+        governanceKeys,
+        targetRealmOwner,
+        targetRealmPk.toBase58()
+      );
+      const selectedMint = cleanValue(targetMint);
+      const selectedMintPk = toPublicKeySafe(selectedMint);
+
+      const normalizedProposals = (Array.isArray(indexedProposals) ? indexedProposals.flat(Infinity as any) : [])
+        .filter((proposal: any) => proposal?.pubkey && proposal?.account)
+        .filter((proposal: any) => Number(proposal?.account?.state ?? -1) === 2)
+        .filter((proposal: any) => {
+          if (!selectedMintPk) return true;
+          const proposalMint = proposal?.account?.governingTokenMint?.toBase58?.() || proposal?.account?.governingTokenMint;
+          return cleanValue(proposalMint) === selectedMintPk.toBase58();
+        })
+        .map((proposal: any) => ({
+          pubkey: proposal.pubkey?.toBase58?.() || proposal.pubkey,
+          title: cleanValue(proposal?.account?.name || 'Untitled Proposal'),
+          governance: proposal?.account?.governance?.toBase58?.() || proposal?.account?.governance || '',
+          governingTokenMint:
+            proposal?.account?.governingTokenMint?.toBase58?.() || proposal?.account?.governingTokenMint || '',
+          votingAt: Number(proposal?.account?.votingAt ?? proposal?.account?.draftAt ?? 0) || 0,
+        }))
+        .filter((proposal: LiveVoteProposal) => !!proposal.pubkey);
+
+      normalizedProposals.sort((a: LiveVoteProposal, b: LiveVoteProposal) => b.votingAt - a.votingAt);
+      setLiveVoteProposals(normalizedProposals);
+    } catch (error) {
+      console.warn('Failed to fetch live voting proposals', error);
+      setLiveVoteProposals([]);
+    } finally {
+      setIsFetchingLiveVoteProposals(false);
+    }
+  }, [action, targetRealm, targetMint]);
+
+  React.useEffect(() => {
+    if (action !== 'vote') {
+      setVoteProposalTitle(null);
+      setIsFetchingVoteProposalTitle(false);
+      setLiveVoteProposals([]);
+      setIsFetchingLiveVoteProposals(false);
+      return;
+    }
+    const proposalAddress = cleanValue(voteProposalAddress);
+    if (!proposalAddress) {
+      setVoteProposalTitle(null);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      fetchVoteProposalTitle();
+    }, 450);
+    return () => window.clearTimeout(timer);
+  }, [action, voteProposalAddress, targetRealm, fetchVoteProposalTitle]);
+
+  React.useEffect(() => {
+    if (action !== 'vote') return;
+    const targetRealmValue = cleanValue(targetRealm);
+    if (!targetRealmValue) {
+      setLiveVoteProposals([]);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      fetchLiveVoteProposals();
+    }, 450);
+    return () => window.clearTimeout(timer);
+  }, [action, targetRealm, targetMint, fetchLiveVoteProposals]);
 
   const buildJoinDaoInstructions = async (): Promise<TransactionInstruction[]> => {
     const { treasuryPk, realmPk, mintPk, programId, programVersion } = await resolveTargetContext();
@@ -422,95 +636,117 @@ export default function IntraDAOView(props: any) {
   };
 
   const buildGrantVotingPowerInstructions = async (): Promise<TransactionInstruction[]> => {
-    const ixs: TransactionInstruction[] = [];
-    if (!bulkGrantEnabled) {
-      const { treasuryPk, realmPk, mintPk, programId, programVersion } = await resolveTargetContext();
-      const delegatePk = toPublicKeySafe(cleanValue(delegateWallet));
-      if (!delegatePk) throw new Error('Invalid delegate wallet');
+    const { treasuryPk, realmPk, mintPk, programId, programVersion } = await resolveTargetContext();
+    const mintInfo = await getMint(RPC_CONNECTION as any, mintPk);
+    const sourceAta = await getAssociatedTokenAddress(
+      mintPk,
+      treasuryPk,
+      true
+    );
 
-      await withSetGovernanceDelegate(
+    const ixs: TransactionInstruction[] = [];
+    const appendGrant = async (participantPk: PublicKey, amountRaw: string, rowNum?: number) => {
+      const cleanAmount = cleanValue(amountRaw);
+      if (!cleanAmount || Number(cleanAmount) <= 0 || Number.isNaN(Number(cleanAmount))) {
+        throw new Error(
+          rowNum
+            ? `Invalid amount at line ${rowNum}. Amount must be greater than zero.`
+            : 'Grant amount must be greater than zero'
+        );
+      }
+
+      const amountBn = parseMintNaturalAmountFromDecimalAsBN(cleanAmount, mintInfo.decimals);
+      await withDepositGoverningTokens(
         ixs,
         programId,
         programVersion,
         realmPk,
+        sourceAta,
         mintPk,
+        participantPk,
         treasuryPk,
         treasuryPk,
-        delegatePk
+        amountBn,
+        false
       );
+    };
+
+    if (!bulkGrantEnabled) {
+      const participantPk = toPublicKeySafe(cleanValue(grantParticipantWallet));
+      if (!participantPk) throw new Error('Invalid participant wallet');
+      await appendGrant(participantPk, grantAmount);
       return ixs;
     }
-
-    const treasuryPk = toPublicKeySafe(governanceNativeWallet);
-    if (!treasuryPk) throw new Error('Missing governance native wallet');
 
     const rows = cleanValue(bulkGrantRows)
       .split('\n')
       .map((line) => line.trim())
-      .filter((line) => !!line)
-      .map((line, idx) => {
-        const [realmRaw, mintRaw, delegateRaw] = line.split(',').map((part) => cleanValue(part));
-        if (!realmRaw || !mintRaw || !delegateRaw) {
-          throw new Error(`Invalid bulk row at line ${idx + 1}. Expected: realm,mint,delegate`);
-        }
-        const realmPk = toPublicKeySafe(realmRaw);
-        const mintPk = toPublicKeySafe(mintRaw);
-        const delegatePk = toPublicKeySafe(delegateRaw);
-        if (!realmPk || !mintPk || !delegatePk) {
-          throw new Error(`Invalid public key at line ${idx + 1}`);
-        }
-        return { realmPk, mintPk, delegatePk, rowNum: idx + 1 };
-      });
+      .filter((line) => !!line);
+    if (rows.length === 0) throw new Error('No bulk grant rows provided');
 
-    if (rows.length === 0) {
-      throw new Error('No bulk grant rows provided');
-    }
-
-    const dedupe = new Set<string>();
-    const realmProgramCache = new Map<string, { programId: PublicKey; programVersion: number }>();
-
-    for (const row of rows) {
-      const dedupeKey = `${row.realmPk.toBase58()}:${row.mintPk.toBase58()}`;
-      if (dedupe.has(dedupeKey)) {
-        throw new Error(
-          `Duplicate realm+mint target at line ${row.rowNum}. Keep only one delegate per realm/mint in a bulk request.`
-        );
+    for (let i = 0; i < rows.length; i++) {
+      const [participantRaw, amountRaw] = rows[i].split(',').map((part) => cleanValue(part));
+      if (!participantRaw || !amountRaw) {
+        throw new Error(`Invalid bulk row at line ${i + 1}. Expected: participant,amount`);
       }
-      dedupe.add(dedupeKey);
-
-      let programContext = realmProgramCache.get(row.realmPk.toBase58());
-      if (!programContext) {
-        const realmData = await getRealm(RPC_CONNECTION, row.realmPk);
-        const programId =
-          realmData?.owner instanceof PublicKey
-            ? realmData.owner
-            : new PublicKey(
-                realmData?.owner?.toBase58?.() ||
-                  realmData?.owner ||
-                  'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw'
-              );
-        const programVersion = await getGrapeGovernanceProgramVersion(
-          RPC_CONNECTION,
-          programId,
-          row.realmPk
-        );
-        programContext = { programId, programVersion };
-        realmProgramCache.set(row.realmPk.toBase58(), programContext);
+      const participantPk = toPublicKeySafe(participantRaw);
+      if (!participantPk) {
+        throw new Error(`Invalid participant public key at line ${i + 1}`);
       }
-
-      await withSetGovernanceDelegate(
-        ixs,
-        programContext.programId,
-        programContext.programVersion,
-        row.realmPk,
-        row.mintPk,
-        treasuryPk,
-        treasuryPk,
-        row.delegatePk
-      );
+      await appendGrant(participantPk, amountRaw, i + 1);
     }
 
     return ixs;
+  };
+
+  const buildVoteForProposalInstructions = async (): Promise<TransactionInstruction[]> => {
+    const { treasuryPk, realmPk, mintPk } = await resolveTargetContext();
+    const proposalPk = toPublicKeySafe(cleanValue(voteProposalAddress));
+    if (!proposalPk) throw new Error('Invalid proposal address');
+
+    const selectedRealm = await getRealm(RPC_CONNECTION, realmPk);
+    const proposal = await getProposal(RPC_CONNECTION, proposalPk);
+    if (!proposal) throw new Error('Target proposal not found');
+
+    const treasuryTorPk = await getTokenOwnerRecordAddress(
+      new PublicKey(selectedRealm.owner),
+      realmPk,
+      mintPk,
+      treasuryPk
+    );
+    const treasuryTorInfo = await RPC_CONNECTION.getAccountInfo(treasuryTorPk);
+    if (!treasuryTorInfo) {
+      throw new Error('Treasury has no token owner record in the target DAO for this mint. Join/deposit first.');
+    }
+
+    const isCommunityVote =
+      selectedRealm?.account?.communityMint?.toBase58?.() ===
+      proposal.account.governingTokenMint.toBase58();
+
+    const voteTx = await createCastVoteTransaction(
+      selectedRealm as any,
+      treasuryPk,
+      {
+        proposal: {
+          governanceId: proposal.account.governance.toBase58(),
+          proposalId: proposalPk.toBase58(),
+          tokenOwnerRecord: proposal.account.tokenOwnerRecord.toBase58(),
+          governingTokenMint: proposal.account.governingTokenMint.toBase58(),
+        },
+        action: voteForProposal ? 0 : 1,
+      },
+      { pubkey: treasuryTorPk.toBase58() },
+      null,
+      isCommunityVote,
+      null,
+      voteForProposal ? 0 : 1
+    );
+
+    if (!voteTx || !Array.isArray(voteTx.instructions) || voteTx.instructions.length === 0) {
+      throw new Error('Failed to create vote instruction');
+    }
+
+    return voteTx.instructions;
   };
 
   const getQueuedExecutableInstructions = (): TransactionInstruction[] => {
@@ -642,6 +878,8 @@ export default function IntraDAOView(props: any) {
         builtIxs = await buildGrantVotingPowerInstructions();
       } else if (action === 'create') {
         builtIxs = await buildCreateExternalProposalInstructions();
+      } else if (action === 'vote') {
+        builtIxs = await buildVoteForProposalInstructions();
       }
 
       if (!builtIxs.length) {
@@ -653,14 +891,20 @@ export default function IntraDAOView(props: any) {
         deposit: 'IntraDAO: Deposit to DAO',
         grant: 'IntraDAO: Grant Voting Power',
         create: 'IntraDAO: Create External Proposal',
+        vote: 'IntraDAO: Vote for Proposal',
       };
 
       const fallbackDescriptionByAction: Record<IntraDaoAction, string> = {
         join: `Join target DAO realm ${cleanValue(targetRealm)} using mint ${cleanValue(targetMint)}.`,
         deposit: `Deposit ${cleanValue(depositAmount)} of ${cleanValue(targetMint)} into target DAO realm ${cleanValue(targetRealm)}.`,
-        grant: `Set governance delegate for realm ${cleanValue(targetRealm)} to ${cleanValue(delegateWallet)}.`,
+        grant: bulkGrantEnabled
+          ? `Grant voting power in realm ${cleanValue(targetRealm)} using ${cleanValue(targetMint)} to bulk participants.`
+          : `Grant ${cleanValue(grantAmount)} of ${cleanValue(targetMint)} voting power in realm ${cleanValue(targetRealm)} to ${cleanValue(grantParticipantWallet)}.`,
         create: `Create external proposal on governance ${cleanValue(targetGovernance)} using queued instructions.`,
+        vote: `${voteForProposal ? 'Approve' : 'Deny'} proposal ${cleanValue(voteProposalAddress)}${voteProposalTitle ? ` (${voteProposalTitle})` : ''} in realm ${cleanValue(targetRealm)}.`,
       };
+
+      const effectiveDraft = action === 'create' ? true : isDraft;
 
       setInstructions({
         title: cleanValue(proposalTitle || fallbackTitleByAction[action]) || fallbackTitleByAction[action],
@@ -672,7 +916,9 @@ export default function IntraDAOView(props: any) {
         allowMissingAccountsPreflight: true,
         nativeWallet: governanceNativeWallet,
         governingMint,
-        draft: isDraft,
+        draft: effectiveDraft,
+        queueOnly: false,
+        skipQueueEntry: action === 'create',
         editProposalAddress,
       });
 
@@ -695,6 +941,12 @@ export default function IntraDAOView(props: any) {
   const queueCount = React.useMemo(() => {
     return getQueuedExecutableInstructions().length;
   }, [instructionQueue]);
+
+  const actionButtonLabel = React.useMemo(() => {
+    if (isBuilding) return 'Building...';
+    if (action === 'create') return 'Create IntraDAO Proposal Draft';
+    return 'Create IntraDAO Proposal';
+  }, [action, isBuilding]);
 
   return (
     <>
@@ -747,6 +999,7 @@ export default function IntraDAOView(props: any) {
                     <MenuItem value="deposit">2. Deposit to that DAO</MenuItem>
                     <MenuItem value="grant">3. Grant Voting Power</MenuItem>
                     <MenuItem value="create">4. Create Proposal from Queue</MenuItem>
+                    <MenuItem value="vote">5. Vote for Proposal</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -833,34 +1086,124 @@ export default function IntraDAOView(props: any) {
                     />
                   </Grid>
                   {!bulkGrantEnabled ? (
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Delegate Wallet"
-                        variant="filled"
-                        value={delegateWallet}
-                        onChange={(event) => setDelegateWallet(event.target.value)}
-                        onKeyDown={stopInputKeyPropagation}
-                        helperText="Tip: paste the wallet that should receive delegated voting power."
-                      />
-                    </Grid>
+                    <>
+                      <Grid item xs={12}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Participant Wallet"
+                          variant="filled"
+                          value={grantParticipantWallet}
+                          onChange={(event) => setGrantParticipantWallet(event.target.value)}
+                          onKeyDown={stopInputKeyPropagation}
+                        />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Grant Amount"
+                          variant="filled"
+                          value={grantAmount}
+                          onChange={(event) => setGrantAmount(event.target.value)}
+                          onKeyDown={stopInputKeyPropagation}
+                          helperText="Amount in token units (not raw atoms)."
+                        />
+                      </Grid>
+                    </>
                   ) : (
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
                         size="small"
-                        label="Bulk Rows (realm,mint,delegate)"
+                        label="Bulk Rows (participant,amount)"
                         variant="filled"
                         value={bulkGrantRows}
                         onChange={(event) => setBulkGrantRows(event.target.value)}
                         onKeyDown={stopInputKeyPropagation}
                         multiline
                         minRows={5}
-                        helperText="One per line. Example: realmPubkey,mintPubkey,delegatePubkey"
+                        helperText="One per line. Example: participantPubkey,amount"
                       />
                     </Grid>
                   )}
+                </>
+              ) : null}
+
+              {action === 'vote' ? (
+                <>
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel id="intradao-live-vote-proposal-label">Live Voting Proposals</InputLabel>
+                        <Select
+                          labelId="intradao-live-vote-proposal-label"
+                          label="Live Voting Proposals"
+                          value={liveVoteProposals.some((item) => item.pubkey === voteProposalAddress) ? voteProposalAddress : ''}
+                          onChange={(event) => {
+                            const selectedProposalPk = cleanValue(event.target.value);
+                            setVoteProposalAddress(selectedProposalPk);
+                            const selected = liveVoteProposals.find((proposal) => proposal.pubkey === selectedProposalPk);
+                            setVoteProposalTitle(selected?.title || null);
+                          }}
+                          onKeyDown={stopInputKeyPropagation}
+                        >
+                          <MenuItem value="">None</MenuItem>
+                          {liveVoteProposals.map((proposal) => (
+                            <MenuItem key={proposal.pubkey} value={proposal.pubkey}>
+                              {proposal.title} ({proposal.pubkey})
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                      <IconButton
+                        size="small"
+                        onClick={fetchLiveVoteProposals}
+                        disabled={isFetchingLiveVoteProposals}
+                      >
+                        {isFetchingLiveVoteProposals ? (
+                          <CircularProgress size={16} />
+                        ) : (
+                          <RefreshIcon fontSize="small" />
+                        )}
+                      </IconButton>
+                    </Box>
+                    <Typography variant="caption" sx={{ display: 'block', mt: 0.5, opacity: 0.75 }}>
+                      {isFetchingLiveVoteProposals
+                        ? 'Loading live voting proposals via Shyft...'
+                        : `Live proposals found: ${liveVoteProposals.length}`}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Target Proposal Address"
+                      variant="filled"
+                      value={voteProposalAddress}
+                      onChange={(event) => setVoteProposalAddress(event.target.value)}
+                      onKeyDown={stopInputKeyPropagation}
+                      helperText={
+                        isFetchingVoteProposalTitle
+                          ? 'Resolving proposal title via Shyft...'
+                          : voteProposalTitle
+                          ? `Proposal title: ${voteProposalTitle}`
+                          : 'Enter a proposal address to resolve its title via Shyft.'
+                      }
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          size="small"
+                          checked={voteForProposal}
+                          onChange={(event) => setVoteForProposal(event.target.checked)}
+                        />
+                      }
+                      label={voteForProposal ? 'Vote For (Approve)' : 'Vote Against (Deny)'}
+                    />
+                  </Grid>
                 </>
               ) : null}
 
@@ -904,6 +1247,9 @@ export default function IntraDAOView(props: any) {
                   <Grid item xs={12}>
                     <Typography variant="caption" sx={{ display: 'block', opacity: 0.75 }}>
                       Queue source instructions: {queueCount}
+                    </Typography>
+                    <Typography variant="caption" sx={{ display: 'block', opacity: 0.75 }}>
+                      This action creates a draft proposal from the current queue.
                     </Typography>
                     {queueCount === 0 ? (
                       <Typography variant="caption" sx={{ display: 'block', color: 'warning.main' }}>
@@ -979,7 +1325,7 @@ export default function IntraDAOView(props: any) {
                   }}
                   startIcon={<HubIcon sx={{ color: 'rgba(255,255,255,0.25)', fontSize: '14px!important' }} />}
                 >
-                  {isBuilding ? 'Building...' : 'Queue IntraDAO Action'}
+                  {actionButtonLabel}
                 </Button>
               ) : null}
             </Box>

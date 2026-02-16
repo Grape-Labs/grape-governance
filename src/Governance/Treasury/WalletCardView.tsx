@@ -316,6 +316,11 @@ export default function WalletCardView(props:any) {
                 }
                 return queueOnlyMode;
             };
+            const shouldQueuePayload = (payload: any): boolean => {
+                if (!payload || typeof payload !== 'object') return false;
+                if (payload.skipQueueEntry === true) return false;
+                return true;
+            };
             if (typeof next === 'function') {
                 setInstructions((prev: any) => {
                     const resolved = next(prev);
@@ -323,7 +328,9 @@ export default function WalletCardView(props:any) {
                         resolved && typeof resolved === 'object'
                             ? { ...resolved, queueOnly: resolveQueueOnly(resolved) }
                             : resolved;
-                    queueInstructionPayload(payloadWithMode);
+                    if (shouldQueuePayload(payloadWithMode)) {
+                        queueInstructionPayload(payloadWithMode);
+                    }
                     return payloadWithMode;
                 });
                 return;
@@ -333,7 +340,9 @@ export default function WalletCardView(props:any) {
                     ? { ...next, queueOnly: resolveQueueOnly(next) }
                     : next;
             setInstructions(payloadWithMode);
-            queueInstructionPayload(payloadWithMode);
+            if (shouldQueuePayload(payloadWithMode)) {
+                queueInstructionPayload(payloadWithMode);
+            }
         },
         [queueInstructionPayload, queueOnlyMode]
     );
