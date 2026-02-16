@@ -3282,6 +3282,7 @@ const StakeAccountsView = () => {
                     <ExtensionsMenuView 
                         realm={realm}
                         rulesWallet={rulesWallet}
+                        governanceAddress={governanceAddress}
                         governanceWallets={governanceWallets}
                         governanceNativeWallet={walletAddress} 
                         expandedLoader={expandedLoader} 

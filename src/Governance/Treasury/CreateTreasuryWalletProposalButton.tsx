@@ -22,6 +22,7 @@ import {
   FormControlLabel,
   Grid,
   InputLabel,
+  ListItemIcon,
   MenuItem,
   Select,
   Switch,
@@ -99,6 +100,8 @@ export default function CreateTreasuryWalletProposalButton(props: any) {
   const governanceAddress = props?.governanceAddress;
   const governanceWallets = Array.isArray(props?.governanceWallets) ? props.governanceWallets : [];
   const onCreated = props?.onCreated;
+  const renderAsMenuItem = Boolean(props?.renderAsMenuItem);
+  const handleCloseExtMenu = props?.handleCloseExtMenu;
 
   const { publicKey } = useWallet();
   const anchorWallet = useAnchorWallet();
@@ -144,6 +147,13 @@ export default function CreateTreasuryWalletProposalButton(props: any) {
       setGoverningMintChoice('community');
     }
   }, [open, hasCouncilMint]);
+
+  const handleOpen = () => setOpen(true);
+
+  const handleClose = () => {
+    setOpen(false);
+    if (handleCloseExtMenu) handleCloseExtMenu();
+  };
 
   const handleCreateProposal = async () => {
     try {
@@ -273,6 +283,7 @@ export default function CreateTreasuryWalletProposalButton(props: any) {
       );
 
       setOpen(false);
+      if (handleCloseExtMenu) handleCloseExtMenu();
       if (onCreated) onCreated(response);
     } catch (e: any) {
       console.error(e);
@@ -284,23 +295,37 @@ export default function CreateTreasuryWalletProposalButton(props: any) {
 
   return (
     <>
-      <Tooltip title="Create a proposal to add a new treasury wallet using selected governance rules">
-        <span>
-          <Button
-            size="small"
-            variant="outlined"
-            color="inherit"
-            startIcon={<AddCircleOutlineIcon />}
-            onClick={() => setOpen(true)}
+      {renderAsMenuItem ? (
+        <Tooltip title="Create a proposal to add a new treasury wallet using selected governance rules" placement="right">
+          <MenuItem
+            onClick={publicKey ? handleOpen : undefined}
             disabled={!publicKey || governanceWallets.length === 0 || !hasAuthorityGovernanceWallet}
-            sx={{ borderRadius: '12px', textTransform: 'none' }}
           >
-            New Treasury Wallet
-          </Button>
-        </span>
-      </Tooltip>
+            <ListItemIcon>
+              <AccountBalanceWalletIcon fontSize="small" />
+            </ListItemIcon>
+            Add Treasury Wallet
+          </MenuItem>
+        </Tooltip>
+      ) : (
+        <Tooltip title="Create a proposal to add a new treasury wallet using selected governance rules">
+          <span>
+            <Button
+              size="small"
+              variant="outlined"
+              color="inherit"
+              startIcon={<AddCircleOutlineIcon />}
+              onClick={handleOpen}
+              disabled={!publicKey || governanceWallets.length === 0 || !hasAuthorityGovernanceWallet}
+              sx={{ borderRadius: '12px', textTransform: 'none' }}
+            >
+              New Treasury Wallet
+            </Button>
+          </span>
+        </Tooltip>
+      )}
 
-      <Dialog open={open} onClose={() => !loading && setOpen(false)} fullWidth maxWidth="sm">
+      <Dialog open={open} onClose={() => !loading && handleClose()} fullWidth maxWidth="sm">
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <AccountBalanceWalletIcon fontSize="small" />
           Create Treasury Wallet Proposal
@@ -410,7 +435,7 @@ export default function CreateTreasuryWalletProposalButton(props: any) {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)} disabled={loading}>
+          <Button onClick={handleClose} disabled={loading}>
             Cancel
           </Button>
           <Button onClick={handleCreateProposal} disabled={loading || !publicKey}>

@@ -50,6 +50,7 @@ import PersonAdd from '@mui/icons-material/PersonAdd';
 import Settings from '@mui/icons-material/Settings';
 import Logout from '@mui/icons-material/Logout';
 import ExtensionIcon from '@mui/icons-material/Extension';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 
 import SendExtensionView from './SendView';
 import JupDcaExtensionView from './JupDcaView';
@@ -67,9 +68,12 @@ import SnsDomainView from './SnsDomainView';
 import MemoIxView from './MemoIxView';
 import BatchSendView from './BatchSendView';
 import JupiterSwapView from './JupiterSwapView';
+import DecommissionView from './DecommissionView';
+import CreateTreasuryWalletProposalButton from '../CreateTreasuryWalletProposalButton';
 
 export default function ExtensionsMenuView(props: any) {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [governanceToolsAnchorEl, setGovernanceToolsAnchorEl] = React.useState<null | HTMLElement>(null);
   //const open = Boolean(anchorEl);
   const [open, setOpen] = React.useState(false);
   const realm = props?.realm;
@@ -87,8 +91,23 @@ export default function ExtensionsMenuView(props: any) {
     setAnchorEl(event.currentTarget);
     setOpen(true);
   };
+
+  const handleOpenGovernanceTools = (event: React.MouseEvent<HTMLElement>) => {
+    setGovernanceToolsAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseGovernanceTools = () => {
+    setGovernanceToolsAnchorEl(null);
+  };
+
+  const handleCloseAllMenus = () => {
+    handleCloseGovernanceTools();
+    handleClose();
+  };
+
   const handleClose = () => {
     setAnchorEl(null);
+    setGovernanceToolsAnchorEl(null);
     setOpen(false);
   };
   return (
@@ -150,17 +169,18 @@ export default function ExtensionsMenuView(props: any) {
             setInstructions={setInstructions}
         />
         <Divider />
-        <GovernanceConfigView 
-            realm={realm}
-            handleCloseExtMenu={handleClose}
-            rulesWallet={rulesWallet}
-            governanceWallets={governanceWallets}
-            governanceNativeWallet={governanceNativeWallet}
-            expandedLoader={expandedLoader} 
-            setExpandedLoader={setExpandedLoader}
-            instructions={instructions}
-            setInstructions={setInstructions}
-        />
+        <MenuItem
+          onClick={handleOpenGovernanceTools}
+          aria-haspopup="true"
+          aria-expanded={Boolean(governanceToolsAnchorEl) ? 'true' : undefined}
+        >
+          <ListItemIcon>
+            <Settings fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Governance Tools</ListItemText>
+          <KeyboardArrowRightIcon fontSize="small" />
+        </MenuItem>
+        <Divider />
         <DraftProposalView
             realm={realm}
             handleCloseExtMenu={handleClose}
@@ -194,6 +214,18 @@ export default function ExtensionsMenuView(props: any) {
             masterWallet={masterWallet}
             usdcValue={usdcValue}
         />
+        <BatchSendView
+          realm={realm}
+          handleCloseExtMenu={handleClose}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
+          masterWallet={masterWallet}
+          usdcValue={usdcValue}
+        />
         {/*(governanceNativeWallet === '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8' ||
           governanceNativeWallet === '6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD'  ||
           governanceNativeWallet === 'AWaMVkukciGYPEpJbnmSXPJzVxuuMFz1gWYBkznJ2qbq' 
@@ -207,6 +239,16 @@ export default function ExtensionsMenuView(props: any) {
             setExpandedLoader={setExpandedLoader}
             instructions={instructions}
             setInstructions={setInstructions}
+        />
+        <MemoIxView
+          realm={realm}
+          rulesWallet={rulesWallet}
+          handleCloseExtMenu={handleClose}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader} 
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
         />
         <SnsDomainView
             realm={realm}
@@ -275,28 +317,6 @@ export default function ExtensionsMenuView(props: any) {
             instructions={instructions}
             setInstructions={setInstructions}
         />
-        <MemoIxView
-          realm={realm}
-          rulesWallet={rulesWallet}
-          handleCloseExtMenu={handleClose}
-          governanceNativeWallet={governanceNativeWallet}
-          expandedLoader={expandedLoader} 
-          setExpandedLoader={setExpandedLoader}
-          instructions={instructions}
-          setInstructions={setInstructions}
-        />
-        <BatchSendView
-          realm={realm}
-          handleCloseExtMenu={handleClose}
-          rulesWallet={rulesWallet}
-          governanceNativeWallet={governanceNativeWallet}
-          expandedLoader={expandedLoader}
-          setExpandedLoader={setExpandedLoader}
-          instructions={instructions}
-          setInstructions={setInstructions}
-          masterWallet={masterWallet}
-          usdcValue={usdcValue}
-        />
         <ClaimExtensionView
             realm={realm}
             handleCloseExtMenu={handleClose}
@@ -306,6 +326,43 @@ export default function ExtensionsMenuView(props: any) {
             setExpandedLoader={setExpandedLoader}
             instructions={instructions}
             setInstructions={setInstructions}
+        />
+      </Menu>
+      <Menu
+        anchorEl={governanceToolsAnchorEl}
+        id="governance-tools-submenu"
+        open={Boolean(governanceToolsAnchorEl)}
+        onClose={handleCloseGovernanceTools}
+        transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'top' }}
+      >
+        <GovernanceConfigView 
+            realm={realm}
+            handleCloseExtMenu={handleCloseAllMenus}
+            rulesWallet={rulesWallet}
+            governanceWallets={governanceWallets}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader} 
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+        />
+        <DecommissionView
+            realm={realm}
+            handleCloseExtMenu={handleCloseAllMenus}
+            rulesWallet={rulesWallet}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader}
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+        />
+        <CreateTreasuryWalletProposalButton
+            realm={realm}
+            governanceAddress={props?.governanceAddress || realm?.pubkey?.toBase58?.()}
+            governanceWallets={governanceWallets}
+            handleCloseExtMenu={handleCloseAllMenus}
+            renderAsMenuItem
         />
       </Menu>
     </React.Fragment>

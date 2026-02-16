@@ -68,6 +68,7 @@ import {
     withDepositGoverningTokens,
     withWithdrawGoverningTokens,
     withSetGovernanceDelegate,
+    withRelinquishVote,
 } from '@solana/spl-governance';
 import { getGrapeGovernanceProgramVersion } from '../utils/grapeTools/helpers';
 
@@ -80,7 +81,8 @@ import {
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
     getTokenOwnerRecordsByRealmIndexed,
-    getRealmConfigIndexed
+    getRealmConfigIndexed,
+    getVoteRecordsByVoterIndexed,
 } from './api/queries';
 
 import { 
@@ -94,6 +96,7 @@ import {
 import { 
     findObjectByGoverningTokenOwner
   } from '../utils/grapeTools/helpers';
+import { getUnrelinquishedVoteRecords } from '../utils/governanceTools/models/api';
 //import { LogoutIcon } from '@dynamic-labs/sdk-react-core';
 
 export interface DialogTitleProps {
@@ -586,6 +589,218 @@ export default function GovernancePower(props: any){
         }
     }
 
+    const relinquishVotesForDaoMint = async (mintAddress: string) => {
+        if (!publicKey) {
+            enqueueSnackbar(`Wallet not connected`, { variant: 'error' });
+            return { attempted: 0, succeeded: 0, failed: 0 };
+        }
+        if (!realm?.pubkey || !realm?.owner) {
+            enqueueSnackbar(`Realm is not loaded`, { variant: 'error' });
+            return { attempted: 0, succeeded: 0, failed: 0 };
+        }
+
+        const withMint = new PublicKey(mintAddress);
+        const programId = new PublicKey(realm.owner);
+        const realmPk = new PublicKey(realm.pubkey);
+        const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
+
+        const tokenOwnerRecords =
+            (await getTokenOwnerRecordsByRealmIndexed(
+                governanceAddress,
+                programId.toBase58(),
+                publicKey.toBase58()
+            )) || [];
+
+        const tokenOwnerRecord = tokenOwnerRecords.find((record: any) =>
+            record?.account?.governingTokenOwner?.toBase58?.() === publicKey.toBase58() &&
+            record?.account?.governingTokenMint?.toBase58?.() === withMint.toBase58()
+        );
+
+        if (!tokenOwnerRecord?.pubkey) {
+            enqueueSnackbar(`No token owner record found for this DAO + mint`, { variant: 'warning' });
+            return { attempted: 0, succeeded: 0, failed: 0 };
+        }
+
+        // Use a DAO-scoped vote source first: unrelinquished vote records for this token owner record only.
+        // Some realms/program versions/indexers can miss this filter, so fallback to indexed voter records.
+        let allVoteRecords: any[] = [];
+        try {
+            const unrelinquishedVoteRecords = await getUnrelinquishedVoteRecords(
+                RPC_CONNECTION,
+                programId,
+                new PublicKey(tokenOwnerRecord.pubkey)
+            );
+            allVoteRecords = Array.isArray(unrelinquishedVoteRecords) ? unrelinquishedVoteRecords : [];
+        } catch (e) {
+            console.log("RPC unrelinquished vote lookup failed", e);
+            allVoteRecords = [];
+        }
+
+        if (!allVoteRecords.length) {
+            try {
+                const indexedVoteRecords = await getVoteRecordsByVoterIndexed(
+                    programId.toBase58(),
+                    governanceAddress,
+                    publicKey.toBase58()
+                );
+                allVoteRecords = (Array.isArray(indexedVoteRecords) ? indexedVoteRecords : []).filter(
+                    (record: any) => record?.account?.isRelinquished !== true
+                );
+                if (allVoteRecords.length > 0) {
+                    enqueueSnackbar(`Using indexed vote records fallback`, { variant: 'info' });
+                }
+            } catch (e) {
+                console.log("Indexed vote-record fallback failed", e);
+            }
+        }
+
+        if (!allVoteRecords.length) {
+            enqueueSnackbar(`No unrelinquished DAO votes found for this mint`, { variant: 'info' });
+            return { attempted: 0, succeeded: 0, failed: 0 };
+        }
+
+        // Build a DAO proposal map once, then match voteRecord -> proposal governance in-memory.
+        const allGovernances = await getAllGovernancesIndexed(governanceAddress, programId.toBase58());
+        const governancePubkeys = (Array.isArray(allGovernances) ? allGovernances : [])
+            .map((gov: any) => gov?.pubkey?.toBase58?.())
+            .filter(Boolean);
+
+        const allDaoProposals = governancePubkeys.length > 0
+            ? await getAllProposalsIndexed(governancePubkeys, programId.toBase58(), governanceAddress)
+            : [];
+        const proposalByPk = new Map<string, any>();
+        for (const proposal of Array.isArray(allDaoProposals) ? allDaoProposals : []) {
+            const pk = proposal?.pubkey?.toBase58?.();
+            if (pk) proposalByPk.set(pk, proposal);
+        }
+
+        const relevantVoteRecords: any[] = [];
+        let proposalLookupFallbacks = 0;
+        for (const voteRecord of allVoteRecords) {
+            try {
+                const proposalPk = voteRecord?.account?.proposal?.toBase58?.();
+                if (!proposalPk) continue;
+
+                let proposal = proposalByPk.get(proposalPk);
+
+                // Fallback for missing proposal snapshots in DAO-wide query.
+                if (!proposal?.account && proposalLookupFallbacks < 30) {
+                    proposalLookupFallbacks++;
+                    try {
+                        const lookedUp = await getProposalNewIndexed(
+                            proposalPk,
+                            programId.toBase58(),
+                            governanceAddress
+                        );
+                        if (lookedUp?.account) {
+                            proposal = lookedUp;
+                            proposalByPk.set(proposalPk, lookedUp);
+                        }
+                    } catch (lookupErr) {
+                        console.log("Per-proposal fallback lookup failed", lookupErr);
+                    }
+                }
+                if (!proposal?.account) continue;
+
+                const proposalMint = proposal?.account?.governingTokenMint?.toBase58?.();
+                if (proposalMint !== withMint.toBase58()) continue;
+
+                relevantVoteRecords.push({
+                    voteRecordPk: voteRecord.pubkey,
+                    proposalPk: proposal.pubkey,
+                    proposalGovernancePk: proposal.account.governance,
+                });
+            } catch (err) {
+                console.log("Skipping vote record during relinquish scan", err);
+            }
+        }
+
+        if (!relevantVoteRecords.length) {
+            enqueueSnackbar(`No unrelinquished DAO votes found for this mint`, { variant: 'info' });
+            return { attempted: 0, succeeded: 0, failed: 0 };
+        }
+
+        const relinquishInstructions: TransactionInstruction[] = [];
+        let buildFailures = 0;
+
+        enqueueSnackbar(`Relinquishing ${relevantVoteRecords.length} vote(s)...`, { variant: 'info' });
+
+        for (const item of relevantVoteRecords) {
+            try {
+                await withRelinquishVote(
+                    relinquishInstructions,
+                    programId,
+                    programVersion,
+                    realmPk,
+                    new PublicKey(item.proposalGovernancePk),
+                    new PublicKey(item.proposalPk),
+                    new PublicKey(tokenOwnerRecord.pubkey),
+                    withMint,
+                    new PublicKey(item.voteRecordPk),
+                    publicKey,
+                    publicKey
+                );
+            } catch (e) {
+                console.log("Failed to build relinquish vote instruction", e);
+                buildFailures++;
+            }
+        }
+
+        const RELINQUISH_IXS_PER_TX = 4;
+        const chunks: TransactionInstruction[][] = [];
+        for (let i = 0; i < relinquishInstructions.length; i += RELINQUISH_IXS_PER_TX) {
+            chunks.push(relinquishInstructions.slice(i, i + RELINQUISH_IXS_PER_TX));
+        }
+
+        let succeeded = 0;
+        let failed = buildFailures;
+        for (const chunk of chunks) {
+            try {
+                const transaction = new Transaction().add(...chunk);
+                const signature = await sendTransaction(transaction, RPC_CONNECTION, {
+                    skipPreflight: false,
+                    preflightCommitment: 'confirmed',
+                });
+
+                const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
+                await RPC_CONNECTION.confirmTransaction(
+                    {
+                        blockhash: latestBlockHash.blockhash,
+                        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+                        signature: signature,
+                    },
+                    'confirmed'
+                );
+                succeeded += chunk.length;
+            } catch (e) {
+                console.log("Relinquish vote batch tx failed", e);
+                failed += chunk.length;
+            }
+        }
+
+        if (succeeded > 0) {
+            enqueueSnackbar(`Relinquished ${succeeded} vote(s)`, { variant: 'success' });
+        }
+        if (failed > 0) {
+            enqueueSnackbar(`${failed} vote relinquish transaction(s) failed`, { variant: 'warning' });
+        }
+
+        return { attempted: relevantVoteRecords.length, succeeded, failed };
+    };
+
+    const relinquishVotesAndWithdrawToWallet = async (mintAddress: string, isCouncilMint?: boolean) => {
+        const relinquishResult = await relinquishVotesForDaoMint(mintAddress);
+        if (relinquishResult.failed > 0) {
+            enqueueSnackbar(`Some vote relinquish operations failed. Withdraw may still fail.`, { variant: 'warning' });
+        }
+
+        if (isCouncilMint) {
+            withdrawVotesToGovernance(walletCouncilMintAmount, 0, mintAddress);
+        } else {
+            withdrawVotesToGovernance(walletCommunityMintAmount, 0, mintAddress);
+        }
+    };
+
     const depositVotesToGovernance = async(tokenAmount: number, tokenDecimals: number, mintAddress: string) => {
         const withMint = new PublicKey(mintAddress);
         const programId = new PublicKey(realm.owner);
@@ -733,6 +948,7 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
 
   const [delegatedStr, setDelegatedStr] = React.useState<string | null>(null);
   const [open, setOpen] = React.useState(false);
+  const [relinquishingVotes, setRelinquishingVotes] = React.useState(false);
 
   const maxHuman = React.useMemo(() => {
     const v = Number(selectedMintAvailableAmount || 0) / Math.pow(10, decimals);
@@ -792,6 +1008,15 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
     }
     setOpen(false);
   }
+
+  const handleRelinquishOnly = async () => {
+    try {
+      setRelinquishingVotes(true);
+      await relinquishVotesForDaoMint(selectedMintAddress);
+    } finally {
+      setRelinquishingVotes(false);
+    }
+  };
 
   const deposited = fmtInt(selectedMintDepositedAmount, decimals);
   const inWallet = fmt(selectedMintAvailableAmount, decimals);
@@ -925,6 +1150,19 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                       </IconButton>
                     </Tooltip>
                   </Box>
+                </Box>
+
+                <Box sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="inherit"
+                    disabled={relinquishingVotes}
+                    onClick={handleRelinquishOnly}
+                    sx={{ textTransform: "none", borderRadius: 2 }}
+                  >
+                    {relinquishingVotes ? 'Relinquishing...' : 'Relinquish DAO Votes'}
+                  </Button>
                 </Box>
 
                 {hasAvailable && (
