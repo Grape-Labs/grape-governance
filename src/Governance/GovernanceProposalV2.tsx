@@ -1082,8 +1082,16 @@ export function GovernanceProposalV2View(props: any){
                 
                 // if this is voting we should fetch via RPC
                 let instructions = null;
+                const hasIndexedInstructionHint =
+                    Array.isArray(thisitem?.account?.options) &&
+                    thisitem.account.options.some(
+                        (option: any) => Number(option?.instructionsCount || 0) > 0
+                    );
                 
-                if (!thisitem?.instructions) {
+                if (
+                    !Array.isArray(thisitem?.instructions) ||
+                    (hasIndexedInstructionHint && thisitem.instructions.length === 0)
+                ) {
 
                     setLoadingMessage("Loading Proposal Instructions...");
                     //instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());

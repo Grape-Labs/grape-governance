@@ -806,10 +806,12 @@ export const getProposalInstructionsIndexed = async (filterRealm?: string, propo
                 allProposalIx.push({
                     pubkey: new PublicKey(item.pubkey), // Placeholder — actual pubkey not included in GraphQL result
                     account: {
+                        pubkey: new PublicKey(item.pubkey),
                         proposal: new PublicKey(proposalPk),
                         executedAt: item.executedAt,
                         executionStatus: item.executionStatus,
                         instructionIndex: item.instructionIndex,
+                        optionIndex: item.optionIndex,
                         holdUpTime: item.holdUpTime,
                         instructions: item.instructions.map((ixn) => ({
                             programId: new PublicKey(ixn.programId),
@@ -823,6 +825,12 @@ export const getProposalInstructionsIndexed = async (filterRealm?: string, propo
                     },
                 });
             }
+        }
+
+        // Indexer can be temporarily stale right after proposal creation.
+        // Verify via RPC when GraphQL returns no proposal transactions.
+        if (allProposalIx.length === 0) {
+            fallbackToRPC = true;
         }
     } catch (e) {
         console.warn("GraphQL error for ProposalInstructions — falling back to RPC:", e);

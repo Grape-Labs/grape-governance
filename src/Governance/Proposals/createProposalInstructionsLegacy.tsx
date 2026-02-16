@@ -121,6 +121,11 @@ export async function createProposalInstructionsLegacy(
       useDenyOption?: boolean
       maxVoterOptions?: number
       maxWinningOptions?: number
+      optionInstructionSets?: Array<{
+        optionIndex: number
+        holdUpTime?: number
+        ix?: TransactionInstruction[]
+      }>
     },
   ): Promise<any>{//Promise<Transaction> {
 
@@ -471,6 +476,7 @@ export async function createProposalInstructionsLegacy(
       }
       
 
+      let insertedOption0NextIndex = ixCount;
       for(let j= 0; j < transactionInstr.instructions.length; j++) {
         
         //console.log("ixCount: "+ixCount);
@@ -505,9 +511,46 @@ export async function createProposalInstructionsLegacy(
             [instructionData[j]],
             payer
           );
+          insertedOption0NextIndex = ixCount + j - startTxIndex + 1;
 
           console.log("Inserting insertInstructions: "+JSON.stringify(insertInstructions));
 
+        }
+      }
+
+      const optionInstructionIndexByOption = new Map<number, number>();
+      optionInstructionIndexByOption.set(0, Math.max(insertedOption0NextIndex, ixCount));
+
+      const optionInstructionSets = Array.isArray(proposalConfig?.optionInstructionSets)
+        ? proposalConfig.optionInstructionSets
+        : [];
+
+      for (const set of optionInstructionSets) {
+        const optionIndex = Number(set?.optionIndex);
+        if (!Number.isFinite(optionIndex) || optionIndex < 0 || optionIndex >= options.length) {
+          continue;
+        }
+        const optionIxs = Array.isArray(set?.ix) ? set.ix : [];
+        if (optionIxs.length === 0) continue;
+
+        for (const optionIx of optionIxs) {
+          const cid = createInstructionData(optionIx);
+          const nextIndex = optionInstructionIndexByOption.get(optionIndex) ?? 0;
+          await withInsertTransaction(
+            insertInstructions,
+            programId,
+            programVersion,
+            governancePk,
+            proposalAddress,
+            tokenOwnerRecordPk,
+            walletPk,
+            nextIndex,
+            optionIndex,
+            Number.isFinite(set?.holdUpTime as number) ? (set?.holdUpTime as number) : minInstructionHoldUpTime,
+            [cid],
+            payer
+          );
+          optionInstructionIndexByOption.set(optionIndex, nextIndex + 1);
         }
       }
 

@@ -84,6 +84,11 @@ export async function createProposalInstructionsV0(
     useDenyOption?: boolean
     maxVoterOptions?: number
     maxWinningOptions?: number
+    optionInstructionSets?: Array<{
+      optionIndex: number
+      holdUpTime?: number
+      ix?: TransactionInstruction[]
+    }>
   }
 ): Promise<{ address: PublicKey; transactionSuccess: boolean }> {
   const programId = new PublicKey(token_realm_program_id)
@@ -244,6 +249,7 @@ export async function createProposalInstructionsV0(
   const prerequisiteSigners: (Keypair | null)[] = []
 
   const all = instructionsData.filter((x) => x.data)
+  const optionInstructionIndexByOption = new Map<number, number>()
 
   const chunkSize =
     Math.min(...all.map((x) => x.chunkBy ?? 2)) || 2
@@ -270,6 +276,40 @@ export async function createProposalInstructionsV0(
       [ix.data],
       payer
     )
+  }
+  optionInstructionIndexByOption.set(0, all.length)
+
+  const optionInstructionSets = Array.isArray(proposalConfig?.optionInstructionSets)
+    ? proposalConfig.optionInstructionSets
+    : []
+
+  for (const set of optionInstructionSets) {
+    const optionIndex = Number(set?.optionIndex)
+    if (!Number.isFinite(optionIndex) || optionIndex < 0 || optionIndex >= options.length) {
+      continue
+    }
+    const optionIxs = Array.isArray(set?.ix) ? set.ix : []
+    if (optionIxs.length === 0) continue
+
+    for (const optionIx of optionIxs) {
+      const instructionData = createInstructionData(optionIx)
+      const nextIndex = optionInstructionIndexByOption.get(optionIndex) ?? 0
+      await withInsertTransaction(
+        insertInstructions,
+        programId,
+        programVersion,
+        governancePk,
+        proposalAddress,
+        tokenOwnerRecordPk,
+        walletPk,
+        nextIndex,
+        optionIndex,
+        Number.isFinite(set?.holdUpTime as number) ? (set?.holdUpTime as number) : 0,
+        [instructionData],
+        payer
+      )
+      optionInstructionIndexByOption.set(optionIndex, nextIndex + 1)
+    }
   }
 
   if (!isDraft) {
