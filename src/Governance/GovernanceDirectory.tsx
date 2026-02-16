@@ -66,6 +66,8 @@ type GovernanceLookupItem = {
   councilMint?: string;
   totalMembers: number;
   totalProposals: number;
+  totalCommunityProposals?: number;
+  totalCouncilProposals?: number;
   totalProposalsVoting: number;
   totalVaultValue: number;
   totalVaultStableCoinValue: number;
@@ -352,6 +354,24 @@ export function GovernanceDirectoryView(props: Props) {
           latestProposalTimestampFromGraphQL,
           cachedLastProposalTimestamp
         );
+        const cachedTotalProposals = toNumeric(cachedItem?.totalProposals, 0);
+        const cachedCouncilProposals = toNumeric(cachedItem?.totalCouncilProposals, 0);
+        const hasConsistentCachedSplit =
+          cachedTotalProposals > 0 && cachedTotalProposals >= cachedCouncilProposals;
+
+        const mergedTotalProposals = hasConsistentCachedSplit
+          ? cachedTotalProposals
+          : totalProposalsFromGraphQL > 0
+          ? totalProposalsFromGraphQL
+          : cachedTotalProposals;
+
+        const mergedCouncilProposals = hasConsistentCachedSplit
+          ? cachedCouncilProposals
+          : Math.min(cachedCouncilProposals, mergedTotalProposals);
+
+        const mergedCommunityProposals = hasConsistentCachedSplit
+          ? cachedTotalProposals - cachedCouncilProposals
+          : Math.max(mergedTotalProposals - mergedCouncilProposals, 0);
 
         mergedItems.push({
           ...cachedItem,
@@ -360,7 +380,9 @@ export function GovernanceDirectoryView(props: Props) {
           gspl: gsplMatch,
           votingProposals: dedupedVotingProposals,
           totalMembers: toNumeric(cachedItem?.totalMembers, 0),
-          totalProposals: totalProposalsFromGraphQL,
+          totalProposals: mergedTotalProposals,
+          totalCommunityProposals: mergedCommunityProposals,
+          totalCouncilProposals: mergedCouncilProposals,
           totalProposalsVoting: dedupedVotingProposals.length || totalVotingFromGraphQL,
           totalVaultValue: toNumeric(cachedItem?.totalVaultValue, 0),
           totalVaultStableCoinValue: toNumeric(cachedItem?.totalVaultStableCoinValue, 0),
@@ -390,6 +412,8 @@ export function GovernanceDirectoryView(props: Props) {
           votingProposals,
           totalMembers: 0,
           totalProposals: toNumeric(gqlItem?.totalProposals, 0),
+          totalCommunityProposals: toNumeric(gqlItem?.totalProposals, 0),
+          totalCouncilProposals: 0,
           totalProposalsVoting:
             votingProposals.length > 0
               ? votingProposals.length

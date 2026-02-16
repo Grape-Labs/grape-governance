@@ -48,6 +48,12 @@ export default function GovernanceDirectoryCardView(props: any) {
 
   const votingCount = Number(item?.totalProposalsVoting || 0);
   const votingList: any[] = Array.isArray(item?.votingProposals) ? item.votingProposals : [];
+  const totalProposals = Number(item?.totalProposals || 0);
+  const totalCouncilProposals = Number(item?.totalCouncilProposals || 0);
+  const totalCommunityProposals =
+    item?.totalCommunityProposals != null
+      ? Number(item.totalCommunityProposals || 0)
+      : Math.max(totalProposals - totalCouncilProposals, 0);
   const lastProposalTimestamp = Number(`0x${item?.lastProposalDate || "0"}`);
   const lastProposalLabel =
     lastProposalTimestamp > 0
@@ -223,18 +229,18 @@ export default function GovernanceDirectoryCardView(props: any) {
             </Grid>
           )}
 
-          {Number(item?.totalProposals || 0) > 0 && (
+          {totalProposals > 0 && (
             <Grid item>
-              <Chip size="small" label={`${Number(item.totalProposals).toLocaleString()} proposals`} />
+              <Chip size="small" label={`${totalProposals.toLocaleString()} proposals`} />
             </Grid>
           )}
 
-          {Number(item?.totalCouncilProposals || 0) > 0 && Number(item?.totalProposals || 0) > 0 && (
+          {(totalCommunityProposals > 0 || totalCouncilProposals > 0) && totalProposals > 0 && (
             <Grid item>
               <Chip
                 size="small"
                 variant="outlined"
-                label={`${Number(item.totalProposals) - Number(item.totalCouncilProposals)} community / ${Number(item.totalCouncilProposals)} council`}
+                label={`${totalCommunityProposals.toLocaleString()} community / ${totalCouncilProposals.toLocaleString()} council`}
               />
             </Grid>
           )}
