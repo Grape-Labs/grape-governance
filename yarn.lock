@@ -2214,41 +2214,6 @@
     tslib "^2.6.1"
     ws "^8.13.0"
 
-"@drift-labs/sdk@^2.158.0-beta.0":
-  version "2.158.0-beta.0"
-  resolved "https://registry.yarnpkg.com/@drift-labs/sdk/-/sdk-2.158.0-beta.0.tgz#6a12e6d629491bcd9fb79bae1a7d1e30cce63c62"
-  integrity sha512-yDYNrDbpc3edu1ccWGuWbxsbs+BWsObD6EHP96JqETYUWFPpjCADbPBORL/ODfuM5Cv1BBEMoCKKMQDVofld8Q==
-  dependencies:
-    "@coral-xyz/anchor" "0.29.0"
-    "@coral-xyz/anchor-30" "npm:@coral-xyz/anchor@0.30.1"
-    "@ellipsis-labs/phoenix-sdk" "1.4.5"
-    "@grpc/grpc-js" "1.14.0"
-    "@msgpack/msgpack" "^3.1.2"
-    "@openbook-dex/openbook-v2" "0.2.10"
-    "@project-serum/serum" "0.13.65"
-    "@pythnetwork/client" "2.5.3"
-    "@pythnetwork/price-service-sdk" "1.7.1"
-    "@pythnetwork/pyth-lazer-sdk" "5.2.1"
-    "@solana/spl-token" "0.4.13"
-    "@solana/web3.js" "1.98.0"
-    "@switchboard-xyz/common" "3.0.14"
-    "@switchboard-xyz/on-demand" "2.4.1"
-    "@triton-one/yellowstone-grpc" "5.0.2"
-    anchor-bankrun "0.3.0"
-    gill "^0.10.2"
-    nanoid "3.3.4"
-    node-cache "5.1.2"
-    solana-bankrun "0.3.1"
-    strict-event-emitter-types "2.0.0"
-    tweetnacl "1.0.3"
-    tweetnacl-util "0.15.1"
-    uuid "8.3.2"
-    yargs "17.7.2"
-    zod "4.0.17"
-    zstddec "0.1.0"
-  optionalDependencies:
-    helius-laserstream "0.1.8"
-
 "@ellipsis-labs/phoenix-sdk@1.4.5":
   version "1.4.5"
   resolved "https://registry.yarnpkg.com/@ellipsis-labs/phoenix-sdk/-/phoenix-sdk-1.4.5.tgz#42cf8de8463b32c910ab8844eae71ca082a6773a"
