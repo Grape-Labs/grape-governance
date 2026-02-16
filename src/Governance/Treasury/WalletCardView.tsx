@@ -246,6 +246,8 @@ export default function WalletCardView(props:any) {
 
     const [expandedLoader, setExpandedLoader] = React.useState(false);
     const [instructions, setInstructions] = React.useState(null);
+    const [instructionQueue, setInstructionQueue] = React.useState<any[]>([]);
+    const [queueOnlyMode, setQueueOnlyMode] = React.useState(false);
     const [simulationFailed, setSimulationFailed] = React.useState(false);
     const [simulationSummary, setSimulationSummary] = React.useState<any>(null);
     const [showSimulationDetails, setShowSimulationDetails] = React.useState(false);
@@ -260,6 +262,113 @@ export default function WalletCardView(props:any) {
 
     const { publicKey } = useWallet();
     const anchorWallet = useAnchorWallet();
+    const MAX_INSTRUCTION_QUEUE = 20;
+    const instructionQueueStorageKey = React.useMemo(
+        () => `grape_instruction_queue:${governanceAddress || 'unknown'}:${walletAddress || 'unknown'}`,
+        [governanceAddress, walletAddress]
+    );
+
+    const countInstructionItems = React.useCallback((value: any) => {
+        if (Array.isArray(value)) return value.length;
+        return value ? 1 : 0;
+    }, []);
+
+    const queueInstructionPayload = React.useCallback(
+        (payload: any) => {
+            if (!payload || typeof payload !== 'object') return;
+            const ixCount = countInstructionItems(payload?.ix);
+            const aixCount = countInstructionItems(payload?.aix);
+            const now = Date.now();
+            const title = `${payload?.title ?? ''}`.trim();
+
+            setInstructionQueue((prev) => [
+                {
+                    id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
+                    createdAt: now,
+                    title: title || `Instruction Set ${ixCount > 0 ? ixCount : ''}`.trim(),
+                    description: `${payload?.description ?? ''}`.trim(),
+                    ixCount,
+                    aixCount,
+                    payload,
+                },
+                ...prev,
+            ].slice(0, MAX_INSTRUCTION_QUEUE));
+        },
+        [countInstructionItems]
+    );
+
+    const setInstructionsWithQueue = React.useCallback(
+        (next: any) => {
+            const resolveQueueOnly = (payload: any): boolean => {
+                if (payload && typeof payload === 'object' && typeof payload.queueOnly === 'boolean') {
+                    return payload.queueOnly;
+                }
+                if (payload && typeof payload === 'object' && Array.isArray(payload?.proposalOptions)) {
+                    return false;
+                }
+                return queueOnlyMode;
+            };
+            if (typeof next === 'function') {
+                setInstructions((prev: any) => {
+                    const resolved = next(prev);
+                    const payloadWithMode =
+                        resolved && typeof resolved === 'object'
+                            ? { ...resolved, queueOnly: resolveQueueOnly(resolved) }
+                            : resolved;
+                    queueInstructionPayload(payloadWithMode);
+                    return payloadWithMode;
+                });
+                return;
+            }
+            const payloadWithMode =
+                next && typeof next === 'object'
+                    ? { ...next, queueOnly: resolveQueueOnly(next) }
+                    : next;
+            setInstructions(payloadWithMode);
+            queueInstructionPayload(payloadWithMode);
+        },
+        [queueInstructionPayload, queueOnlyMode]
+    );
+
+    const clearInstructionQueue = React.useCallback(() => {
+        setInstructionQueue([]);
+    }, []);
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (!instructionQueueStorageKey) return;
+        try {
+            const raw = window.localStorage.getItem(instructionQueueStorageKey);
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) return;
+            const normalized = parsed
+                .filter((item: any) => item && typeof item === 'object' && item.payload)
+                .slice(0, MAX_INSTRUCTION_QUEUE);
+            if (normalized.length > 0) {
+                setInstructionQueue(normalized);
+            }
+        } catch {
+            // Ignore storage parse failures.
+        }
+    }, [instructionQueueStorageKey, MAX_INSTRUCTION_QUEUE]);
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (!instructionQueueStorageKey) return;
+        try {
+            if (!instructionQueue || instructionQueue.length === 0) {
+                window.localStorage.removeItem(instructionQueueStorageKey);
+                return;
+            }
+            window.localStorage.setItem(
+                instructionQueueStorageKey,
+                JSON.stringify(instructionQueue.slice(0, MAX_INSTRUCTION_QUEUE))
+            );
+        } catch {
+            // Ignore storage write failures.
+        }
+    }, [instructionQueue, instructionQueueStorageKey, MAX_INSTRUCTION_QUEUE]);
 
     const mergedWalletDomains = React.useMemo(() => {
         const toNames = (domains: any): string[] =>
@@ -298,6 +407,15 @@ export default function WalletCardView(props:any) {
         if (Buffer.isBuffer(value)) return value;
         if (value instanceof Uint8Array) return Buffer.from(value);
         if (Array.isArray(value)) return Buffer.from(value);
+        if (typeof value === 'object') {
+            // Support JSON-serialized Buffer payloads restored from storage.
+            if (value?.type === 'Buffer' && Array.isArray(value?.data)) {
+                return Buffer.from(value.data);
+            }
+            if (Array.isArray(value?.data)) {
+                return Buffer.from(value.data);
+            }
+        }
         if (typeof value === 'string') {
             const trimmed = value.trim();
             if (/^[0-9a-fA-F]+$/.test(trimmed) && trimmed.length % 2 === 0) {
@@ -354,6 +472,32 @@ export default function WalletCardView(props:any) {
         return arr
             .map((ix: any) => normalizeInstruction(ix))
             .filter((ix: TransactionInstruction | null): ix is TransactionInstruction => !!ix);
+    };
+
+    const normalizeOptionInstructionSets = (
+        raw: any,
+        maxOptionCount?: number
+    ): Array<{ optionIndex: number; holdUpTime?: number; ix: TransactionInstruction[] }> => {
+        const arr = Array.isArray(raw) ? raw : [];
+        return arr
+            .map((item: any) => {
+                const optionIndex = Number(item?.optionIndex);
+                if (!Number.isFinite(optionIndex) || optionIndex < 0) return null;
+                if (typeof maxOptionCount === 'number' && optionIndex >= maxOptionCount) return null;
+                const ix = normalizeInstructionArray(item?.ix);
+                if (ix.length === 0) return null;
+                const holdUpTime = Number(item?.holdUpTime);
+                return {
+                    optionIndex,
+                    holdUpTime: Number.isFinite(holdUpTime) ? holdUpTime : undefined,
+                    ix,
+                };
+            })
+            .filter(
+                (
+                    item: { optionIndex: number; holdUpTime?: number; ix: TransactionInstruction[] } | null
+                ): item is { optionIndex: number; holdUpTime?: number; ix: TransactionInstruction[] } => !!item
+            );
     };
 
     const auditInstructionAccounts = async (
@@ -1822,6 +1966,19 @@ const StakeAccountsView = () => {
                 const rawProposalIxs = Array.isArray(instructions?.ix) ? instructions.ix : instructions?.ix ? [instructions.ix] : [];
                 const proposalIxs = normalizeInstructionArray(instructions?.ix);
                 const allowNoInstructions = !!instructions?.allowNoInstructions;
+                const proposalOptionsCount = Array.isArray(instructions?.proposalOptions)
+                    ? instructions.proposalOptions.length
+                    : undefined;
+                const optionInstructionSets = normalizeOptionInstructionSets(
+                    instructions?.proposalOptionInstructionSets,
+                    proposalOptionsCount
+                );
+                const optionInstructionCount = optionInstructionSets.reduce(
+                    (sum, item) => sum + item.ix.length,
+                    0
+                );
+                const hasRawOptionInstructionSets = Array.isArray(instructions?.proposalOptionInstructionSets)
+                    && instructions.proposalOptionInstructionSets.length > 0;
                 const allowMissingAccountsPreflight = !!instructions?.allowMissingAccountsPreflight;
 
                 if (rawProposalIxs.length > 0 && proposalIxs.length === 0) {
@@ -1838,7 +1995,33 @@ const StakeAccountsView = () => {
                     return;
                 }
 
+                if (hasRawOptionInstructionSets && optionInstructionCount === 0) {
+                    setLoadingText("Invalid Option Instructions");
+                    setSimulationSummary({
+                        status: 'invalid_option_instructions',
+                        message:
+                            'Attached option instruction sets could not be normalized to valid TransactionInstruction objects.',
+                        rawOptionInstructionSetCount: instructions.proposalOptionInstructionSets.length,
+                        normalizedOptionInstructionSetCount: optionInstructionSets.length,
+                    });
+                    setSimulationFailed(true);
+                    setLoaderCreationComplete(true);
+                    setLoaderSuccess(true);
+                    return;
+                }
+
                 if (proposalIxs.length === 0 && (isDraft || allowNoInstructions)) {
+                    if (optionInstructionCount > 0) {
+                        setSimulationSummary({
+                            status: 'skipped_option_instruction_sets',
+                            message:
+                                'Simulation skipped for option-scoped instruction sets. Proposal creation will insert instructions per poll option.',
+                            normalizedInstructionCount: proposalIxs.length,
+                            optionInstructionCount,
+                        });
+                        setLoaderSuccess(true);
+                        return;
+                    }
                     console.log("Proposal without executable instructions, skipping transaction simulation");
                     setSimulationSummary({
                         status: 'skipped',
@@ -1850,6 +2033,17 @@ const StakeAccountsView = () => {
                 }
 
                 if (proposalIxs.length === 0 && !isDraft && !allowNoInstructions) {
+                    if (optionInstructionCount > 0) {
+                        setSimulationSummary({
+                            status: 'skipped_option_instruction_sets',
+                            message:
+                                'Simulation skipped for option-scoped instruction sets. Proposal creation will insert instructions per poll option.',
+                            normalizedInstructionCount: proposalIxs.length,
+                            optionInstructionCount,
+                        });
+                        setLoaderSuccess(true);
+                        return;
+                    }
                     setLoadingText("No Instructions");
                     setSimulationSummary({
                         status: 'no_instructions',
@@ -2028,15 +2222,31 @@ const StakeAccountsView = () => {
             console.log("programId: " + realm?.owner?.toBase58());
 
             const programId = realm?.owner?.toBase58();
+            const toFiniteNumber = (value: any, fallback = 0): number => {
+                if (typeof value === 'number' && Number.isFinite(value)) return value;
+                if (typeof value === 'bigint') return Number(value);
+                if (value && typeof value.toNumber === 'function') {
+                    try {
+                        const parsed = value.toNumber();
+                        if (Number.isFinite(parsed)) return parsed;
+                    } catch {
+                        // continue to numeric conversion
+                    }
+                }
+                const parsed = Number(value);
+                return Number.isFinite(parsed) ? parsed : fallback;
+            };
 
             // get rules wallet from native wallet
             let ixRulesWallet = null;
             let useGoverningMint = instructions?.governingMint;
             let hasChoice = 0;
+            let matchedGovernanceWallet: any = null;
             
             for (const item of governanceWallets){
                 if (item.nativeTreasuryAddress.toBase58() === instructions.nativeWallet){
                     ixRulesWallet = item.pubkey.toBase58();
+                    matchedGovernanceWallet = item;
                     if (!instructions?.governingMint){
                         console.log("wallet details: "+JSON.stringify(item));
                         console.log("realm: "+JSON.stringify(realm));
@@ -2064,12 +2274,36 @@ const StakeAccountsView = () => {
             
             if (ixRulesWallet){
                 console.log("Using Rules: "+ixRulesWallet);
+                const governanceMinInstructionHoldUpTime = Math.max(
+                    0,
+                    toFiniteNumber(matchedGovernanceWallet?.account?.config?.minInstructionHoldUpTime, 0)
+                );
 
                 const isDraft = instructions.draft ? instructions.draft : true;
                 const returnTx = false;
                 const rawProposalIxs = Array.isArray(instructions?.ix) ? instructions.ix : instructions?.ix ? [instructions.ix] : [];
                 const proposalIxs = normalizeInstructionArray(instructions?.ix);
                 const allowNoInstructions = !!instructions?.allowNoInstructions;
+                const proposalOptionsCount = Array.isArray(instructions?.proposalOptions)
+                    ? instructions.proposalOptions.length
+                    : undefined;
+                const optionInstructionSets = normalizeOptionInstructionSets(
+                    instructions?.proposalOptionInstructionSets,
+                    proposalOptionsCount
+                );
+                const resolvedOptionInstructionSets = optionInstructionSets.map((set) => ({
+                    ...set,
+                    holdUpTime: Math.max(
+                        governanceMinInstructionHoldUpTime,
+                        toFiniteNumber(set?.holdUpTime, 0)
+                    ),
+                }));
+                const optionInstructionCount = optionInstructionSets.reduce(
+                    (sum, item) => sum + item.ix.length,
+                    0
+                );
+                const hasRawOptionInstructionSets = Array.isArray(instructions?.proposalOptionInstructionSets)
+                    && instructions.proposalOptionInstructionSets.length > 0;
 
                 if (rawProposalIxs.length > 0 && proposalIxs.length === 0) {
                     setLoadingText("Invalid Instructions");
@@ -2079,7 +2313,22 @@ const StakeAccountsView = () => {
                     return;
                 }
 
-                if (!isDraft && proposalIxs.length === 0 && !allowNoInstructions) {
+                if (hasRawOptionInstructionSets && optionInstructionCount === 0) {
+                    setLoadingText("Invalid Option Instructions");
+                    setSimulationSummary({
+                        status: 'invalid_option_instructions',
+                        message:
+                            'Attached option instruction sets could not be normalized to valid TransactionInstruction objects.',
+                        rawOptionInstructionSetCount: instructions.proposalOptionInstructionSets.length,
+                        normalizedOptionInstructionSetCount: optionInstructionSets.length,
+                    });
+                    setProposalCreated(false);
+                    setLoadingPropCreation(false);
+                    setLoaderCreationComplete(true);
+                    return;
+                }
+
+                if (!isDraft && proposalIxs.length === 0 && optionInstructionCount === 0 && !allowNoInstructions) {
                     setLoadingText("No Instructions");
                     setProposalCreated(false);
                     setLoadingPropCreation(false);
@@ -2149,67 +2398,91 @@ const StakeAccountsView = () => {
                         typeof instructions?.proposalMaxWinningOptions === "number"
                             ? instructions.proposalMaxWinningOptions
                             : undefined,
+                    optionInstructionSets:
+                        resolvedOptionInstructionSets.length > 0
+                            ? resolvedOptionInstructionSets
+                            : undefined,
                 };
 
-                const useVersionedTransactions = !!instructions?.useVersionedTransactions;
+                const isPollPayload =
+                    Array.isArray(instructions?.proposalOptions) &&
+                    instructions.proposalOptions.length > 0;
+                const useVersionedTransactions =
+                    typeof instructions?.useVersionedTransactions === "boolean"
+                        ? instructions.useVersionedTransactions
+                        : isPollPayload;
                 let propResponse = null;
 
-                if (useVersionedTransactions) {
-                    const instructionsData = proposalIxs.map((ix) => ({
-                        data: createInstructionData(ix),
-                        holdUpTime: undefined,
-                        prerequisiteInstructions: [],
-                        chunkBy: 1,
-                    }));
+                try {
+                    if (useVersionedTransactions) {
+                        const instructionsData = proposalIxs.map((ix) => ({
+                            data: createInstructionData(ix),
+                            holdUpTime: governanceMinInstructionHoldUpTime,
+                            prerequisiteInstructions: [],
+                            chunkBy: 1,
+                        }));
 
-                    propResponse = await createProposalInstructionsV0(
-                        new PublicKey(programId),                 // token_realm_program_id
-                        new PublicKey(governanceAddress),          // realmPk
-                        new PublicKey(ixRulesWallet),              // governancePk
-                        new PublicKey(useGoverningMint),           // governingTokenMint
-                        publicKey,                                 // walletPk
-                        instructions.title,
-                        instructions.description,
-                        RPC_CONNECTION,
-                        new Transaction(),                         // transactionInstr (unused, keep empty)
-                        authTransaction,
-                        anchorWallet,
-                        null,                                      // sendTransaction
-                        instructionsData,
-                        isDraft,
-                        false,                                     // returnTx
-                        publicKey,                                 // payer
-                        instructions.editProposalAddress
-                            ? new PublicKey(instructions.editProposalAddress)
-                            : undefined,
-                        undefined,
-                        proposalConfig
-                    );
-                } else {
-                    propResponse = await createProposalInstructionsLegacy(
-                        new PublicKey(programId),
-                        new PublicKey(governanceAddress),
-                        new PublicKey(ixRulesWallet),
-                        new PublicKey(useGoverningMint),
-                        publicKey,
-                        instructions.title,
-                        instructions.description,
-                        RPC_CONNECTION,
-                        transaction,
-                        authTransaction,
-                        anchorWallet,
-                        null,
-                        isDraft,
-                        returnTx,
-                        publicKey,
-                        instructions.editProposalAddress ? new PublicKey(instructions.editProposalAddress) : null,
-                        null,
-                        null,
-                        null,
-                        instructions?.signers,
-                        null, // delegate
-                        proposalConfig
-                    );
+                        propResponse = await createProposalInstructionsV0(
+                            new PublicKey(programId),                 // token_realm_program_id
+                            new PublicKey(governanceAddress),          // realmPk
+                            new PublicKey(ixRulesWallet),              // governancePk
+                            new PublicKey(useGoverningMint),           // governingTokenMint
+                            publicKey,                                 // walletPk
+                            instructions.title,
+                            instructions.description,
+                            RPC_CONNECTION,
+                            new Transaction(),                         // transactionInstr (unused, keep empty)
+                            authTransaction,
+                            anchorWallet,
+                            null,                                      // sendTransaction
+                            instructionsData,
+                            isDraft,
+                            false,                                     // returnTx
+                            publicKey,                                 // payer
+                            instructions.editProposalAddress
+                                ? new PublicKey(instructions.editProposalAddress)
+                                : undefined,
+                            undefined,
+                            proposalConfig
+                        );
+                    } else {
+                        propResponse = await createProposalInstructionsLegacy(
+                            new PublicKey(programId),
+                            new PublicKey(governanceAddress),
+                            new PublicKey(ixRulesWallet),
+                            new PublicKey(useGoverningMint),
+                            publicKey,
+                            instructions.title,
+                            instructions.description,
+                            RPC_CONNECTION,
+                            transaction,
+                            authTransaction,
+                            anchorWallet,
+                            null,
+                            isDraft,
+                            returnTx,
+                            publicKey,
+                            instructions.editProposalAddress ? new PublicKey(instructions.editProposalAddress) : null,
+                            null,
+                            null,
+                            null,
+                            instructions?.signers,
+                            null, // delegate
+                            proposalConfig
+                        );
+                    }
+                } catch (e: any) {
+                    const errMessage = e?.message || `${e}`;
+                    console.log("Proposal creation error: " + errMessage);
+                    setSimulationSummary({
+                        status: 'creation_failed',
+                        message: errMessage,
+                    });
+                    setLoadingText("Proposal Error");
+                    setProposalCreated(false);
+                    setLoadingPropCreation(false);
+                    setLoaderCreationComplete(true);
+                    return;
                 }
                 
                 
@@ -2253,6 +2526,20 @@ const StakeAccountsView = () => {
     }
 
     React.useEffect(() => {     
+        const isPollPayload = Array.isArray(instructions?.proposalOptions) && instructions.proposalOptions.length > 0;
+        if (expandedLoader && instructions?.queueOnly && !isPollPayload) {
+            setLoadingText("Instructions Queued");
+            setSimulationSummary({
+                status: 'queued_only',
+                message: 'Instruction set queued only. Proposal creation was skipped.',
+            });
+            setSimulationFailed(false);
+            setLoadingPropCreation(false);
+            setProposalCreated(false);
+            setLoaderSuccess(false);
+            setLoaderCreationComplete(true);
+            return;
+        }
         if (expandedLoader && !loaderSuccess){ // remove to add simulatipon and proposal instruction building here 
             if (instructions){
                 handleProposalTxSimulation();
@@ -2261,7 +2548,7 @@ const StakeAccountsView = () => {
         if (expandedLoader && loaderSuccess && !simulationFailed){
             handleProposalTxCreation();
         }
-    }, [expandedLoader, loaderSuccess]);
+    }, [expandedLoader, loaderSuccess, instructions]);
 
     React.useEffect(() => {     
         
@@ -3237,7 +3524,7 @@ const StakeAccountsView = () => {
                             expandedLoader={expandedLoader} 
                             setExpandedLoader={setExpandedLoader}
                             instructions={instructions}
-                            setInstructions={setInstructions}
+                            setInstructions={setInstructionsWithQueue}
                             setSelectedNativeWallet={setSelectedNativeWallet}
                             masterWallet={masterWallet}
                             usdcValue={usdcValue}
@@ -3338,7 +3625,7 @@ const StakeAccountsView = () => {
                                                             expandedLoader={expandedLoader} 
                                                             setExpandedLoader={setExpandedLoader}
                                                             instructions={instructions}
-                                                            setInstructions={setInstructions}
+                                                            setInstructions={setInstructionsWithQueue}
                                                             setSelectedNativeWallet={setSelectedNativeWallet}
                                                             masterWallet={masterWallet}
                                                             usdcValue={usdcValue}
@@ -3474,7 +3761,11 @@ const StakeAccountsView = () => {
                         expandedLoader={expandedLoader} 
                         setExpandedLoader={setExpandedLoader}
                         instructions={instructions}
-                        setInstructions={setInstructions}
+                        setInstructions={setInstructionsWithQueue}
+                        instructionQueue={instructionQueue}
+                        clearInstructionQueue={clearInstructionQueue}
+                        queueOnlyMode={queueOnlyMode}
+                        setQueueOnlyMode={setQueueOnlyMode}
                         setSelectedNativeWallet={setSelectedNativeWallet}
                         masterWallet={masterWallet}
                         usdcValue={usdcValue}
@@ -3848,7 +4139,7 @@ const StakeAccountsView = () => {
                                                         expandedLoader={expandedLoader} 
                                                         setExpandedLoader={setExpandedLoader}
                                                         instructions={instructions}
-                                                        setInstructions={setInstructions}
+                                                        setInstructions={setInstructionsWithQueue}
                                                         setSelectedNativeWallet={setSelectedNativeWallet}
                                                         masterWallet={masterWallet}
                                                         usdcValue={usdcValue}
@@ -3995,7 +4286,7 @@ const StakeAccountsView = () => {
                                                     expandedLoader={expandedLoader} 
                                                     setExpandedLoader={setExpandedLoader}
                                                     instructions={instructions}
-                                                    setInstructions={setInstructions}
+                                                    setInstructions={setInstructionsWithQueue}
                                                     setSelectedNativeWallet={setSelectedNativeWallet}
                                                     masterWallet={masterWallet}
                                                     usdcValue={usdcValue}

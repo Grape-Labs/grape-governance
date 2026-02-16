@@ -59,20 +59,6 @@ function cleanOptionValue(input: string): string {
   return `${input ?? ''}`.trim();
 }
 
-function uniqueNonEmpty(items: string[]): string[] {
-  const out: string[] = [];
-  const seen = new Set<string>();
-  for (const raw of items) {
-    const value = cleanOptionValue(raw);
-    if (!value) continue;
-    const key = value.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(value);
-  }
-  return out;
-}
-
 export default function CreatePollView(props: any) {
   const realm = props?.realm;
   const rulesWallet = props?.rulesWallet;
@@ -172,7 +158,17 @@ export default function CreatePollView(props: any) {
       return;
     }
 
-    const cleanOptions = uniqueNonEmpty(pollOptions);
+    const dedupedOptions: string[] = [];
+    const seen = new Set<string>();
+    pollOptions.forEach((raw) => {
+      const value = cleanOptionValue(raw);
+      if (!value) return;
+      const key = value.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      dedupedOptions.push(value);
+    });
+    const cleanOptions = dedupedOptions;
     if (cleanOptions.length < 2) {
       enqueueSnackbar('Add at least 2 unique poll options.', { variant: 'error' });
       return;
@@ -183,18 +179,22 @@ export default function CreatePollView(props: any) {
       cleanOptionValue(proposalDescription || 'Create a poll proposal with custom options.') ||
       'Create a poll proposal with custom options.';
 
+    const proposalVoteType = 'multi';
+
     setInstructions({
       title,
       description,
       ix: [],
       aix: [],
+      queueOnly: false,
+      useVersionedTransactions: true,
       nativeWallet: governanceNativeWallet,
       governingMint,
       draft: isDraft,
       editProposalAddress,
       allowNoInstructions: true,
       proposalOptions: cleanOptions,
-      proposalVoteType: 'multi',
+      proposalVoteType,
       proposalUseDenyOption: false,
       proposalMaxVoterOptions: cleanOptions.length,
       proposalMaxWinningOptions: cleanOptions.length,
@@ -236,7 +236,7 @@ export default function CreatePollView(props: any) {
 
         <DialogContent onKeyDown={stopInputKeyPropagation}>
           <DialogContentText sx={{ textAlign: 'center', mb: 2 }}>
-            Create a poll proposal with multiple options and no executable instructions.
+            Create a poll proposal with multiple options.
           </DialogContentText>
 
           <FormControl fullWidth>
@@ -274,6 +274,12 @@ export default function CreatePollView(props: any) {
                 >
                   Add Option
                 </Button>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Typography variant="caption" sx={{ opacity: 0.72, display: 'block' }}>
+                  Poll proposals are non-executable on this governance program. Create a pure poll here, then submit a separate executable proposal for the winning action.
+                </Typography>
               </Grid>
             </Grid>
           </FormControl>

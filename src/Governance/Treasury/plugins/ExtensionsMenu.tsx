@@ -44,6 +44,7 @@ import {
     Step,
     StepButton,
     ListItemIcon,
+    Switch,
   } from '@mui/material/';
 
 import PersonAdd from '@mui/icons-material/PersonAdd';
@@ -84,6 +85,10 @@ export default function ExtensionsMenuView(props: any) {
   const setExpandedLoader = props?.setExpandedLoader;
   const instructions = props?.instructions;
   const setInstructions = props?.setInstructions;
+  const instructionQueue = props?.instructionQueue;
+  const clearInstructionQueue = props?.clearInstructionQueue;
+  const queueOnlyMode = !!props?.queueOnlyMode;
+  const setQueueOnlyMode = props?.setQueueOnlyMode;
   const masterWallet = props?.masterWallet;
   const usdcValue = props?.usdcValue;
 
@@ -181,6 +186,31 @@ export default function ExtensionsMenuView(props: any) {
           <KeyboardArrowRightIcon fontSize="small" />
         </MenuItem>
         <Divider />
+        <MenuItem
+          onClick={(event) => {
+            event.stopPropagation();
+            if (typeof setQueueOnlyMode === 'function') {
+              setQueueOnlyMode(!queueOnlyMode);
+            }
+          }}
+        >
+          <ListItemIcon>
+            <Settings fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Queue Instructions Only</ListItemText>
+          <Switch
+            size="small"
+            checked={queueOnlyMode}
+            onChange={(event) => {
+              event.stopPropagation();
+              if (typeof setQueueOnlyMode === 'function') {
+                setQueueOnlyMode(event.target.checked);
+              }
+            }}
+            onClick={(event) => event.stopPropagation()}
+          />
+        </MenuItem>
+        <Divider />
         <DraftProposalView
             realm={realm}
             handleCloseExtMenu={handleClose}
@@ -200,6 +230,8 @@ export default function ExtensionsMenuView(props: any) {
             setExpandedLoader={setExpandedLoader}
             instructions={instructions}
             setInstructions={setInstructions}
+            instructionQueue={instructionQueue}
+            clearInstructionQueue={clearInstructionQueue}
         />
         <Divider />
         <SendExtensionView
