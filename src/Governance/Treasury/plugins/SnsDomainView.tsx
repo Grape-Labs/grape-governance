@@ -402,6 +402,7 @@ export default function SnsDomainView(props: any) {
         aix: [],
         nativeWallet: governanceNativeWallet,
         governingMint,
+        allowMissingAccountsPreflight: true,
         draft: isDraft,
         editProposalAddress,
       });
@@ -642,6 +643,7 @@ export default function SnsDomainView(props: any) {
         aix: [],
         nativeWallet: governanceNativeWallet,
         governingMint,
+        allowMissingAccountsPreflight: true,
         draft: isDraft,
         editProposalAddress,
       });

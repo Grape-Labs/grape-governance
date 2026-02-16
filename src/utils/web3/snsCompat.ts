@@ -203,6 +203,52 @@ export async function performReverseLookupBatch(
   });
 }
 
+export async function getAllDomains(connection: Connection, wallet: PublicKey): Promise<PublicKey[]> {
+  if (typeof snsAny.getAllDomains === "function") {
+    return snsAny.getAllDomains(connection, wallet);
+  }
+
+  const filters = [
+    { memcmp: { offset: 32, bytes: wallet.toBase58() } },
+    { memcmp: { offset: 0, bytes: ROOT_DOMAIN_ACCOUNT.toBase58() } },
+  ];
+  const accounts = await connection.getProgramAccounts(NAME_PROGRAM_ID, {
+    filters,
+    dataSlice: { offset: 0, length: 0 },
+  });
+  return accounts.map((item) => item.pubkey);
+}
+
+export async function getDomainKeysWithReverses(
+  connection: Connection,
+  wallet: PublicKey
+): Promise<Array<{ pubKey: PublicKey; domain?: string }>> {
+  if (typeof snsAny.getDomainKeysWithReverses === "function") {
+    return snsAny.getDomainKeysWithReverses(connection, wallet);
+  }
+
+  const pubkeys = await getAllDomains(connection, wallet);
+  const names = await performReverseLookupBatch(connection, pubkeys);
+  return pubkeys.map((pubKey, index) => ({ pubKey, domain: names[index] || undefined }));
+}
+
+export async function getTokenizedDomains(
+  connection: Connection,
+  owner: PublicKey
+): Promise<Array<{ key: PublicKey; mint?: PublicKey; reverse?: string }>> {
+  if (typeof snsAny.getTokenizedDomains === "function") {
+    return snsAny.getTokenizedDomains(connection, owner);
+  }
+  return [];
+}
+
+export async function findSubdomains(connection: Connection, parentKey: PublicKey): Promise<string[]> {
+  if (typeof snsAny.findSubdomains === "function") {
+    return snsAny.findSubdomains(connection, parentKey);
+  }
+  return [];
+}
+
 export function getTwitterRegistry(...args: any[]) {
   if (typeof snsAny.getTwitterRegistry === "function") {
     return snsAny.getTwitterRegistry(...args);
