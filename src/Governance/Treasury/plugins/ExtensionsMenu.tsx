@@ -69,6 +69,8 @@ import SnsDomainView from './SnsDomainView';
 import MemoIxView from './MemoIxView';
 import BatchSendView from './BatchSendView';
 import JupiterSwapView from './JupiterSwapView';
+import DriftTradeView from './DriftTradeView';
+import StreamflowView from './StreamflowView';
 import DecommissionView from './DecommissionView';
 import CreateTreasuryWalletProposalButton from '../CreateTreasuryWalletProposalButton';
 
@@ -233,6 +235,16 @@ export default function ExtensionsMenuView(props: any) {
             instructionQueue={instructionQueue}
             clearInstructionQueue={clearInstructionQueue}
         />
+        <CustomIxView
+            realm={realm}
+            handleCloseExtMenu={handleClose}
+            rulesWallet={rulesWallet}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader} 
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+        />
         <Divider />
         <SendExtensionView
             realm={realm}
@@ -292,6 +304,18 @@ export default function ExtensionsMenuView(props: any) {
             instructions={instructions}
             setInstructions={setInstructions}
         />
+
+
+        <StakeValidatorView
+            realm={realm}
+            handleCloseExtMenu={handleClose}
+            rulesWallet={rulesWallet}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader} 
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+        />
         
         {/*(governanceNativeWallet === '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8' ||
           governanceNativeWallet === '3BEvopNQ89zkM4r6ADva18i5fao1sqR1pmswyQyfj838'
@@ -319,27 +343,27 @@ export default function ExtensionsMenuView(props: any) {
           instructions={instructions}
           setInstructions={setInstructions}
         />
+        <DriftTradeView
+          realm={realm}
+          handleCloseExtMenu={handleClose}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
+        />
+        <StreamflowView
+          realm={realm}
+          handleCloseExtMenu={handleClose}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
+        />
         <DirectoryExtensionView
-            realm={realm}
-            handleCloseExtMenu={handleClose}
-            rulesWallet={rulesWallet}
-            governanceNativeWallet={governanceNativeWallet}
-            expandedLoader={expandedLoader} 
-            setExpandedLoader={setExpandedLoader}
-            instructions={instructions}
-            setInstructions={setInstructions}
-        />
-        <CustomIxView
-            realm={realm}
-            handleCloseExtMenu={handleClose}
-            rulesWallet={rulesWallet}
-            governanceNativeWallet={governanceNativeWallet}
-            expandedLoader={expandedLoader} 
-            setExpandedLoader={setExpandedLoader}
-            instructions={instructions}
-            setInstructions={setInstructions}
-        />
-        <StakeValidatorView
             realm={realm}
             handleCloseExtMenu={handleClose}
             rulesWallet={rulesWallet}

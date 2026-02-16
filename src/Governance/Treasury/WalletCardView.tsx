@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { PublicKey, TokenAmount, Connection, Transaction, TransactionInstruction } from '@solana/web3.js';
+import {
+    PublicKey,
+    TokenAmount,
+    Connection,
+    Transaction,
+    TransactionInstruction,
+    SystemProgram,
+    SystemInstruction,
+} from '@solana/web3.js';
 import { Buffer } from 'buffer';
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import axios from "axios";
@@ -527,6 +535,24 @@ export default function WalletCardView(props:any) {
             });
         });
 
+        // Accounts created in the same instruction set are expected to be missing before execution.
+        const createdAccountPubkeys = new Set<string>();
+        ixs.forEach((ix) => {
+            if (!ix.programId.equals(SystemProgram.programId)) return;
+            try {
+                const instructionType = SystemInstruction.decodeInstructionType(ix as any);
+                if (instructionType === 'Create') {
+                    const decoded = SystemInstruction.decodeCreateAccount(ix as any);
+                    createdAccountPubkeys.add(decoded.newAccountPubkey.toBase58());
+                } else if (instructionType === 'CreateWithSeed') {
+                    const decoded = SystemInstruction.decodeCreateWithSeed(ix as any);
+                    createdAccountPubkeys.add(decoded.newAccountPubkey.toBase58());
+                }
+            } catch {
+                // Ignore decode errors and let the regular missing-account audit run.
+            }
+        });
+
         const pubkeys = Array.from(accountRoleMap.keys()).map((k) => new PublicKey(k));
         try {
             const accountInfos: Array<any> = [];
@@ -540,6 +566,9 @@ export default function WalletCardView(props:any) {
             for (let i = 0; i < pubkeys.length; i++) {
                 if (!accountInfos[i]) {
                     const pubkey = pubkeys[i].toBase58();
+                    if (createdAccountPubkeys.has(pubkey)) {
+                        continue;
+                    }
                     missingAccounts.push({
                         pubkey,
                         roles: Array.from(accountRoleMap.get(pubkey) || []),
