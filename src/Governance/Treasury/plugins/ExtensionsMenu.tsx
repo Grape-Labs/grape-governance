@@ -17,6 +17,7 @@ import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import AutoGraphIcon from '@mui/icons-material/AutoGraph';
 import BadgeIcon from '@mui/icons-material/Badge';
+import HubIcon from '@mui/icons-material/Hub';
 
 import SendExtensionView from './SendView';
 import JupDcaExtensionView from './JupDcaView';
@@ -33,8 +34,8 @@ import SnsDomainView from './SnsDomainView';
 import MemoIxView from './MemoIxView';
 import BatchSendView from './BatchSendView';
 import JupiterSwapView from './JupiterSwapView';
-import DriftTradeView from './DriftTradeView';
 import StreamflowView from './StreamflowView';
+import IntraDAOView from './IntraDAOView';
 import DecommissionView from './DecommissionView';
 import CreateTreasuryWalletProposalButton from '../CreateTreasuryWalletProposalButton';
 
@@ -45,6 +46,7 @@ export default function ExtensionsMenuView(props: any) {
   const [treasuryToolsAnchorEl, setTreasuryToolsAnchorEl] = React.useState<null | HTMLElement>(null);
   const [defiToolsAnchorEl, setDefiToolsAnchorEl] = React.useState<null | HTMLElement>(null);
   const [identityToolsAnchorEl, setIdentityToolsAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [intraDaoToolsAnchorEl, setIntraDaoToolsAnchorEl] = React.useState<null | HTMLElement>(null);
 
   const realm = props?.realm;
   const rulesWallet = props?.rulesWallet;
@@ -67,6 +69,7 @@ export default function ExtensionsMenuView(props: any) {
     setTreasuryToolsAnchorEl(null);
     setDefiToolsAnchorEl(null);
     setIdentityToolsAnchorEl(null);
+    setIntraDaoToolsAnchorEl(null);
   };
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -243,6 +246,18 @@ export default function ExtensionsMenuView(props: any) {
           <ListItemText>Identity & Claims</ListItemText>
           <KeyboardArrowRightIcon fontSize="small" />
         </MenuItem>
+
+        <MenuItem
+          onClick={handleOpenSubmenu(setIntraDaoToolsAnchorEl)}
+          aria-haspopup="true"
+          aria-expanded={Boolean(intraDaoToolsAnchorEl) ? 'true' : undefined}
+        >
+          <ListItemIcon>
+            <HubIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>IntraDAO</ListItemText>
+          <KeyboardArrowRightIcon fontSize="small" />
+        </MenuItem>
       </Menu>
 
       <Menu
@@ -415,16 +430,6 @@ export default function ExtensionsMenuView(props: any) {
           instructions={instructions}
           setInstructions={setInstructions}
         />
-        <DriftTradeView
-          realm={realm}
-          handleCloseExtMenu={handleCloseAllMenus}
-          rulesWallet={rulesWallet}
-          governanceNativeWallet={governanceNativeWallet}
-          expandedLoader={expandedLoader}
-          setExpandedLoader={setExpandedLoader}
-          instructions={instructions}
-          setInstructions={setInstructions}
-        />
         <StreamflowView
           realm={realm}
           handleCloseExtMenu={handleCloseAllMenus}
@@ -473,6 +478,28 @@ export default function ExtensionsMenuView(props: any) {
           setExpandedLoader={setExpandedLoader}
           instructions={instructions}
           setInstructions={setInstructions}
+        />
+      </Menu>
+
+      <Menu
+        anchorEl={intraDaoToolsAnchorEl}
+        id="intradao-tools-submenu"
+        open={Boolean(intraDaoToolsAnchorEl)}
+        onClose={() => setIntraDaoToolsAnchorEl(null)}
+        {...submenuPosition}
+      >
+        <IntraDAOView
+          realm={realm}
+          governanceAddress={props?.governanceAddress || realm?.pubkey?.toBase58?.()}
+          handleCloseExtMenu={handleCloseAllMenus}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
+          instructionQueue={instructionQueue}
+          clearInstructionQueue={clearInstructionQueue}
         />
       </Menu>
     </React.Fragment>
