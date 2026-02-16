@@ -1667,6 +1667,7 @@ const StakeAccountsView = () => {
                 const rawProposalIxs = Array.isArray(instructions?.ix) ? instructions.ix : instructions?.ix ? [instructions.ix] : [];
                 const proposalIxs = normalizeInstructionArray(instructions?.ix);
                 const allowNoInstructions = !!instructions?.allowNoInstructions;
+                const allowMissingAccountsPreflight = !!instructions?.allowMissingAccountsPreflight;
 
                 if (rawProposalIxs.length > 0 && proposalIxs.length === 0) {
                     setLoadingText("Invalid Instructions");
@@ -1772,22 +1773,24 @@ const StakeAccountsView = () => {
                         accountAudit,
                     });
                 } else if (accountAudit.missingCount > 0) {
-                    setLoadingText(`Missing Accounts (${accountAudit.missingCount})`);
                     setShowSimulationDetails(true);
-                    setSimulationSummary({
-                        status: 'account_audit_failed',
-                        message: `Account preflight found ${accountAudit.missingCount} missing account(s).`,
-                        normalizedInstructionCount: proposalIxs.length,
-                        simulationFeePayer: simulationFeePayerPk.toBase58(),
-                        simulationFeePayerSource: feePayerResolution.source,
-                        simulationFeePayerCandidatesChecked: feePayerResolution.checkedCount,
-                        nativeWallet: nativeWalletPk?.toBase58?.(),
-                        accountAudit,
-                    });
-                    setSimulationFailed(true);
-                    setLoaderCreationComplete(true);
-                    setLoaderSuccess(true);
-                    return;
+                    if (!allowMissingAccountsPreflight) {
+                        setLoadingText(`Missing Accounts (${accountAudit.missingCount})`);
+                        setSimulationSummary({
+                            status: 'account_audit_failed',
+                            message: `Account preflight found ${accountAudit.missingCount} missing account(s).`,
+                            normalizedInstructionCount: proposalIxs.length,
+                            simulationFeePayer: simulationFeePayerPk.toBase58(),
+                            simulationFeePayerSource: feePayerResolution.source,
+                            simulationFeePayerCandidatesChecked: feePayerResolution.checkedCount,
+                            nativeWallet: nativeWalletPk?.toBase58?.(),
+                            accountAudit,
+                        });
+                        setSimulationFailed(true);
+                        setLoaderCreationComplete(true);
+                        setLoaderSuccess(true);
+                        return;
+                    }
                 }
 
                 const simulationResult = await RPC_CONNECTION.simulateTransaction(transaction);
@@ -1797,11 +1800,19 @@ const StakeAccountsView = () => {
                 const unitsConsumed = simValue?.unitsConsumed ?? null;
                 const returnData = simValue?.returnData || null;
                 setSimulationSummary({
-                    status: simErr ? 'failed' : 'ok',
+                    status: simErr
+                        ? 'failed'
+                        : accountAudit.missingCount > 0 && allowMissingAccountsPreflight
+                        ? 'account_audit_warning'
+                        : 'ok',
                     error: simErr,
                     logs: simLogs,
                     unitsConsumed,
                     returnData,
+                    message:
+                        accountAudit.missingCount > 0 && allowMissingAccountsPreflight
+                            ? `Account preflight found ${accountAudit.missingCount} missing account(s), but simulation continued because this flow can create accounts at runtime.`
+                            : undefined,
                     normalizedInstructionCount: proposalIxs.length,
                     simulationFeePayer: simulationFeePayerPk.toBase58(),
                     simulationFeePayerSource: feePayerResolution.source,
