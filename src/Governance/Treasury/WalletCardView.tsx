@@ -82,7 +82,6 @@ import {
     Snackbar,
     Alert,
     Dialog,
-    DialogContentText,
     MobileStepper,
     Stepper,
     Step,
@@ -3455,7 +3454,32 @@ const StakeAccountsView = () => {
                 </Avatar>
             }
             action={
-                <SettingsMenu/>
+                <Stack direction="row" spacing={0.25} alignItems="center">
+                    {!(loading && loadingPrices) && (
+                        <ExtensionsMenuView 
+                            useAddTrigger
+                            realm={realm}
+                            rulesWallet={rulesWallet}
+                            governanceAddress={governanceAddress}
+                            governanceWallets={governanceWallets}
+                            governanceNativeWallet={walletAddress} 
+                            connectedWallet={publicKey ? publicKey.toBase58() : null}
+                            expandedLoader={expandedLoader} 
+                            setExpandedLoader={setExpandedLoader}
+                            instructions={instructions}
+                            setInstructions={setInstructionsWithQueue}
+                            instructionQueue={instructionQueue}
+                            clearInstructionQueue={clearInstructionQueue}
+                            queueOnlyMode={queueOnlyMode}
+                            setQueueOnlyMode={setQueueOnlyMode}
+                            setSelectedNativeWallet={setSelectedNativeWallet}
+                            masterWallet={masterWallet}
+                            usdcValue={usdcValue}
+                            tokenMap={tokenMap}
+                            communityMintDecimals={communityMintDecimals}
+                        />
+                    )}
+                </Stack>
             }
             title={ 
                 <CopyToClipboard text={walletAddress} onCopy={handleCopy}>
@@ -3786,30 +3810,6 @@ const StakeAccountsView = () => {
                     <ShareIcon />
                 </IconButton>
             </CopyToClipboard>
-            {(loading && loadingPrices) ?
-                <></>
-            :
-                <>
-                    <ExtensionsMenuView 
-                        realm={realm}
-                        rulesWallet={rulesWallet}
-                        governanceAddress={governanceAddress}
-                        governanceWallets={governanceWallets}
-                        governanceNativeWallet={walletAddress} 
-                        expandedLoader={expandedLoader} 
-                        setExpandedLoader={setExpandedLoader}
-                        instructions={instructions}
-                        setInstructions={setInstructionsWithQueue}
-                        instructionQueue={instructionQueue}
-                        clearInstructionQueue={clearInstructionQueue}
-                        queueOnlyMode={queueOnlyMode}
-                        setQueueOnlyMode={setQueueOnlyMode}
-                        setSelectedNativeWallet={setSelectedNativeWallet}
-                        masterWallet={masterWallet}
-                        usdcValue={usdcValue}
-                    />
-                </>
-            }
             {proposals && proposals.length > 0 &&
                 <Tooltip title="Show Proposal Activity">
                     <Badge color="primary" badgeContent={proposals.length} max={999}>
@@ -4649,56 +4649,97 @@ const StakeAccountsView = () => {
             open={openDialog}
             PaperProps={{
                 style: {
-                    boxShadow: '3',
-                    borderRadius: '17px',
-                    padding:2,
+                    background: '#13151C',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderTop: '1px solid rgba(255,255,255,0.18)',
+                    boxShadow: '0px 18px 45px rgba(0,0,0,0.45)',
+                    borderRadius: '20px',
+                    padding: 20,
                     },
                 }}
         >
-            <DialogContentText id="alert-dialog-description">
-                <div style={{ height: "auto", margin: "0 auto", maxWidth: "256px", marginTop:"10px",borderRadius: "10px",padding:10, backgroundColor:'#fff',border:'2px solid black' }}>
+            <Box sx={{ textAlign: 'center' }}>
+                <Typography variant='h6' sx={{ mb: 0.25 }}>
+                    Receive
+                </Typography>
+                <Typography variant='caption' sx={{ opacity: 0.8 }}>
+                    Scan QR or copy treasury native address
+                </Typography>
+
+                <Box
+                    sx={{
+                        mt: 2,
+                        mx: 'auto',
+                        width: { xs: 220, sm: 256 },
+                        p: 1.5,
+                        borderRadius: '14px',
+                        background: 'linear-gradient(180deg, #FFFFFF 0%, #F2F6FF 100%)',
+                        border: '1px solid rgba(0,0,0,0.08)',
+                    }}
+                >
                     <QRCode
                         size={256}
-                        style={{ height: "auto", maxWidth: "100%" }}
+                        style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
                         value={walletAddress}
                         viewBox={`0 0 256 256`}
                     />
-                </div>
+                </Box>
 
-                <Grid container>
-                    <Grid item xs={12} textAlign={'center'}>
-                        <Typography variant='caption'>Send to this Native Address</Typography>
-                    </Grid>
-                    <Grid item xs={12} textAlign={'center'}>
+                <Box
+                    sx={{
+                        mt: 1.5,
+                        p: 1,
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        backgroundColor: 'rgba(255,255,255,0.02)',
+                    }}
+                >
+                    <Typography
+                        variant='caption'
+                        sx={{
+                            display: 'block',
+                            fontFamily: 'monospace',
+                            fontSize: '0.72rem',
+                            lineHeight: 1.5,
+                            wordBreak: 'break-all',
+                            opacity: 0.9,
+                        }}
+                    >
+                        {walletAddress}
+                    </Typography>
+                </Box>
+
+                <Grid container spacing={1} sx={{ mt: 0.25 }}>
+                    <Grid item xs={12}>
                         <CopyToClipboard text={walletAddress} onCopy={handleCopy}>
-                        <Button 
-                                color={'inherit'} 
-                                variant='text' 
-                                sx={{m:0,
-                                    p:0,
-                                    mintWidth:'' , 
-                                        '&:hover .MuiSvgIcon-root': {
-                                            opacity: 1,
-                                        },
-                                    }}
-                                endIcon={
-                                    <FileCopyIcon 
-                                        fontSize={'small'} 
-                                        sx={{
-                                            color:'rgba(255,255,255,0.25)',
-                                            pr:1,
-                                            opacity: 0,
-                                            fontSize:"10px"}} />
-                                    }
+                            <Button
+                                fullWidth
+                                variant='contained'
+                                color='primary'
+                                startIcon={<FileCopyIcon fontSize='small' />}
+                                sx={{
+                                    borderRadius: '12px',
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                }}
                             >
-                                <Typography variant='caption'>{walletAddress}</Typography>
+                                Copy Address ({shortWalletAddress})
                             </Button>
                         </CopyToClipboard>
                     </Grid>
-                    
+                    <Grid item xs={12}>
+                        <Button
+                            fullWidth
+                            variant='text'
+                            color='inherit'
+                            onClick={handleCloseDialog}
+                            sx={{ borderRadius: '12px', textTransform: 'none' }}
+                        >
+                            Close
+                        </Button>
+                    </Grid>
                 </Grid>
-                
-            </DialogContentText>
+            </Box>
         </BootstrapDialog>
 
         
