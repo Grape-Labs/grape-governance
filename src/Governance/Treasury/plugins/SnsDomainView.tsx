@@ -976,7 +976,7 @@ export default function SnsDomainView(props: any) {
           ) : null}
 
           <Box sx={{ mt: 1.5, textAlign: 'center' }}>
-            <Typography variant="caption">Made with &lt;3 by Grape</Typography>
+            <Typography variant="caption">Made with ❤️ by Grape</Typography>
           </Box>
         </DialogContent>
 

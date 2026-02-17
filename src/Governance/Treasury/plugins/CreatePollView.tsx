@@ -302,7 +302,7 @@ export default function CreatePollView(props: any) {
           ) : null}
 
           <Box alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{ m: 2, textAlign: 'center' }}>
-            <Typography variant="caption">Made with &lt;3 by Grape</Typography>
+            <Typography variant="caption">Made with ❤️ by Grape</Typography>
           </Box>
 
           <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p: 0, pb: 1 }}>

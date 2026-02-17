@@ -162,7 +162,7 @@ export function IntegratedGovernanceProposalDialogView(props: any){
                                             <ListItemIcon>
                                                 <AddCircleIcon fontSize="small" />
                                             </ListItemIcon>
-                                            Create Proposal</MenuItem>
+                                            {props?.useButtonText || 'Create Proposal'}</MenuItem>
                                     </>
                                 :
                                     <>
