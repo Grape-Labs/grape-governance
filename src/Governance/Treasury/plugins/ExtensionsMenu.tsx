@@ -43,6 +43,7 @@ import SnsDomainView from './SnsDomainView';
 import MemoIxView from './MemoIxView';
 import BatchSendView from './BatchSendView';
 import JupiterSwapView from './JupiterSwapView';
+import SanctumSwapView from './SanctumSwapView';
 import StreamflowView from './StreamflowView';
 import IntraDAOView from './IntraDAOView';
 import DecommissionView from './DecommissionView';
@@ -84,6 +85,7 @@ export default function ExtensionsMenuView(props: any) {
     typeof props?.triggerLabel === 'string' ? props.triggerLabel.trim() : '';
   const useAddTrigger = !!props?.useAddTrigger;
   const triggerTooltip = useAddTrigger ? 'Create Action' : 'Extensions';
+  const hasSanctumApiKey = !!process.env.APP_SANCTUM_API_KEY?.trim();
   const toBase58Safe = (value: any): string => {
     try {
       if (!value) return '';
@@ -611,6 +613,19 @@ export default function ExtensionsMenuView(props: any) {
           instructions={instructions}
           setInstructions={setInstructions}
         />
+        {hasSanctumApiKey && (
+          <SanctumSwapView
+            realm={realm}
+            governanceAddress={props?.governanceAddress || realm?.pubkey?.toBase58?.()}
+            handleCloseExtMenu={handleCloseAllMenus}
+            rulesWallet={rulesWallet}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader}
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+          />
+        )}
         <StreamflowView
           realm={realm}
           handleCloseExtMenu={handleCloseAllMenus}
