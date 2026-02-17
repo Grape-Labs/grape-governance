@@ -30,7 +30,6 @@ import {
     LinearProgress,
     DialogTitle,
     Dialog,
-    Badge,
     FormGroup,
     FormControlLabel,
     Switch,
@@ -2094,6 +2093,21 @@ export function GovernanceCachedView(props: any) {
         setEndTime(Date.now())
     }
 
+    const safeMetricNumber = (value: any): number => {
+        const parsed = Number(value ?? 0);
+        return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    const communityVotesCasted = safeMetricNumber(totalVotesCasted);
+    const hasCouncilVotes = totalCouncilVotesCasted !== null && totalCouncilVotesCasted !== undefined;
+    const councilVotesCasted = safeMetricNumber(totalCouncilVotesCasted);
+    const resolvedProposalCount = safeMetricNumber(totalActualProposals);
+    const totalProposalCount = safeMetricNumber(totalProposals);
+    const passedProposalCount = safeMetricNumber(totalPassed);
+    const defeatedProposalCount = safeMetricNumber(totalDefeated);
+    const passRate = resolvedProposalCount > 0 ? (passedProposalCount / resolvedProposalCount) * 100 : 0;
+    const participationCoverage = totalProposalCount > 0 ? (resolvedProposalCount / totalProposalCount) * 100 : 0;
+
     //if (publicKey){
         if(loading){
             return (
@@ -2251,152 +2265,161 @@ export function GovernanceCachedView(props: any) {
                                             </Grid>
                                         */}
 
-                                            <Grid item xs={12} sm={12} md={4} lg={4} key={1}>
-                                                <Box
-                                                    sx={{
-                                                        borderRadius:'24px',
-                                                        m:0,
-                                                        p:1,
-                                                        background: 'rgba(0, 0, 0, 0.2)',
-                                                    }}
+                                            <Grid item xs={12} sm={6} md={4} lg={4} key="casted-votes">
+                                                <Tooltip
+                                                    title={
+                                                        <>
+                                                            Total vote weight cast in this governance.
+                                                            <br />
+                                                            {hasCouncilVotes ? 'Community / Council split shown.' : 'Community votes only.'}
+                                                        </>
+                                                    }
                                                 >
-                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                        <>Total Casted Votes</>
-                                                    </Typography>
-                                                    <Grid
-                                                        container
-                                                        justifyContent='center'
-                                                        alignItems='center'
-                                                        sx={{}}
+                                                    <Paper
+                                                        elevation={0}
+                                                        sx={{
+                                                            borderRadius: '16px',
+                                                            m: 0,
+                                                            p: 1.25,
+                                                            height: '100%',
+                                                            background: 'linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                                                            border: '1px solid rgba(255,255,255,0.1)',
+                                                            cursor: 'help',
+                                                        }}
                                                     >
-                                                        <Tooltip title={<>
-                                                                    Total votes casted for this governnace
-                                                                    {(totalCouncilVotesCasted !== null && totalCouncilVotesCasted !== undefined && totalVotesCasted !== null && totalVotesCasted !== undefined) ?
-                                                                        <><br/>Community/Council</>
-                                                                    :<></>
-                                                                    }
-                                                                </>
-                                                            }>
-                                                                <Button
-                                                                    color='inherit'
-                                                                    sx={{
-                                                                        borderRadius:'17px'
-                                                                    }}
-                                                                >
-                                                                    <Grid container
-                                                                    sx={{
-                                                                        verticalAlign: 'bottom'}}
-                                                                    >
-                                                                        {(totalVotesCasted !== null && totalVotesCasted !== undefined) ?
-                                                                            <Typography variant="h4">
-                                                                                {formatCompactNumber(totalVotesCasted)} 
-                                                                            </Typography>
-                                                                        :
-                                                                            <Typography variant="h4">0</Typography>
-                                                                        }
+                                                        <Typography
+                                                            variant="caption"
+                                                            sx={{ color: '#8ec5ff', letterSpacing: 0.25, textTransform: 'uppercase' }}
+                                                        >
+                                                            Casted Vote Weight
+                                                        </Typography>
+                                                        <Typography
+                                                            sx={{
+                                                                mt: 0.35,
+                                                                fontSize: '1.55rem',
+                                                                fontWeight: 700,
+                                                                lineHeight: 1.15,
+                                                                color: 'rgba(255,255,255,0.96)',
+                                                            }}
+                                                        >
+                                                            {formatCompactNumber(communityVotesCasted)}
+                                                            {hasCouncilVotes ? ` / ${formatCompactNumber(councilVotesCasted)}` : ''}
+                                                        </Typography>
+                                                        <Typography variant="caption" sx={{ display: 'block', mt: 0.55, color: 'rgba(255,255,255,0.66)' }}>
+                                                            Community{hasCouncilVotes ? ' / Council' : ''}
+                                                        </Typography>
+                                                    </Paper>
+                                                </Tooltip>
+                                            </Grid>
 
-                                                                        <Typography variant="h4" color="#999">
-                                                                            {(totalCouncilVotesCasted !== null && totalCouncilVotesCasted !== undefined && totalVotesCasted !== null && totalVotesCasted !== undefined) ?
-                                                                                <>/</>
-                                                                            :<></>
-                                                                            }
-                                                                            {(totalCouncilVotesCasted !== null && totalCouncilVotesCasted !== undefined) ?
-                                                                                <>{formatCompactNumber(totalCouncilVotesCasted)}</>
-                                                                            :<></>
-                                                                            }
-                                                                        </Typography>
-                                                                        
-                                                                    </Grid>
-                                                                </Button>
-                                                        </Tooltip>
-                                                    </Grid>
-                                                </Box>
-                                            </Grid>
-                                            
-                                            <Grid item xs={12} sm={6} md={4} lg={4} key={1}>
-                                                <Box
-                                                    sx={{
-                                                        borderRadius:'24px',
-                                                        m:0,
-                                                        p:1,
-                                                        background: 'rgba(0, 0, 0, 0.2)',
-                                                    }}
+                                            <Grid item xs={12} sm={6} md={4} lg={4} key="proposal-success-rate">
+                                                <Tooltip
+                                                    title={
+                                                        <>
+                                                            Resolved proposals and pass rate.
+                                                            <br />
+                                                            Pass rate = Passed / Resolved.
+                                                        </>
+                                                    }
                                                 >
-                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                        <>Proposals/Success Rate</>
-                                                    </Typography>
-                                                    <Grid
-                                                        container
-                                                        justifyContent='center'
-                                                        alignItems='center'
-                                                        sx={{}}
+                                                    <Paper
+                                                        elevation={0}
+                                                        sx={{
+                                                            borderRadius: '16px',
+                                                            m: 0,
+                                                            p: 1.25,
+                                                            height: '100%',
+                                                            background: 'linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                                                            border: '1px solid rgba(255,255,255,0.1)',
+                                                            cursor: 'help',
+                                                        }}
                                                     >
-                                                        <Tooltip title={<>
-                                                                    Total proposals voted for in this governance<br/>Success rate is calculated on successfully completed proposals
-                                                                </>
-                                                            }>
-                                                            <Button
-                                                                color='inherit'
+                                                        <Typography
+                                                            variant="caption"
+                                                            sx={{ color: '#72d38c', letterSpacing: 0.25, textTransform: 'uppercase' }}
+                                                        >
+                                                            Proposals / Pass Rate
+                                                        </Typography>
+                                                        <Typography
+                                                            sx={{
+                                                                mt: 0.35,
+                                                                fontSize: '1.55rem',
+                                                                fontWeight: 700,
+                                                                lineHeight: 1.15,
+                                                                color: 'rgba(255,255,255,0.96)',
+                                                            }}
+                                                        >
+                                                            {resolvedProposalCount} / {passRate.toFixed(1)}%
+                                                        </Typography>
+                                                        <Box sx={{ mt: 1 }}>
+                                                            <LinearProgress
+                                                                variant="determinate"
+                                                                value={Math.min(100, Math.max(0, passRate))}
                                                                 sx={{
-                                                                    borderRadius:'17px',
+                                                                    height: 6,
+                                                                    borderRadius: 99,
+                                                                    backgroundColor: 'rgba(255,255,255,0.14)',
+                                                                    '& .MuiLinearProgress-bar': {
+                                                                        borderRadius: 99,
+                                                                        backgroundColor: '#72d38c',
+                                                                    },
                                                                 }}
-                                                            >   
-                                                                <Grid container
-                                                                    sx={{
-                                                                        verticalAlign: 'bottom'}}
-                                                                >
-                                                                    <Typography variant="h4">
-                                                                        {totalActualProposals}
-                                                                    </Typography>
-                                                                    <Typography variant="h6">/{((totalPassed/totalActualProposals)*100).toFixed(1)}%</Typography>
-                                                                </Grid>
-                                                            </Button>
-                                                        </Tooltip>
-                                                    </Grid>
-                                                </Box>
+                                                            />
+                                                        </Box>
+                                                        <Typography variant="caption" sx={{ display: 'block', mt: 0.55, color: 'rgba(255,255,255,0.66)' }}>
+                                                            {totalProposalCount} total proposals • {participationCoverage.toFixed(1)}% resolved
+                                                        </Typography>
+                                                    </Paper>
+                                                </Tooltip>
                                             </Grid>
-                                            
-                                            <Grid item xs={12} sm={6} md={4} lg={4} key={1}>
-                                                <Box
-                                                    sx={{
-                                                        borderRadius:'24px',
-                                                        m:0,
-                                                        p:1,
-                                                        background: 'rgba(0, 0, 0, 0.2)',
-                                                    }}
-                                                >
-                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                        <>Passing/Defeated</>
-                                                    </Typography>
-                                                    <Grid
-                                                        container
-                                                        justifyContent='center'
-                                                        alignItems='center'
-                                                        sx={{}}
+
+                                            <Grid item xs={12} sm={6} md={4} lg={4} key="passing-defeated">
+                                                <Tooltip title="Total proposals passed versus defeated.">
+                                                    <Paper
+                                                        elevation={0}
+                                                        sx={{
+                                                            borderRadius: '16px',
+                                                            m: 0,
+                                                            p: 1.25,
+                                                            height: '100%',
+                                                            background: 'linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                                                            border: '1px solid rgba(255,255,255,0.1)',
+                                                            cursor: 'help',
+                                                        }}
                                                     >
-                                                        <Tooltip title={<>
-                                                                    Total proposals passed / Total proposals defeated
-                                                                </>
-                                                            }>
-                                                            <Button
-                                                                color='inherit'
-                                                                sx={{
-                                                                    borderRadius:'17px'
-                                                                }}
-                                                            >
-                                                                <Grid container
-                                                                    sx={{
-                                                                        verticalAlign: 'bottom'}}
-                                                                    >
-                                                                    <Typography variant="h4">
-                                                                        <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{totalPassed}</Badge>&nbsp;/&nbsp;
-                                                                        <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{totalDefeated}</Badge>
-                                                                    </Typography>
-                                                                </Grid>
-                                                            </Button>
-                                                        </Tooltip>
-                                                    </Grid>
-                                                </Box>
+                                                        <Typography
+                                                            variant="caption"
+                                                            sx={{ color: '#f8bc72', letterSpacing: 0.25, textTransform: 'uppercase' }}
+                                                        >
+                                                            Passing / Defeated
+                                                        </Typography>
+                                                        <Typography
+                                                            sx={{
+                                                                mt: 0.35,
+                                                                fontSize: '1.55rem',
+                                                                fontWeight: 700,
+                                                                lineHeight: 1.15,
+                                                                color: 'rgba(255,255,255,0.96)',
+                                                            }}
+                                                        >
+                                                            {passedProposalCount} / {defeatedProposalCount}
+                                                        </Typography>
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.75, flexWrap: 'wrap' }}>
+                                                            <Chip
+                                                                size="small"
+                                                                icon={<ThumbUpIcon sx={{ fontSize: 14 }} />}
+                                                                label={`${passedProposalCount} passed`}
+                                                                sx={{ bgcolor: 'rgba(114, 211, 140, 0.16)', color: 'rgba(255,255,255,0.92)' }}
+                                                            />
+                                                            <Chip
+                                                                size="small"
+                                                                icon={<ThumbDownIcon sx={{ fontSize: 14 }} />}
+                                                                label={`${defeatedProposalCount} defeated`}
+                                                                sx={{ bgcolor: 'rgba(230, 95, 95, 0.16)', color: 'rgba(255,255,255,0.92)' }}
+                                                            />
+                                                        </Box>
+                                                    </Paper>
+                                                </Tooltip>
                                             </Grid>
                                             
                                         </Grid>

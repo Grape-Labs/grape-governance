@@ -83,7 +83,8 @@ import {
   Avatar,
   TextField,
   TextareaAutosize,
-  Stack
+  Stack,
+  useMediaQuery,
 } from '@mui/material/';
 
 import { linearProgressClasses } from '@mui/material/LinearProgress';
@@ -3097,6 +3098,25 @@ export function GovernanceProposalV2View(props: any){
         runPopulate();
     }, [instructionTransferDetails]);
 
+    const proposalState = Number(thisitem?.account?.state ?? -1);
+    const proposalStateLabel = GOVERNANCE_STATE[proposalState] || "Unknown";
+    const proposalTargetLabel = voteType === "Council" ? "Council" : "Community";
+    const proposalInstructionCount =
+        proposalInstructions?.[0]?.account?.instructions?.length > 1
+            ? proposalInstructions[0].account.instructions.length
+            : (proposalInstructions?.length || 0);
+    const isMobile = useMediaQuery('(max-width:600px)');
+    const isTablet = useMediaQuery('(max-width:900px)');
+    const detailsEmbedHeight = isMobile ? 420 : isTablet ? 560 : 750;
+    const votesTableHeight = isMobile ? 460 : isTablet ? 540 : 600;
+
+    const panelSx = {
+        background: 'linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+        border: '1px solid rgba(255,255,255,0.10)',
+        borderRadius: '17px',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.22)',
+    };
+
     return (
         <>
             <ThemeProvider theme={grapeTheme}>
@@ -3133,7 +3153,7 @@ export function GovernanceProposalV2View(props: any){
                         {/* =========================
                Header: title + actions + power
                ========================= */}
-            <Box sx={{ mb: 1 }}>
+            <Box sx={{ mb: 1.25, p: { xs: 1, sm: 1.25 }, ...panelSx }}>
               <Stack
                 direction={{ xs: "column", md: "row" }}
                 spacing={1}
@@ -3142,12 +3162,19 @@ export function GovernanceProposalV2View(props: any){
               >
                 <Stack spacing={0.75} sx={{ minWidth: 0 }}>
                   {showGovernanceTitle && realmName && (
-                    <Typography variant="h4" noWrap sx={{ lineHeight: 1.1 }}>
+                    <Typography
+                      variant="h4"
+                      sx={{
+                        lineHeight: 1.1,
+                        fontSize: { xs: '1.3rem', sm: '1.65rem', md: '2rem' },
+                        wordBreak: 'break-word',
+                      }}
+                    >
                       {realmName}
                     </Typography>
                   )}
 
-                  <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
+	                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1} flexWrap="wrap" alignItems={{ xs: "stretch", sm: "center" }}>
                     {showGovernanceTitle && proposalPk && realmName && (
                       <Tooltip title={`Back to ${realmName} Governance`}>
                         <Button
@@ -3161,6 +3188,7 @@ export function GovernanceProposalV2View(props: any){
                             borderColor: "rgba(255,255,255,0.08)",
                             textTransform: "none",
                             fontSize: 12,
+                            width: { xs: '100%', sm: 'auto' },
                           }}
                         >
                           <ArrowBackIcon fontSize="inherit" sx={{ mr: 1 }} />
@@ -3169,20 +3197,23 @@ export function GovernanceProposalV2View(props: any){
                       </Tooltip>
                     )}
 
-                    <ButtonGroup
-                      variant="outlined"
-                      color="inherit"
-                      sx={{
-                        "& .MuiButton-root": {
-                          borderColor: "rgba(255,255,255,0.08)",
-                          textTransform: "none",
-                          fontSize: 12,
-                        },
-                      }}
-                    >
+                      <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
                       <CopyToClipboard text={proposalUrl} onCopy={handleCopy}>
                         <Tooltip title={`Copy proposal link`}>
-                          <Button aria-label="copy" sx={{ borderTopLeftRadius: "17px", borderBottomLeftRadius: "17px" }}>
+                          <Button
+                            aria-label="copy"
+                            variant="outlined"
+                            color="inherit"
+                            size="small"
+                            sx={{
+                              borderRadius: "17px",
+                              borderColor: "rgba(255,255,255,0.08)",
+                              textTransform: "none",
+                              fontSize: 12,
+                              backgroundColor: "rgba(0,0,0,0.18)",
+                              width: { xs: '100%', sm: 'auto' },
+                            }}
+                          >
                             <ContentCopyIcon fontSize="inherit" sx={{ mr: 1 }} />
                             Copy
                           </Button>
@@ -3190,7 +3221,21 @@ export function GovernanceProposalV2View(props: any){
                       </CopyToClipboard>
 
                       <Tooltip title={`Share proposal`}>
-                        <Button aria-label="share" onClick={handleShare}>
+                        <Button
+                          aria-label="share"
+                          onClick={handleShare}
+                          variant="outlined"
+                          color="inherit"
+                          size="small"
+                          sx={{
+                            borderRadius: "17px",
+                            borderColor: "rgba(255,255,255,0.08)",
+                            textTransform: "none",
+                            fontSize: 12,
+                            backgroundColor: "rgba(0,0,0,0.18)",
+                            width: { xs: '100%', sm: 'auto' },
+                          }}
+                        >
                           <ShareIcon fontSize="inherit" sx={{ mr: 1 }} />
                           Share
                         </Button>
@@ -3199,19 +3244,64 @@ export function GovernanceProposalV2View(props: any){
                       <Tooltip title={`Open in Realms`}>
                         <Button
                           aria-label="realms"
+                          variant="outlined"
+                          color="inherit"
+                          size="small"
                           component="a"
                           href={realmsUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          sx={{ borderTopRightRadius: "17px", borderBottomRightRadius: "17px" }}
+                          sx={{
+                            borderRadius: "17px",
+                            borderColor: "rgba(255,255,255,0.08)",
+                            textTransform: "none",
+                            fontSize: 12,
+                            backgroundColor: "rgba(0,0,0,0.18)",
+                            width: { xs: '100%', sm: 'auto' },
+                          }}
                         >
                           <OpenInNewIcon fontSize="inherit" sx={{ mr: 1 }} />
-                          Realms
+                          {isMobile ? 'Open in Realms' : 'Realms'}
                         </Button>
                       </Tooltip>
-                    </ButtonGroup>
-                  </Stack>
-                </Stack>
+                      </Stack>
+		                  </Stack>
+
+                      <Stack direction="row" spacing={0.75} flexWrap="wrap" alignItems="center">
+                        <Chip
+                          size="small"
+                          label={proposalStateLabel}
+                          sx={{
+                            bgcolor:
+                              proposalState === 5 ? 'rgba(114, 211, 140, 0.2)' :
+                              proposalState === 7 ? 'rgba(230, 95, 95, 0.2)' :
+                              proposalState === 2 ? 'rgba(142, 197, 255, 0.2)' :
+                              'rgba(255,255,255,0.12)',
+                            color: 'rgba(255,255,255,0.95)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                          }}
+                        />
+                        <Chip
+                          size="small"
+                          label={`Voting: ${proposalTargetLabel}`}
+                          sx={{
+                            bgcolor: 'rgba(248, 188, 114, 0.16)',
+                            color: 'rgba(255,255,255,0.95)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                          }}
+                        />
+                        <Chip
+                          size="small"
+                          icon={<CodeIcon sx={{ fontSize: '0.95rem !important' }} />}
+                          label={`${proposalInstructionCount} instruction${proposalInstructionCount === 1 ? '' : 's'}`}
+                          sx={{
+                            bgcolor: 'rgba(188, 142, 255, 0.16)',
+                            color: 'rgba(255,255,255,0.95)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                          }}
+                        />
+                      </Stack>
+	                </Stack>
                 
                 {realm && (
                   <Box sx={{ mt: { xs: 1, md: 0 } }}>
@@ -3224,8 +3314,8 @@ export function GovernanceProposalV2View(props: any){
               </Stack>
             </Box>
 
-            <Box sx={{ textAlign: "left" }}>
-              <Divider sx={{ mt: 1, mb: 1 }} />
+	            <Box sx={{ textAlign: "left" }}>
+	              <Divider sx={{ mt: 0.25, mb: 1.25, borderColor: 'rgba(255,255,255,0.08)' }} />
 
               {/* =========================
                  Author + drafted + vote tiles
@@ -3264,14 +3354,19 @@ export function GovernanceProposalV2View(props: any){
                       </Typography>
                     ) : null}
 
-                    <Tooltip title="Drafted at">
-                      <Button
-                        color="inherit"
-                        sx={{ textTransform: "none", fontSize: "12px", borderRadius: "17px" }}
-                      >
-                        {moment.unix(Number(thisitem.account?.draftAt)).format("MMMM D, YYYY, h:mm a")}
-                      </Button>
-                    </Tooltip>
+	                    <Tooltip title="Drafted at">
+                          <Chip
+                            size="small"
+                            label={moment.unix(Number(thisitem.account?.draftAt)).format("MMMM D, YYYY, h:mm a")}
+                            sx={{
+                              height: 24,
+                              borderRadius: '8px',
+                              bgcolor: 'rgba(255,255,255,0.10)',
+                              color: 'rgba(255,255,255,0.95)',
+                              border: '1px solid rgba(255,255,255,0.1)',
+                            }}
+                          />
+	                    </Tooltip>
                     {isFlaggedMaliciousAuthor && (
                       <Tooltip title={`Author has ${authorVetoedProposalCount} vetoed proposals. Flagged as malicious.`}>
                         <Chip
@@ -3290,10 +3385,18 @@ export function GovernanceProposalV2View(props: any){
                     )}
                   </Stack>
 
-                  <Typography variant="subtitle1" sx={{ mt: 0.5 }}>
-                    To: {voteType === "Council" ? "Council" : "Community"}
-                  </Typography>
-                </Grid>
+                      <Box sx={{ mt: 0.85, display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                        <Chip
+                          size="small"
+                          label={`Destination: ${proposalTargetLabel}`}
+                          sx={{
+                            bgcolor: 'rgba(121, 201, 221, 0.16)',
+                            color: 'rgba(255,255,255,0.95)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                          }}
+                        />
+                      </Box>
+	                </Grid>
 
                 <Grid item xs={12} md={6} sx={{ display: "flex", justifyContent: { xs: "center", md: "flex-end" } }}>
                   {thisitem?.account?.voteType?.type === 1 ? null : (
@@ -3391,19 +3494,18 @@ export function GovernanceProposalV2View(props: any){
             </Box>
                         
 
-                        <Divider sx={{mt:1,mb:1}} />
+                        <Divider sx={{ mt: 1, mb: 1.25, borderColor: 'rgba(255,255,255,0.08)' }} />
 
                         <Grid container sx={{mb:1}}>
                             <Grid item md={8} sm={12} xs={12} sx={{mt:2}}>
-                                <Box
-                                    sx={{
-                                        background: 'rgba(0, 0, 0, 0.25)',
-                                        borderRadius: '17px',
-                                        p:1
-                                    }}
-                                >
+                                <Box sx={{ p: 1, ...panelSx }}>
                                     <Box sx={{ alignItems: 'left', textAlign: 'left',m:1}}>
-                                        <Typography variant='h5'>{thisitem.account?.name}</Typography>
+                                        <Typography
+                                            variant='h5'
+                                            sx={{ fontWeight: 700, letterSpacing: 0.1, fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.5rem' } }}
+                                        >
+                                            {thisitem.account?.name}
+                                        </Typography>
                                     </Box>
                                     
                                     <Box sx={{ alignItems: "left", textAlign: "left", m: 1 }}>
@@ -3581,10 +3683,9 @@ export function GovernanceProposalV2View(props: any){
                             <Grid item md={4} sm={12} xs={12} sx={{mt:2}}>
                                 <Box
                                     sx={{
-                                        background: 'rgba(0, 0, 0, 0.25)',
-                                        borderRadius: '17px',
-                                        p:1,
-                                        ml: window.matchMedia('(min-width: 900px)').matches ? 1 : 0,
+                                        p: 1,
+                                        ml: { xs: 0, md: 1 },
+                                        ...panelSx,
                                     }}
                                 >
                                     <Grid container>
@@ -4252,21 +4353,21 @@ export function GovernanceProposalV2View(props: any){
                         {(proposalInstructions && proposalInstructions.length > 0) &&
                             <>
                             <Box
-                                sx={{ 
-                                    mb: 1, 
+                                sx={{
+                                    mb: 1.5,
                                     width: '100%',
-                                    background: 'rgba(0,0,0,0.2)',
-                                    borderRadius: '17px'
+                                    ...panelSx,
                                 }}
-                            > 
+                            >
                                 
                                     <ListItemButton 
                                         onClick={handleClickOpenInstructions}
                                         sx={{
-                                            backgroundColor:'rgba(0,0,0,0.2)',
+                                            backgroundColor:'rgba(0,0,0,0.14)',
                                             borderRadius:'17px',
                                             borderBottomLeftRadius: openInstructions ? '0' : '17px',
-                                            borderBottomRightRadius: openInstructions ? '0' : '17px', 
+                                            borderBottomRightRadius: openInstructions ? '0' : '17px',
+                                            borderBottom: openInstructions ? '1px solid rgba(255,255,255,0.08)' : 'none',
                                         }}
                                     >
                                         <ListItemIcon>
@@ -4283,7 +4384,7 @@ export function GovernanceProposalV2View(props: any){
                                         sx={{
                                             borderBottomLeftRadius: openInstructions ? '17px' : '0',
                                             borderBottomRightRadius: openInstructions ? '17px' : '0', 
-                                            backgroundColor:'rgba(0,0,0,0.2)'}}
+                                            backgroundColor:'rgba(0,0,0,0.14)'}}
                                     >
                                         
                                         <Box>
@@ -4293,7 +4394,8 @@ export function GovernanceProposalV2View(props: any){
                                                         p: 1,
                                                         m: 1,
                                                         borderRadius: '17px',
-                                                        backgroundColor: 'rgba(0,0,0,0.2)',
+                                                        backgroundColor: 'rgba(255,255,255,0.06)',
+                                                        border: '1px solid rgba(255,255,255,0.08)',
                                                     }}
                                                 >
                                                     <Typography variant="subtitle1">
@@ -4397,7 +4499,7 @@ export function GovernanceProposalV2View(props: any){
                         }
                             
                         {propVoteType &&
-                            <Box sx={{ alignItems: 'center', textAlign: 'center',p:1,mb:2}}>
+                            <Box sx={{ alignItems: 'center', textAlign: 'center', p: 1.25, mb: 2, ...panelSx }}>
                                 <Grid container spacing={0}>
                                     
                                     {thisitem?.account?.voteType?.type === 1 ?
@@ -4518,9 +4620,17 @@ export function GovernanceProposalV2View(props: any){
                                                 rowsPerPageOptions={[]}
                                                 sx={{
                                                     borderRadius:'17px',
-                                                    borderColor:'rgba(255,255,255,0.25)',
+                                                    borderColor:'rgba(255,255,255,0.16)',
+                                                    background: 'linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02))',
+                                                    '& .MuiDataGrid-columnHeaders': {
+                                                        backgroundColor: 'rgba(0,0,0,0.22)',
+                                                        borderBottom: '1px solid rgba(255,255,255,0.12)',
+                                                    },
+                                                    '& .MuiDataGrid-row:hover': {
+                                                        backgroundColor: 'rgba(255,255,255,0.06)',
+                                                    },
                                                     '& .MuiDataGrid-cell':{
-                                                        borderColor:'rgba(255,255,255,0.25)'
+                                                        borderColor:'rgba(255,255,255,0.14)'
                                                     }}}
                                                 sortingOrder={['asc', 'desc', null]}
                                                 disableSelectionOnClick
