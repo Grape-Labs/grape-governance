@@ -271,15 +271,6 @@ export function GovernanceStatsSummaryView(props: GovernanceStatsProps) {
                         accent="#d0a6ff"
                     />
                 </Grid>
-                <Grid item xs={12} sm={6} md={4} lg={3}>
-                    <StatCard
-                        title="Voting-Active Gap"
-                        value={`${activationGap}`}
-                        hint="voted but currently unstaked"
-                        tooltip="Members who voted historically but have no active stake now."
-                        accent="#9bc6ff"
-                    />
-                </Grid>
             </Grid>
 
             <SectionHeader
