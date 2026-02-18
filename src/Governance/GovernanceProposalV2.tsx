@@ -3213,6 +3213,12 @@ export function GovernanceProposalV2View(props: any){
     const isTablet = useMediaQuery('(max-width:900px)');
     const detailsEmbedHeight = isMobile ? 420 : isTablet ? 560 : 750;
     const votesTableHeight = isMobile ? 460 : isTablet ? 540 : 600;
+    const hasProposalDescription = Boolean(
+        irysUrl ||
+        gist ||
+        gDocs ||
+        (thisitem?.account?.descriptionLink && `${thisitem.account.descriptionLink}`.trim().length > 0)
+    );
 
     const panelSx = {
         background: 'rgba(16,22,34,0.86)',
@@ -3656,15 +3662,16 @@ export function GovernanceProposalV2View(props: any){
                                     ...panelSx,
                                 }}>
                                     <Typography sx={{ ...sectionLabelSx, ml: { xs: 0.75, sm: 1 }, mb: 0.75 }}>Proposal Details</Typography>
-                                    <Box sx={{ alignItems: 'left', textAlign: 'left', m: { xs: 0.75, sm: 1 } }}>
-                                        <Typography
-                                            variant='h5'
-                                            sx={{ fontWeight: 700, letterSpacing: 0.1, lineHeight: 1.2, fontSize: { xs: '1.08rem', sm: '1.24rem', md: '1.45rem' } }}
-                                        >
-                                            {thisitem.account?.name}
-                                        </Typography>
-                                    </Box>
-                                    
+                                    {!hasProposalDescription && (
+                                        <Box sx={{ alignItems: 'left', textAlign: 'left', m: { xs: 0.75, sm: 1 } }}>
+                                            <Typography
+                                                variant='h6'
+                                                sx={{ fontWeight: 700, lineHeight: 1.2, fontSize: { xs: '1rem', sm: '1.12rem', md: '1.2rem' } }}
+                                            >
+                                                {thisitem.account?.name}
+                                            </Typography>
+                                        </Box>
+                                    )}
                                     <Box sx={{ alignItems: "left", textAlign: "left", m: { xs: 0.75, sm: 1 } }}>
                                     {irysUrl ? (
                                           <Box sx={{ alignItems: "left", textAlign: "left" }}>
