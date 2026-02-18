@@ -93,6 +93,7 @@ import {
     getAllProposalsIndexed,
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
+    getVoteRecordsIndexed,
     getVoteRecordsByVoterIndexed,
     getRealmConfigIndexed,
 } from './api/queries';
@@ -334,6 +335,9 @@ function RenderGovernanceTable(props:any) {
     const [statusFilter, setStatusFilter] = React.useState('all');
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
+    const [proposalUniqueVoterCounts, setProposalUniqueVoterCounts] = React.useState<Record<string, { yes: number; no: number; total: number }>>({});
+    const [proposalUniqueVoterLoading, setProposalUniqueVoterLoading] = React.useState<Record<string, boolean>>({});
+    const isMountedRef = React.useRef(true);
     const searchQuery = (filteredGovernance || '').trim().toLowerCase();
     const proposalCounters = React.useMemo(() => {
         const list = Array.isArray(proposals) ? proposals : [];
@@ -397,6 +401,26 @@ function RenderGovernanceTable(props:any) {
         const yesPct = total > 0 ? (yes / total) * 100 : 0;
         return { yes, no, total, yesPct };
     }, [realm, governingTokenDecimals]);
+
+    const getVoteSideFromRecord = React.useCallback((record: any): 'yes' | 'no' | null => {
+        const voteV2 = record?.account?.vote;
+        if (voteV2 && voteV2.voteType !== undefined && voteV2.voteType !== null) {
+            const voteType = Number(voteV2.voteType);
+            if (voteType === 0) return 'yes';
+            if (voteType === 1) return 'no';
+            return null;
+        }
+
+        const voteWeight = record?.account?.voteWeight;
+        if (voteWeight) {
+            const legacyYes = parseRawVoteWeight(voteWeight?.yes);
+            const legacyNo = parseRawVoteWeight(voteWeight?.no);
+            if (legacyYes > 0n) return 'yes';
+            if (legacyNo > 0n) return 'no';
+        }
+
+        return null;
+    }, []);
 
     const tokenOwnerRecordToAuthor = React.useMemo(() => {
         const map = new Map<string, string>();
@@ -538,6 +562,97 @@ function RenderGovernanceTable(props:any) {
         }
         return filteredProposals;
     }, [filteredProposals, rowsPerPage, page]);
+
+    React.useEffect(() => {
+        const loadUniqueVoters = async () => {
+            const realmOwner = realm?.owner?.toBase58?.() || realm?.owner || null;
+            if (!realmOwner || !governanceAddress || !Array.isArray(visibleProposals) || visibleProposals.length === 0) {
+                return;
+            }
+
+            const pendingProposalKeys = visibleProposals
+                .map((proposal: any) => normalizePkString(proposal?.pubkey))
+                .filter((proposalPk: string | null): proposalPk is string => !!proposalPk)
+                .filter((proposalPk: string) =>
+                    proposalUniqueVoterCounts[proposalPk] === undefined &&
+                    !proposalUniqueVoterLoading[proposalPk]
+                );
+
+            if (!pendingProposalKeys.length) return;
+
+            setProposalUniqueVoterLoading((prev) => {
+                const next = { ...prev };
+                for (const proposalPk of pendingProposalKeys) next[proposalPk] = true;
+                return next;
+            });
+
+            await Promise.all(
+                pendingProposalKeys.map(async (proposalPk) => {
+                    try {
+                        const voteRecords = await getVoteRecordsIndexed(proposalPk, realmOwner, governanceAddress, true);
+                        const votesByOwner = new Map<string, 'yes' | 'no'>();
+
+                        for (const voteRecord of voteRecords || []) {
+                            if (voteRecord?.account?.isRelinquished === true || voteRecord?.account?.isRelinquiched === true) {
+                                continue;
+                            }
+
+                            const owner = normalizePkString(voteRecord?.account?.governingTokenOwner);
+                            if (!owner) continue;
+
+                            const side = getVoteSideFromRecord(voteRecord);
+                            if (!side) continue;
+
+                            votesByOwner.set(owner, side);
+                        }
+
+                        let yes = 0;
+                        let no = 0;
+                        votesByOwner.forEach((side) => {
+                            if (side === 'yes') yes += 1;
+                            else if (side === 'no') no += 1;
+                        });
+
+                        if (isMountedRef.current) {
+                            setProposalUniqueVoterCounts((prev) => ({
+                                ...prev,
+                                [proposalPk]: { yes, no, total: yes + no },
+                            }));
+                        }
+                    } catch (e) {
+                        if (isMountedRef.current) {
+                            setProposalUniqueVoterCounts((prev) => ({
+                                ...prev,
+                                [proposalPk]: { yes: 0, no: 0, total: 0 },
+                            }));
+                        }
+                    } finally {
+                        if (isMountedRef.current) {
+                            setProposalUniqueVoterLoading((prev) => ({
+                                ...prev,
+                                [proposalPk]: false,
+                            }));
+                        }
+                    }
+                })
+            );
+        };
+
+        loadUniqueVoters();
+    }, [
+        visibleProposals,
+        realm,
+        governanceAddress,
+        proposalUniqueVoterCounts,
+        proposalUniqueVoterLoading,
+        getVoteSideFromRecord,
+    ]);
+
+    React.useEffect(() => {
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
 
     // Avoid a layout jump when reaching the last page with empty rows.
     const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - filteredProposals.length) : 0;
@@ -843,7 +958,7 @@ function RenderGovernanceTable(props:any) {
                                     <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">Yes</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">No</Typography></TableCell>
                                     */}
-                                    <TableCell align="center" sx={{width:"10%"}}><Typography variant="caption">Results</Typography></TableCell>
+                                    <TableCell align="center" sx={{width:"16%"}}><Typography variant="caption">Results</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">Status</Typography></TableCell>
                                     {/*<TableCell align="center"><Typography variant="caption">Details</Typography></TableCell>*/}
                                 </TableRow>
@@ -855,6 +970,9 @@ function RenderGovernanceTable(props:any) {
                                     {visibleProposals.map((item:any, index:number) => {
                                     const voteStats = getProposalVoteStats(item);
                                     const isPoll = Number(item?.account?.voteType?.type) === 1;
+                                    const proposalPk = normalizePkString(item?.pubkey);
+                                    const uniqueVoteStats = proposalPk ? proposalUniqueVoterCounts[proposalPk] : undefined;
+                                    const uniqueVoteLoading = proposalPk ? !!proposalUniqueVoterLoading[proposalPk] : false;
                                     const proposalAuthorMeta = getProposalAuthorMeta(item);
                                     const vetoedByAuthor = proposalAuthorMeta?.author
                                         ? (authorVetoCounts.get(proposalAuthorMeta.author) || 0)
@@ -1098,7 +1216,7 @@ function RenderGovernanceTable(props:any) {
                                                             </Typography>
                                                         </TableCell>
                                                     :
-                                                        <TableCell>
+                                                        <TableCell sx={{ width: '16%', minWidth: 210 }}>
                                                                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                                                     <Tooltip title={
                                                                         <>
@@ -1153,35 +1271,29 @@ function RenderGovernanceTable(props:any) {
                                                                         </>
                                                                     }
                                                                     >
-                                                                        <Button sx={{width:'100%',color:'#eee',borderRadius:'17px',textTransform:'none'}}>
-                                                                            <Box sx={{ width: '100%', mr: 1 }}>
-                                                                                <VotesLinearProgress 
-                                                                                    variant="determinate" 
-                                                                                    value={voteStats.yesPct}
-                                                                                    sx={{
-                                                                                        bgcolor: (item.account?.state !== 2) ? 'gray' : 'inherit', // Background color when grayed out
-                                                                                        '& .MuiLinearProgress-bar': {
-                                                                                          backgroundColor: (item.account?.state !== 2) ? 'gray' : '#primary.main', // Foreground color when grayed out
-                                                                                        },
-                                                                                    }}
-                                                                                />
-                                                                            </Box>
-                                                                            <Box sx={{ minWidth: 35 }}>
-                                                                                <Typography
-                                                                                    variant="caption"
-                                                                                    color={(item.account?.state === 2) ? `white` : `gray`}
-                                                                                >{`${voteStats.yesPct.toFixed(2)}%`}</Typography>
-                                                                            </Box>
-                                                                        </Button>
+                                                                        <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 0.45 }}>
+                                                                            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.86)', lineHeight: 1.2 }}>
+                                                                                {`Weight Y ${formatCompactNumber(voteStats.yes)} / N ${formatCompactNumber(voteStats.no)}`}
+                                                                            </Typography>
+                                                                            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.62)', lineHeight: 1.2 }}>
+                                                                                {uniqueVoteLoading
+                                                                                    ? 'Voters Y ... / N ...'
+                                                                                    : `Voters Y ${(uniqueVoteStats?.yes ?? 0).toLocaleString()} / N ${(uniqueVoteStats?.no ?? 0).toLocaleString()}`
+                                                                                }
+                                                                            </Typography>
+                                                                            <VotesLinearProgress 
+                                                                                variant="determinate" 
+                                                                                value={voteStats.yesPct}
+                                                                                sx={{
+                                                                                    mt: 0.3,
+                                                                                    bgcolor: (item.account?.state !== 2) ? 'gray' : 'inherit',
+                                                                                    '& .MuiLinearProgress-bar': {
+                                                                                      backgroundColor: (item.account?.state !== 2) ? 'gray' : '#primary.main',
+                                                                                    },
+                                                                                }}
+                                                                            />
+                                                                        </Box>
                                                                     </Tooltip>
-                                                                    <Box sx={{ ml: 1, minWidth: 90, textAlign: 'right' }}>
-                                                                        <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.82)', lineHeight: 1.2 }}>
-                                                                            Y {formatCompactNumber(voteStats.yes)} / N {formatCompactNumber(voteStats.no)}
-                                                                        </Typography>
-                                                                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.55)', lineHeight: 1.2 }}>
-                                                                            {formatCompactNumber(voteStats.total)} total
-                                                                        </Typography>
-                                                                    </Box>
                                                                 </Box>
                                                         </TableCell>
                                                     }

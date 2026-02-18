@@ -26,7 +26,7 @@ import {
     ValueAxis,
     Legend
   } from '@devexpress/dx-react-chart-material-ui';
-import { Stack, Animation } from '@devexpress/dx-react-chart';
+import { Stack, Animation, Palette } from '@devexpress/dx-react-chart';
 //import { withStyles } from '@mui/styles';
 
 import React, { useCallback } from 'react';
@@ -446,20 +446,63 @@ export function GovernanceStatsView(props: any) {
                 //setGovernanceProposals(gap);
                 //setGovernanceProposals(filteredGap);
 
-                const proposalsPerMonth = gap.reduce((acc, p) => {
-                    const votingAt = p.account?.votingAt;
-                    if (!votingAt) return acc;
+                const proposalsByMonthMap: Record<string, { created: number; completed: number }> = {};
+                for (const proposal of gapFiltered) {
+                    const createdAt = Number(proposal?.account?.draftAt || proposal?.account?.votingAt || 0);
+                    if (!createdAt) continue;
 
-                    const date = new Date(votingAt * 1000);
-                    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    const createdDate = new Date(createdAt * 1000);
+                    const monthKey = `${createdDate.getFullYear()}-${String(createdDate.getMonth() + 1).padStart(2, '0')}`;
+                    if (!proposalsByMonthMap[monthKey]) {
+                        proposalsByMonthMap[monthKey] = { created: 0, completed: 0 };
+                    }
 
-                    acc[key] = (acc[key] || 0) + 1;
-                    return acc;
-                    }, {});
+                    proposalsByMonthMap[monthKey].created += 1;
+                    if (Number(proposal?.account?.state) === 5) {
+                        proposalsByMonthMap[monthKey].completed += 1;
+                    }
+                }
 
-                const tproposalsPerMonthArray = Object.entries(proposalsPerMonth)
-                    .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
-                    .map(([month, count]) => ({ month, count }));
+                const monthlySeries = Object.entries(proposalsByMonthMap)
+                    .sort(([a], [b]) => new Date(`${a}-01`).getTime() - new Date(`${b}-01`).getTime())
+                    .map(([month, stats]) => ({
+                        monthKey: month,
+                        period: moment(`${month}-01`).format('MMM YY'),
+                        created: Number(stats?.created || 0),
+                        completed: Number(stats?.completed || 0),
+                    }));
+
+                const maxChartPoints = 18;
+                let tproposalsPerMonthArray = monthlySeries;
+
+                if (monthlySeries.length > maxChartPoints) {
+                    const bucketSize = Math.ceil(monthlySeries.length / maxChartPoints);
+                    const bucketedSeries: any[] = [];
+
+                    for (let i = 0; i < monthlySeries.length; i += bucketSize) {
+                        const bucket = monthlySeries.slice(i, i + bucketSize);
+                        if (!bucket.length) continue;
+
+                        const first = bucket[0];
+                        const last = bucket[bucket.length - 1];
+                        const created = bucket.reduce((sum, row) => sum + Number(row.created || 0), 0);
+                        const completed = bucket.reduce((sum, row) => sum + Number(row.completed || 0), 0);
+
+                        const label =
+                            bucket.length === 1
+                                ? first.period
+                                : `${moment(`${first.monthKey}-01`).format('MMM')} - ${moment(`${last.monthKey}-01`).format('MMM YY')}`;
+
+                        bucketedSeries.push({
+                            monthKey: first.monthKey,
+                            period: label,
+                            created,
+                            completed,
+                        });
+                    }
+
+                    tproposalsPerMonthArray = bucketedSeries;
+                }
 
                 setProposalsPerMonthArray(tproposalsPerMonthArray);
                 setLoadingMessage("Getting Participation...");
@@ -1019,15 +1062,27 @@ export function GovernanceStatsView(props: any) {
                         {proposalsPerMonthArray?.length > 0 && (
                             <Card sx={{ my: 4 }}>
                                 <CardContent>
-                                    <Paper sx={{ overflowX: 'auto' }}>
-                                        <Chart data={proposalsPerMonthArray}>
-                                        <ArgumentAxis/>
-                                        <ValueAxis />
-
-                                        <BarSeries valueField="count" argumentField="month" name="Proposals" />
-                                        <Animation />
-                                        <Title text="Monthly Proposal Count" />
-                                        </Chart>
+                                    <Paper
+                                        sx={{
+                                            overflowX: 'auto',
+                                            p: 1,
+                                            borderRadius: 2,
+                                            background: 'linear-gradient(160deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))',
+                                            border: '1px solid rgba(255,255,255,0.08)',
+                                        }}
+                                    >
+                                        <Box sx={{ minWidth: Math.max(640, proposalsPerMonthArray.length * 58) }}>
+                                            <Chart data={proposalsPerMonthArray}>
+                                                <Palette scheme={['#4DA3FF', '#DDE8F7']} />
+                                                <ArgumentAxis />
+                                                <ValueAxis />
+                                                <BarSeries valueField="created" argumentField="period" name="Created" />
+                                                <BarSeries valueField="completed" argumentField="period" name="Completed" />
+                                                <Animation />
+                                                <Legend />
+                                                <Title text="Proposals Created vs Completed (Successful)" />
+                                            </Chart>
+                                        </Box>
                                     </Paper>
                                 </CardContent>
                             </Card>
