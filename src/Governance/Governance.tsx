@@ -324,6 +324,7 @@ function RenderGovernanceTable(props:any) {
     const governanceToken = props.governanceToken;
     const proposals = props.proposals;
     const allProposals = props?.allProposals;
+    const allGovernances = props?.allGovernances;
     const nftBasedGovernance = props.nftBasedGovernance;
     const token = props.token;
     const { publicKey } = useWallet();
@@ -513,6 +514,62 @@ function RenderGovernanceTable(props:any) {
         if (state === 0) return '#ffb74d';
         return 'rgba(255,255,255,0.2)';
     };
+
+    const governanceByPubkey = React.useMemo(() => {
+        const map = new Map<string, any>();
+        if (!Array.isArray(allGovernances)) return map;
+        for (const governance of allGovernances) {
+            const pk = normalizePkString(governance?.pubkey);
+            if (pk && !map.has(pk)) map.set(pk, governance);
+        }
+        return map;
+    }, [allGovernances]);
+
+    const toNumberSafe = React.useCallback((value: any): number => {
+        if (value === null || value === undefined) return 0;
+        if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (!trimmed) return 0;
+            if (trimmed.startsWith('0x') || trimmed.startsWith('0X')) {
+                const parsedHex = Number.parseInt(trimmed, 16);
+                return Number.isFinite(parsedHex) ? parsedHex : 0;
+            }
+            const parsed = Number(trimmed);
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }, []);
+
+    const getProposalEndMeta = React.useCallback((proposal: any): { label: 'Ending' | 'Ended'; ts: number } | null => {
+        const state = Number(proposal?.account?.state);
+        if (state === 0) return null;
+
+        const votingCompletedAt = toNumberSafe(proposal?.account?.votingCompletedAt);
+        if (votingCompletedAt > 0) {
+            return { label: 'Ended', ts: votingCompletedAt };
+        }
+
+        const votingAt = toNumberSafe(proposal?.account?.votingAt);
+        const proposalMaxVotingTime = toNumberSafe(proposal?.account?.maxVotingTime);
+        const governanceAddress = normalizePkString(proposal?.account?.governance);
+        const governanceBaseVotingTime = governanceAddress
+            ? toNumberSafe(governanceByPubkey.get(governanceAddress)?.account?.config?.baseVotingTime)
+            : 0;
+        const resolvedVotingTime = proposalMaxVotingTime > 0 ? proposalMaxVotingTime : governanceBaseVotingTime;
+
+        if (votingAt > 0 && resolvedVotingTime > 0) {
+            return { label: state === 2 ? 'Ending' : 'Ended', ts: votingAt + resolvedVotingTime };
+        }
+
+        const signingOffAt = toNumberSafe(proposal?.account?.signingOffAt);
+        if (signingOffAt > 0 && resolvedVotingTime > 0) {
+            return { label: state === 2 ? 'Ending' : 'Ended', ts: signingOffAt + resolvedVotingTime };
+        }
+
+        return null;
+    }, [toNumberSafe, governanceByPubkey]);
 
     const getFilterButtonSx = (filterKey: string) => {
         const selected = statusFilter === filterKey;
@@ -1012,6 +1069,7 @@ function RenderGovernanceTable(props:any) {
                                     const uniqueVoteStats = proposalPk ? proposalUniqueVoterCounts[proposalPk] : undefined;
                                     const uniqueVoteLoading = proposalPk ? !!proposalUniqueVoterLoading[proposalPk] : false;
                                     const proposalAuthorMeta = getProposalAuthorMeta(item);
+                                    const proposalEndMeta = getProposalEndMeta(item);
                                     const vetoedByAuthor = proposalAuthorMeta?.author
                                         ? (authorVetoCounts.get(proposalAuthorMeta.author) || 0)
                                         : 0;
@@ -1100,7 +1158,20 @@ function RenderGovernanceTable(props:any) {
                                                         <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`}>
                                                             {`${item.account?.draftAt ? (moment.unix(Number((item.account?.draftAt))).format("MMM D, YYYY, h:mm a")) : `-`}`}
                                                         </Typography>
-
+                                                        {(item?.account?.state !== 0 && proposalEndMeta?.ts) && (
+                                                            <Typography
+                                                                variant="caption"
+                                                                sx={{
+                                                                    display: 'block',
+                                                                    mt: 0.35,
+                                                                    color: proposalEndMeta.label === 'Ended'
+                                                                        ? 'rgba(255,255,255,0.66)'
+                                                                        : 'rgba(132, 190, 255, 0.92)',
+                                                                }}
+                                                            >
+                                                                {`${proposalEndMeta.label}: ${moment.unix(proposalEndMeta.ts).format("MMM D, YYYY, h:mm a")}`}
+                                                            </Typography>
+                                                        )}
                                                     </TableCell>
 
                                                     {/*item?.account?.voteType?.type === 1 ?
@@ -2581,6 +2652,7 @@ export function GovernanceCachedView(props: any) {
                                     endTimer={endTimer} 
                                     cachedGovernance={cachedGovernance} 
                                     memberMap={memberMap} 
+                                    allGovernances={allGovernances}
                                     governanceType={governanceType} 
                                     governingTokenDecimals={governingTokenDecimals} 
                                     governingTokenMint={governingTokenMint} 

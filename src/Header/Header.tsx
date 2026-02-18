@@ -15,23 +15,19 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import '@khmyznikov/pwa-install';
 
 import { 
-    PROXY,
-    HELIUS_API,
-    GGAPI_STORAGE_POOL,
-    GGAPI_STORAGE_URI
-} from '../utils/grapeTools/constants';
-
-import { 
     APP_LOGO,
     APP_ICON,
+    GGAPI_STORAGE_POOL,
     getPreferredRpc,
     setPreferredRpc,
     RPC_OPTIONS,
 } from '../utils/grapeTools/constants';
 
 import {
-    fetchGovernanceLookupFile,
-} from '../Governance/CachedStorageHelpers'; 
+    buildDirectoryFromGraphQL,
+} from '../Governance/api/queries';
+
+import { fetchGovernanceLookupFile } from '../Governance/CachedStorageHelpers';
 
 import {
     WalletDialogProvider,
@@ -110,6 +106,34 @@ import { useTranslation } from 'react-i18next';
 
 export interface State extends SnackbarOrigin {
     open: boolean;
+}
+
+type GovernanceAutocompleteOption = {
+    label: string;
+    value: string;
+    totalProposals: number;
+    totalProposalsVoting: number;
+};
+
+function governanceKey(value: any): string {
+    return value?.toBase58?.() || (typeof value === 'string' ? value : String(value || ''));
+}
+
+function normalizeName(value: any): string {
+    return String(value || '').trim();
+}
+
+function hasNamedGovernance(governanceName: string, governanceAddress?: string): boolean {
+    const name = normalizeName(governanceName);
+    if (!name) return false;
+    if (name.toLowerCase() === 'governance') return false;
+
+    if (governanceAddress) {
+        const fallbackLabel = `Governance ${governanceAddress.slice(0, 6)}...`;
+        if (name === fallbackLabel) return false;
+    }
+
+    return true;
 }
 
 declare global {
@@ -254,7 +278,7 @@ export function Header(props: any) {
     const [tokenParam, setTokenParam] = React.useState(getParam('token'));
     const [providers, setProviders] = React.useState(['Sollet', 'Sollet Extension', 'Phantom','Solflare']);
     const [open_wallet, setOpenWallet] = React.useState(false);
-    const [governanceAutocomplete, setGovernanceAutocomplete] = React.useState(null);
+    const [governanceAutocomplete, setGovernanceAutocomplete] = React.useState<GovernanceAutocompleteOption[] | null>(null);
     const [governanceAddress, setGovernanceAddress] = React.useState(null);
     const location = useLocation();
     const currPath = location.pathname;
@@ -403,31 +427,91 @@ const rowSX = { display: "flex", alignItems: "center", gap: 1 };
         navigate({pathname: "/"+fetchType+"/"+governanceAddress,},{ replace: true });
     }
 
-    const getGovernanceLookupFile = async () => {
-        const fglf = await fetchGovernanceLookupFile(GGAPI_STORAGE_POOL);
-        
-        if (fglf && fglf.length > 0){
-            //const sorted = fglf.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
-            const sorted = fglf.sort((a:any, b:any) => (a?.totalVaultValue < b?.totalVaultValue && b?.totalVaultValue > 1) ? 1 : -1); 
-            
-            const lookupAutocomplete = new Array();
-            for (var item of sorted){
-                lookupAutocomplete.push({
-                    label: item.governanceName,
-                    value: item.governanceAddress,
-                    totalProposals: item.totalProposals,
-                    totalProposalsVoting: item.totalProposalsVoting,
+    const getGovernanceAutocompleteFromGraphQL = async () => {
+        try {
+            const [graphQLDirectoryResult, cachedLookupRaw] = await Promise.all([
+                buildDirectoryFromGraphQL({ includeMembers: false, proposalScanLimit: 0 }),
+                fetchGovernanceLookupFile(GGAPI_STORAGE_POOL).catch(() => null),
+            ]);
+
+            const directory = Array.isArray(graphQLDirectoryResult?.directory)
+                ? graphQLDirectoryResult.directory
+                : [];
+            const cachedLookup = Array.isArray(cachedLookupRaw) ? cachedLookupRaw : [];
+            const gqlByGovernance = new Map<string, any>();
+            for (const item of directory) {
+                const key = governanceKey(item?.governanceAddress);
+                if (key) gqlByGovernance.set(key, item);
+            }
+
+            const dedupedAutocomplete = new Map<string, GovernanceAutocompleteOption>();
+            for (const cachedItem of cachedLookup) {
+                const governanceAddress = governanceKey(cachedItem?.governanceAddress);
+                if (!governanceAddress || dedupedAutocomplete.has(governanceAddress)) continue;
+
+                const governanceNameCandidates = [
+                    cachedItem?.governanceName,
+                    cachedItem?.name,
+                    cachedItem?.realmName,
+                    cachedItem?.governance?.account?.name,
+                ];
+                let governanceName = '';
+                for (const candidate of governanceNameCandidates) {
+                    const normalized = normalizeName(candidate);
+                    if (normalized) {
+                        governanceName = normalized;
+                        break;
+                    }
+                }
+
+                if (!hasNamedGovernance(governanceName, governanceAddress)) continue;
+
+                const gqlEntry = gqlByGovernance.get(governanceAddress);
+                const totalProposals = Number(gqlEntry?.totalProposals || cachedItem?.totalProposals || 0);
+                const totalProposalsVoting = Number(gqlEntry?.totalProposalsVoting || cachedItem?.totalProposalsVoting || 0);
+
+                dedupedAutocomplete.set(governanceAddress, {
+                    label: normalizeName(governanceName),
+                    value: governanceAddress,
+                    totalProposals,
+                    totalProposalsVoting,
                 });
             }
-            setGovernanceAutocomplete(lookupAutocomplete);
+
+            if (dedupedAutocomplete.size === 0) {
+                for (const [governanceAddress, gqlEntry] of gqlByGovernance.entries()) {
+                    dedupedAutocomplete.set(governanceAddress, {
+                        label: `Governance ${governanceAddress.slice(0, 6)}...`,
+                        value: governanceAddress,
+                        totalProposals: Number(gqlEntry?.totalProposals || 0),
+                        totalProposalsVoting: Number(gqlEntry?.totalProposalsVoting || 0),
+                    });
+                }
+            }
+
+            const lookupAutocomplete = Array.from(dedupedAutocomplete.values()).sort((a, b) => {
+                if (b.totalProposalsVoting !== a.totalProposalsVoting) {
+                    return b.totalProposalsVoting - a.totalProposalsVoting;
+                }
+                if (b.totalProposals !== a.totalProposals) {
+                    return b.totalProposals - a.totalProposals;
+                }
+                return (a.label || '').localeCompare(b.label || '');
+            });
+
+            if (lookupAutocomplete.length > 0) {
+                setGovernanceAutocomplete(lookupAutocomplete);
+            } else {
+                setGovernanceAutocomplete(null);
+            }
+        } catch (error) {
+            console.warn('Failed to load governance autocomplete from GraphQL', error);
+            setGovernanceAutocomplete(null);
         }
     }
 
-    React.useEffect(() => { 
-        if (!governanceAutocomplete){
-            getGovernanceLookupFile();
-        }
-        
+    React.useEffect(() => {
+        void getGovernanceAutocompleteFromGraphQL();
     }, []);
 
     React.useEffect(() => {
