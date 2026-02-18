@@ -514,6 +514,26 @@ function RenderGovernanceTable(props:any) {
         return 'rgba(255,255,255,0.2)';
     };
 
+    const getFilterButtonSx = (filterKey: string) => {
+        const selected = statusFilter === filterKey;
+        return {
+            borderRadius: '11px',
+            textTransform: 'none',
+            minHeight: 27,
+            px: 1.1,
+            py: 0.15,
+            fontSize: '0.72rem',
+            lineHeight: 1.1,
+            color: selected ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.68)',
+            borderColor: selected ? 'rgba(132, 190, 255, 0.5)' : 'rgba(255,255,255,0.17)',
+            backgroundColor: selected ? 'rgba(77, 163, 255, 0.18)' : 'rgba(255,255,255,0.02)',
+            '&:hover': {
+                borderColor: selected ? 'rgba(132, 190, 255, 0.62)' : 'rgba(255,255,255,0.24)',
+                backgroundColor: selected ? 'rgba(77, 163, 255, 0.24)' : 'rgba(255,255,255,0.06)',
+            },
+        };
+    };
+
     const filteredProposals = React.useMemo(() => {
         if (!Array.isArray(proposals)) return [];
         let scoped = proposals;
@@ -845,15 +865,15 @@ function RenderGovernanceTable(props:any) {
             <>
                 <Box
                     sx={{
-                        mb: 1.5,
-                        p: 1.2,
-                        borderRadius: '16px',
-                        background: 'linear-gradient(135deg, rgba(80,120,255,0.12) 0%, rgba(39,190,154,0.08) 100%)',
-                        border: '1px solid rgba(255,255,255,0.08)',
+                        mb: 1.1,
+                        p: 0.95,
+                        borderRadius: '14px',
+                        background: 'linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.018))',
+                        border: '1px solid rgba(255,255,255,0.06)',
                     }}
                 >
-                    <Box sx={{ display: 'flex', alignItems: 'flex-end', mb: 1 }}>
-                        <SearchIcon sx={{ color: 'rgba(255,255,255,0.35)', mr: 1, my: 0.5 }} />
+                    <Box sx={{ display: 'flex', alignItems: 'flex-end', mb: 0.75 }}>
+                        <SearchIcon sx={{ color: 'rgba(255,255,255,0.28)', mr: 0.8, my: 0.5 }} />
                         <TextField 
                             id="input-with-sx" 
                             fullWidth 
@@ -861,70 +881,88 @@ function RenderGovernanceTable(props:any) {
                             label="Search Proposals" 
                             value={filteredGovernance}
                             variant='standard'
+                            sx={{
+                                '& .MuiInputBase-root': {
+                                    fontSize: '0.9rem',
+                                },
+                                '& .MuiInput-root:before': {
+                                    borderBottomColor: 'rgba(255,255,255,0.2)',
+                                },
+                                '& .MuiInput-root:hover:not(.Mui-disabled):before': {
+                                    borderBottomColor: 'rgba(255,255,255,0.32)',
+                                },
+                                '& .MuiInput-root:after': {
+                                    borderBottomColor: 'rgba(132, 190, 255, 0.75)',
+                                },
+                                '& .MuiInputLabel-root': {
+                                    color: 'rgba(255,255,255,0.62)',
+                                    fontSize: '0.86rem',
+                                },
+                            }}
                             onChange={(e) => setFilteredGovernance(e.target.value)} />
                     </Box>
 
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.8, mb: 0.8 }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.65, mb: 0.7 }}>
                         <Button
                             size="small"
                             color="inherit"
-                            variant={statusFilter === 'all' ? 'contained' : 'outlined'}
+                            variant="outlined"
                             onClick={() => setStatusFilter('all')}
-                            sx={{ borderRadius: '12px', textTransform: 'none' }}
+                            sx={getFilterButtonSx('all')}
                         >
                             All ({proposalCounters.all})
                         </Button>
                         <Button
                             size="small"
                             color="inherit"
-                            variant={statusFilter === 'voting' ? 'contained' : 'outlined'}
+                            variant="outlined"
                             onClick={() => setStatusFilter('voting')}
-                            sx={{ borderRadius: '12px', textTransform: 'none' }}
+                            sx={getFilterButtonSx('voting')}
                         >
                             Live ({proposalCounters.voting})
                         </Button>
                         <Button
                             size="small"
                             color="inherit"
-                            variant={statusFilter === 'draft' ? 'contained' : 'outlined'}
+                            variant="outlined"
                             onClick={() => setStatusFilter('draft')}
-                            sx={{ borderRadius: '12px', textTransform: 'none' }}
+                            sx={getFilterButtonSx('draft')}
                         >
                             Draft ({proposalCounters.draft})
                         </Button>
                         <Button
                             size="small"
                             color="inherit"
-                            variant={statusFilter === 'passed' ? 'contained' : 'outlined'}
+                            variant="outlined"
                             onClick={() => setStatusFilter('passed')}
-                            sx={{ borderRadius: '12px', textTransform: 'none' }}
+                            sx={getFilterButtonSx('passed')}
                         >
                             Passed ({proposalCounters.passed})
                         </Button>
                         <Button
                             size="small"
                             color="inherit"
-                            variant={statusFilter === 'defeated' ? 'contained' : 'outlined'}
+                            variant="outlined"
                             onClick={() => setStatusFilter('defeated')}
-                            sx={{ borderRadius: '12px', textTransform: 'none' }}
+                            sx={getFilterButtonSx('defeated')}
                         >
                             Defeated ({proposalCounters.defeated})
                         </Button>
                         <Button
                             size="small"
                             color="inherit"
-                            variant={statusFilter === 'polls' ? 'contained' : 'outlined'}
+                            variant="outlined"
                             onClick={() => setStatusFilter('polls')}
-                            sx={{ borderRadius: '12px', textTransform: 'none' }}
+                            sx={getFilterButtonSx('polls')}
                         >
                             Polls ({proposalCounters.polls})
                         </Button>
                         <Button
                             size="small"
                             color="inherit"
-                            variant={statusFilter === 'instructions' ? 'contained' : 'outlined'}
+                            variant="outlined"
                             onClick={() => setStatusFilter('instructions')}
-                            sx={{ borderRadius: '12px', textTransform: 'none' }}
+                            sx={getFilterButtonSx('instructions')}
                         >
                             With Instructions ({proposalCounters.withInstructions})
                         </Button>
