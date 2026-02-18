@@ -45,7 +45,12 @@ import GovernanceDirectoryCardView from './GovernanceDirectoryCardView';
 import CreateSplGovernanceDaoButton from './CreateNewDAO/CreateSplGovernanceDaoButton';
 
 import { initGrapeGovernanceDirectory } from './api/gspl_queries';
-import { buildDirectoryFromGraphQL } from './api/queries';
+import {
+  buildDirectoryFromGraphQL,
+  getAllGovernancesFromAllPrograms,
+  getRealmsIndexed,
+  govOwners,
+} from './api/queries';
 import {
   fetchGovernanceLookupFile,
   fetchGovernanceMasterMembersFile,
@@ -58,6 +63,8 @@ interface Props {
   window?: () => Window;
   children?: React.ReactElement;
 }
+
+const DEFAULT_GOVERNANCE_PROGRAM_NAME = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
 type GovernanceLookupItem = {
   governanceAddress: string;
@@ -179,7 +186,9 @@ export function GovernanceDirectoryView(props: Props) {
       gqlDirectory: any[],
       votingProposalsByGovernance: Record<string, any[]>,
       cachedLookup: any[],
-      gsplEntries: any[]
+      gsplEntries: any[],
+      indexedRealms: any[],
+      indexedGovernances: any[]
     ) => {
       const gsplByName = new Map<string, any>();
       for (const gsplEntry of gsplEntries || []) {
@@ -199,6 +208,61 @@ export function GovernanceDirectoryView(props: Props) {
       const getHexTimestamp = (value: any): number => {
         const parsed = Number(`0x${String(value || '0').replace(/^0x/i, '')}`);
         return Number.isFinite(parsed) ? parsed : 0;
+      };
+
+      const governanceKeysByRealm = new Map<string, Set<string>>();
+      for (const governanceItem of indexedGovernances || []) {
+        const governancePubkey = governanceKey(governanceItem?.pubkey);
+        const governanceRealm = governanceKey(governanceItem?.account?.realm || governanceItem?.realm);
+        if (!governancePubkey || !governanceRealm) continue;
+        if (!governanceKeysByRealm.has(governanceRealm)) {
+          governanceKeysByRealm.set(governanceRealm, new Set());
+        }
+        governanceKeysByRealm.get(governanceRealm)?.add(governancePubkey);
+      }
+
+      const aggregateGovernanceStats = (governanceKeys: string[]) => {
+        let totalProposalsFromGraphQL = 0;
+        let latestProposalTimestampFromGraphQL = 0;
+        let totalVotingFromGraphQL = 0;
+        const votingProposalAccumulator: any[] = [];
+
+        for (const governancePk of governanceKeys) {
+          const gqlItem = gqlByGovernance.get(governancePk);
+          if (gqlItem) {
+            totalProposalsFromGraphQL += toNumeric(gqlItem?.totalProposals, 0);
+            totalVotingFromGraphQL += toNumeric(gqlItem?.totalProposalsVoting, 0);
+            latestProposalTimestampFromGraphQL = Math.max(
+              latestProposalTimestampFromGraphQL,
+              getHexTimestamp(gqlItem?.lastProposalDate)
+            );
+          }
+
+          const votingProposals = Array.isArray(votingProposalsByGovernance?.[governancePk])
+            ? votingProposalsByGovernance[governancePk]
+            : [];
+          if (votingProposals.length > 0) {
+            votingProposalAccumulator.push(...votingProposals);
+          }
+        }
+
+        const dedupedVotingProposals: any[] = [];
+        const seenProposalPubkeys = new Set<string>();
+        for (const proposal of votingProposalAccumulator) {
+          const proposalKey = String(proposal?.pubkey || '');
+          if (!proposalKey || seenProposalPubkeys.has(proposalKey)) continue;
+          seenProposalPubkeys.add(proposalKey);
+          dedupedVotingProposals.push(proposal);
+        }
+
+        dedupedVotingProposals.sort((a, b) => toNumeric(b?.votingAt, 0) - toNumeric(a?.votingAt, 0));
+
+        return {
+          totalProposalsFromGraphQL,
+          latestProposalTimestampFromGraphQL,
+          totalVotingFromGraphQL,
+          dedupedVotingProposals,
+        };
       };
 
       const getRealmGovernanceContext = (
@@ -262,6 +326,14 @@ export function GovernanceDirectoryView(props: Props) {
       const consumedGovernanceKeys = new Set<string>();
       const governanceToRealm = new Map<string, string>();
 
+      for (const governanceItem of indexedGovernances || []) {
+        const governancePubkey = governanceKey(governanceItem?.pubkey);
+        const governanceRealm = governanceKey(governanceItem?.account?.realm || governanceItem?.realm);
+        if (governancePubkey && governanceRealm) {
+          governanceToRealm.set(governancePubkey, governanceRealm);
+        }
+      }
+
       for (const cachedItem of cachedLookup || []) {
         const governanceAddress = governanceKey(cachedItem?.governanceAddress);
         if (!governanceAddress) continue;
@@ -309,45 +381,17 @@ export function GovernanceDirectoryView(props: Props) {
           }
         }
 
-        let totalProposalsFromGraphQL = 0;
-        let latestProposalTimestampFromGraphQL = 0;
-        let totalVotingFromGraphQL = 0;
-        const votingProposalAccumulator: any[] = [];
-
+        const {
+          totalProposalsFromGraphQL,
+          latestProposalTimestampFromGraphQL,
+          totalVotingFromGraphQL,
+          dedupedVotingProposals,
+        } = aggregateGovernanceStats(realmGovernanceKeys);
         for (const realmGovernanceKey of realmGovernanceKeys) {
-          const gqlItem = gqlByGovernance.get(realmGovernanceKey);
-          if (gqlItem) {
+          if (gqlByGovernance.has(realmGovernanceKey) || (votingProposalsByGovernance?.[realmGovernanceKey]?.length || 0) > 0) {
             consumedGovernanceKeys.add(realmGovernanceKey);
-            totalProposalsFromGraphQL += toNumeric(gqlItem?.totalProposals, 0);
-            totalVotingFromGraphQL += toNumeric(gqlItem?.totalProposalsVoting, 0);
-            latestProposalTimestampFromGraphQL = Math.max(
-              latestProposalTimestampFromGraphQL,
-              getHexTimestamp(gqlItem?.lastProposalDate)
-            );
-          }
-
-          const votingProposals = Array.isArray(votingProposalsByGovernance?.[realmGovernanceKey])
-            ? votingProposalsByGovernance[realmGovernanceKey]
-            : [];
-          if (votingProposals.length > 0) {
-            consumedGovernanceKeys.add(realmGovernanceKey);
-            votingProposalAccumulator.push(...votingProposals);
           }
         }
-
-        const dedupedVotingProposals: any[] = [];
-        const seenProposalPubkeys = new Set<string>();
-        for (const proposal of votingProposalAccumulator) {
-          const proposalKey = String(proposal?.pubkey || '');
-          if (!proposalKey) continue;
-          if (seenProposalPubkeys.has(proposalKey)) continue;
-          seenProposalPubkeys.add(proposalKey);
-          dedupedVotingProposals.push(proposal);
-        }
-
-        dedupedVotingProposals.sort(
-          (a, b) => toNumeric(b?.votingAt, 0) - toNumeric(a?.votingAt, 0)
-        );
 
         const cachedLastProposalTimestamp = getHexTimestamp(cachedItem?.lastProposalDate);
         const mergedLastProposalTimestamp = Math.max(
@@ -393,6 +437,62 @@ export function GovernanceDirectoryView(props: Props) {
               ? mergedLastProposalTimestamp.toString(16)
               : '0',
         });
+      }
+
+      const existingRealmOrGovernanceKeys = new Set(
+        mergedItems.map((item) => governanceKey(item?.governanceAddress)).filter(Boolean)
+      );
+
+      for (const realmItem of indexedRealms || []) {
+        const realmAddress = governanceKey(realmItem?.pubkey || realmItem?.account?.realm);
+        if (!realmAddress || existingRealmOrGovernanceKeys.has(realmAddress)) continue;
+
+        const realmName = normalizeName(realmItem?.account?.name);
+        const gsplMatch = realmName ? gsplByName.get(realmName.toLowerCase()) : null;
+        const governanceName =
+          realmName ||
+          normalizeName(gsplMatch?.name) ||
+          `Realm ${realmAddress.slice(0, 6)}...`;
+
+        const realmGovernanceKeys = Array.from(governanceKeysByRealm.get(realmAddress) || []);
+        const {
+          totalProposalsFromGraphQL,
+          latestProposalTimestampFromGraphQL,
+          totalVotingFromGraphQL,
+          dedupedVotingProposals,
+        } = aggregateGovernanceStats(realmGovernanceKeys);
+
+        for (const realmGovernanceKey of realmGovernanceKeys) {
+          if (gqlByGovernance.has(realmGovernanceKey) || (votingProposalsByGovernance?.[realmGovernanceKey]?.length || 0) > 0) {
+            consumedGovernanceKeys.add(realmGovernanceKey);
+          }
+        }
+
+        mergedItems.push({
+          governanceAddress: realmAddress,
+          governanceName,
+          communityMint: governanceKey(realmItem?.account?.communityMint) || undefined,
+          councilMint: governanceKey(realmItem?.account?.config?.councilMint) || undefined,
+          votingProposals: dedupedVotingProposals,
+          totalMembers: 0,
+          totalProposals: totalProposalsFromGraphQL,
+          totalCommunityProposals: totalProposalsFromGraphQL,
+          totalCouncilProposals: 0,
+          totalProposalsVoting:
+            dedupedVotingProposals.length > 0
+              ? dedupedVotingProposals.length
+              : totalVotingFromGraphQL,
+          totalVaultValue: 0,
+          totalVaultStableCoinValue: 0,
+          totalVaultSol: 0,
+          totalVaultSolValue: 0,
+          lastProposalDate:
+            latestProposalTimestampFromGraphQL > 0
+              ? latestProposalTimestampFromGraphQL.toString(16)
+              : '0',
+          gspl: gsplMatch || undefined,
+        } as GovernanceLookupItem);
+        existingRealmOrGovernanceKeys.add(realmAddress);
       }
 
       for (const [governanceAddress, gqlItem] of gqlByGovernance.entries()) {
@@ -442,13 +542,41 @@ export function GovernanceDirectoryView(props: Props) {
       setError(null);
 
       try {
-        const [gsplEntriesRaw, graphQLResult, cachedLookupRaw, masterMembersRaw] = await Promise.all([
+        const realmProgramNames = Array.from(
+          new Set([
+            DEFAULT_GOVERNANCE_PROGRAM_NAME,
+            ...(govOwners || []).map((owner) => owner?.name).filter((name): name is string => !!name),
+          ])
+        );
+
+        const fetchAllIndexedRealms = async () => {
+          const realmBatches = await Promise.all(
+            realmProgramNames.map((programName) => getRealmsIndexed(programName).catch(() => []))
+          );
+
+          const flattened: any[] = [];
+          for (const batch of realmBatches) {
+            if (!Array.isArray(batch)) continue;
+            for (const entry of batch) {
+              if (Array.isArray(entry)) {
+                flattened.push(...entry);
+              } else if (entry) {
+                flattened.push(entry);
+              }
+            }
+          }
+          return flattened;
+        };
+
+        const [gsplEntriesRaw, graphQLResult, cachedLookupRaw, masterMembersRaw, indexedRealmsRaw, indexedGovernancesRaw] = await Promise.all([
           initGrapeGovernanceDirectory().catch(() => []),
           buildDirectoryFromGraphQL({ includeMembers: false, proposalScanLimit: 0 }).catch(
             () => ({ directory: [], votingProposalsByGovernance: {} })
           ),
           fetchGovernanceLookupFile(GGAPI_STORAGE_POOL).catch(() => null),
           fetchGovernanceMasterMembersFile(GGAPI_STORAGE_POOL).catch(() => null),
+          fetchAllIndexedRealms().catch(() => []),
+          getAllGovernancesFromAllPrograms().catch(() => []),
         ]);
 
         const gsplEntries = Array.isArray(gsplEntriesRaw) ? gsplEntriesRaw : [];
@@ -456,12 +584,16 @@ export function GovernanceDirectoryView(props: Props) {
         const votingProposalsByGovernance = graphQLResult?.votingProposalsByGovernance || {};
         const cachedLookup = Array.isArray(cachedLookupRaw) ? cachedLookupRaw : [];
         const masterMembers = Array.isArray(masterMembersRaw) ? masterMembersRaw : [];
+        const indexedRealms = Array.isArray(indexedRealmsRaw) ? indexedRealmsRaw : [];
+        const indexedGovernances = Array.isArray(indexedGovernancesRaw) ? indexedGovernancesRaw : [];
 
         const mergedDirectory = buildMergedDirectory(
           gqlDirectory,
           votingProposalsByGovernance,
           cachedLookup,
-          gsplEntries
+          gsplEntries,
+          indexedRealms,
+          indexedGovernances
         );
 
         setGovernanceLookup(mergedDirectory);

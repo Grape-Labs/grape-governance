@@ -25,6 +25,9 @@ import {
 
 import {
     buildDirectoryFromGraphQL,
+    getAllGovernancesFromAllPrograms,
+    getRealmsIndexed,
+    govOwners,
 } from '../Governance/api/queries';
 
 import { fetchGovernanceLookupFile } from '../Governance/CachedStorageHelpers';
@@ -114,6 +117,8 @@ type GovernanceAutocompleteOption = {
     totalProposals: number;
     totalProposalsVoting: number;
 };
+
+const DEFAULT_GOVERNANCE_PROGRAM_NAME = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
 function governanceKey(value: any): string {
     return value?.toBase58?.() || (typeof value === 'string' ? value : String(value || ''));
@@ -429,24 +434,102 @@ const rowSX = { display: "flex", alignItems: "center", gap: 1 };
 
     const getGovernanceAutocompleteFromGraphQL = async () => {
         try {
-            const [graphQLDirectoryResult, cachedLookupRaw] = await Promise.all([
+            const realmProgramNames = Array.from(
+                new Set([
+                    DEFAULT_GOVERNANCE_PROGRAM_NAME,
+                    ...(govOwners || []).map((owner) => owner?.name).filter((name): name is string => !!name),
+                ])
+            );
+
+            const fetchAllIndexedRealms = async () => {
+                const realmBatches = await Promise.all(
+                    realmProgramNames.map((programName) => getRealmsIndexed(programName).catch(() => []))
+                );
+
+                const flattened: any[] = [];
+                for (const batch of realmBatches) {
+                    if (!Array.isArray(batch)) continue;
+                    for (const entry of batch) {
+                        if (Array.isArray(entry)) flattened.push(...entry);
+                        else if (entry) flattened.push(entry);
+                    }
+                }
+                return flattened;
+            };
+
+            const [graphQLDirectoryResult, cachedLookupRaw, indexedRealmsRaw, indexedGovernancesRaw] = await Promise.all([
                 buildDirectoryFromGraphQL({ includeMembers: false, proposalScanLimit: 0 }),
                 fetchGovernanceLookupFile(GGAPI_STORAGE_POOL).catch(() => null),
+                fetchAllIndexedRealms().catch(() => []),
+                getAllGovernancesFromAllPrograms().catch(() => []),
             ]);
 
             const directory = Array.isArray(graphQLDirectoryResult?.directory)
                 ? graphQLDirectoryResult.directory
                 : [];
             const cachedLookup = Array.isArray(cachedLookupRaw) ? cachedLookupRaw : [];
+            const indexedRealms = Array.isArray(indexedRealmsRaw) ? indexedRealmsRaw : [];
+            const indexedGovernances = Array.isArray(indexedGovernancesRaw) ? indexedGovernancesRaw : [];
             const gqlByGovernance = new Map<string, any>();
             for (const item of directory) {
                 const key = governanceKey(item?.governanceAddress);
                 if (key) gqlByGovernance.set(key, item);
             }
 
+            const governanceKeysByRealm = new Map<string, Set<string>>();
+            for (const governanceItem of indexedGovernances) {
+                const governancePubkey = governanceKey(governanceItem?.pubkey);
+                const governanceRealm = governanceKey(governanceItem?.account?.realm || governanceItem?.realm);
+                if (!governancePubkey || !governanceRealm) continue;
+                if (!governanceKeysByRealm.has(governanceRealm)) {
+                    governanceKeysByRealm.set(governanceRealm, new Set());
+                }
+                governanceKeysByRealm.get(governanceRealm)?.add(governancePubkey);
+            }
+
+            const aggregateGovernanceStats = (governanceKeys: string[]) => {
+                let totalProposals = 0;
+                let totalProposalsVoting = 0;
+                for (const governancePk of governanceKeys) {
+                    const gqlItem = gqlByGovernance.get(governancePk);
+                    if (!gqlItem) continue;
+                    totalProposals += Number(gqlItem?.totalProposals || 0);
+                    totalProposalsVoting += Number(gqlItem?.totalProposalsVoting || 0);
+                }
+                return { totalProposals, totalProposalsVoting };
+            };
+
+            const getRealmGovernanceKeys = (cachedItem: any): string[] => {
+                const keys = new Set<string>();
+                const realmCandidates = [
+                    governanceKey(cachedItem?.realm),
+                    governanceKey(cachedItem?.governance?.account?.realm),
+                    governanceKey(cachedItem?.governance?.realm),
+                    governanceKey(cachedItem?.governanceAddress),
+                ].filter(Boolean);
+                const expectedRealmKey = realmCandidates.length > 0 ? realmCandidates[0] : null;
+
+                const addIfValid = (entry: any) => {
+                    const entryKey = governanceKey(entry?.pubkey);
+                    const entryRealm = governanceKey(entry?.account?.realm || entry?.realm);
+                    if (!entryKey) return;
+                    if (expectedRealmKey && entryRealm && entryRealm !== expectedRealmKey) return;
+                    keys.add(entryKey);
+                };
+
+                const keyLists = [cachedItem?.governances, cachedItem?.governanceRules];
+                for (const list of keyLists) {
+                    if (!Array.isArray(list)) continue;
+                    for (const entry of list) addIfValid(entry);
+                }
+
+                addIfValid(cachedItem?.governance);
+                return Array.from(keys);
+            };
+
             const dedupedAutocomplete = new Map<string, GovernanceAutocompleteOption>();
             for (const cachedItem of cachedLookup) {
-                const governanceAddress = governanceKey(cachedItem?.governanceAddress);
+                const governanceAddress = governanceKey(cachedItem?.governanceAddress || cachedItem?.realm);
                 if (!governanceAddress || dedupedAutocomplete.has(governanceAddress)) continue;
 
                 const governanceNameCandidates = [
@@ -464,17 +547,41 @@ const rowSX = { display: "flex", alignItems: "center", gap: 1 };
                     }
                 }
 
-                if (!hasNamedGovernance(governanceName, governanceAddress)) continue;
+                const cachedRealmGovernanceKeys = getRealmGovernanceKeys(cachedItem);
+                const indexedRealmGovernanceKeys = Array.from(governanceKeysByRealm.get(governanceAddress) || []);
+                const governanceKeys = Array.from(new Set([...cachedRealmGovernanceKeys, ...indexedRealmGovernanceKeys]));
+                const aggregated = aggregateGovernanceStats(governanceKeys);
 
                 const gqlEntry = gqlByGovernance.get(governanceAddress);
-                const totalProposals = Number(gqlEntry?.totalProposals || cachedItem?.totalProposals || 0);
-                const totalProposalsVoting = Number(gqlEntry?.totalProposalsVoting || cachedItem?.totalProposalsVoting || 0);
+                const totalProposals = Number(
+                    aggregated.totalProposals || gqlEntry?.totalProposals || cachedItem?.totalProposals || 0
+                );
+                const totalProposalsVoting = Number(
+                    aggregated.totalProposalsVoting || gqlEntry?.totalProposalsVoting || cachedItem?.totalProposalsVoting || 0
+                );
 
                 dedupedAutocomplete.set(governanceAddress, {
-                    label: normalizeName(governanceName),
+                    label: hasNamedGovernance(governanceName, governanceAddress)
+                        ? normalizeName(governanceName)
+                        : `Realm ${governanceAddress.slice(0, 6)}...`,
                     value: governanceAddress,
                     totalProposals,
                     totalProposalsVoting,
+                });
+            }
+
+            for (const realmItem of indexedRealms) {
+                const realmAddress = governanceKey(realmItem?.pubkey || realmItem?.account?.realm);
+                if (!realmAddress || dedupedAutocomplete.has(realmAddress)) continue;
+                const realmName = normalizeName(realmItem?.account?.name);
+                const indexedRealmGovernanceKeys = Array.from(governanceKeysByRealm.get(realmAddress) || []);
+                const aggregated = aggregateGovernanceStats(indexedRealmGovernanceKeys);
+
+                dedupedAutocomplete.set(realmAddress, {
+                    label: realmName || `Realm ${realmAddress.slice(0, 6)}...`,
+                    value: realmAddress,
+                    totalProposals: Number(aggregated.totalProposals || 0),
+                    totalProposalsVoting: Number(aggregated.totalProposalsVoting || 0),
                 });
             }
 
