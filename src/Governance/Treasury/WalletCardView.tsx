@@ -2019,6 +2019,20 @@ const StakeAccountsView = () => {
                 setSimulationFailed(false);
                 setSimulationSummary(null);
                 setShowSimulationDetails(false);
+                const persistedSkipSimulation =
+                    typeof window !== 'undefined' &&
+                    window.localStorage?.getItem('grape_skip_simulation') === 'true';
+                const skipSimulation = !!instructions?.skipSimulation || persistedSkipSimulation;
+
+                if (skipSimulation) {
+                    setSimulationSummary({
+                        status: 'skipped_by_user',
+                        message:
+                            'Simulation skipped by user setting. Attempting to create proposal and insert instructions directly.',
+                    });
+                    setLoaderSuccess(true);
+                    return;
+                }
                 const isDraft = instructions?.draft ? instructions.draft : true;
                 const rawProposalIxs = Array.isArray(instructions?.ix) ? instructions.ix : instructions?.ix ? [instructions.ix] : [];
                 const proposalIxs = normalizeInstructionArray(instructions?.ix);
