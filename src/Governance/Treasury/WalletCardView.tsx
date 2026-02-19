@@ -20,6 +20,10 @@ import QRCode from "react-qr-code";
 import Jazzicon, { jsNumberForAddress } from 'react-jazzicon';
 import { useWallet } from '@solana/wallet-adapter-react';
 
+const ASSOCIATED_TOKEN_PROGRAM_ID_PK = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
+const SYSVAR_INSTRUCTIONS_PUBKEY_STR = 'Sysvar1nstructions1111111111111111111111111';
+const JUPITER_JITO_DONT_FRONT_PUBKEY_STR = 'jitodontfront1111111111111111JustUseJupiter';
+
 import { createProposalInstructionsLegacy } from '../Proposals/createProposalInstructionsLegacy';
 import { createProposalInstructionsV0 } from '../Proposals/createProposalInstructionsV0';
 
@@ -546,18 +550,28 @@ export default function WalletCardView(props:any) {
         // Accounts created in the same instruction set are expected to be missing before execution.
         const createdAccountPubkeys = new Set<string>();
         ixs.forEach((ix) => {
-            if (!ix.programId.equals(SystemProgram.programId)) return;
-            try {
-                const instructionType = SystemInstruction.decodeInstructionType(ix as any);
-                if (instructionType === 'Create') {
-                    const decoded = SystemInstruction.decodeCreateAccount(ix as any);
-                    createdAccountPubkeys.add(decoded.newAccountPubkey.toBase58());
-                } else if (instructionType === 'CreateWithSeed') {
-                    const decoded = SystemInstruction.decodeCreateWithSeed(ix as any);
-                    createdAccountPubkeys.add(decoded.newAccountPubkey.toBase58());
+            if (ix.programId.equals(SystemProgram.programId)) {
+                try {
+                    const instructionType = SystemInstruction.decodeInstructionType(ix as any);
+                    if (instructionType === 'Create') {
+                        const decoded = SystemInstruction.decodeCreateAccount(ix as any);
+                        createdAccountPubkeys.add(decoded.newAccountPubkey.toBase58());
+                    } else if (instructionType === 'CreateWithSeed') {
+                        const decoded = SystemInstruction.decodeCreateWithSeed(ix as any);
+                        createdAccountPubkeys.add(decoded.newAccountPubkey.toBase58());
+                    }
+                } catch {
+                    // Ignore decode errors and let the regular missing-account audit run.
                 }
-            } catch {
-                // Ignore decode errors and let the regular missing-account audit run.
+                return;
+            }
+
+            // ATA create instructions create the token account at keys[1].
+            if (ix.programId.equals(ASSOCIATED_TOKEN_PROGRAM_ID_PK) && ix.keys.length > 1) {
+                const ataAccount = ix.keys[1]?.pubkey;
+                if (ataAccount) {
+                    createdAccountPubkeys.add(ataAccount.toBase58());
+                }
             }
         });
 
@@ -575,6 +589,12 @@ export default function WalletCardView(props:any) {
                 if (!accountInfos[i]) {
                     const pubkey = pubkeys[i].toBase58();
                     if (createdAccountPubkeys.has(pubkey)) {
+                        continue;
+                    }
+                    if (
+                        pubkey === SYSVAR_INSTRUCTIONS_PUBKEY_STR ||
+                        pubkey === JUPITER_JITO_DONT_FRONT_PUBKEY_STR
+                    ) {
                         continue;
                     }
                     missingAccounts.push({

@@ -125,6 +125,47 @@ const getMintDecimals = async (mint: string): Promise<number> => {
   return typeof decimals === 'number' ? decimals : 9;
 };
 
+const shortMintLabel = (mint: string): string => {
+  if (!mint) return '';
+  if (mint === SOL_MINT) return 'SOL';
+  if (mint.length <= 10) return mint;
+  return `${mint.slice(0, 4)}...${mint.slice(-4)}`;
+};
+
+const toBigIntAmount = (value: unknown): bigint | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'bigint') return value;
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value) || !Number.isInteger(value) || value < 0) return null;
+    return BigInt(value);
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    if (!/^\d+$/.test(normalized)) return null;
+    try {
+      return BigInt(normalized);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
+const formatUiAmount = (rawAmount: unknown, decimals: number): string | null => {
+  const value = toBigIntAmount(rawAmount);
+  if (value === null) return null;
+  if (decimals <= 0) return value.toString();
+
+  const scale = 10n ** BigInt(decimals);
+  const whole = value / scale;
+  const fracRaw = (value % scale).toString().padStart(decimals, '0');
+  const fracTrimmed = fracRaw.replace(/0+$/, '');
+  const fracDisplay = fracTrimmed.slice(0, 9).replace(/0+$/, '');
+
+  if (!fracDisplay.length) return whole.toString();
+  return `${whole.toString()}.${fracDisplay}`;
+};
+
 export default function SanctumSwapView(props: any) {
   const realm = props?.realm;
   const rulesWallet = props?.rulesWallet;
@@ -220,9 +261,9 @@ export default function SanctumSwapView(props: any) {
     }
 
     const params: Record<string, string | number> = {
-      input: inMint,
-      outputLstMint: outMint,
-      amount: amountRaw,
+      inp: inMint,
+      out: outMint,
+      amt: `${amountRaw}`,
       mode,
     };
 
@@ -233,7 +274,6 @@ export default function SanctumSwapView(props: any) {
         throw new Error('Missing or invalid governance native wallet');
       }
       params.signer = governanceNativeWallet;
-      params.priorityFee = priorityFeeAuto ? 'auto' : Math.max(0, parseInt(priorityFeeLamports || '0', 10) || 0);
     }
 
     const { data } = await axios.get(SANCTUM_ORDER_URL, {
@@ -299,6 +339,8 @@ export default function SanctumSwapView(props: any) {
           `Sanctum swap ${context.inMint.slice(0, 4)}... -> ${context.outMint.slice(0, 4)}... (${mode}).`,
         ix: ixs,
         aix: [],
+        allowMissingAccountsPreflight: true,
+        useVersionedTransactions: true,
         nativeWallet: governanceNativeWallet,
         governingMint,
         draft: isDraft,
@@ -313,6 +355,17 @@ export default function SanctumSwapView(props: any) {
       console.error('Sanctum swap proposal build failed', error);
     }
   };
+
+  const inAmountRaw = quoteResponse?.inpAmt ?? quoteResponse?.inAmount;
+  const outAmountRaw = quoteResponse?.outAmt ?? quoteResponse?.outAmount;
+  const inAmountUi =
+    quoteContext && inAmountRaw !== null && inAmountRaw !== undefined
+      ? formatUiAmount(inAmountRaw, quoteContext.inDecimals)
+      : null;
+  const outAmountUi =
+    quoteContext && outAmountRaw !== null && outAmountRaw !== undefined
+      ? formatUiAmount(outAmountRaw, quoteContext.outDecimals)
+      : null;
 
   return (
     <>
@@ -450,13 +503,19 @@ export default function SanctumSwapView(props: any) {
                       />
                     </Box>
                     <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.7)', mt: 0.5 }}>
-                      In Amount: {quoteResponse?.inAmount ?? 'N/A'}
+                      In Amount:{' '}
+                      {inAmountUi
+                        ? `${inAmountUi} ${shortMintLabel(quoteContext?.inMint || '')}`
+                        : inAmountRaw ?? 'N/A'}
                     </Typography>
                     <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.7)' }}>
-                      Out Amount: {quoteResponse?.outAmount ?? 'N/A'}
+                      Out Amount:{' '}
+                      {outAmountUi
+                        ? `${outAmountUi} ${shortMintLabel(quoteContext?.outMint || '')}`
+                        : outAmountRaw ?? 'N/A'}
                     </Typography>
                     <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.7)' }}>
-                      Fee Amount: {quoteResponse?.feeAmount ?? 'N/A'} | Fee %: {quoteResponse?.feePct ?? 'N/A'}
+                      Fee Amount: {quoteResponse?.feeAmount ?? quoteResponse?.feeAmt ?? 'N/A'} | Fee %: {quoteResponse?.feePct ?? 'N/A'}
                     </Typography>
                     <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)' }}>
                       Tx payload is only returned when signer is included.
