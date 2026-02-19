@@ -2037,6 +2037,13 @@ const StakeAccountsView = () => {
                 const hasRawOptionInstructionSets = Array.isArray(instructions?.proposalOptionInstructionSets)
                     && instructions.proposalOptionInstructionSets.length > 0;
                 const allowMissingAccountsPreflight = !!instructions?.allowMissingAccountsPreflight;
+                const isPollPayload =
+                    Array.isArray(instructions?.proposalOptions) &&
+                    instructions.proposalOptions.length > 0;
+                const useVersionedTransactions =
+                    typeof instructions?.useVersionedTransactions === "boolean"
+                        ? instructions.useVersionedTransactions
+                        : isPollPayload;
 
                 if (rawProposalIxs.length > 0 && proposalIxs.length === 0) {
                     setLoadingText("Invalid Instructions");
@@ -2199,12 +2206,105 @@ const StakeAccountsView = () => {
                     }
                 }
 
-                const simulationResult = await RPC_CONNECTION.simulateTransaction(transaction);
-                const simValue = simulationResult?.value || {};
-                const simErr = simValue?.err || simulationResult?.err || null;
-                const simLogs = Array.isArray(simValue?.logs) ? simValue.logs : [];
-                const unitsConsumed = simValue?.unitsConsumed ?? null;
-                const returnData = simValue?.returnData || null;
+                let simErr: any = null;
+                let simLogs: string[] = [];
+                let unitsConsumed: number | null = null;
+                let returnData: any = null;
+                let simulationChunked = false;
+                let simulationSizeBypass = false;
+
+                try {
+                    const simulationResult = await RPC_CONNECTION.simulateTransaction(transaction);
+                    const simValue = simulationResult?.value || {};
+                    simErr = simValue?.err || simulationResult?.err || null;
+                    simLogs = Array.isArray(simValue?.logs) ? simValue.logs : [];
+                    unitsConsumed = simValue?.unitsConsumed ?? null;
+                    returnData = simValue?.returnData || null;
+                } catch (simException: any) {
+                    const errMessage = simException?.message || `${simException}`;
+                    const isTxTooLarge = `${errMessage}`.toLowerCase().includes('transaction too large');
+                    if (!(isTxTooLarge && proposalIxs.length > 0)) {
+                        throw simException;
+                    }
+
+                    simulationChunked = true;
+                    const collectedLogs: string[] = [];
+                    let totalUnits = 0;
+                    let firstChunkErr: any = null;
+                    let chunkTooLargeCount = 0;
+
+                    for (let chunkIdx = 0; chunkIdx < proposalIxs.length; chunkIdx++) {
+                        const chunkTx = new Transaction();
+                        chunkTx.add(proposalIxs[chunkIdx]);
+                        chunkTx.recentBlockhash = (await RPC_CONNECTION.getLatestBlockhash()).blockhash;
+                        chunkTx.feePayer = simulationFeePayerPk;
+
+                        let chunkErr: any = null;
+                        let chunkLogs: string[] = [];
+                        let chunkUnits: number | null = null;
+                        try {
+                            const chunkResult = await RPC_CONNECTION.simulateTransaction(chunkTx);
+                            const chunkValue = chunkResult?.value || {};
+                            chunkErr = chunkValue?.err || chunkResult?.err || null;
+                            chunkLogs = Array.isArray(chunkValue?.logs) ? chunkValue.logs : [];
+                            chunkUnits =
+                                typeof chunkValue?.unitsConsumed === 'number'
+                                    ? chunkValue.unitsConsumed
+                                    : null;
+                        } catch (chunkException: any) {
+                            const chunkMessage = chunkException?.message || `${chunkException}`;
+                            const chunkTooLarge = `${chunkMessage}`.toLowerCase().includes('transaction too large');
+                            if (chunkTooLarge && useVersionedTransactions) {
+                                chunkTooLargeCount += 1;
+                                chunkLogs = [`Chunk ${chunkIdx + 1} skipped: ${chunkMessage}`];
+                                chunkErr = null;
+                            } else {
+                                chunkErr = chunkMessage;
+                                chunkLogs = [`Chunk ${chunkIdx + 1} simulation exception: ${chunkMessage}`];
+                            }
+                        }
+
+                        collectedLogs.push(
+                            `-- chunk ${chunkIdx + 1}/${proposalIxs.length} --`,
+                            ...chunkLogs
+                        );
+
+                        if (typeof chunkUnits === 'number') {
+                            totalUnits += chunkUnits;
+                        }
+
+                        if (chunkErr && !firstChunkErr) {
+                            firstChunkErr = chunkErr;
+                            break;
+                        }
+                    }
+
+                    simErr = firstChunkErr;
+                    simLogs = collectedLogs;
+                    unitsConsumed = totalUnits || null;
+                    returnData = null;
+                    if (!simErr && chunkTooLargeCount > 0 && useVersionedTransactions) {
+                        simulationSizeBypass = true;
+                    }
+                }
+
+                const accountAuditWarningMessage =
+                    accountAudit.missingCount > 0 && allowMissingAccountsPreflight
+                        ? `Account preflight found ${accountAudit.missingCount} missing account(s), but simulation continued because this flow can create accounts at runtime.`
+                        : undefined;
+                const chunkedSimulationMessage = simulationChunked
+                    ? `Simulation executed in ${proposalIxs.length} chunk(s) because the combined transaction exceeds packet size limits.`
+                    : undefined;
+                const simulationBypassMessage = simulationSizeBypass
+                    ? 'One or more instruction chunks exceeded legacy simulation packet size and were skipped for this preflight check.'
+                    : undefined;
+                const combinedSimulationMessage = [
+                    accountAuditWarningMessage,
+                    chunkedSimulationMessage,
+                    simulationBypassMessage,
+                ]
+                    .filter(Boolean)
+                    .join(' ');
                 setSimulationSummary({
                     status: simErr
                         ? 'failed'
@@ -2215,10 +2315,7 @@ const StakeAccountsView = () => {
                     logs: simLogs,
                     unitsConsumed,
                     returnData,
-                    message:
-                        accountAudit.missingCount > 0 && allowMissingAccountsPreflight
-                            ? `Account preflight found ${accountAudit.missingCount} missing account(s), but simulation continued because this flow can create accounts at runtime.`
-                            : undefined,
+                    message: combinedSimulationMessage || undefined,
                     normalizedInstructionCount: proposalIxs.length,
                     simulationFeePayer: simulationFeePayerPk.toBase58(),
                     simulationFeePayerSource: feePayerResolution.source,
@@ -2228,13 +2325,12 @@ const StakeAccountsView = () => {
                 });
                 //console.log("sim results..."+JSON.stringify(simulationResult));
                 if (simErr) {
-                    console.error('Transaction simulation failed:', simulationResult);
+                    console.error('Transaction simulation failed:', simErr);
                     setLoadingText("Simulation Failed");
                     setSimulationFailed(true);
                     setLoaderCreationComplete(true);
                     //return;
                 } else {
-                    console.log('simulationResult: '+JSON.stringify(simulationResult));
                     const computeUnits = unitsConsumed; //simulationResult.value?.transaction?.message.recentBlockhashFeeCalculator.totalFees;
                     //const lamportsPerSol = 1000000000;
                     const sol = computeUnits ? computeUnits / 10 ** 9 : 0;
