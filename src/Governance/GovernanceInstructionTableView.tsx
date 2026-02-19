@@ -540,6 +540,300 @@ export function InstructionTableView(props: any) {
 
     const ixDetails = props.ixDetails;
     const [ixRows, setIxRows] = React.useState(null);
+    const [inspectorTarget, setInspectorTarget] = React.useState<any>(null);
+    const [inspectorTab, setInspectorTab] = React.useState<'parsed' | 'accounts' | 'simulation'>('parsed');
+    const [inspectorIx, setInspectorIx] = React.useState<TransactionInstruction | null>(null);
+    const [inspectorParsed, setInspectorParsed] = React.useState<any>(null);
+    const [inspectorAccountRows, setInspectorAccountRows] = React.useState<any[]>([]);
+    const [inspectorAccountLoading, setInspectorAccountLoading] = React.useState(false);
+    const [inspectorSimulationLoading, setInspectorSimulationLoading] = React.useState(false);
+    const [inspectorSimulation, setInspectorSimulation] = React.useState<any>(null);
+    const [inspectorFeePayer, setInspectorFeePayer] = React.useState<PublicKey | null>(null);
+    const [inspectorFeePayerSource, setInspectorFeePayerSource] = React.useState<string>('none');
+    const [inspectorError, setInspectorError] = React.useState<string | null>(null);
+
+    const toPublicKeySafe = (value: any): PublicKey | null => {
+        try {
+            if (!value) return null;
+            if (value instanceof PublicKey) return value;
+            if (typeof value?.toBase58 === 'function') return new PublicKey(value.toBase58());
+            return new PublicKey(value);
+        } catch {
+            return null;
+        }
+    };
+
+    const toInstructionDataBuffer = (value: any): Buffer => {
+        try {
+            if (value === null || value === undefined) return Buffer.alloc(0);
+            if (Buffer.isBuffer(value)) return value;
+            if (value instanceof Uint8Array) return Buffer.from(value);
+            if (Array.isArray(value)) return Buffer.from(value);
+            if (typeof value === 'string') {
+                const trimmed = value.trim();
+                if (!trimmed) return Buffer.alloc(0);
+                if (/^[0-9a-fA-F]+$/.test(trimmed) && trimmed.length % 2 === 0) {
+                    return Buffer.from(trimmed, 'hex');
+                }
+                return Buffer.from(trimmed, 'base64');
+            }
+            if (Array.isArray(value?.data)) return Buffer.from(value.data);
+            return Buffer.from(value);
+        } catch {
+            return Buffer.alloc(0);
+        }
+    };
+
+    const normalizeInstructionFromAny = (ix: any): TransactionInstruction | null => {
+        if (!ix) return null;
+        if (ix instanceof TransactionInstruction) return ix;
+
+        const programId = toPublicKeySafe(ix?.programId || ix?.program_id || ix?.program);
+        if (!programId) return null;
+
+        const rawKeys = Array.isArray(ix?.keys)
+            ? ix.keys
+            : Array.isArray(ix?.accounts)
+            ? ix.accounts
+            : [];
+
+        const keys = rawKeys
+            .map((k: any) => {
+                const pubkey = toPublicKeySafe(k?.pubkey ?? k?.publicKey ?? k);
+                if (!pubkey) return null;
+                return {
+                    pubkey,
+                    isSigner: !!(k?.isSigner ?? k?.is_signer),
+                    isWritable: !!(k?.isWritable ?? k?.is_writable),
+                };
+            })
+            .filter(Boolean) as Array<{ pubkey: PublicKey; isSigner: boolean; isWritable: boolean }>;
+
+        try {
+            return new TransactionInstruction({
+                programId,
+                keys,
+                data: toInstructionDataBuffer(ix?.data),
+            });
+        } catch {
+            return null;
+        }
+    };
+
+    const extractRawInstruction = (instructionSet: any): any => {
+        if (!instructionSet) return null;
+        if (typeof instructionSet?.account?.getAllInstructions === 'function') {
+            const all = instructionSet.account.getAllInstructions();
+            if (Array.isArray(all) && all.length > 0) return all[0];
+        }
+        if (Array.isArray(instructionSet?.account?.instructions) && instructionSet.account.instructions.length > 0) {
+            return instructionSet.account.instructions[0];
+        }
+        if (instructionSet?.account?.instruction) return instructionSet.account.instruction;
+        return null;
+    };
+
+    const resolveSimulationFeePayer = async (ix: TransactionInstruction) => {
+        const candidates: Array<{ pubkey: PublicKey; source: string }> = [];
+        const seen = new Set<string>();
+        const addCandidate = (pk: PublicKey | null, source: string) => {
+            if (!pk) return;
+            const key = pk.toBase58();
+            if (seen.has(key)) return;
+            seen.add(key);
+            candidates.push({ pubkey: pk, source });
+        };
+
+        addCandidate(publicKey ? new PublicKey(publicKey) : null, 'connected_wallet');
+        addCandidate(toPublicKeySafe(governanceNativeWallet), 'native_wallet');
+        addCandidate(toPublicKeySafe(governanceRulesWallet), 'rules_wallet');
+        ix.keys.forEach((k) => {
+            if (k.isSigner || k.isWritable) addCandidate(k.pubkey, 'instruction_account');
+        });
+
+        if (!candidates.length) {
+            return { feePayer: null as PublicKey | null, source: 'none', checkedCount: 0 };
+        }
+
+        const capped = candidates.slice(0, 48);
+        try {
+            const infos: any[] = [];
+            for (let i = 0; i < capped.length; i += 100) {
+                const chunk = capped.slice(i, i + 100).map((c) => c.pubkey);
+                const chunkInfos = await RPC_CONNECTION.getMultipleAccountsInfo(chunk, 'confirmed');
+                infos.push(...chunkInfos);
+            }
+            const idx = infos.findIndex((item) => !!item);
+            if (idx >= 0) {
+                return {
+                    feePayer: capped[idx].pubkey,
+                    source: capped[idx].source,
+                    checkedCount: capped.length,
+                };
+            }
+        } catch (e) {
+            console.log('resolveSimulationFeePayer inspector lookup error', e);
+        }
+
+        return {
+            feePayer: capped[0].pubkey,
+            source: `${capped[0].source}_missing`,
+            checkedCount: capped.length,
+        };
+    };
+
+    const auditInstructionAccounts = async (ix: TransactionInstruction, feePayer: PublicKey | null) => {
+        const roleMap = new Map<string, Set<string>>();
+        const addRole = (pk: PublicKey, role: string) => {
+            const key = pk.toBase58();
+            const roles = roleMap.get(key) || new Set<string>();
+            roles.add(role);
+            roleMap.set(key, roles);
+        };
+
+        if (feePayer) addRole(feePayer, 'fee_payer');
+        addRole(ix.programId, 'program_id');
+        ix.keys.forEach((k, idx) => {
+            addRole(k.pubkey, `${k.isSigner ? 'signer' : 'account'}:${k.isWritable ? 'w' : 'r'}#${idx}`);
+        });
+
+        const pubkeys = Array.from(roleMap.keys()).map((k) => new PublicKey(k));
+        try {
+            const infos: any[] = [];
+            for (let i = 0; i < pubkeys.length; i += 100) {
+                const chunk = pubkeys.slice(i, i + 100);
+                const chunkInfos = await RPC_CONNECTION.getMultipleAccountsInfo(chunk, 'confirmed');
+                infos.push(...chunkInfos);
+            }
+
+            const rows = pubkeys.map((pk, idx) => {
+                const info = infos[idx];
+                return {
+                    pubkey: pk.toBase58(),
+                    roles: Array.from(roleMap.get(pk.toBase58()) || []),
+                    exists: !!info,
+                    owner: info?.owner?.toBase58?.() || '-',
+                    lamports: info?.lamports ?? null,
+                    executable: !!info?.executable,
+                    dataLen: info?.data ? info.data.length : 0,
+                };
+            });
+
+            return {
+                checkedCount: rows.length,
+                missingCount: rows.filter((r) => !r.exists).length,
+                rows,
+            };
+        } catch (e: any) {
+            return {
+                checkedCount: pubkeys.length,
+                missingCount: 0,
+                rows: [],
+                error: e?.message || `${e}`,
+            };
+        }
+    };
+
+    const handleInspectIx = async (instructionSet: any) => {
+        try {
+            setInspectorError(null);
+            setInspectorSimulation(null);
+            setInspectorTab('parsed');
+            setInspectorTarget(instructionSet);
+
+            const rawIx = extractRawInstruction(instructionSet);
+            const normalizedIx = normalizeInstructionFromAny(rawIx);
+            if (!normalizedIx) {
+                setInspectorIx(null);
+                setInspectorParsed(null);
+                setInspectorAccountRows([]);
+                setInspectorError('Could not parse instruction');
+                return;
+            }
+
+            setInspectorIx(normalizedIx);
+            setInspectorParsed({
+                programId: normalizedIx.programId.toBase58(),
+                keyCount: normalizedIx.keys.length,
+                dataBase64: normalizedIx.data.toString('base64'),
+                dataHex: normalizedIx.data.toString('hex'),
+                info: rawIx?.info || instructionSet?.account?.instructions?.[0]?.info || null,
+                decodedIx: rawIx?.decodedIx || instructionSet?.account?.instructions?.[0]?.decodedIx || null,
+            });
+
+            setInspectorAccountLoading(true);
+            const feePayerResolution = await resolveSimulationFeePayer(normalizedIx);
+            setInspectorFeePayer(feePayerResolution.feePayer);
+            setInspectorFeePayerSource(feePayerResolution.source);
+            const accountAudit = await auditInstructionAccounts(normalizedIx, feePayerResolution.feePayer);
+            setInspectorAccountRows(accountAudit.rows || []);
+            if (accountAudit?.error) {
+                setInspectorError(`Account audit failed: ${accountAudit.error}`);
+            }
+        } catch (e: any) {
+            setInspectorError(e?.message || `${e}`);
+        } finally {
+            setInspectorAccountLoading(false);
+        }
+    };
+
+    const runInspectorSimulation = async () => {
+        if (!inspectorIx) return;
+        try {
+            setInspectorSimulationLoading(true);
+            setInspectorError(null);
+            const feePayerResolution = await resolveSimulationFeePayer(inspectorIx);
+            const simFeePayer = feePayerResolution.feePayer;
+            if (!simFeePayer) {
+                setInspectorSimulation({
+                    status: 'missing_fee_payer',
+                    message: 'No valid fee payer resolved for simulation',
+                    simulationFeePayerSource: feePayerResolution.source,
+                });
+                return;
+            }
+
+            const latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('confirmed');
+            const tx = new Transaction({
+                feePayer: simFeePayer,
+                blockhash: latestBlockhash.blockhash,
+                lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+            });
+            tx.add(
+                ComputeBudgetProgram.setComputeUnitLimit({ units: 350000 }),
+                ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 }),
+                inspectorIx
+            );
+
+            const accountAudit = await auditInstructionAccounts(inspectorIx, simFeePayer);
+            const simulationResult = await RPC_CONNECTION.simulateTransaction(tx);
+            const simValue = simulationResult?.value || {};
+            const simErr = simValue?.err || (simulationResult as any)?.err || null;
+            const logs = Array.isArray(simValue?.logs) ? simValue.logs : [];
+            const unitsConsumed = simValue?.unitsConsumed ?? null;
+            setInspectorSimulation({
+                status: simErr ? 'failed' : 'ok',
+                error: simErr,
+                logs,
+                unitsConsumed,
+                message: simErr ? 'Simulation failed' : 'Simulation successful',
+                simulationFeePayer: simFeePayer.toBase58(),
+                simulationFeePayerSource: feePayerResolution.source,
+                accountAudit: {
+                    checkedCount: accountAudit.checkedCount || 0,
+                    missingCount: accountAudit.missingCount || 0,
+                },
+            });
+            if (accountAudit?.rows) setInspectorAccountRows(accountAudit.rows);
+        } catch (e: any) {
+            setInspectorSimulation({
+                status: 'failed',
+                error: e?.message || `${e}`,
+            });
+        } finally {
+            setInspectorSimulationLoading(false);
+        }
+    };
 
     const handleRedirectIx = async(instructionSets:any[]) => {
         const tx = [];
@@ -741,7 +1035,7 @@ export function InstructionTableView(props: any) {
                         <IconButton 
                             sx={{ml:1}}
                             color='success'
-                            onClick={e => handleRedirectIx([params.value])}
+                            onClick={e => handleInspectIx(params.value)}
                         >
                             <SearchIcon fontSize='small' />
                         </IconButton>
@@ -890,6 +1184,195 @@ export function InstructionTableView(props: any) {
                     </div>
                 </div>
             }
+            {inspectorTarget && (
+                <Box
+                    sx={{
+                        mt: 2,
+                        p: 1.5,
+                        borderRadius: '14px',
+                        border: '1px solid rgba(255,255,255,0.18)',
+                        backgroundColor: 'rgba(255,255,255,0.02)',
+                    }}
+                >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                            Instruction Inspector
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
+                                size="small"
+                                variant={inspectorTab === 'parsed' ? 'contained' : 'outlined'}
+                                sx={{ borderRadius: '10px', textTransform: 'none' }}
+                                onClick={() => setInspectorTab('parsed')}
+                            >
+                                Parsed
+                            </Button>
+                            <Button
+                                size="small"
+                                variant={inspectorTab === 'accounts' ? 'contained' : 'outlined'}
+                                sx={{ borderRadius: '10px', textTransform: 'none' }}
+                                onClick={() => setInspectorTab('accounts')}
+                            >
+                                Accounts
+                            </Button>
+                            <Button
+                                size="small"
+                                variant={inspectorTab === 'simulation' ? 'contained' : 'outlined'}
+                                sx={{ borderRadius: '10px', textTransform: 'none' }}
+                                onClick={() => setInspectorTab('simulation')}
+                            >
+                                Simulation
+                            </Button>
+                            <IconButton
+                                size="small"
+                                onClick={() => {
+                                    setInspectorTarget(null);
+                                    setInspectorIx(null);
+                                    setInspectorParsed(null);
+                                    setInspectorAccountRows([]);
+                                    setInspectorSimulation(null);
+                                    setInspectorError(null);
+                                }}
+                            >
+                                <CloseIcon fontSize="small" />
+                            </IconButton>
+                        </Box>
+                    </Box>
+
+                    {inspectorError && (
+                        <Typography variant="caption" sx={{ color: '#ffb4b4', display: 'block', mb: 1 }}>
+                            {inspectorError}
+                        </Typography>
+                    )}
+
+                    {inspectorTab === 'parsed' && (
+                        <Box sx={{ display: 'grid', gap: 1 }}>
+                            <Typography variant="caption">
+                                Program: {inspectorParsed?.programId || '-'}
+                            </Typography>
+                            <Typography variant="caption">
+                                Accounts: {inspectorParsed?.keyCount ?? 0}
+                            </Typography>
+                            <Typography variant="caption">
+                                Fee payer source: {inspectorFeePayerSource}
+                            </Typography>
+                            <TextField
+                                size="small"
+                                label="Instruction Info"
+                                value={inspectorParsed?.info ? JSON.stringify(inspectorParsed.info, null, 2) : '-'}
+                                multiline
+                                minRows={4}
+                                maxRows={10}
+                                fullWidth
+                                InputProps={{ readOnly: true }}
+                            />
+                            <TextField
+                                size="small"
+                                label="Decoded"
+                                value={inspectorParsed?.decodedIx ? JSON.stringify(inspectorParsed.decodedIx, null, 2) : '-'}
+                                multiline
+                                minRows={4}
+                                maxRows={10}
+                                fullWidth
+                                InputProps={{ readOnly: true }}
+                            />
+                            <TextField
+                                size="small"
+                                label="Data (base64)"
+                                value={inspectorParsed?.dataBase64 || '-'}
+                                multiline
+                                minRows={2}
+                                maxRows={5}
+                                fullWidth
+                                InputProps={{ readOnly: true }}
+                            />
+                        </Box>
+                    )}
+
+                    {inspectorTab === 'accounts' && (
+                        <Box>
+                            {inspectorAccountLoading ? (
+                                <LinearProgress sx={{ borderRadius: '8px' }} />
+                            ) : (
+                                <Box sx={{ maxHeight: 300, overflow: 'auto', display: 'grid', gap: 0.8 }}>
+                                    {inspectorAccountRows.map((row, idx) => (
+                                        <Box
+                                            key={`${row.pubkey}-${idx}`}
+                                            sx={{
+                                                p: 1,
+                                                borderRadius: '10px',
+                                                border: '1px solid rgba(255,255,255,0.1)',
+                                                backgroundColor: row.exists ? 'rgba(255,255,255,0.02)' : 'rgba(244,67,54,0.1)',
+                                            }}
+                                        >
+                                            <Typography variant="caption" sx={{ display: 'block', fontWeight: 700 }}>
+                                                {row.pubkey}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ display: 'block', opacity: 0.85 }}>
+                                                Roles: {(row.roles || []).join(', ') || '-'}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ display: 'block', opacity: 0.8 }}>
+                                                Exists: {row.exists ? 'yes' : 'no'} | Owner: {row.owner || '-'}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ display: 'block', opacity: 0.8 }}>
+                                                Lamports: {row.lamports !== null && row.lamports !== undefined ? Number(row.lamports).toLocaleString() : '-'}
+                                                {' '}| Executable: {row.executable ? 'yes' : 'no'} | Data: {row.dataLen ?? 0}
+                                            </Typography>
+                                        </Box>
+                                    ))}
+                                    {inspectorAccountRows.length === 0 && (
+                                        <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                                            No account metadata available.
+                                        </Typography>
+                                    )}
+                                </Box>
+                            )}
+                        </Box>
+                    )}
+
+                    {inspectorTab === 'simulation' && (
+                        <Box sx={{ display: 'grid', gap: 1 }}>
+                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                <Button
+                                    size="small"
+                                    variant="contained"
+                                    sx={{ borderRadius: '10px', textTransform: 'none' }}
+                                    disabled={!inspectorIx || inspectorSimulationLoading}
+                                    onClick={runInspectorSimulation}
+                                >
+                                    {inspectorSimulationLoading ? 'Simulating...' : 'Run Simulation'}
+                                </Button>
+                                <Button
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ borderRadius: '10px', textTransform: 'none' }}
+                                    disabled={!inspectorTarget}
+                                    onClick={() => handleRedirectIx([inspectorTarget])}
+                                >
+                                    Open Explorer Inspector
+                                </Button>
+                            </Box>
+                            {inspectorSimulation && (
+                                <TextField
+                                    size="small"
+                                    label="Simulation Result"
+                                    value={JSON.stringify(inspectorSimulation, null, 2)}
+                                    multiline
+                                    minRows={6}
+                                    maxRows={18}
+                                    fullWidth
+                                    InputProps={{ readOnly: true }}
+                                />
+                            )}
+                            {!inspectorSimulation && (
+                                <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                                    Run simulation to view logs, error, compute units, and account preflight status.
+                                </Typography>
+                            )}
+                        </Box>
+                    )}
+                </Box>
+            )}
         </>
     );
 }
