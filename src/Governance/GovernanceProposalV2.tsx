@@ -336,6 +336,7 @@ export function GovernanceProposalV2View(props: any){
     const [castedYesVotes, setCastedYesVotes] = React.useState(null);
     const [excessVotes, setExcessVotes] = React.useState(null);
     const [openInstructions, setOpenInstructions] = React.useState(false);
+    const [openDiscussion, setOpenDiscussion] = React.useState(false);
     const [expandInfo, setExpandInfo] = React.useState(false);
     const [reload, setReload] = React.useState(false);
     const [governanceRules, setGovernanceRules] = React.useState(null);
@@ -513,6 +514,10 @@ export function GovernanceProposalV2View(props: any){
 
     const handleClickOpenInstructions = () => {
         setOpenInstructions(!openInstructions);
+    }
+
+    const handleClickOpenDiscussion = () => {
+        setOpenDiscussion(!openDiscussion);
     }
 
     const handleCopyClick = () => {
@@ -3858,32 +3863,33 @@ export function GovernanceProposalV2View(props: any){
                                     <Grid container>
                                         <Grid item xs={12} key={1}>
                                             
+                                            {thisitem.account.governingTokenMint &&
+                                            <Box sx={{ my: 3, mx: 2 }}>
+                                                <Grid container alignItems="center">
+                                                    <Grid item xs>
+                                                        <Typography gutterBottom variant="subtitle1" component="div">
+                                                            Mint
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid item>
+                                                        <Typography gutterBottom variant="body1" component="div">
+                                                                <ExplorerView
+                                                                    address={thisitem.account.governingTokenMint?.toBase58()} type='address'
+                                                                    shorten={8}
+                                                                    hideTitle={false} style='text' color='white' fontSize='12px'
+                                                                    showTokenMetadata={true}
+                                                                    tokenMap={tokenMap}/>
+                                                        </Typography>
+                                                    </Grid>
+                                                </Grid>
+                                                <Typography color="text.secondary" variant="caption">
+                                                    {propVoteType} used to vote for this proposal
+                                                </Typography>
+                                            </Box>
+                                            }
+
                                             {governingMintInfo &&
                                             <>
-                                                {thisitem.account.governingTokenMint &&
-                                                <Box sx={{ my: 3, mx: 2 }}>
-                                                    <Grid container alignItems="center">
-                                                        <Grid item xs>
-                                                            <Typography gutterBottom variant="subtitle1" component="div">
-                                                                Mint
-                                                            </Typography>
-                                                        </Grid>
-                                                        <Grid item>
-                                                            <Typography gutterBottom variant="body1" component="div">
-                                                                    <ExplorerView
-                                                                        address={thisitem.account.governingTokenMint?.toBase58()} type='address'
-                                                                        shorten={8}
-                                                                        hideTitle={false} style='text' color='white' fontSize='12px'
-                                                                        showTokenMetadata={true}
-                                                                        tokenMap={tokenMap}/>
-                                                            </Typography>
-                                                        </Grid>
-                                                    </Grid>
-                                                    <Typography color="text.secondary" variant="caption">
-                                                        {propVoteType} used to vote for this proposal
-                                                    </Typography>
-                                                </Box>
-                                                }
 
                                                 {(totalQuorum && thisitem.account?.state === 2 && thisitem.account?.options &&  thisitem.account?.options.length === 1 && forVotes) ?
                                                     <Box sx={{ my: 3, mx: 2 }}>
@@ -4497,19 +4503,6 @@ export function GovernanceProposalV2View(props: any){
                                     </Grid>  
                                 </Box>
 
-                                <GovernanceDiscussion 
-                                    governanceAddress={governanceAddress}
-                                    proposalAddress={thisitem?.pubkey}
-                                    governanceRulesWallet={thisitem.account.governance}
-                                    governingTokenMint={thisitem.account.governingTokenMint}
-                                    proposalAuthor={thisitem.account.tokenOwnerRecord}
-                                    proposalInstructions={proposalInstructions}
-                                    payerWallet={publicKey}
-                                    governanceLookup={governanceLookup}
-                                    realm={realm}
-                                    memberMap={memberMap}
-                                    proposalSignatories={proposalSignatories}
-                                />
                             </Grid>
 
 
@@ -4784,6 +4777,57 @@ export function GovernanceProposalV2View(props: any){
                         <Box sx={{ mb: 2, ...panelSx, p: 1.1 }}>
                             <Typography sx={{ ...sectionLabelSx, mb: 0.7 }}>Realtime Feed</Typography>
                             <GovernanceRealtimeInfo governanceAddress={proposalPk} title={'Latest Activity'} tokenMap={tokenMap} />
+                        </Box>
+
+                        <Box sx={{ mb: 2, ...panelSx }}>
+                            <Typography sx={{ ...sectionLabelSx, ml: 1.25, mt: 1.1, mb: 0.9 }}>Discussion</Typography>
+                            <ListItemButton
+                                onClick={handleClickOpenDiscussion}
+                                sx={{
+                                    mx: 1,
+                                    mb: openDiscussion ? 0 : 1,
+                                    background: 'rgba(255,255,255,0.03)',
+                                    borderRadius: '14px',
+                                    borderBottomLeftRadius: openDiscussion ? 0 : '14px',
+                                    borderBottomRightRadius: openDiscussion ? 0 : '14px',
+                                    borderBottom: openDiscussion ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                                    py: 1,
+                                }}
+                            >
+                                <ListItemIcon>
+                                    <SegmentIcon />
+                                </ListItemIcon>
+                                <ListItemText primary="Conversation Thread" />
+                                {openDiscussion ? <ExpandLess /> : <ExpandMoreIcon />}
+                            </ListItemButton>
+                            <Collapse
+                                in={openDiscussion}
+                                timeout="auto"
+                                unmountOnExit
+                                sx={{
+                                    mx: 1,
+                                    mb: 1,
+                                    borderBottomLeftRadius: '14px',
+                                    borderBottomRightRadius: '14px',
+                                    backgroundColor: 'rgba(14,24,40,0.26)',
+                                }}
+                            >
+                                <Box sx={{ p: { xs: 0.75, sm: 1 } }}>
+                                    <GovernanceDiscussion
+                                        governanceAddress={governanceAddress}
+                                        proposalAddress={thisitem?.pubkey}
+                                        governanceRulesWallet={thisitem.account.governance}
+                                        governingTokenMint={thisitem.account.governingTokenMint}
+                                        proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                        proposalInstructions={proposalInstructions}
+                                        payerWallet={publicKey}
+                                        governanceLookup={governanceLookup}
+                                        realm={realm}
+                                        memberMap={memberMap}
+                                        proposalSignatories={proposalSignatories}
+                                    />
+                                </Box>
+                            </Collapse>
                         </Box>
 
                         {solanaVotingResultRows ?
