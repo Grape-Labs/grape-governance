@@ -34,6 +34,7 @@ import CustomIxView from './CustomIxView';
 import StakeValidatorView from './StakeValidatorView';
 import ClaimExtensionView from './ClaimView';
 import TokenManagerView from './TokenManagerView';
+import ProgramAuthorityView from './ProgramAuthorityView';
 import TokenHousekeepingView from './TokenHousekeepingView';
 import DemoExtensionView from './DemoView';
 import GovernanceConfigView from './GovernanceConfigView';
@@ -554,6 +555,17 @@ export default function ExtensionsMenuView(props: any) {
         />
         <TokenManagerView
           realm={realm}
+          handleCloseExtMenu={handleCloseAllMenus}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
+        />
+        <ProgramAuthorityView
+          realm={realm}
+          governanceAddress={props?.governanceAddress || realm?.pubkey?.toBase58?.()}
           handleCloseExtMenu={handleCloseAllMenus}
           rulesWallet={rulesWallet}
           governanceNativeWallet={governanceNativeWallet}
