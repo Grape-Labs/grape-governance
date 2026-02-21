@@ -24,7 +24,6 @@ import {
 
 import {
     buildDirectoryFromGraphQL,
-    getAllGovernancesFromAllPrograms,
     getRealmsIndexed,
     govOwners,
 } from '../Governance/api/queries';
@@ -454,59 +453,32 @@ const rowSX = { display: "flex", alignItems: "center", gap: 1 };
                 return flattened;
             };
 
-            const [graphQLDirectoryResult, indexedRealmsRaw, indexedGovernancesRaw] = await Promise.all([
-                buildDirectoryFromGraphQL({ includeMembers: false, proposalScanLimit: 0 }),
+            const [graphQLDirectoryResult, indexedRealmsRaw] = await Promise.all([
+                buildDirectoryFromGraphQL({ includeMembers: false, proposalScanLimit: 1500 }),
                 fetchAllIndexedRealms().catch(() => []),
-                getAllGovernancesFromAllPrograms().catch(() => []),
             ]);
 
             const directory = Array.isArray(graphQLDirectoryResult?.directory)
                 ? graphQLDirectoryResult.directory
                 : [];
             const indexedRealms = Array.isArray(indexedRealmsRaw) ? indexedRealmsRaw : [];
-            const indexedGovernances = Array.isArray(indexedGovernancesRaw) ? indexedGovernancesRaw : [];
             const gqlByGovernance = new Map<string, any>();
             for (const item of directory) {
                 const key = governanceKey(item?.governanceAddress);
                 if (key) gqlByGovernance.set(key, item);
             }
 
-            const governanceKeysByRealm = new Map<string, Set<string>>();
-            for (const governanceItem of indexedGovernances) {
-                const governancePubkey = governanceKey(governanceItem?.pubkey);
-                const governanceRealm = governanceKey(governanceItem?.account?.realm || governanceItem?.realm);
-                if (!governancePubkey || !governanceRealm) continue;
-                if (!governanceKeysByRealm.has(governanceRealm)) {
-                    governanceKeysByRealm.set(governanceRealm, new Set());
-                }
-                governanceKeysByRealm.get(governanceRealm)?.add(governancePubkey);
-            }
-
-            const aggregateGovernanceStats = (governanceKeys: string[]) => {
-                let totalProposals = 0;
-                let totalProposalsVoting = 0;
-                for (const governancePk of governanceKeys) {
-                    const gqlItem = gqlByGovernance.get(governancePk);
-                    if (!gqlItem) continue;
-                    totalProposals += Number(gqlItem?.totalProposals || 0);
-                    totalProposalsVoting += Number(gqlItem?.totalProposalsVoting || 0);
-                }
-                return { totalProposals, totalProposalsVoting };
-            };
-
             const dedupedAutocomplete = new Map<string, GovernanceAutocompleteOption>();
             for (const realmItem of indexedRealms) {
                 const realmAddress = governanceKey(realmItem?.pubkey || realmItem?.account?.realm);
                 if (!realmAddress || dedupedAutocomplete.has(realmAddress)) continue;
                 const realmName = normalizeName(realmItem?.account?.name);
-                const indexedRealmGovernanceKeys = Array.from(governanceKeysByRealm.get(realmAddress) || []);
-                const aggregated = aggregateGovernanceStats(indexedRealmGovernanceKeys);
 
                 dedupedAutocomplete.set(realmAddress, {
                     label: realmName || `Realm ${realmAddress.slice(0, 6)}...`,
                     value: realmAddress,
-                    totalProposals: Number(aggregated.totalProposals || 0),
-                    totalProposalsVoting: Number(aggregated.totalProposalsVoting || 0),
+                    totalProposals: 0,
+                    totalProposalsVoting: 0,
                 });
             }
 

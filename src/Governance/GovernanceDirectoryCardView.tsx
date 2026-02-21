@@ -14,7 +14,7 @@ import {
   Stack,
   Divider,
 } from "@mui/material";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import HowToVoteIcon from "@mui/icons-material/HowToVote";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -30,7 +30,7 @@ function hashColor(seed: string) {
   return `hsla(${hue}, 85%, 55%, 0.22)`;
 }
 
-function getOgSrc(metadata: any, fallbackName: string) {
+function getOgSrc(metadata: any) {
   const og = metadata?.ogImage;
   if (!og || typeof og !== "string" || og.endsWith("/")) return null;
 
@@ -39,12 +39,13 @@ function getOgSrc(metadata: any, fallbackName: string) {
   return toRealmsV2Image(og.startsWith("http") ? og : `https://realms.today${og}`);
 }
 
-export default function GovernanceDirectoryCardView(props: any) {
+const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardView(props: any) {
   const { item, metadata } = props;
+  const navigate = useNavigate();
 
   const name = metadata?.displayName || item?.governanceName || "Governance";
   const desc = metadata?.shortDescription || "";
-  const ogSrc = getOgSrc(metadata, name);
+  const ogSrc = getOgSrc(metadata);
 
   const votingCount = Number(item?.totalProposalsVoting || 0);
   const votingList: any[] = Array.isArray(item?.votingProposals) ? item.votingProposals : [];
@@ -67,7 +68,9 @@ export default function GovernanceDirectoryCardView(props: any) {
 
   return (
     <Card
+      onClick={() => navigate("/dao/" + item.governanceAddress)}
       sx={{
+        cursor: "pointer",
         borderRadius: "20px",
         minHeight: 240,
         display: "flex",
@@ -146,32 +149,23 @@ export default function GovernanceDirectoryCardView(props: any) {
                 <Tooltip
                   placement="top"
                   title={
-                    <Box sx={{ maxWidth: 420, p: 1 }}>
+                    <Box sx={{ maxWidth: 320, p: 1 }}>
                       <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                         Verified Governance
                       </Typography>
-                      <Typography variant="caption" sx={{ opacity: 0.85 }}>
-                        GSPL metadata (preview)
+                      <Typography variant="caption" sx={{ opacity: 0.82, display: "block", mt: 0.25 }}>
+                        GSPL metadata is available for this DAO.
                       </Typography>
-                      <Box
-                        component="pre"
-                        sx={{
-                          mt: 1,
-                          mb: 0,
-                          p: 1,
-                          borderRadius: 1.5,
-                          maxHeight: 220,
-                          overflow: "auto",
-                          fontSize: "0.68rem",
-                          lineHeight: 1.2,
-                          background: "rgba(0,0,0,0.35)",
-                          border: "1px solid rgba(255,255,255,0.08)",
-                          whiteSpace: "pre-wrap",
-                          wordBreak: "break-word",
-                        }}
-                      >
-                        {JSON.stringify(metadata, null, 2)}
-                      </Box>
+                      {!!metadata?.displayName && (
+                        <Typography variant="caption" sx={{ opacity: 0.88, display: "block", mt: 0.75 }}>
+                          Name: {metadata.displayName}
+                        </Typography>
+                      )}
+                      {!!metadata?.website && (
+                        <Typography variant="caption" sx={{ opacity: 0.88, display: "block", mt: 0.25 }}>
+                          Website: {metadata.website}
+                        </Typography>
+                      )}
                     </Box>
                   }
                 >
@@ -318,4 +312,6 @@ export default function GovernanceDirectoryCardView(props: any) {
       </CardActions>
     </Card>
   );
-}
+}, (prevProps, nextProps) => prevProps.item === nextProps.item && prevProps.metadata === nextProps.metadata);
+
+export default GovernanceDirectoryCardView;
