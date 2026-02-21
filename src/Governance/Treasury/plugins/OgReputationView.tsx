@@ -225,11 +225,46 @@ export default function OgReputationView(props: any) {
   const [decayBps, setDecayBps] = React.useState<string>('0');
   const [user, setUser] = React.useState<string>('');
   const [amount, setAmount] = React.useState<string>('0');
+  const [addPointsBatchCsv, setAddPointsBatchCsv] = React.useState<string>('');
   const [season, setSeason] = React.useState<string>('');
   const [fromUser, setFromUser] = React.useState<string>('');
   const [toUser, setToUser] = React.useState<string>('');
   const [closeSeason, setCloseSeason] = React.useState<string>('');
   const [closeRecipient, setCloseRecipient] = React.useState<string>('');
+
+  const parseBatchAddPointsInput = React.useCallback((value: string) => {
+    const lines = value
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !line.startsWith('#'));
+
+    const totals = new Map<string, bigint>();
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i];
+      const [walletRaw, amountRaw] = line.split(',').map((item) => item.trim());
+      if (!walletRaw) {
+        throw new Error(`Invalid batch row ${i + 1}: missing wallet`);
+      }
+      const walletBase58 = parsePublicKey(walletRaw, `wallet at row ${i + 1}`).toBase58();
+      const parsedAmount =
+        amountRaw === undefined || amountRaw === ''
+          ? 1n
+          : parseU64(amountRaw, `amount at row ${i + 1}`);
+
+      const prev = totals.get(walletBase58) || 0n;
+      const next = prev + parsedAmount;
+      if (next > U64_MAX) {
+        throw new Error(`Total points overflow for wallet ${walletBase58}`);
+      }
+      totals.set(walletBase58, next);
+    }
+
+    return {
+      rowCount: lines.length,
+      walletCount: totals.size,
+      totals,
+    };
+  }, []);
 
   const governanceAuthoritySet = React.useMemo(() => {
     const candidates = new Set<string>();
@@ -496,13 +531,62 @@ export default function OgReputationView(props: any) {
         )
       );
 
-      const sig = await sendTransaction(tx, connection, { signers: [mintKeypair] });
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-      await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed');
+      const latestBlockhash = await connection.getLatestBlockhash('confirmed');
+      tx.recentBlockhash = latestBlockhash.blockhash;
+      tx.feePayer = publicKey;
+
+      const sig = await sendTransaction(tx, connection, {
+        signers: [mintKeypair],
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
+      });
+
+      let confirmed = false;
+      try {
+        const confirmation = await connection.confirmTransaction(
+          {
+            signature: sig,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+          },
+          'confirmed'
+        );
+        if (!confirmation.value.err) {
+          confirmed = true;
+        } else {
+          throw new Error(`Mint transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+        }
+      } catch {
+        const status = await connection.getSignatureStatus(sig, {
+          searchTransactionHistory: true,
+        });
+
+        if (!status?.value?.err) {
+          const confirmationStatus = status?.value?.confirmationStatus;
+          if (confirmationStatus === 'confirmed' || confirmationStatus === 'finalized') {
+            confirmed = true;
+          }
+        }
+
+        if (!confirmed) {
+          const txDetails = await connection.getTransaction(sig, {
+            commitment: 'confirmed',
+          });
+          if (txDetails && !txDetails.meta?.err) {
+            confirmed = true;
+          }
+        }
+
+        if (!confirmed) {
+          throw new Error(
+            'Mint transaction confirmation timed out. Check explorer with signature: ' + sig
+          );
+        }
+      }
 
       const mintAddress = mintKeypair.publicKey.toBase58();
       setRepMint(mintAddress);
-      enqueueSnackbar(`Created REP mint: ${mintAddress}`, { variant: 'success' });
+      enqueueSnackbar(`Created REP mint: ${mintAddress} (${shortenString(sig, 6, 6)})`, { variant: 'success' });
     } catch (e: any) {
       enqueueSnackbar(`Failed to create REP mint: ${e?.message || `${e}`}`, { variant: 'error' });
     } finally {
@@ -510,7 +594,7 @@ export default function OgReputationView(props: any) {
     }
   };
 
-  const buildInstruction = async (): Promise<TransactionInstruction> => {
+  const buildInstruction = async (): Promise<TransactionInstruction[]> => {
     if (!governanceNativeWallet) {
       throw new Error('Missing governance native wallet');
     }
@@ -522,61 +606,84 @@ export default function OgReputationView(props: any) {
       case 'initialize': {
         const repMintPk = parsePublicKey(repMint, 'REP mint');
         const seasonValue = parseU16(initialSeason, 'Initial season');
-        return buildInitializeConfigIx({
+        return [await buildInitializeConfigIx({
           daoId: daoPk,
           repMint: repMintPk,
           initialSeason: seasonValue,
           authority: authorityPk,
           payer: payerPk,
-        });
+        })];
       }
       case 'upsert_metadata': {
         const uri = `${metadataUri || ''}`.trim();
         if (!uri.length) throw new Error('Metadata URI is required');
-        return buildUpsertProjectMetadataIx({
+        return [await buildUpsertProjectMetadataIx({
           daoId: daoPk,
           authority: authorityPk,
           payer: payerPk,
           metadataUri: uri,
-        });
+        })];
       }
       case 'set_authority': {
         const nextAuthority = parsePublicKey(newAuthority, 'new authority');
-        return buildSetAuthorityIx({
+        return [await buildSetAuthorityIx({
           daoId: daoPk,
           authority: authorityPk,
           newAuthority: nextAuthority,
-        });
+        })];
       }
       case 'set_season': {
         const value = parseU16(newSeason, 'New season');
-        return buildSetSeasonIx({
+        return [await buildSetSeasonIx({
           daoId: daoPk,
           authority: authorityPk,
           newSeason: value,
-        });
+        })];
       }
       case 'set_decay': {
         const value = parseU16(decayBps, 'Decay BPS');
         if (value > 10000) throw new Error('Decay BPS must be <= 10000');
-        return buildSetDecayBpsIx({
+        return [await buildSetDecayBpsIx({
           daoId: daoPk,
           authority: authorityPk,
           decayBps: value,
-        });
+        })];
       }
       case 'set_rep_mint': {
         const mintPk = parsePublicKey(repMint, 'REP mint');
-        return buildSetRepMintIx({
+        return [await buildSetRepMintIx({
           daoId: daoPk,
           authority: authorityPk,
           newRepMint: mintPk,
-        });
+        })];
       }
       case 'add_points': {
+        const seasonValue = parseOptionalU16(season);
+        const batchInput = `${addPointsBatchCsv || ''}`.trim();
+        if (batchInput.length > 0) {
+          const parsed = parseBatchAddPointsInput(batchInput);
+          if (!parsed.walletCount) {
+            throw new Error('No valid wallets found in batch input');
+          }
+          const entries = Array.from(parsed.totals.entries());
+          const built = await Promise.all(
+            entries.map(async ([walletBase58, points]) =>
+              buildAddReputationIx({
+                conn: RPC_CONNECTION,
+                daoId: daoPk,
+                authority: authorityPk,
+                payer: payerPk,
+                user: new PublicKey(walletBase58),
+                amount: points,
+                season: seasonValue,
+              })
+            )
+          );
+          return built.map((item) => item.ix);
+        }
+
         const userPk = parsePublicKey(user, 'user');
         const value = parseU64(amount, 'Points amount');
-        const seasonValue = parseOptionalU16(season);
         const response = await buildAddReputationIx({
           conn: RPC_CONNECTION,
           daoId: daoPk,
@@ -586,7 +693,7 @@ export default function OgReputationView(props: any) {
           amount: value,
           season: seasonValue,
         });
-        return response.ix;
+        return [response.ix];
       }
       case 'reset_user': {
         const userPk = parsePublicKey(user, 'user');
@@ -598,13 +705,13 @@ export default function OgReputationView(props: any) {
           user: userPk,
           season: seasonValue,
         });
-        return response.ix;
+        return [response.ix];
       }
       case 'transfer_user': {
         const oldWallet = parsePublicKey(fromUser, 'from user');
         const newWallet = parsePublicKey(toUser, 'to user');
         const seasonValue = parseOptionalU16(season);
-        return buildTransferReputationIx({
+        return [await buildTransferReputationIx({
           conn: RPC_CONNECTION,
           daoId: daoPk,
           authority: authorityPk,
@@ -612,7 +719,7 @@ export default function OgReputationView(props: any) {
           oldWallet,
           newWallet,
           season: seasonValue,
-        });
+        })];
       }
       case 'close_reputation': {
         const userPk = parsePublicKey(user, 'user');
@@ -628,7 +735,7 @@ export default function OgReputationView(props: any) {
           authority: authorityPk,
           recipient: recipientPk,
         });
-        return response.ix;
+        return [response.ix];
       }
       default:
         throw new Error('Unsupported action');
@@ -638,15 +745,27 @@ export default function OgReputationView(props: any) {
   const handleCreateProposal = async () => {
     setBuilding(true);
     try {
-      const ix = await buildInstruction();
+      const ixs = await buildInstruction();
       const actionName = actionLabel[action];
       const daoShort = daoId ? shortenString(daoId, 6, 6) : 'space';
+      const isBatchAdd =
+        action === 'add_points' &&
+        `${addPointsBatchCsv || ''}`
+          .split(/\r?\n/)
+          .some((line) => line.trim().length > 0 && !line.trim().startsWith('#'));
+      const batchSummary = isBatchAdd ? parseBatchAddPointsInput(addPointsBatchCsv) : null;
+      const defaultDescription = isBatchAdd
+        ? `Batch add reputation points to ${batchSummary?.walletCount || ixs.length} wallet(s) for ${daoShort}.`
+        : `Execute OG Reputation Spaces action "${actionName}" for ${daoShort}.`;
 
       setInstructions({
-        title: proposalTitle || `OG Reputation: ${actionName}`,
-        description:
-          proposalDescription || `Execute OG Reputation Spaces action "${actionName}" for ${daoShort}.`,
-        ix: [ix],
+        title:
+          proposalTitle ||
+          (isBatchAdd
+            ? `OG Reputation: Batch Add Points (${batchSummary?.walletCount || ixs.length})`
+            : `OG Reputation: ${actionName}`),
+        description: proposalDescription || defaultDescription,
+        ix: ixs,
         aix: [],
         allowMissingAccountsPreflight: true,
         useVersionedTransactions: true,
@@ -991,7 +1110,7 @@ export default function OgReputationView(props: any) {
                 </Grid>
               )}
 
-              {(action === 'add_points' || action === 'reset_user' || action === 'close_reputation') && (
+              {(action === 'reset_user' || action === 'close_reputation') && (
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
@@ -1005,16 +1124,44 @@ export default function OgReputationView(props: any) {
               )}
 
               {action === 'add_points' && (
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Points Amount (u64)"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    variant="filled"
-                    sx={{ m: 0.65 }}
-                  />
-                </Grid>
+                <>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="User"
+                      value={user}
+                      onChange={(e) => setUser(e.target.value)}
+                      variant="filled"
+                      sx={{ m: 0.65 }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Points Amount (u64)"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      variant="filled"
+                      sx={{ m: 0.65 }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      multiline
+                      minRows={4}
+                      label="Batch CSV (optional)"
+                      placeholder={`wallet,amount\\nwallet\\n# wallet with no amount defaults to 1`}
+                      value={addPointsBatchCsv}
+                      onChange={(e) => setAddPointsBatchCsv(e.target.value)}
+                      variant="filled"
+                      sx={{ m: 0.65 }}
+                    />
+                    <Typography variant="caption" sx={{ px: 1.2, color: 'rgba(255,255,255,0.65)' }}>
+                      Batch format: `wallet,amount` or `wallet`. Duplicate wallets are summed. If batch has rows, it takes precedence over single user/amount.
+                    </Typography>
+                  </Grid>
+                </>
               )}
 
               {(action === 'add_points' || action === 'reset_user' || action === 'transfer_user') && (
