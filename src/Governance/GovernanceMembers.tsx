@@ -3,7 +3,6 @@ import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import axios from "axios";
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
-import moment from 'moment';
 import { initGrapeGovernanceDirectory } from './api/gspl_queries';
 import { 
     tryGetName,
@@ -37,13 +36,8 @@ import {
 
 import { GovernanceHeaderView } from './GovernanceHeaderView';
 import GovernanceNavigation from './GovernanceNavigation'; 
-import {
-    fetchGovernanceLookupFile,
-    getFileFromLookup
-} from './CachedStorageHelpers'; 
 
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers';
-import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 import ExplorerView from '../utils/grapeTools/Explorer';
 import { getProfilePicture } from '@solflare-wallet/pfp';
 import { findDisplayName } from '../utils/name-service';
@@ -74,8 +68,7 @@ import {
 
 import PropTypes from 'prop-types';
 import { 
-    RPC_CONNECTION, 
-    GGAPI_STORAGE_POOL } from '../utils/grapeTools/constants';
+    RPC_CONNECTION } from '../utils/grapeTools/constants';
 
 const GOVERNANNCE_STATE = {
     0:'Draft',
@@ -262,6 +255,7 @@ function RenderGovernanceMembersTable(props:any) {
     const createMemberTableRows = async() => {
         const mmbr = new Array();
         let x = 0;
+        const circulatingAmount = Number(circulatingSupply?.value?.amount || 0);
         for (const member of members){
             mmbr.push({
                 id:x+1,
@@ -279,7 +273,10 @@ function RenderGovernanceMembersTable(props:any) {
                     },
                 unstaked:Number(member.walletBalanceAmount),
                 percentDepositedGovernance:Number(member.governingTokenDepositAmount) > 0 ? ((+Number(member.governingTokenDepositAmount)/totalDepositedVotes)*100).toFixed(2) : 0,
-                percentSupply:Number(member.governingTokenDepositAmount) > 0 ? ((Number(member.governingTokenDepositAmount)/circulatingSupply.value.amount)*100).toFixed(2) : 0,
+                percentSupply:
+                    Number(member.governingTokenDepositAmount) > 0 && circulatingAmount > 0
+                        ? ((Number(member.governingTokenDepositAmount)/circulatingAmount)*100).toFixed(2)
+                        : 0,
             })
             x++;
         }
@@ -340,11 +337,6 @@ export function GovernanceMembersView(props: any) {
     const {handlekey} = useParams<{ handlekey: string }>();
     const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
     const governanceAddress = urlParams;
-    const [governanceLookup, setGovernanceLookup] = React.useState(null);
-    const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
-    const [cachedGovernance, setCachedGovernance] = React.useState(null);
-    const [cachedRealm, setCachedRealm] = React.useState(null);
-    const [cachedMemberMap, setCachedMemberMap] = React.useState(null);
     const [startTime, setStartTime] = React.useState(null);
     const [endTime, setEndTime] = React.useState(null);
     
@@ -372,7 +364,6 @@ export function GovernanceMembersView(props: any) {
     const [governingTokenDecimals, setGoverningTokenDecimals] = React.useState(null);
     const [circulatingSupply, setCirculatingSupply] = React.useState(null);
     const [csvGenerated, setCSVGenerated] = React.useState(null);
-    const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
     const [recordCount, setRecordCount] = React.useState(null);
     const [pluginDao, setPluginDao] = React.useState(null);
     const [gspl, setGSPL] = React.useState(null);
@@ -408,18 +399,16 @@ export function GovernanceMembersView(props: any) {
                 
                 console.log("SPL Governnace: "+governanceAddress);
                 
-                if (cachedRealm){
-                    console.log("Realm from cache")
-                    grealm = cachedRealm;
-                } else{
-                    grealm = await getRealmIndexed(governanceAddress);
+                grealm = await getRealmIndexed(governanceAddress, undefined, true);
+                if (!grealm) {
+                    throw new Error('Unable to load realm from indexed queries');
                 }
                 const realmPk = new PublicKey(grealm.pubkey);
                 setRealm(grealm);
                 setRealmName(grealm.account.name);
                 
                 //const config = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(grealm.owner), new PublicKey(grealm.pubkey));
-                const config = await getRealmConfigIndexed(null, grealm.owner, realmPk);
+                const config = await getRealmConfigIndexed(null, grealm.owner, realmPk, true);
 
                 if (config?.account?.communityTokenConfig?.voterWeightAddin){
                     setPluginDao(true);
@@ -431,42 +420,25 @@ export function GovernanceMembersView(props: any) {
                 // with realm check if this is a backed token
                 let thisTokenDecimals = 0;
 
-                /*
-                if (tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58())){
-                    thisTokenDecimals = tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58()).decimals;
-                    setGoverningTokenDecimals(thisTokenDecimals);
-                } else{
-                    const btkn = await getBackedTokenMetadata(new PublicKey(grealm.account?.communityMint).toBase58(), wallet);
-                    if (btkn){
-                        thisTokenDecimals = btkn.decimals;
-                        setGoverningTokenDecimals(thisTokenDecimals)
-                    } else{ 
-                        thisTokenDecimals = 6;
-                        setGoverningTokenDecimals(thisTokenDecimals);
-                    }
+                const communityMintKey = new PublicKey(grealm.account?.communityMint).toBase58();
+                if (tokenMap?.get?.(communityMintKey)) {
+                    thisTokenDecimals = Number(tokenMap.get(communityMintKey).decimals || 0);
+                } else {
+                    thisTokenDecimals = 6;
                 }
-                */
-
-                let gTD = null;
-                let tokenDetails = await connection.getParsedAccountInfo(new PublicKey(grealm.account?.communityMint))
-                //console.log("tokenDetails: "+JSON.stringify(tokenDetails))
-                gTD = tokenDetails.value.data.parsed.info.decimals;
-                thisTokenDecimals = gTD;
                 setGoverningTokenDecimals(thisTokenDecimals);
-                
-                setGoverningTokenDecimals(thisTokenDecimals);
-
-                const tknSupply = await connection.getTokenSupply(new PublicKey(grealm.account.communityMint));
-
-                //const governingMintPromise = await connection.getParsedAccountInfo(grealm.account.communityMint);
-                if (tknSupply)
-                    setCirculatingSupply(tknSupply);
                 
                 let trecords = null;
 
-                const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), grealm.owner)
+                const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(
+                    realmPk.toBase58(),
+                    grealm?.owner?.toBase58 ? grealm.owner.toBase58() : `${grealm?.owner || ''}`,
+                    undefined,
+                    undefined,
+                    true
+                )
                 //rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
-                trecords = indexedTokenOwnerRecords;
+                trecords = Array.isArray(indexedTokenOwnerRecords) ? indexedTokenOwnerRecords : [];
                 
                 //console.log("indexTokenOwnerRecords: ("+indexedTokenOwnerRecords.length+") "+JSON.stringify(indexedTokenOwnerRecords));
                 //console.log("grealm: "+JSON.stringify(grealm))
@@ -640,11 +612,12 @@ export function GovernanceMembersView(props: any) {
                     let totalTopSupply = 0;
                     let totalTopCirculatingSupply = 0;
                     let totalTopGovernanceSupply = 0;
+                    const supplyAmount = Number(circulatingSupply?.value?.amount || 0);
                     for (var member of sortedResults){
                         if (count < 10){
                             totalTopVotes += Number(member?.governingTokenDepositAmount ?? 0)/Math.pow(10, thisTokenDecimals || 0);
-                            if (tknSupply && Number(tknSupply.value.amount) > 0){
-                                totalTopCirculatingSupply += (Number(member?.governingTokenDepositAmount ?? 0)/Number(tknSupply.value.amount))*100
+                            if (supplyAmount > 0){
+                                totalTopCirculatingSupply += (Number(member?.governingTokenDepositAmount ?? 0)/supplyAmount)*100
                                 totalTopGovernanceSupply += (Number(member?.governingTokenDepositAmount ?? 0)/tVotes)*100
                             }
                         }
@@ -705,85 +678,6 @@ export function GovernanceMembersView(props: any) {
         endTimer();
     }
 
-    const getCachedGovernanceFromLookup = async () => {
-        
-        let cached_governance = new Array();
-        if (governanceLookup){
-            for (let glitem of governanceLookup){
-                if (glitem.governanceAddress === governanceAddress){
-
-                    if (glitem?.realm){
-                        setCachedRealm(glitem?.realm);
-                    }
-                    if (glitem?.memberFilename){
-                        const cached_members = await getFileFromLookup(glitem.memberFilename, storagePool);
-                        setCachedMemberMap(cached_members);
-                    }
-
-                    cached_governance = await getFileFromLookup(glitem.filename, storagePool);
-                    setCachedTimestamp(glitem.timestamp);
-                }
-            }
-        }
-
-        // convert values in governance to BigInt and PublicKeys accordingly
-        let counter = 0;
-        for (const cupdated of (cached_governance ?? [])) {
-            for (let cupdated of cached_governance){
-
-                cupdated.account.governance = new PublicKey(cupdated.account.governance);
-                cupdated.account.governingTokenMint = new PublicKey(cupdated.account.governingTokenMint);
-                cupdated.account.tokenOwnerRecord = new PublicKey(cupdated.account.tokenOwnerRecord);
-                cupdated.owner = new PublicKey(cupdated.owner);
-                cupdated.pubkey = new PublicKey(cupdated.pubkey);
-
-                if (cupdated.account?.options && cupdated.account?.options[0]?.voteWeight)
-                    cupdated.account.options[0].voteWeight = Number(cupdated.account.options[0].voteWeight)
-                if (cupdated.account?.denyVoteWeight)
-                    cupdated.account.denyVoteWeight = Number(cupdated.account.denyVoteWeight).toString()
-
-                if (cupdated.account?.yesVotesCount)
-                    cupdated.account.yesVotesCount = Number(cupdated.account.yesVotesCount).toString()
-                if (cupdated.account?.noVotesCount)
-                    cupdated.account.noVotesCount = Number(cupdated.account.noVotesCount).toString()
-                
-                cupdated.account.draftAt = Number(cupdated.account.draftAt).toString()
-                cupdated.account.signingOffAt = Number(cupdated.account.signingOffAt).toString()
-                cupdated.account.votingAt = Number(cupdated.account.votingAt).toString()
-                cupdated.account.votingAtSlot = Number(cupdated.account.votingAtSlot).toString()
-                cupdated.account.vetoVoteWeight = Number(cupdated.account.vetoVoteWeight).toString()
-                cupdated.account.votingCompletedAt = Number(cupdated.account.votingCompletedAt).toString()
-
-                // move to nested voting results
-                if (cupdated?.votingResults){
-                    
-                    for (let inner of cupdated.votingResults){
-                        inner.pubkey = new PublicKey(inner.pubkey);
-                        inner.proposal = new PublicKey(inner.proposal);
-                        inner.governingTokenOwner = new PublicKey(inner.governingTokenOwner);
-                        inner.voteAddress = new PublicKey(inner.voteAddress);
-                        if (inner.vote?.councilMint)
-                            inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
-                        inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
-                        if (inner.vote?.councilMint)
-                            inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
-                        inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
-                        /*
-                        inner.vote.voterWeight = Number("0x"+inner.vote.voterWeight).toString()
-                        inner.vote.legacyYes = Number("0x"+inner.vote.legacyYes).toString()
-                        inner.vote.legacyNo = Number("0x"+inner.vote.legacyNo).toString()
-                        */
-                    }
-                }
-
-                counter++;
-            }
-        }
-        
-        setCachedGovernance(cached_governance);
-        //getGovernance(cached_governance);
-    }
-
     const startTimer = () => {
         setStartTime(Date.now());
     }
@@ -792,26 +686,12 @@ export function GovernanceMembersView(props: any) {
         setEndTime(Date.now())
     }
 
-    const callGovernanceLookup = async() => {
-        const fglf = await fetchGovernanceLookupFile(storagePool);
-        setGovernanceLookup(fglf);
-    }
-
-    React.useEffect(() => {
-        if (governanceLookup){
-            getCachedGovernanceFromLookup();
-        }
-        if (governanceAddress && governanceLookup){
+    React.useEffect(() => { 
+        if (tokenMap && governanceAddress){  
+            startTimer();
             getGovernanceMembers();
         }
-    }, [governanceLookup, governanceAddress]);
-    
-    React.useEffect(() => { 
-        if (tokenMap){  
-            startTimer();
-            callGovernanceLookup();
-        }
-    }, [tokenMap]);
+    }, [tokenMap, governanceAddress]);
 
     React.useEffect(() => { 
         if (!loading){
@@ -1138,7 +1018,7 @@ export function GovernanceMembersView(props: any) {
                                 </Box>
                             }
 
-                        <RenderGovernanceMembersTable members={members} memberMap={cachedMemberMap} participating={participating} tokenMap={tokenMap} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />
+                        <RenderGovernanceMembersTable members={members} memberMap={null} participating={participating} tokenMap={tokenMap} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />
                     
                         {endTime &&
                             <Typography 
@@ -1146,10 +1026,6 @@ export function GovernanceMembersView(props: any) {
                                 sx={{textAlign:'center'}}
                             >
                                 Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime<br/>
-                                {cachedTimestamp &&
-                                    <>Cached: {moment.unix(Number(cachedTimestamp)).format("MMMM D, YYYY, h:mm a") }<br/></>
-                                }
-                                Cache Node: {storagePool}
                             </Typography>
                         }
                     </Box>

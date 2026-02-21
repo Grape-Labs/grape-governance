@@ -53,6 +53,8 @@ export default function AdvanvedProposalView(props: any){
     const isGoverningMintSelectable = props?.isGoverningMintSelectable;
     const isDraft = props?.isDraft;
     const setIsDraft = props?.setIsDraft;
+    const skipSimulationProp = props?.skipSimulation;
+    const setSkipSimulationProp = props?.setSkipSimulation;
 
     const editProposalAddress = props?.editProposalAddress;
     const setEditProposalAddress = props?.setEditProposalAddress;
@@ -64,6 +66,31 @@ export default function AdvanvedProposalView(props: any){
 
     const [loading, setLoading] = React.useState(false);
     const [draftProposals, setDraftProposals] = React.useState(null);
+    const [skipSimulationLocal, setSkipSimulationLocal] = React.useState(false);
+
+    const skipSimulation =
+        typeof skipSimulationProp === 'boolean'
+            ? skipSimulationProp
+            : skipSimulationLocal;
+
+    const persistSkipSimulation = (value: boolean) => {
+        try {
+            if (typeof window !== 'undefined') {
+                window.localStorage.setItem('grape_skip_simulation', value ? 'true' : 'false');
+            }
+        } catch (e) {
+            console.log('Unable to persist skip simulation flag', e);
+        }
+    };
+
+    const handleSkipSimulationChange = (value: boolean) => {
+        if (typeof setSkipSimulationProp === 'function') {
+            setSkipSimulationProp(value);
+        } else {
+            setSkipSimulationLocal(value);
+        }
+        persistSkipSimulation(value);
+    };
 
     // let's check here if the user is a delegate to give the option to choose who to create the proposal from
 
@@ -136,6 +163,18 @@ export default function AdvanvedProposalView(props: any){
             setIsDraft(true);
         }
     }, [editProposalAddress]);
+
+    React.useEffect(() => {
+        if (typeof skipSimulationProp === 'boolean') return;
+        try {
+            if (typeof window !== 'undefined') {
+                const persisted = window.localStorage.getItem('grape_skip_simulation');
+                setSkipSimulationLocal(persisted === 'true');
+            }
+        } catch (e) {
+            console.log('Unable to read skip simulation flag', e);
+        }
+    }, [skipSimulationProp]);
 
     const stopInputKeyPropagation = (event: React.KeyboardEvent) => {
         event.stopPropagation();
@@ -300,6 +339,20 @@ export default function AdvanvedProposalView(props: any){
                         />
                     } 
                     label="Draft" />
+                </FormControl>
+
+                <FormControl fullWidth>
+                    <FormControlLabel
+                        control={
+                            <Switch
+                                checked={skipSimulation}
+                                onChange={(e) => {
+                                    handleSkipSimulationChange(e.target.checked);
+                                }}
+                            />
+                        }
+                        label="Skip simulation"
+                    />
                 </FormControl>
             </Box>
         </>
