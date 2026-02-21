@@ -545,6 +545,42 @@ export default function SnsDomainView(props: any) {
         console.log('SNS tokenized domain lookup error', error);
       }
 
+      // Include all domains directly owned by signer (roots + subdomains).
+      // This catches subdomains that may not appear in root-domain helpers.
+      try {
+        const ownedDomainAccounts = await withTimeout(
+          connection.getProgramAccounts(NAME_PROGRAM_ID, {
+            dataSlice: { offset: 0, length: 0 },
+            filters: [{ memcmp: { offset: 32, bytes: signerPk.toBase58() } }],
+          }),
+          12000,
+          'SNS owned domains lookup'
+        );
+
+        if (ownedDomainAccounts.length) {
+          const pubkeys = ownedDomainAccounts.map((item) => item.pubkey);
+          const chunkSize = 75;
+          for (let i = 0; i < pubkeys.length; i += chunkSize) {
+            const chunk = pubkeys.slice(i, i + chunkSize);
+            try {
+              const names = await withTimeout(
+                performReverseLookupBatch(connection as any, chunk),
+                10000,
+                'SNS owned reverse lookup'
+              );
+              for (const name of names || []) {
+                const normalized = normalizeDomainName(name);
+                if (normalized) domainSet.add(normalized);
+              }
+            } catch {
+              // Skip failed chunk and keep partial results responsive.
+            }
+          }
+        }
+      } catch (error) {
+        console.log('SNS owned domain account lookup error', error);
+      }
+
       // Fallback for edge RPCs where SDK helper returns empty.
       if (!domainSet.size) {
         const domainAccounts = await withTimeout(
