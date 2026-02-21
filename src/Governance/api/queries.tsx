@@ -1331,15 +1331,15 @@ export const getAllProposalsFromAllPrograms = async () => {
     });
 
     // default instance
-    console.log("Fetching Proposals from Default Governance ProgramID");
+    console.log("Fetching proposals from default governance program");
     const allProposals = await getAllProposalsIndexed (null, null, null);
-
-    console.log("allProposals: "+JSON.stringify(allProposals))
+    console.log(`Default governance proposals fetched: ${allProposals?.length || 0}`);
 
     // passing uniqueOwners array will do everything in a single call
-    console.log("Fetching Proposals from Custom Governance Deployments");
+    console.log("Fetching proposals from custom governance deployments");
     const batch_props = await getAllProposalsIndexed(null, null, null, uniqueOwners); 
     allProposals.push(...batch_props);
+    console.log(`Custom governance proposals fetched: ${batch_props?.length || 0}`);
     /*
     for (var owner of uniqueOwners){
         console.log("Fetching Proposals from ProgramID: "+owner.name);
@@ -2039,7 +2039,7 @@ export async function fetchRealmNameFromRulesWallet(
     }
 }
 
-function GET_QUERY_LATEST_PROPOSALS(programName: string, limit = 5000) {
+function GET_QUERY_LATEST_PROPOSALS(programName: string, limit = 1200) {
   return gql`
     query LatestProposals {
       ${programName}_ProposalV2(limit: ${limit}, order_by: {draftAt: desc}) {
@@ -2047,15 +2047,85 @@ function GET_QUERY_LATEST_PROPOSALS(programName: string, limit = 5000) {
         governance
         draftAt
         state
+        votingAt
+        maxVotingTime
+        name
       }
       ${programName}_ProposalV1(limit: ${limit}, order_by: {draftAt: desc}) {
         pubkey
         governance
         draftAt
         state
+        votingAt
+        name
       }
     }
   `;
+}
+
+type LightweightProposal = {
+  pubkey: string;
+  governance: string;
+  draftAt: number;
+  state: any;
+  votingAt: number | null;
+  maxVotingTime: number | null;
+  name: string;
+};
+
+function parseLatestProposalRows(data: any, programName: string): LightweightProposal[] {
+  const proposals: LightweightProposal[] = [];
+  const v2Rows = Array.isArray(data?.[`${programName}_ProposalV2`]) ? data[`${programName}_ProposalV2`] : [];
+  const v1Rows = Array.isArray(data?.[`${programName}_ProposalV1`]) ? data[`${programName}_ProposalV1`] : [];
+  const rows = [...v2Rows, ...v1Rows];
+
+  for (const row of rows) {
+    const governance = govKey(row?.governance);
+    const pubkey = govKey(row?.pubkey);
+    if (!governance || !pubkey) continue;
+
+    proposals.push({
+      pubkey,
+      governance,
+      draftAt: Math.max(0, toNum(row?.draftAt)),
+      state: row?.state,
+      votingAt: row?.votingAt != null ? toNum(row.votingAt) : null,
+      maxVotingTime: row?.maxVotingTime != null ? toNum(row.maxVotingTime) : null,
+      name: String(row?.name || ''),
+    });
+  }
+
+  return proposals;
+}
+
+async function getLatestProposalsFromAllPrograms(scanLimit: number): Promise<LightweightProposal[]> {
+  const programNames = Array.from(
+    new Set([
+      'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw',
+      ...(govOwners || []).map((owner) => owner?.name).filter((name): name is string => !!name),
+    ])
+  );
+
+  const safeLimit = scanLimit > 0 ? scanLimit : 2000;
+  const perProgramLimit = Math.max(200, Math.ceil(safeLimit / Math.max(1, programNames.length)));
+
+  const queryResults = await Promise.all(
+    programNames.map(async (programName) => {
+      try {
+        const { data } = await client.query({
+          query: GET_QUERY_LATEST_PROPOSALS(programName, perProgramLimit),
+          fetchPolicy: 'no-cache',
+        });
+        return parseLatestProposalRows(data, programName);
+      } catch {
+        return [] as LightweightProposal[];
+      }
+    })
+  );
+
+  const merged = queryResults.flat();
+  merged.sort((a, b) => b.draftAt - a.draftAt);
+  return merged.slice(0, safeLimit);
 }
 
 function GET_QUERY_REALM_UNIQUE_MEMBERS(programName: string, realm: string, limit = 50000) {
@@ -2128,41 +2198,30 @@ export async function buildDirectoryFromGraphQL(options?: {
   includeMembers?: boolean;
   proposalScanLimit?: number;
 }) {
-  const proposalScanLimit = options?.proposalScanLimit ?? 0;
-
-  const allProps = await getAllProposalsFromAllPrograms();
-  const all = Array.isArray(allProps) ? allProps : [];
-
-  const props =
-    proposalScanLimit && proposalScanLimit > 0
-      ? all
-          .slice()
-          .sort((a: any, b: any) => toNum(b?.account?.draftAt) - toNum(a?.account?.draftAt))
-          .slice(0, proposalScanLimit)
-      : all;
+  const proposalScanLimit = options?.proposalScanLimit && options.proposalScanLimit > 0
+    ? options.proposalScanLimit
+    : 2000;
+  const props = await getLatestProposalsFromAllPrograms(proposalScanLimit);
 
   const votingProposalsByGovernance: Record<string, any[]> = {};
   const latestByGov: Record<string, number> = {};
   const totalProposalsByGovernance: Record<string, number> = {};
 
   for (const p of props) {
-    const acct = p?.account;
-    if (!acct) continue;
-
-    const governancePk = govKey(acct?.governance);
+    const governancePk = govKey(p?.governance);
     if (!governancePk) continue;
 
-    const draftAt = Math.max(0, toNum(acct?.draftAt));
+    const draftAt = Math.max(0, toNum(p?.draftAt));
     totalProposalsByGovernance[governancePk] =
       (totalProposalsByGovernance[governancePk] || 0) + 1;
     if (!latestByGov[governancePk] || draftAt > latestByGov[governancePk]) {
       latestByGov[governancePk] = draftAt;
     }
 
-    if (!isVotingState(acct?.state)) continue;
+    if (!isVotingState(p?.state)) continue;
 
-    const parsedVotingAt = acct?.votingAt != null ? toNum(acct.votingAt) : -1;
-    const parsedMaxVotingTime = acct?.maxVotingTime != null ? toNum(acct.maxVotingTime) : -1;
+    const parsedVotingAt = p?.votingAt != null ? toNum(p.votingAt) : -1;
+    const parsedMaxVotingTime = p?.maxVotingTime != null ? toNum(p.maxVotingTime) : -1;
     const votingAt = parsedVotingAt > 0 ? parsedVotingAt : null;
     const maxVotingTime = parsedMaxVotingTime > 0 ? parsedMaxVotingTime : null;
 
@@ -2170,9 +2229,9 @@ export async function buildDirectoryFromGraphQL(options?: {
       votingAt != null && maxVotingTime != null ? votingAt + maxVotingTime : null;
 
     (votingProposalsByGovernance[governancePk] ||= []).push({
-      pubkey: p?.pubkey?.toBase58?.() || String(p?.pubkey),
-      name: acct?.name || "",
-      state: toNum(acct?.state),
+      pubkey: String(p?.pubkey || ''),
+      name: p?.name || "",
+      state: toNum(p?.state),
       votingAt,
       votingEndsAt,
       draftAt,

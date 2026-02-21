@@ -174,12 +174,15 @@ export function GovernanceDirectoryView(props: Props) {
 
   const [sortingType, setSortingType] = React.useState<number>(3);
   const [sortingDirection, setSortingDirection] = React.useState<0 | 1>(0);
+  const [visibleCount, setVisibleCount] = React.useState(48);
 
   const [gspl, setGSPL] = React.useState<any[]>([]);
   const [governanceTotalMembers, setGovernanceTotalMembers] = React.useState(0);
   const [governanceTotalProposals, setGovernanceTotalProposals] = React.useState(0);
   const [lastSyncedAt, setLastSyncedAt] = React.useState<number | null>(null);
   const [syncSource, setSyncSource] = React.useState<'graphql' | 'cache' | 'mixed'>('graphql');
+  const metadataInFlight = React.useRef<Set<string>>(new Set());
+  const deferredSearchFilter = React.useDeferredValue(searchFilter);
 
   const buildMergedDirectory = React.useCallback(
     (
@@ -568,15 +571,13 @@ export function GovernanceDirectoryView(props: Props) {
           return flattened;
         };
 
-        const [gsplEntriesRaw, graphQLResult, cachedLookupRaw, masterMembersRaw, indexedRealmsRaw, indexedGovernancesRaw] = await Promise.all([
+        const [gsplEntriesRaw, graphQLResult, cachedLookupRaw, masterMembersRaw] = await Promise.all([
           initGrapeGovernanceDirectory().catch(() => []),
-          buildDirectoryFromGraphQL({ includeMembers: false, proposalScanLimit: 0 }).catch(
+          buildDirectoryFromGraphQL({ includeMembers: false, proposalScanLimit: 4000 }).catch(
             () => ({ directory: [], votingProposalsByGovernance: {} })
           ),
           fetchGovernanceLookupFile(GGAPI_STORAGE_POOL).catch(() => null),
           fetchGovernanceMasterMembersFile(GGAPI_STORAGE_POOL).catch(() => null),
-          fetchAllIndexedRealms().catch(() => []),
-          getAllGovernancesFromAllPrograms().catch(() => []),
         ]);
 
         const gsplEntries = Array.isArray(gsplEntriesRaw) ? gsplEntriesRaw : [];
@@ -584,8 +585,18 @@ export function GovernanceDirectoryView(props: Props) {
         const votingProposalsByGovernance = graphQLResult?.votingProposalsByGovernance || {};
         const cachedLookup = Array.isArray(cachedLookupRaw) ? cachedLookupRaw : [];
         const masterMembers = Array.isArray(masterMembersRaw) ? masterMembersRaw : [];
-        const indexedRealms = Array.isArray(indexedRealmsRaw) ? indexedRealmsRaw : [];
-        const indexedGovernances = Array.isArray(indexedGovernancesRaw) ? indexedGovernancesRaw : [];
+        const shouldLoadIndexedFallback = gqlDirectory.length === 0 && cachedLookup.length === 0;
+        let indexedRealms: any[] = [];
+        let indexedGovernances: any[] = [];
+
+        if (shouldLoadIndexedFallback) {
+          const [indexedRealmsRaw, indexedGovernancesRaw] = await Promise.all([
+            fetchAllIndexedRealms().catch(() => []),
+            getAllGovernancesFromAllPrograms().catch(() => []),
+          ]);
+          indexedRealms = Array.isArray(indexedRealmsRaw) ? indexedRealmsRaw : [];
+          indexedGovernances = Array.isArray(indexedGovernancesRaw) ? indexedGovernancesRaw : [];
+        }
 
         const mergedDirectory = buildMergedDirectory(
           gqlDirectory,
@@ -638,56 +649,6 @@ export function GovernanceDirectoryView(props: Props) {
     loadGovernanceDirectory(false);
   }, [loadGovernanceDirectory]);
 
-  React.useEffect(() => {
-    let cancelled = false;
-
-    const fetchMetadata = async () => {
-      const metadataUris = Array.from(
-        new Set(
-          governanceLookup
-            .map((item) => item?.gspl?.metadataUri)
-            .filter((uri) => typeof uri === 'string' && uri.length > 0)
-        )
-      ).filter((uri) => !metadataMap[uri]);
-
-      if (!metadataUris.length) return;
-
-      const fetchedEntries = await Promise.all(
-        metadataUris.map(async (uri) => {
-          try {
-            const response = await fetch(uri);
-            if (!response.ok) {
-              return null;
-            }
-
-            const metadata = await response.json();
-            return [uri, metadata] as const;
-          } catch (_e) {
-            return null;
-          }
-        })
-      );
-
-      if (cancelled) return;
-
-      setMetadataMap((currentMap) => {
-        const nextMap = { ...currentMap };
-        for (const entry of fetchedEntries) {
-          if (entry) {
-            nextMap[entry[0]] = entry[1];
-          }
-        }
-        return nextMap;
-      });
-    };
-
-    fetchMetadata();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [governanceLookup, metadataMap]);
-
   const sortedGovernances = React.useMemo(() => {
     const items = [...governanceLookup];
 
@@ -714,7 +675,7 @@ export function GovernanceDirectoryView(props: Props) {
   }, [governanceLookup, sortingType, sortingDirection]);
 
   const filteredGovernances = React.useMemo(() => {
-    const query = (searchFilter || '').trim();
+    const query = (deferredSearchFilter || '').trim();
     const normalizedQuery = query.replace(/\s+/g, '').toUpperCase();
 
     return sortedGovernances.filter((item: GovernanceLookupItem) => {
@@ -748,12 +709,75 @@ export function GovernanceDirectoryView(props: Props) {
     });
   }, [
     sortedGovernances,
-    searchFilter,
+    deferredSearchFilter,
     filterVerified,
     filterActiveVoting,
     filterHasTreasury,
     metadataMap,
   ]);
+
+  React.useEffect(() => {
+    setVisibleCount(viewMode === 'grid' ? 48 : 80);
+  }, [viewMode, deferredSearchFilter, filterVerified, filterActiveVoting, filterHasTreasury]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const fetchMetadata = async () => {
+      const lookahead = Math.max(visibleCount + 24, 84);
+      const metadataUris = Array.from(
+        new Set(
+          filteredGovernances
+            .slice(0, lookahead)
+            .map((item) => item?.gspl?.metadataUri)
+            .filter((uri) => typeof uri === 'string' && uri.length > 0)
+        )
+      ).filter((uri) => !metadataMap[uri] && !metadataInFlight.current.has(uri));
+
+      if (!metadataUris.length) return;
+
+      const batch = metadataUris.slice(0, 10);
+      for (const uri of batch) metadataInFlight.current.add(uri);
+
+      const fetchedEntries = await Promise.all(
+        batch.map(async (uri) => {
+          try {
+            const response = await fetch(uri);
+            if (!response.ok) return null;
+            const metadata = await response.json();
+            return [uri, metadata] as const;
+          } catch (_e) {
+            return null;
+          } finally {
+            metadataInFlight.current.delete(uri);
+          }
+        })
+      );
+
+      if (cancelled) return;
+
+      setMetadataMap((currentMap) => {
+        const nextMap = { ...currentMap };
+        for (const entry of fetchedEntries) {
+          if (entry) nextMap[entry[0]] = entry[1];
+        }
+        return nextMap;
+      });
+    };
+
+    fetchMetadata();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [filteredGovernances, visibleCount, metadataMap]);
+
+  const displayedGovernances = React.useMemo(
+    () => filteredGovernances.slice(0, visibleCount),
+    [filteredGovernances, visibleCount]
+  );
+
+  const hasMoreGovernances = displayedGovernances.length < filteredGovernances.length;
 
   const totalLiveProposals = React.useMemo(
     () =>
@@ -982,7 +1006,7 @@ export function GovernanceDirectoryView(props: Props) {
         <Grid item xs={12} md={5}>
           <Box
             sx={{
-              position: 'sticky',
+              position: { xs: 'static', md: 'sticky' },
               top: 12,
               zIndex: 10,
               p: 1.5,
@@ -1007,7 +1031,12 @@ export function GovernanceDirectoryView(props: Props) {
                 }}
               />
 
-              <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1}
+                alignItems={{ xs: 'stretch', sm: 'center' }}
+                justifyContent="space-between"
+              >
                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                   <Chip
                     icon={<VerifiedIcon />}
@@ -1050,7 +1079,12 @@ export function GovernanceDirectoryView(props: Props) {
                 </ToggleButtonGroup>
               </Stack>
 
-              <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1}
+                alignItems={{ xs: 'flex-start', sm: 'center' }}
+                justifyContent="space-between"
+              >
                 <Typography variant="caption" sx={{ opacity: 0.75 }}>
                   Last synced: {syncTimeLabel}
                 </Typography>
@@ -1088,8 +1122,13 @@ export function GovernanceDirectoryView(props: Props) {
 
       <Divider sx={{ my: 2, opacity: 0.15 }} />
 
-      <Box sx={{ mb: 1.5 }}>
-        <ButtonGroup color="inherit" size="small" variant="outlined" sx={{ borderRadius: '17px' }}>
+      <Box sx={{ mb: 1.5, overflowX: 'auto', pb: 0.5 }}>
+        <ButtonGroup
+          color="inherit"
+          size="small"
+          variant="outlined"
+          sx={{ borderRadius: '17px', display: 'inline-flex', minWidth: 'max-content' }}
+        >
           <Tooltip title="Sort by members">
             <Button onClick={() => sortGovernance(1)}>
               <GroupIcon />
@@ -1146,14 +1185,14 @@ export function GovernanceDirectoryView(props: Props) {
             governanceLookup={governanceLookup}
             governanceAddress={'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw'}
             title={'Latest Activity'}
-            expanded={true}
+            expanded={false}
           />
         </Box>
       )}
 
       {filteredGovernances.length > 0 ? (
         <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }} sx={{ mt: 0.5 }}>
-          {filteredGovernances.map((item: GovernanceLookupItem, key: number) => {
+          {displayedGovernances.map((item: GovernanceLookupItem, key: number) => {
             const metadata = item?.gspl?.metadataUri ? metadataMap[item.gspl.metadataUri] : {};
 
             return (
@@ -1187,6 +1226,19 @@ export function GovernanceDirectoryView(props: Props) {
           </Typography>
           <Button size="small" variant="outlined" color="inherit" onClick={clearFilters}>
             Clear Filters
+          </Button>
+        </Box>
+      )}
+
+      {hasMoreGovernances && (
+        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+          <Button
+            size="small"
+            variant="outlined"
+            color="inherit"
+            onClick={() => setVisibleCount((current) => current + (viewMode === 'grid' ? 36 : 60))}
+          >
+            Load More ({filteredGovernances.length - displayedGovernances.length} remaining)
           </Button>
         </Box>
       )}

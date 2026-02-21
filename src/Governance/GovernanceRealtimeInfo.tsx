@@ -269,35 +269,29 @@ export default function GovernanceRealtimeInfo(props: any){
 
 
     
-    let animationIndex = 1;
+    const animationIndexRef = React.useRef(1);
     React.useEffect(() => {
-        if (showLive){
-            if (realtimeEvents && realtimeEvents.length > 0) {
-                const animationInterval = setInterval(() => {
-                // Move this line inside the setTimeout callback
-                // setFadeIn(false);
-            
-                //  setTimeout(() => {
-                    setRealtimeEventsLoaded(true);
-                    setFadeIn(false); // Move this line here
-            
-                    if (animationIndex < realtimeEvents.length) {
-                    setCurrentIndex(animationIndex);
-                    setFadeIn(true);
-            
-                    animationIndex++;
-                    } else {
-                    animationIndex = 0;
-                    }
-                //  }, 2000);
-                }, 4000);
-            
-                //return () => clearInterval(animationInterval);
-                if (animationIndex === realtimeEvents.length - 1) {
-                    clearInterval(animationInterval);
-                }
-            }
+        if (!showLive || !realtimeEvents || realtimeEvents.length <= 0) {
+            return;
         }
+
+        animationIndexRef.current = 1;
+        const animationInterval = window.setInterval(() => {
+            setRealtimeEventsLoaded(true);
+            setFadeIn(false);
+
+            if (animationIndexRef.current < realtimeEvents.length) {
+                setCurrentIndex(animationIndexRef.current);
+                setFadeIn(true);
+                animationIndexRef.current += 1;
+            } else {
+                animationIndexRef.current = 0;
+            }
+        }, 4000);
+
+        return () => {
+            window.clearInterval(animationInterval);
+        };
       }, [realtimeEvents, showLive]);
     
 
