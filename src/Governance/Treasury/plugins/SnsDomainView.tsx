@@ -39,7 +39,8 @@ import {
   NAME_PROGRAM_ID,
   BONFIDA_FIDA_BNB,
   createSubdomain,
-  performReverseLookup,
+  getDomainKeysWithReverses,
+  getTokenizedDomains,
   performReverseLookupBatch,
   registerDomainName,
   transferSubdomain,
@@ -76,6 +77,28 @@ function toPk(value: any): string {
     return new PublicKey(value).toBase58();
   } catch {
     return '';
+  }
+}
+
+function normalizeDomainName(value: any): string {
+  const cleaned = String(value || '').replace(/\0/g, '').trim().toLowerCase();
+  if (!cleaned || cleaned.includes(' ')) return '';
+  if (cleaned.endsWith('.sol')) return cleaned;
+  if (/^[a-z0-9][a-z0-9._-]{0,250}$/i.test(cleaned)) {
+    return `${cleaned}.sol`;
+  }
+  return '';
+}
+
+async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
 
@@ -490,48 +513,76 @@ export default function SnsDomainView(props: any) {
     try {
       setLoadingOwnedDomains(true);
       const signerPk = new PublicKey(signer);
+      const domainSet = new Set<string>();
 
-      // Fetch only parent .sol domain pubkeys with tiny payload to avoid RPC gateway timeouts.
-      const domainAccounts = await connection.getProgramAccounts(NAME_PROGRAM_ID, {
-        dataSlice: { offset: 0, length: 0 },
-        filters: [
-          { memcmp: { offset: 32, bytes: signerPk.toBase58() } },
-          { memcmp: { offset: 0, bytes: ROOT_DOMAIN_ACCOUNT.toBase58() } },
-        ],
-      });
-
-      if (!domainAccounts.length) {
-        setOwnedDomains([]);
-        return;
+      // Fast path: SDK helpers that resolve domains for owner directly.
+      try {
+        const domainsWithReverses = await withTimeout(
+          getDomainKeysWithReverses(connection as any, signerPk),
+          12000,
+          'SNS domain lookup'
+        );
+        for (const item of domainsWithReverses || []) {
+          const normalized = normalizeDomainName(item?.domain);
+          if (normalized) domainSet.add(normalized);
+        }
+      } catch (error) {
+        console.log('SNS domain lookup fallback to RPC path', error);
       }
 
-      const pubkeys = domainAccounts.map((item) => item.pubkey);
-      const chunkSize = 75;
-      const reversed: (string | undefined)[] = [];
+      // Include tokenized parent domains owned by signer.
+      try {
+        const tokenizedDomains = await withTimeout(
+          getTokenizedDomains(connection as any, signerPk),
+          12000,
+          'SNS tokenized domain lookup'
+        );
+        for (const item of tokenizedDomains || []) {
+          const normalized = normalizeDomainName(item?.reverse);
+          if (normalized) domainSet.add(normalized);
+        }
+      } catch (error) {
+        console.log('SNS tokenized domain lookup error', error);
+      }
 
-      for (let i = 0; i < pubkeys.length; i += chunkSize) {
-        const chunk = pubkeys.slice(i, i + chunkSize);
-        try {
-          const names = await performReverseLookupBatch(connection as any, chunk);
-          reversed.push(...(names || []));
-        } catch {
-          // If batch lookup times out, degrade to single lookups for this chunk.
-          for (const pk of chunk) {
+      // Fallback for edge RPCs where SDK helper returns empty.
+      if (!domainSet.size) {
+        const domainAccounts = await withTimeout(
+          connection.getProgramAccounts(NAME_PROGRAM_ID, {
+            dataSlice: { offset: 0, length: 0 },
+            filters: [
+              { memcmp: { offset: 32, bytes: signerPk.toBase58() } },
+              { memcmp: { offset: 0, bytes: ROOT_DOMAIN_ACCOUNT.toBase58() } },
+            ],
+          }),
+          12000,
+          'SNS program accounts lookup'
+        );
+
+        if (domainAccounts.length) {
+          const pubkeys = domainAccounts.map((item) => item.pubkey);
+          const chunkSize = 75;
+
+          for (let i = 0; i < pubkeys.length; i += chunkSize) {
+            const chunk = pubkeys.slice(i, i + chunkSize);
             try {
-              const name = await performReverseLookup(connection as any, pk);
-              reversed.push(name);
+              const names = await withTimeout(
+                performReverseLookupBatch(connection as any, chunk),
+                10000,
+                'SNS reverse lookup'
+              );
+              for (const name of names || []) {
+                const normalized = normalizeDomainName(name);
+                if (normalized) domainSet.add(normalized);
+              }
             } catch {
-              reversed.push(undefined);
+              // Skip failed chunk to keep UI responsive and avoid long hangs.
             }
           }
         }
       }
 
-      const cleaned = reversed
-        .filter((name: any) => typeof name === 'string' && !!name)
-        .map((name: string) => name.trim())
-        .filter((name: string) => name.endsWith('.sol'))
-        .sort((a: string, b: string) => a.localeCompare(b));
+      const cleaned = Array.from(domainSet).sort((a, b) => a.localeCompare(b));
       setOwnedDomains(cleaned);
     } catch (e: any) {
       console.error(e);

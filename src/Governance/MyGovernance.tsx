@@ -13,6 +13,7 @@ import {
   IconButton,
   InputAdornment,
   LinearProgress,
+  MenuItem,
   Paper,
   Skeleton,
   Stack,
@@ -29,6 +30,16 @@ import moment from 'moment';
 import ExplorerView from '../utils/grapeTools/Explorer';
 import { RPC_CONNECTION } from '../utils/grapeTools/constants';
 import {
+  findSubdomains,
+  getDomainKeysWithReverses,
+  getMultiplePrimaryDomains,
+  getTokenizedDomains,
+  NAME_PROGRAM_ID,
+  ROOT_DOMAIN_ACCOUNT,
+  performReverseLookup,
+  performReverseLookupBatch,
+} from '../utils/web3/snsCompat';
+import {
   getAllGovernancesIndexed,
   getAllProposalsIndexed,
   getRealmIndexed,
@@ -44,14 +55,8 @@ import BoltIcon from '@mui/icons-material/Bolt';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import HowToVoteIcon from '@mui/icons-material/HowToVote';
-import GroupsIcon from '@mui/icons-material/Groups';
-import DescriptionIcon from '@mui/icons-material/Description';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
-import TimelineIcon from '@mui/icons-material/Timeline';
 
 const DEFAULT_GOV_PROGRAM = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 const PROPOSAL_STATE_LABELS: Record<number, string> = {
@@ -175,60 +180,78 @@ function getRealmName(realm: any, fallbackRealmPk: string): string {
 }
 
 const InsightCard = ({
-  label,
+  title,
   value,
-  sublabel,
-  icon,
+  hint,
+  tooltip,
+  progress,
+  accent = '#8ec5ff',
   loading,
 }: {
-  label: string;
+  title: string;
   value: string | number;
-  sublabel?: string;
-  icon: React.ReactNode;
+  hint?: string;
+  tooltip: React.ReactNode;
+  progress?: number | null;
+  accent?: string;
   loading: boolean;
 }) => {
   return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 2,
-        borderRadius: 3,
-        height: '100%',
-        borderColor: 'divider',
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))',
-      }}
-    >
-      <Stack direction="row" spacing={1.5} alignItems="center">
-        <Avatar
-          sx={{
-            width: 34,
-            height: 34,
-            bgcolor: 'rgba(255,255,255,0.08)',
-            border: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          {icon}
-        </Avatar>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.2 }}>
-            {label}
+    <Tooltip title={tooltip}>
+      <Paper
+        elevation={0}
+        sx={{
+          p: 1.25,
+          borderRadius: '16px',
+          height: '100%',
+          background: 'linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+          border: '1px solid rgba(255,255,255,0.1)',
+          cursor: 'help',
+        }}
+      >
+        <Typography variant="caption" sx={{ color: accent, letterSpacing: 0.25, textTransform: 'uppercase' }}>
+          {title}
+        </Typography>
+        {loading ? (
+          <Skeleton width={140} height={34} />
+        ) : (
+          <Typography
+            sx={{
+              mt: 0.3,
+              fontSize: '1.42rem',
+              fontWeight: 700,
+              lineHeight: 1.2,
+              color: 'rgba(255,255,255,0.96)',
+              wordBreak: 'break-word',
+            }}
+          >
+            {value}
           </Typography>
-          {loading ? (
-            <Skeleton width={120} />
-          ) : (
-            <Typography variant="h6" sx={{ lineHeight: 1.2 }}>
-              {value}
-            </Typography>
-          )}
-          {sublabel ? (
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-              {sublabel}
-            </Typography>
-          ) : null}
-        </Box>
-      </Stack>
-    </Paper>
+        )}
+        {hint ? (
+          <Typography variant="caption" sx={{ display: 'block', mt: 0.45, color: 'rgba(255,255,255,0.66)' }}>
+            {hint}
+          </Typography>
+        ) : null}
+        {typeof progress === 'number' ? (
+          <Box sx={{ mt: 0.8 }}>
+            <LinearProgress
+              variant="determinate"
+              value={Math.min(100, Math.max(0, progress))}
+              sx={{
+                height: 6,
+                borderRadius: 99,
+                backgroundColor: 'rgba(255,255,255,0.14)',
+                '& .MuiLinearProgress-bar': {
+                  borderRadius: 99,
+                  background: accent,
+                },
+              }}
+            />
+          </Box>
+        ) : null}
+      </Paper>
+    </Tooltip>
   );
 };
 
@@ -240,6 +263,10 @@ export function MyGovernanceView(props: any) {
   const [tokenOwnerRecords, setTokenOwnerRecords] = React.useState<any[]>([]);
   const [createdProposals, setCreatedProposals] = React.useState<any[]>([]);
   const [voteHistoryRows, setVoteHistoryRows] = React.useState<any[]>([]);
+  const [snsDomains, setSnsDomains] = React.useState<string[]>([]);
+  const [primarySnsDomain, setPrimarySnsDomain] = React.useState('');
+  const [preferredDomain, setPreferredDomain] = React.useState('');
+  const [domainsLoading, setDomainsLoading] = React.useState(false);
   const [loadingGovernance, setLoadingGovernance] = React.useState(false);
   const [refresh, setRefresh] = React.useState(true);
   const [tab, setTab] = React.useState<0 | 1 | 2>(0);
@@ -284,6 +311,124 @@ export function MyGovernanceView(props: any) {
       enqueueSnackbar('Clipboard access denied', { variant: 'error' });
     }
   }, [enqueueSnackbar]);
+
+  const normalizeDomainName = React.useCallback((value: any): string => {
+    const cleaned = String(value || '').replace(/\0/g, '').trim().toLowerCase();
+    if (!cleaned || cleaned.includes(' ')) return '';
+    if (cleaned.endsWith('.sol')) return cleaned;
+    if (/^[a-z0-9][a-z0-9._-]{0,250}$/i.test(cleaned)) {
+      return `${cleaned}.sol`;
+    }
+    return '';
+  }, []);
+
+  const fetchSnsDomains = React.useCallback(
+    async (owner: PublicKey): Promise<{ domains: string[]; primary: string }> => {
+      const discovered = new Set<string>();
+      let primary = '';
+      setDomainsLoading(true);
+      try {
+        try {
+          const primaryDomains = await getMultiplePrimaryDomains(RPC_CONNECTION as any, [owner]);
+          primary = normalizeDomainName(primaryDomains?.[0]);
+          if (primary) discovered.add(primary);
+        } catch (error) {
+          console.log('SNS primary domain lookup error', error);
+        }
+
+        const rootDomains = await getDomainKeysWithReverses(RPC_CONNECTION as any, owner);
+        const parentDomains: Array<{ key: PublicKey; domain: string }> = [];
+
+        for (const item of rootDomains || []) {
+          const domain = normalizeDomainName(item?.domain);
+          if (!domain) continue;
+          discovered.add(domain);
+          if (item?.pubKey) {
+            parentDomains.push({ key: item.pubKey, domain });
+          }
+        }
+
+        const tokenizedDomains = await getTokenizedDomains(RPC_CONNECTION as any, owner);
+        for (const item of tokenizedDomains || []) {
+          const domain = normalizeDomainName(item?.reverse);
+          if (!domain) continue;
+          discovered.add(domain);
+          if (item?.key) {
+            parentDomains.push({ key: item.key, domain });
+          }
+        }
+
+        const seenParents = new Set<string>();
+        for (const parent of parentDomains) {
+          const parentKey = parent?.key;
+          const parentDomain = normalizeDomainName(parent?.domain);
+          if (!parentKey || !parentDomain) continue;
+
+          const parentKeyStr = parentKey.toBase58();
+          if (seenParents.has(parentKeyStr)) continue;
+          seenParents.add(parentKeyStr);
+
+          try {
+            const subLabels = await findSubdomains(RPC_CONNECTION as any, parentKey);
+            for (const subLabelRaw of subLabels || []) {
+              const subLabel = String(subLabelRaw || '').replace(/\0/g, '').trim().toLowerCase();
+              if (!subLabel) continue;
+              const fqdn = subLabel.endsWith('.sol') ? subLabel : `${subLabel}.${parentDomain}`;
+              const domain = normalizeDomainName(fqdn);
+              if (domain) discovered.add(domain);
+            }
+          } catch (error) {
+            console.log('SNS subdomain lookup error', error);
+          }
+        }
+
+        const domainAccounts = await RPC_CONNECTION.getProgramAccounts(NAME_PROGRAM_ID, {
+          dataSlice: { offset: 0, length: 0 },
+          filters: [
+            { memcmp: { offset: 32, bytes: owner.toBase58() } },
+            { memcmp: { offset: 0, bytes: ROOT_DOMAIN_ACCOUNT.toBase58() } },
+          ],
+        });
+
+        if (domainAccounts.length) {
+          const pubkeys = domainAccounts.map((item) => item.pubkey);
+          const chunkSize = 75;
+          const reverseNames: (string | undefined)[] = [];
+
+          for (let i = 0; i < pubkeys.length; i += chunkSize) {
+            const chunk = pubkeys.slice(i, i + chunkSize);
+            try {
+              const names = await performReverseLookupBatch(RPC_CONNECTION as any, chunk);
+              reverseNames.push(...(names || []));
+            } catch {
+              for (const pk of chunk) {
+                try {
+                  reverseNames.push(await performReverseLookup(RPC_CONNECTION as any, pk));
+                } catch {
+                  reverseNames.push(undefined);
+                }
+              }
+            }
+          }
+
+          for (const name of reverseNames) {
+            const domain = normalizeDomainName(name);
+            if (domain) discovered.add(domain);
+          }
+        }
+      } catch (error) {
+        console.log('SNS domain lookup failed', error);
+      } finally {
+        setDomainsLoading(false);
+      }
+
+      return {
+        domains: Array.from(discovered).sort((a, b) => a.localeCompare(b)),
+        primary,
+      };
+    },
+    [normalizeDomainName]
+  );
 
   const buildParticipationRows = React.useCallback(async (ownerRecords: any[]) => {
     if (!ownerRecords?.length) return [];
@@ -505,25 +650,30 @@ export function MyGovernanceView(props: any) {
     if (!pubkey || !isValidPubkey) return;
 
     setLoadingGovernance(true);
+    setSnsDomains([]);
     try {
-      const ownerRecords =
-        (await getTokenOwnerRecordsByOwnerIndexed(
-          undefined,
-          DEFAULT_GOV_PROGRAM,
-          new PublicKey(pubkey).toBase58()
-        )) || [];
+      const owner = new PublicKey(pubkey);
+      const [ownerRecords, sns] = await Promise.all([
+        getTokenOwnerRecordsByOwnerIndexed(undefined, DEFAULT_GOV_PROGRAM, owner.toBase58()),
+        fetchSnsDomains(owner),
+      ]);
+      const normalizedOwnerRecords = ownerRecords || [];
+      const domains = sns?.domains || [];
+      const primary = sns?.primary || '';
 
-      const rows = await buildParticipationRows(ownerRecords);
-      const { allProposals } = await buildRealmProposalSet(ownerRecords);
+      const rows = await buildParticipationRows(normalizedOwnerRecords);
+      const { allProposals } = await buildRealmProposalSet(normalizedOwnerRecords);
       const [authoredProposals, votesCastRows] = await Promise.all([
-        buildCreatedProposals(ownerRecords, allProposals),
+        buildCreatedProposals(normalizedOwnerRecords, allProposals),
         buildVoteHistoryRows(pubkey, allProposals, rows),
       ]);
 
-      setTokenOwnerRecords(ownerRecords);
+      setTokenOwnerRecords(normalizedOwnerRecords);
       setGovernanceRecordRows(rows);
       setCreatedProposals(authoredProposals);
       setVoteHistoryRows(votesCastRows);
+      setSnsDomains(domains);
+      setPrimarySnsDomain(primary);
     } catch (error) {
       console.error('Profile load failed', error);
       enqueueSnackbar('Error loading profile activity', { variant: 'error' });
@@ -531,12 +681,15 @@ export function MyGovernanceView(props: any) {
       setGovernanceRecordRows([]);
       setCreatedProposals([]);
       setVoteHistoryRows([]);
+      setSnsDomains([]);
+      setPrimarySnsDomain('');
     } finally {
       setLoadingGovernance(false);
       setRefresh(false);
     }
   }, [
     buildCreatedProposals,
+    fetchSnsDomains,
     buildParticipationRows,
     buildRealmProposalSet,
     buildVoteHistoryRows,
@@ -563,6 +716,46 @@ export function MyGovernanceView(props: any) {
       setRefresh(true);
     }
   }, [publicKey, pubkey]);
+
+  React.useEffect(() => {
+    if (!pubkey) {
+      setPreferredDomain('');
+      setPrimarySnsDomain('');
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(`profilePreferredSnsDomain:${pubkey}`) || '';
+      setPreferredDomain(stored.toLowerCase());
+    } catch {
+      setPreferredDomain('');
+    }
+  }, [pubkey]);
+
+  React.useEffect(() => {
+    if (!pubkey) return;
+    if (!snsDomains.length) {
+      if (preferredDomain) setPreferredDomain('');
+      return;
+    }
+
+    if (!preferredDomain || !snsDomains.includes(preferredDomain)) {
+      if (primarySnsDomain && snsDomains.includes(primarySnsDomain)) {
+        setPreferredDomain(primarySnsDomain);
+      } else {
+        setPreferredDomain(snsDomains[0]);
+      }
+    }
+  }, [primarySnsDomain, pubkey, preferredDomain, snsDomains]);
+
+  React.useEffect(() => {
+    if (!pubkey || !preferredDomain) return;
+    try {
+      localStorage.setItem(`profilePreferredSnsDomain:${pubkey}`, preferredDomain);
+    } catch {
+      // noop
+    }
+  }, [preferredDomain, pubkey]);
 
   const profileInsights = React.useMemo(() => {
     const daoCount = governanceRecordRows.length;
@@ -596,6 +789,8 @@ export function MyGovernanceView(props: any) {
     });
 
     const largestPosition = governanceRecordRows[0];
+    const membershipRecords = tokenOwnerRecords.length;
+    const delegationRate = membershipRecords > 0 ? (delegatedRecords / membershipRecords) * 100 : null;
 
     return {
       daoCount,
@@ -606,6 +801,8 @@ export function MyGovernanceView(props: any) {
       totalOutstanding,
       delegatedRecords,
       uniqueDelegateTargets: delegateTargets.size,
+      membershipRecords,
+      delegationRate,
       largestPosition,
     };
   }, [governanceRecordRows, pubkey, tokenOwnerRecords]);
@@ -679,6 +876,7 @@ export function MyGovernanceView(props: any) {
       veto: stats.veto,
       unknown: stats.unknown,
       uniqueProposals: stats.uniqueProposals.size,
+      yesRate: stats.total > 0 ? (stats.yes / stats.total) * 100 : null,
     };
   }, [voteHistoryRows]);
 
@@ -851,6 +1049,8 @@ export function MyGovernanceView(props: any) {
                       ? 'Enter a wallet to load activity'
                       : !isValidPubkey
                       ? 'Invalid wallet address'
+                      : preferredDomain
+                      ? `${preferredDomain} (${shortenPk(pubkey, 6)})`
                       : shortenPk(pubkey, 6)}
                   </Typography>
                 </Box>
@@ -1012,6 +1212,31 @@ export function MyGovernanceView(props: any) {
                   <Chip
                     size="small"
                     variant="outlined"
+                    color={preferredDomain ? 'success' : 'default'}
+                    label={
+                      domainsLoading
+                        ? 'SNS: loading...'
+                        : preferredDomain
+                        ? `SNS: ${preferredDomain}`
+                        : 'SNS: none'
+                    }
+                  />
+                  {primarySnsDomain ? (
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      color="info"
+                      label={`Primary: ${primarySnsDomain}`}
+                    />
+                  ) : null}
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    label={`Domains: ${snsDomains.length}`}
+                  />
+                  <Chip
+                    size="small"
+                    variant="outlined"
                     label={
                       proposalInsights.lastProposalAt > 0
                         ? `Last proposal: ${moment.unix(proposalInsights.lastProposalAt).fromNow()}`
@@ -1031,76 +1256,109 @@ export function MyGovernanceView(props: any) {
                     }
                   />
                 </Stack>
+                <Box sx={{ mt: 1, width: { xs: '100%', md: 420 } }}>
+                  {snsDomains.length > 0 ? (
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      label="Preferred SNS Domain"
+                      value={preferredDomain}
+                      onChange={(event) => setPreferredDomain(String(event.target.value || ''))}
+                      helperText={`${snsDomains.length} domain${snsDomains.length === 1 ? '' : 's'} found (includes subdomains)`}
+                    >
+                      {snsDomains.map((domain) => (
+                        <MenuItem key={domain} value={domain}>
+                          {domain}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  ) : (
+                    <Typography variant="caption" color="text.secondary">
+                      {domainsLoading ? 'Loading Bonfida SNS domains...' : 'No Bonfida SNS domains found for this wallet.'}
+                    </Typography>
+                  )}
+                </Box>
               </Paper>
             ) : null}
 
             <Grid container spacing={1.5}>
               <Grid item xs={12} sm={6} lg={4}>
                 <InsightCard
-                  label="DAO Participation"
+                  title="DAO Participation"
                   value={profileInsights.daoCount}
-                  sublabel={`${profileInsights.communityCount} community / ${profileInsights.councilCount} council`}
-                  icon={<GroupsIcon fontSize="small" />}
+                  hint={`${profileInsights.communityCount} community / ${profileInsights.councilCount} council`}
+                  tooltip="Number of DAOs this wallet currently participates in."
+                  accent="#8ec5ff"
                   loading={loadingGovernance}
                 />
               </Grid>
 
               <Grid item xs={12} sm={6} lg={4}>
                 <InsightCard
-                  label="Deposited Vote Power"
+                  title="Deposited Vote Power"
                   value={formatLocalNumber(profileInsights.totalDeposited, 2)}
-                  sublabel="Sum of current token-owner deposits"
-                  icon={<HowToVoteIcon fontSize="small" />}
+                  hint="Sum of token-owner deposits"
+                  tooltip="Current deposited voting power across all matched token owner records."
+                  accent="#72d38c"
                   loading={loadingGovernance}
                 />
               </Grid>
 
               <Grid item xs={12} sm={6} lg={4}>
                 <InsightCard
-                  label="Authored Proposals"
+                  title="Authored Proposals"
                   value={proposalInsights.total}
-                  sublabel={`${proposalInsights.active} active, ${proposalInsights.draft} draft`}
-                  icon={<DescriptionIcon fontSize="small" />}
+                  hint={`${proposalInsights.active} active / ${proposalInsights.draft} draft`}
+                  tooltip="Proposals authored by this wallet (via its token-owner records)."
+                  accent="#f8bc72"
                   loading={loadingGovernance}
                 />
               </Grid>
 
               <Grid item xs={12} sm={6} lg={4}>
                 <InsightCard
-                  label="Votes Casted"
+                  title="Votes Casted"
                   value={voteInsights.total}
-                  sublabel={`Y ${voteInsights.yes} / N ${voteInsights.no} / A ${voteInsights.abstain} on ${voteInsights.uniqueProposals} proposals`}
-                  icon={<HowToVoteIcon fontSize="small" />}
+                  hint={`Y ${voteInsights.yes} / N ${voteInsights.no} / A ${voteInsights.abstain} on ${voteInsights.uniqueProposals} proposals`}
+                  tooltip="Total recorded votes cast by this wallet and directional breakdown."
+                  progress={voteInsights.yesRate}
+                  accent="#66c7d9"
                   loading={loadingGovernance}
                 />
               </Grid>
 
               <Grid item xs={12} sm={6} lg={4}>
                 <InsightCard
-                  label="Author Outcomes"
+                  title="Author Outcomes"
                   value={`P ${proposalInsights.passed} / D ${proposalInsights.defeated} / V ${proposalInsights.vetoed}`}
-                  sublabel={`${proposalInsights.cancelled} cancelled`}
-                  icon={<CheckCircleOutlineIcon fontSize="small" />}
+                  hint={`${proposalInsights.cancelled} cancelled`}
+                  tooltip="Outcome breakdown for authored proposals."
+                  accent="#b5d58b"
                   loading={loadingGovernance}
                 />
               </Grid>
 
               <Grid item xs={12} sm={6} lg={4}>
                 <InsightCard
-                  label="Author Success Rate"
+                  title="Author Success Rate"
                   value={proposalInsights.successRate === null ? 'n/a' : `${proposalInsights.successRate.toFixed(1)}%`}
-                  sublabel="Based on finalized proposals only"
-                  icon={<TimelineIcon fontSize="small" />}
+                  hint="Passed / finalized"
+                  tooltip="Success rate of authored proposals based on finalized proposals."
+                  progress={proposalInsights.successRate}
+                  accent="#72d38c"
                   loading={loadingGovernance}
                 />
               </Grid>
 
               <Grid item xs={12} sm={6} lg={4}>
                 <InsightCard
-                  label="Delegation & Commitments"
+                  title="Delegation & Commitments"
                   value={`${profileInsights.delegatedRecords} delegated / ${profileInsights.uniqueDelegateTargets} delegate targets`}
-                  sublabel={`Unrelinquished: ${profileInsights.totalUnrelinquished} | Outstanding: ${profileInsights.totalOutstanding}`}
-                  icon={<ShieldOutlinedIcon fontSize="small" />}
+                  hint={`Unrelinquished ${profileInsights.totalUnrelinquished} | Outstanding ${profileInsights.totalOutstanding}`}
+                  tooltip="Delegation footprint and pending governance commitments."
+                  progress={profileInsights.delegationRate}
+                  accent="#d0a6ff"
                   loading={loadingGovernance}
                 />
               </Grid>
