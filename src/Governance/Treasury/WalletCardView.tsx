@@ -144,8 +144,10 @@ import { getNativeTreasuryAddress } from '@solana/spl-governance';
 import {
     findSubdomains,
     getDomainKeysWithReverses,
+    getMultiplePrimaryDomains,
     getTokenizedDomains,
     NAME_PROGRAM_ID,
+    ROOT_DOMAIN_ACCOUNT,
     performReverseLookup,
     performReverseLookupBatch,
 } from '../../utils/web3/snsCompat';
@@ -390,26 +392,41 @@ export default function WalletCardView(props:any) {
         }
     }, [instructionQueue, instructionQueueStorageKey, MAX_INSTRUCTION_QUEUE]);
 
-    const mergedWalletDomains = React.useMemo(() => {
-        const toNames = (domains: any): string[] =>
-            Array.isArray(domains)
-                ? domains
-                    .map((item: any) =>
-                        typeof item === 'string'
-                            ? item
-                            : typeof item?.name === 'string'
-                            ? item.name
-                            : ''
-                    )
-                    .map((name: string) => name.trim().toLowerCase())
-                    .filter(Boolean)
-                : [];
+    const normalizeDomainName = React.useCallback((value: any): string => {
+        const cleaned = String(value || '').replace(/\0/g, '').trim().toLowerCase();
+        if (!cleaned || cleaned.includes(' ')) return '';
+        if (cleaned.endsWith('.sol')) return cleaned;
+        if (/^[a-z0-9][a-z0-9._-]{0,250}$/i.test(cleaned)) {
+            return `${cleaned}.sol`;
+        }
+        return '';
+    }, []);
 
-        const names = Array.from(new Set([...toNames(nativeDomains), ...toNames(rulesDomains)])).sort((a, b) =>
-            a.localeCompare(b)
-        );
-        return names.map((name) => ({ name }));
-    }, [nativeDomains, rulesDomains]);
+    const mergedWalletDomains = React.useMemo(() => {
+        const domainMap = new Map<string, { name: string; isPrimary?: boolean }>();
+        const addDomains = (domains: any) => {
+            if (!Array.isArray(domains)) return;
+            for (const item of domains) {
+                const name = normalizeDomainName(
+                    typeof item === 'string' ? item : item?.name
+                );
+                if (!name) continue;
+                const previous = domainMap.get(name);
+                const isPrimary = !!(previous?.isPrimary || item?.isPrimary);
+                domainMap.set(name, { name, isPrimary });
+            }
+        };
+
+        addDomains(nativeDomains);
+        addDomains(rulesDomains);
+
+        return Array.from(domainMap.values()).sort((a, b) => {
+            if (!!a?.isPrimary !== !!b?.isPrimary) {
+                return a?.isPrimary ? -1 : 1;
+            }
+            return String(a?.name || '').localeCompare(String(b?.name || ''));
+        });
+    }, [nativeDomains, rulesDomains, normalizeDomainName]);
 
     const toPublicKeySafe = (value: any): PublicKey | null => {
         try {
@@ -1144,7 +1161,8 @@ export default function WalletCardView(props:any) {
                     if (typeof item?.name === 'string') return item.name.trim();
                     return '';
                 })
-                .filter((name) => !!name && name.endsWith('.sol'));
+                .map((name) => normalizeDomainName(name))
+                .filter(Boolean);
         };
 
         const getWalletDomainsFromShyft = async (owner: PublicKey): Promise<string[]> => {
@@ -1166,16 +1184,29 @@ export default function WalletCardView(props:any) {
                     });
         };
 
-        const getWalletDomainsFromSns = async (owner: PublicKey): Promise<string[]> => {
+        const getWalletDomainsFromSns = async (
+            owner: PublicKey
+        ): Promise<{ domains: string[]; primary: string }> => {
             try {
                 const sdkDiscoveredNames = new Set<string>();
+                let primary = '';
+
+                try {
+                    const primaryDomains = await getMultiplePrimaryDomains(RPC_CONNECTION as any, [owner]);
+                    primary = normalizeDomainName(primaryDomains?.[0]);
+                    if (primary) {
+                        sdkDiscoveredNames.add(primary);
+                    }
+                } catch (error) {
+                    console.log('SNS primary domain lookup error', error);
+                }
 
                 const rootDomains = await getDomainKeysWithReverses(RPC_CONNECTION as any, owner);
                 const rootDomainsForSubLookup: Array<{ key: PublicKey; domain: string }> = [];
 
                 for (const item of rootDomains || []) {
-                    const domain = String(item?.domain || '').trim().toLowerCase();
-                    if (!domain || !domain.endsWith('.sol')) continue;
+                    const domain = normalizeDomainName(item?.domain);
+                    if (!domain) continue;
                     sdkDiscoveredNames.add(domain);
                     if (item?.pubKey) {
                         rootDomainsForSubLookup.push({ key: item.pubKey, domain });
@@ -1184,8 +1215,8 @@ export default function WalletCardView(props:any) {
 
                 const tokenizedDomains = await getTokenizedDomains(RPC_CONNECTION as any, owner);
                 for (const item of tokenizedDomains || []) {
-                    const domain = String(item?.reverse || '').trim().toLowerCase();
-                    if (!domain || !domain.endsWith('.sol')) continue;
+                    const domain = normalizeDomainName(item?.reverse);
+                    if (!domain) continue;
                     sdkDiscoveredNames.add(domain);
                     if (item?.key) {
                         rootDomainsForSubLookup.push({ key: item.key, domain });
@@ -1195,8 +1226,8 @@ export default function WalletCardView(props:any) {
                 const seenParents = new Set<string>();
                 for (const parent of rootDomainsForSubLookup) {
                     const parentKey = parent?.key;
-                    const parentDomain = String(parent?.domain || '').trim().toLowerCase();
-                    if (!parentKey || !parentDomain || !parentDomain.endsWith('.sol')) continue;
+                    const parentDomain = normalizeDomainName(parent?.domain);
+                    if (!parentKey || !parentDomain) continue;
 
                     const parentKeyStr = parentKey.toBase58();
                     if (seenParents.has(parentKeyStr)) continue;
@@ -1208,9 +1239,8 @@ export default function WalletCardView(props:any) {
                             const subLabel = String(subLabelRaw || '').replace(/\0/g, '').trim().toLowerCase();
                             if (!subLabel) continue;
                             const fqdn = subLabel.endsWith('.sol') ? subLabel : `${subLabel}.${parentDomain}`;
-                            if (fqdn.endsWith('.sol')) {
-                                sdkDiscoveredNames.add(fqdn);
-                            }
+                            const domain = normalizeDomainName(fqdn);
+                            if (domain) sdkDiscoveredNames.add(domain);
                         }
                     } catch (e) {
                         console.log('findSubdomains lookup error', e);
@@ -1219,7 +1249,10 @@ export default function WalletCardView(props:any) {
 
                 const domainAccounts = await RPC_CONNECTION.getProgramAccounts(NAME_PROGRAM_ID, {
                     dataSlice: { offset: 0, length: 0 },
-                    filters: [{ memcmp: { offset: 32, bytes: owner.toBase58() } }],
+                    filters: [
+                        { memcmp: { offset: 32, bytes: owner.toBase58() } },
+                        { memcmp: { offset: 0, bytes: ROOT_DOMAIN_ACCOUNT.toBase58() } },
+                    ],
                 });
 
                 if (domainAccounts.length) {
@@ -1245,49 +1278,68 @@ export default function WalletCardView(props:any) {
                     }
 
                     for (const name of reverseLookupNames) {
-                        const cleaned = String(name || '').trim().toLowerCase();
-                        if (cleaned && cleaned.endsWith('.sol')) {
-                            sdkDiscoveredNames.add(cleaned);
-                        }
+                        const domain = normalizeDomainName(name);
+                        if (domain) sdkDiscoveredNames.add(domain);
                     }
                 }
 
-                return Array.from(sdkDiscoveredNames).sort((a, b) => a.localeCompare(b));
+                return {
+                    domains: Array.from(sdkDiscoveredNames).sort((a, b) => a.localeCompare(b)),
+                    primary,
+                };
             } catch (error) {
                 console.error(error);
-                return [];
+                return { domains: [], primary: '' };
             }
         };
 
-        const [shyftDomains, snsDomains] = await Promise.all([
+        const [shyftDomains, snsResult] = await Promise.all([
             getWalletDomainsFromShyft(tokenOwnerRecord),
             getWalletDomainsFromSns(tokenOwnerRecord),
         ]);
+        const snsDomains = snsResult?.domains || [];
+        const primaryDomain = normalizeDomainName(snsResult?.primary || '');
 
         const uniqueDomains = Array.from(
             new Set(
                 [...shyftDomains, ...snsDomains]
-                    .map((name) => String(name || '').trim().toLowerCase())
+                    .map((name) => normalizeDomainName(name))
                     .filter(Boolean)
             )
-        ).sort((a, b) => a.localeCompare(b));
+        )
+            .sort((a, b) => {
+                if (a === primaryDomain) return -1;
+                if (b === primaryDomain) return 1;
+                return a.localeCompare(b);
+            })
+            .map((name) => ({
+                name,
+                isPrimary: !!primaryDomain && name === primaryDomain,
+            }));
 
-        return uniqueDomains.map((name) => ({ name }));
+        return uniqueDomains;
     }
 
     const getAllWalletDomains = async() => {
         // get domains
         const domains1 = await getWalletDomains(new PublicKey(walletAddress));
         const domains2 = await getWalletDomains(new PublicKey(rulesWalletAddress));
-        const combinedDomains = Array.from(
-            new Set(
-                [...(domains1 || []), ...(domains2 || [])]
-                    .map((item: any) => String(item?.name || '').trim().toLowerCase())
-                    .filter(Boolean)
-            )
-        )
-            .sort((a, b) => a.localeCompare(b))
-            .map((name) => ({ name }));
+        const combinedDomainMap = new Map<string, { name: string; isPrimary?: boolean }>();
+        for (const item of [...(domains1 || []), ...(domains2 || [])]) {
+            const name = normalizeDomainName(item?.name);
+            if (!name) continue;
+            const prev = combinedDomainMap.get(name);
+            combinedDomainMap.set(name, {
+                name,
+                isPrimary: !!(prev?.isPrimary || item?.isPrimary),
+            });
+        }
+        const combinedDomains = Array.from(combinedDomainMap.values()).sort((a, b) => {
+            if (!!a?.isPrimary !== !!b?.isPrimary) {
+                return a?.isPrimary ? -1 : 1;
+            }
+            return String(a?.name || '').localeCompare(String(b?.name || ''));
+        });
         
         setNativeDomains(domains1);
         setRulesDomains(domains2);
@@ -3650,14 +3702,21 @@ const StakeAccountsView = () => {
                         {mergedWalletDomains.slice(0, 3).map((domain: any, idx: number) => (
                             <Chip
                                 key={`${domain?.name || 'domain'}-${idx}`}
-                                variant='outlined'
-                                label={domain?.name}
+                                variant={domain?.isPrimary ? 'filled' : 'outlined'}
+                                color={domain?.isPrimary ? 'primary' : 'default'}
+                                label={domain?.isPrimary ? `${domain?.name} (primary)` : domain?.name}
                                 size="small"
                             />
                         ))}
                         {mergedWalletDomains.length > 3 && (
                             <Tooltip
-                                title={mergedWalletDomains.slice(3).map((domain: any) => domain?.name).filter(Boolean).join(', ')}
+                                title={mergedWalletDomains
+                                    .slice(3)
+                                    .map((domain: any) =>
+                                        domain?.isPrimary ? `${domain?.name} (primary)` : domain?.name
+                                    )
+                                    .filter(Boolean)
+                                    .join(', ')}
                             >
                                 <Chip
                                     variant='outlined'

@@ -1,78 +1,94 @@
-# 🗳 Governance.so — The Fastest Interface for SPL Governance
+# Governance.so
 
-**Governance.so**, built by Grape, is a blazing-fast, indexed, and developer-friendly platform designed to simplify and supercharge DAO operations on Solana. We transform governance from slow and opaque into intuitive, composable, and real-time.
+Governance.so by Grape is a fast SPL Governance interface focused on proposal execution, treasury operations, and DAO automation on Solana.
 
-> “DAO tooling should be as fast and easy as sending tokens from your wallet. That’s what we’ve built.”
+## Key Features
 
----
+- Indexed governance browsing with fast proposal/member loading.
+- Proposal builder with multi-instruction queueing.
+- Treasury wallet operations with governance-native instruction flow.
+- Extension system for protocol-specific actions.
+- Governance stats, participation views, and realtime monitoring.
 
-## ⚡ Key Features
+## Governance Tooling (Extensions)
 
-### 🔍 Blazing Fast & Indexed
-Governance.so leverages **indexed RPCs and cached storage** to dramatically reduce load times — making governance feel like using a native wallet.
+### Governance Tools
 
-### 🛠 Rapid Proposal Builder
-Create **multi-instruction proposals** with ease. Whether it's token transfers, DAO role assignments, or granting voting power, our UI generates structured summaries so users can confidently submit complex proposals and voters can easily understand what the proposal details are.
+- Governance config updates.
+- DAO decommission workflows.
+- Create treasury wallet proposal helpers.
 
-### 👛 DAO Wallet Viewer
-A familiar wallet-style interface for DAO treasuries:
-- View tokens & NFTs held by the DAO
-- Create transfer proposals with 1-click
-- No complex form filling or guesswork
+### Proposal Builder
 
-### 🧩 Extensible Proposal Integrations
-Support for plugin-like **proposal extensions** — enabling integrations with external protocols, custom instruction builders, and DAO-specific workflows.
+- Draft proposal creation.
+- Poll proposal creation.
+- Custom instruction builder with simulation flow.
+- Memo instruction builder.
+- Queue-only mode for staged instruction building.
 
-### 📊 DAO Metrics & Members
-- Visualize participation trends
-- Export proposal and vote data
-- Member view with integrated identity (SNS/Cardinal)
+### Treasury Operations
 
-### 👥 Voter Participation & Delegation
-Empower governance:
-- View real-time voting behavior
-- Delegate your voting power to another wallet
-- Clear, transparent voter records
+- Send and batch send (SOL/SPL).
+- Token manager (create/mint/update authority flows).
+- Program authority manager:
+  - Queue authority transfer/revoke.
+  - Queue program upgrade.
+  - Queue close buffer.
+  - Direct wallet-to-treasury funding.
+- Token housekeeping (burn/close flows).
+- Validator staking operations.
 
-### 🔴 Realtime Feed
-[https://governance.so/realtime](https://governance.so/realtime)
+### DeFi & Automation
 
-Watch new proposals and vote activity unfold **live**. The Realtime tab gives an instant overview of all network-wide DAO activity.
+- Jupiter swap.
+- Jupiter DCA.
+- Streamflow instruction integration.
+- Sanctum LST swap integration (shown only when `APP_SANCTUM_API_KEY` is configured).
 
-### 👤 Profile Interface
+### Identity & Claims
 
-[https://governance.so/profile](https://governance.so/profile)
+- Token metadata proposal workflows.
+- Mythic metadata workflows.
+- SNS domain workflows.
+- Directory + claim integrations.
 
-View your governance footprint:
-- DAOs you participate in
-- Proposals you've created
-- Delegations you’ve made or received
+### IntraDAO
 
----
+- IntraDAO action flows.
+- OG Reputation Spaces integration:
+  - Initialize/set authority/season/decay/rep mint.
+  - Add points, reset, transfer, close reputation.
+  - Batch add points via CSV (`wallet,amount` or `wallet` defaults to 1).
+  - DAO ID quick set (`Use Treasury`, `Use Realm`) and random DAO ID generator.
+  - REP mint creation helper (creates mint and transfers mint authority to treasury wallet).
 
-## 🔧 Admin Panel
+## Core URLs
 
-[https://governance.so/admin](https://governance.so/admin)
+- Realtime: `https://governance.so/realtime`
+- Profile: `https://governance.so/profile`
+- Admin: `https://governance.so/admin`
 
-Whitelisted wallets can:
-- Fetch governance accounts
-- Generate cached proposal files
-- Upload to decentralized storage
+## Tech Stack
 
----
+- SPL Governance
+- Solana Wallet Adapter
+- React + Material UI
+- GraphQL + indexed account queries
+- Protocol SDK integrations (Jupiter, Streamflow, Sanctum, Vine Reputation)
 
-## 🧰 Tech Stack
-
-- **Governance Engine:** [SPL Governance](https://github.com/solana-labs/solana-program-library/tree/master/governance)
-- **Storage:** [GenesysGo Shadow Drive](https://github.com/GenesysGo/shadow-drive)
-- **Wallets:** [Solana Wallet Adapter](https://github.com/solana-labs/wallet-adapter)
-- **UI Framework:** [Material UI v5](https://mui.com)
-- **Identity:** [Bonfida SNS](https://github.com/Bonfida), [Cardinal](https://github.com/cardinal-labs)
-
----
-
-## 🛠 Build & Run Locally
+## Local Development
 
 ```bash
 yarn install
 yarn start
+```
+
+Build:
+
+```bash
+yarn build
+```
+
+Optional env flags used by specific extensions:
+
+- `APP_SANCTUM_API_KEY` (enables Sanctum extension UI)

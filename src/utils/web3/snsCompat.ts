@@ -242,6 +242,16 @@ export async function getTokenizedDomains(
   return [];
 }
 
+export async function getMultiplePrimaryDomains(
+  connection: Connection,
+  wallets: PublicKey[]
+): Promise<Array<string | undefined>> {
+  if (typeof snsAny.getMultiplePrimaryDomains === "function") {
+    return snsAny.getMultiplePrimaryDomains(connection, wallets);
+  }
+  return wallets.map(() => undefined);
+}
+
 export async function findSubdomains(connection: Connection, parentKey: PublicKey): Promise<string[]> {
   if (typeof snsAny.findSubdomains === "function") {
     return snsAny.findSubdomains(connection, parentKey);
