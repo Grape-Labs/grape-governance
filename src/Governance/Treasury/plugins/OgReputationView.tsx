@@ -1,6 +1,6 @@
 import React from 'react';
-import { PublicKey, TransactionInstruction } from '@solana/web3.js';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction } from '@solana/web3.js';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { styled } from '@mui/material/styles';
 import {
   Box,
@@ -25,10 +25,22 @@ import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import SettingsIcon from '@mui/icons-material/Settings';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CloseIcon from '@mui/icons-material/Close';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import TokenIcon from '@mui/icons-material/Token';
 
 import AdvancedProposalView from './AdvancedProposalView';
 import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
 import { shortenString } from '../../../utils/grapeTools/helpers';
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  MintLayout,
+  TOKEN_PROGRAM_ID,
+  createAssociatedTokenAccountInstruction,
+  createInitializeMintInstruction,
+  createMintToCheckedInstruction,
+  createSetAuthorityInstruction,
+  getAssociatedTokenAddress,
+} from '@solana/spl-token-v2';
 
 import {
   VINE_REP_PROGRAM_ID,
@@ -124,6 +136,34 @@ const parseOptionalU16 = (value: string): number | undefined => {
   return parseU16(clean, 'Season');
 };
 
+const parseMintDecimals = (value: string): number => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed < 0 || parsed > 12) {
+    throw new Error('Mint decimals must be an integer between 0 and 12');
+  }
+  return parsed;
+};
+
+const pow10n = (exp: number): bigint => 10n ** BigInt(exp);
+
+const parseTokenUiAmountToRawNumber = (value: string, decimals: number): number => {
+  const clean = `${value || ''}`.trim();
+  if (!clean.length) return 0;
+  if (!/^\d+(\.\d+)?$/.test(clean)) {
+    throw new Error('Initial supply must be a non-negative number');
+  }
+  const [wholePart, fracPartRaw = ''] = clean.split('.');
+  if (fracPartRaw.length > decimals) {
+    throw new Error(`Initial supply has too many decimal places (max ${decimals})`);
+  }
+  const fracPart = fracPartRaw.padEnd(decimals, '0');
+  const raw = BigInt(wholePart || '0') * pow10n(decimals) + BigInt(fracPart || '0');
+  if (raw > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error('Initial supply too large');
+  }
+  return Number(raw);
+};
+
 const actionLabel: Record<OgAction, string> = {
   initialize: 'Initialize Space',
   upsert_metadata: 'Upsert Metadata URI',
@@ -146,7 +186,8 @@ export default function OgReputationView(props: any) {
   const setExpandedLoader = props?.setExpandedLoader;
   const setInstructions = props?.setInstructions;
 
-  const { publicKey } = useWallet();
+  const { connection } = useConnection();
+  const { publicKey, sendTransaction } = useWallet();
   const { enqueueSnackbar } = useSnackbar();
 
   const [open, setOpen] = React.useState(false);
@@ -154,6 +195,7 @@ export default function OgReputationView(props: any) {
   const [loadingSpaces, setLoadingSpaces] = React.useState(false);
   const [loadingSpaceDetails, setLoadingSpaceDetails] = React.useState(false);
   const [building, setBuilding] = React.useState(false);
+  const [creatingRepMint, setCreatingRepMint] = React.useState(false);
 
   const [proposalTitle, setProposalTitle] = React.useState<string | null>('OG Reputation Action');
   const [proposalDescription, setProposalDescription] = React.useState<string | null>(
@@ -174,6 +216,8 @@ export default function OgReputationView(props: any) {
   const [spaceAuthorityMatch, setSpaceAuthorityMatch] = React.useState<boolean | null>(null);
 
   const [repMint, setRepMint] = React.useState<string>('');
+  const [newMintDecimals, setNewMintDecimals] = React.useState<string>('0');
+  const [newMintInitialSupply, setNewMintInitialSupply] = React.useState<string>('0');
   const [initialSeason, setInitialSeason] = React.useState<string>('1');
   const [metadataUri, setMetadataUri] = React.useState<string>('');
   const [newAuthority, setNewAuthority] = React.useState<string>('');
@@ -181,11 +225,46 @@ export default function OgReputationView(props: any) {
   const [decayBps, setDecayBps] = React.useState<string>('0');
   const [user, setUser] = React.useState<string>('');
   const [amount, setAmount] = React.useState<string>('0');
+  const [addPointsBatchCsv, setAddPointsBatchCsv] = React.useState<string>('');
   const [season, setSeason] = React.useState<string>('');
   const [fromUser, setFromUser] = React.useState<string>('');
   const [toUser, setToUser] = React.useState<string>('');
   const [closeSeason, setCloseSeason] = React.useState<string>('');
   const [closeRecipient, setCloseRecipient] = React.useState<string>('');
+
+  const parseBatchAddPointsInput = React.useCallback((value: string) => {
+    const lines = value
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !line.startsWith('#'));
+
+    const totals = new Map<string, bigint>();
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i];
+      const [walletRaw, amountRaw] = line.split(',').map((item) => item.trim());
+      if (!walletRaw) {
+        throw new Error(`Invalid batch row ${i + 1}: missing wallet`);
+      }
+      const walletBase58 = parsePublicKey(walletRaw, `wallet at row ${i + 1}`).toBase58();
+      const parsedAmount =
+        amountRaw === undefined || amountRaw === ''
+          ? 1n
+          : parseU64(amountRaw, `amount at row ${i + 1}`);
+
+      const prev = totals.get(walletBase58) || 0n;
+      const next = prev + parsedAmount;
+      if (next > U64_MAX) {
+        throw new Error(`Total points overflow for wallet ${walletBase58}`);
+      }
+      totals.set(walletBase58, next);
+    }
+
+    return {
+      rowCount: lines.length,
+      walletCount: totals.size,
+      totals,
+    };
+  }, []);
 
   const governanceAuthoritySet = React.useMemo(() => {
     const candidates = new Set<string>();
@@ -330,7 +409,192 @@ export default function OgReputationView(props: any) {
     }
   };
 
-  const buildInstruction = async (): Promise<TransactionInstruction> => {
+  React.useEffect(() => {
+    if (daoId) return;
+    if (governanceNativeWallet) {
+      setDaoId(governanceNativeWallet);
+      return;
+    }
+    if (governanceAddress) {
+      setDaoId(governanceAddress);
+    }
+  }, [daoId, governanceAddress, governanceNativeWallet]);
+
+  const handleSetDaoToTreasury = async () => {
+    if (!governanceNativeWallet) {
+      enqueueSnackbar('Treasury wallet unavailable', { variant: 'warning' });
+      return;
+    }
+    await onDaoChanged(governanceNativeWallet);
+  };
+
+  const handleSetDaoToRealm = async () => {
+    if (!governanceAddress) {
+      enqueueSnackbar('Realm address unavailable', { variant: 'warning' });
+      return;
+    }
+    await onDaoChanged(governanceAddress);
+  };
+
+  const handleGenerateRandomDaoId = () => {
+    const randomDao = Keypair.generate().publicKey.toBase58();
+    setDaoId(randomDao);
+    setSpaceConfig(null);
+    setSpaceMetadata(null);
+    setSpaceAuthorityMatch(null);
+    enqueueSnackbar(`Generated random DAO ID: ${shortenString(randomDao, 6, 6)}`, {
+      variant: 'info',
+    });
+  };
+
+  const handleCreateRepMint = async () => {
+    if (!publicKey) {
+      enqueueSnackbar('Connect wallet to create mint', { variant: 'warning' });
+      return;
+    }
+    if (!governanceNativeWallet) {
+      enqueueSnackbar('Missing governance native wallet', { variant: 'error' });
+      return;
+    }
+
+    setCreatingRepMint(true);
+    try {
+      const treasuryPk = new PublicKey(governanceNativeWallet);
+      const mintKeypair = Keypair.generate();
+      const decimals = parseMintDecimals(newMintDecimals);
+      const mintRent = await connection.getMinimumBalanceForRentExemption(MintLayout.span);
+      const initialRawAmount = parseTokenUiAmountToRawNumber(newMintInitialSupply, decimals);
+
+      const tx = new Transaction();
+      tx.add(
+        SystemProgram.createAccount({
+          fromPubkey: publicKey,
+          newAccountPubkey: mintKeypair.publicKey,
+          lamports: mintRent,
+          space: MintLayout.span,
+          programId: TOKEN_PROGRAM_ID,
+        })
+      );
+
+      tx.add(
+        createInitializeMintInstruction(
+          mintKeypair.publicKey,
+          decimals,
+          publicKey,
+          publicKey,
+          TOKEN_PROGRAM_ID
+        )
+      );
+
+      if (initialRawAmount > 0) {
+        const ownerAta = await getAssociatedTokenAddress(
+          mintKeypair.publicKey,
+          publicKey,
+          true,
+          TOKEN_PROGRAM_ID,
+          ASSOCIATED_TOKEN_PROGRAM_ID
+        );
+        const ataInfo = await connection.getAccountInfo(ownerAta);
+        if (!ataInfo) {
+          tx.add(
+            createAssociatedTokenAccountInstruction(
+              publicKey,
+              ownerAta,
+              publicKey,
+              mintKeypair.publicKey,
+              TOKEN_PROGRAM_ID,
+              ASSOCIATED_TOKEN_PROGRAM_ID
+            )
+          );
+        }
+        tx.add(
+          createMintToCheckedInstruction(
+            mintKeypair.publicKey,
+            ownerAta,
+            publicKey,
+            initialRawAmount,
+            decimals,
+            [],
+            TOKEN_PROGRAM_ID
+          )
+        );
+      }
+
+      tx.add(
+        createSetAuthorityInstruction(
+          mintKeypair.publicKey,
+          publicKey,
+          'MintTokens',
+          treasuryPk,
+          [],
+          TOKEN_PROGRAM_ID
+        )
+      );
+
+      const latestBlockhash = await connection.getLatestBlockhash('confirmed');
+      tx.recentBlockhash = latestBlockhash.blockhash;
+      tx.feePayer = publicKey;
+
+      const sig = await sendTransaction(tx, connection, {
+        signers: [mintKeypair],
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
+      });
+
+      let confirmed = false;
+      try {
+        const confirmation = await connection.confirmTransaction(
+          {
+            signature: sig,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+          },
+          'confirmed'
+        );
+        if (!confirmation.value.err) {
+          confirmed = true;
+        } else {
+          throw new Error(`Mint transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+        }
+      } catch {
+        const status = await connection.getSignatureStatus(sig, {
+          searchTransactionHistory: true,
+        });
+
+        if (!status?.value?.err) {
+          const confirmationStatus = status?.value?.confirmationStatus;
+          if (confirmationStatus === 'confirmed' || confirmationStatus === 'finalized') {
+            confirmed = true;
+          }
+        }
+
+        if (!confirmed) {
+          const txDetails = await connection.getTransaction(sig, {
+            commitment: 'confirmed',
+          });
+          if (txDetails && !txDetails.meta?.err) {
+            confirmed = true;
+          }
+        }
+
+        if (!confirmed) {
+          throw new Error(
+            'Mint transaction confirmation timed out. Check explorer with signature: ' + sig
+          );
+        }
+      }
+
+      const mintAddress = mintKeypair.publicKey.toBase58();
+      setRepMint(mintAddress);
+      enqueueSnackbar(`Created REP mint: ${mintAddress} (${shortenString(sig, 6, 6)})`, { variant: 'success' });
+    } catch (e: any) {
+      enqueueSnackbar(`Failed to create REP mint: ${e?.message || `${e}`}`, { variant: 'error' });
+    } finally {
+      setCreatingRepMint(false);
+    }
+  };
+
+  const buildInstruction = async (): Promise<TransactionInstruction[]> => {
     if (!governanceNativeWallet) {
       throw new Error('Missing governance native wallet');
     }
@@ -342,61 +606,84 @@ export default function OgReputationView(props: any) {
       case 'initialize': {
         const repMintPk = parsePublicKey(repMint, 'REP mint');
         const seasonValue = parseU16(initialSeason, 'Initial season');
-        return buildInitializeConfigIx({
+        return [await buildInitializeConfigIx({
           daoId: daoPk,
           repMint: repMintPk,
           initialSeason: seasonValue,
           authority: authorityPk,
           payer: payerPk,
-        });
+        })];
       }
       case 'upsert_metadata': {
         const uri = `${metadataUri || ''}`.trim();
         if (!uri.length) throw new Error('Metadata URI is required');
-        return buildUpsertProjectMetadataIx({
+        return [await buildUpsertProjectMetadataIx({
           daoId: daoPk,
           authority: authorityPk,
           payer: payerPk,
           metadataUri: uri,
-        });
+        })];
       }
       case 'set_authority': {
         const nextAuthority = parsePublicKey(newAuthority, 'new authority');
-        return buildSetAuthorityIx({
+        return [await buildSetAuthorityIx({
           daoId: daoPk,
           authority: authorityPk,
           newAuthority: nextAuthority,
-        });
+        })];
       }
       case 'set_season': {
         const value = parseU16(newSeason, 'New season');
-        return buildSetSeasonIx({
+        return [await buildSetSeasonIx({
           daoId: daoPk,
           authority: authorityPk,
           newSeason: value,
-        });
+        })];
       }
       case 'set_decay': {
         const value = parseU16(decayBps, 'Decay BPS');
         if (value > 10000) throw new Error('Decay BPS must be <= 10000');
-        return buildSetDecayBpsIx({
+        return [await buildSetDecayBpsIx({
           daoId: daoPk,
           authority: authorityPk,
           decayBps: value,
-        });
+        })];
       }
       case 'set_rep_mint': {
         const mintPk = parsePublicKey(repMint, 'REP mint');
-        return buildSetRepMintIx({
+        return [await buildSetRepMintIx({
           daoId: daoPk,
           authority: authorityPk,
           newRepMint: mintPk,
-        });
+        })];
       }
       case 'add_points': {
+        const seasonValue = parseOptionalU16(season);
+        const batchInput = `${addPointsBatchCsv || ''}`.trim();
+        if (batchInput.length > 0) {
+          const parsed = parseBatchAddPointsInput(batchInput);
+          if (!parsed.walletCount) {
+            throw new Error('No valid wallets found in batch input');
+          }
+          const entries = Array.from(parsed.totals.entries());
+          const built = await Promise.all(
+            entries.map(async ([walletBase58, points]) =>
+              buildAddReputationIx({
+                conn: RPC_CONNECTION,
+                daoId: daoPk,
+                authority: authorityPk,
+                payer: payerPk,
+                user: new PublicKey(walletBase58),
+                amount: points,
+                season: seasonValue,
+              })
+            )
+          );
+          return built.map((item) => item.ix);
+        }
+
         const userPk = parsePublicKey(user, 'user');
         const value = parseU64(amount, 'Points amount');
-        const seasonValue = parseOptionalU16(season);
         const response = await buildAddReputationIx({
           conn: RPC_CONNECTION,
           daoId: daoPk,
@@ -406,7 +693,7 @@ export default function OgReputationView(props: any) {
           amount: value,
           season: seasonValue,
         });
-        return response.ix;
+        return [response.ix];
       }
       case 'reset_user': {
         const userPk = parsePublicKey(user, 'user');
@@ -418,13 +705,13 @@ export default function OgReputationView(props: any) {
           user: userPk,
           season: seasonValue,
         });
-        return response.ix;
+        return [response.ix];
       }
       case 'transfer_user': {
         const oldWallet = parsePublicKey(fromUser, 'from user');
         const newWallet = parsePublicKey(toUser, 'to user');
         const seasonValue = parseOptionalU16(season);
-        return buildTransferReputationIx({
+        return [await buildTransferReputationIx({
           conn: RPC_CONNECTION,
           daoId: daoPk,
           authority: authorityPk,
@@ -432,7 +719,7 @@ export default function OgReputationView(props: any) {
           oldWallet,
           newWallet,
           season: seasonValue,
-        });
+        })];
       }
       case 'close_reputation': {
         const userPk = parsePublicKey(user, 'user');
@@ -448,7 +735,7 @@ export default function OgReputationView(props: any) {
           authority: authorityPk,
           recipient: recipientPk,
         });
-        return response.ix;
+        return [response.ix];
       }
       default:
         throw new Error('Unsupported action');
@@ -458,15 +745,27 @@ export default function OgReputationView(props: any) {
   const handleCreateProposal = async () => {
     setBuilding(true);
     try {
-      const ix = await buildInstruction();
+      const ixs = await buildInstruction();
       const actionName = actionLabel[action];
       const daoShort = daoId ? shortenString(daoId, 6, 6) : 'space';
+      const isBatchAdd =
+        action === 'add_points' &&
+        `${addPointsBatchCsv || ''}`
+          .split(/\r?\n/)
+          .some((line) => line.trim().length > 0 && !line.trim().startsWith('#'));
+      const batchSummary = isBatchAdd ? parseBatchAddPointsInput(addPointsBatchCsv) : null;
+      const defaultDescription = isBatchAdd
+        ? `Batch add reputation points to ${batchSummary?.walletCount || ixs.length} wallet(s) for ${daoShort}.`
+        : `Execute OG Reputation Spaces action "${actionName}" for ${daoShort}.`;
 
       setInstructions({
-        title: proposalTitle || `OG Reputation: ${actionName}`,
-        description:
-          proposalDescription || `Execute OG Reputation Spaces action "${actionName}" for ${daoShort}.`,
-        ix: [ix],
+        title:
+          proposalTitle ||
+          (isBatchAdd
+            ? `OG Reputation: Batch Add Points (${batchSummary?.walletCount || ixs.length})`
+            : `OG Reputation: ${actionName}`),
+        description: proposalDescription || defaultDescription,
+        ix: ixs,
         aix: [],
         allowMissingAccountsPreflight: true,
         useVersionedTransactions: true,
@@ -575,6 +874,35 @@ export default function OgReputationView(props: any) {
                   variant="filled"
                   sx={{ m: 0.65 }}
                 />
+                <Box sx={{ px: 0.65, pt: 0.5, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={handleSetDaoToTreasury}
+                    disabled={!governanceNativeWallet}
+                    sx={{ borderRadius: '10px', textTransform: 'none' }}
+                  >
+                    Use Treasury
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={handleSetDaoToRealm}
+                    disabled={!governanceAddress}
+                    sx={{ borderRadius: '10px', textTransform: 'none' }}
+                  >
+                    Use Realm
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={handleGenerateRandomDaoId}
+                    startIcon={<AutoFixHighIcon fontSize="small" />}
+                    sx={{ borderRadius: '10px', textTransform: 'none' }}
+                  >
+                    Random DAO ID
+                  </Button>
+                </Box>
               </Grid>
 
               {daoId ? (
@@ -653,16 +981,68 @@ export default function OgReputationView(props: any) {
               </Grid>
 
               {(action === 'initialize' || action === 'set_rep_mint') && (
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="REP Mint"
-                    value={repMint}
-                    onChange={(e) => setRepMint(e.target.value)}
-                    variant="filled"
-                    sx={{ m: 0.65 }}
-                  />
-                </Grid>
+                <>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="REP Mint"
+                      value={repMint}
+                      onChange={(e) => setRepMint(e.target.value)}
+                      variant="filled"
+                      sx={{ m: 0.65 }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Box
+                      sx={{
+                        mx: 0.65,
+                        p: 1.25,
+                        borderRadius: '12px',
+                        backgroundColor: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.65)', display: 'block', mb: 1 }}>
+                        No REP mint yet? Create one from connected wallet and auto-fill it here.
+                      </Typography>
+                      <Grid container spacing={1}>
+                        <Grid item xs={12} sm={4}>
+                          <TextField
+                            fullWidth
+                            label="Decimals"
+                            value={newMintDecimals}
+                            onChange={(e) => setNewMintDecimals(e.target.value)}
+                            variant="filled"
+                            sx={{ m: 0 }}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                          <TextField
+                            fullWidth
+                            label="Initial Supply"
+                            value={newMintInitialSupply}
+                            onChange={(e) => setNewMintInitialSupply(e.target.value)}
+                            variant="filled"
+                            sx={{ m: 0 }}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                          <Button
+                            size="small"
+                            fullWidth
+                            variant="outlined"
+                            onClick={handleCreateRepMint}
+                            disabled={creatingRepMint || !publicKey || !governanceNativeWallet}
+                            startIcon={<TokenIcon fontSize="small" />}
+                            sx={{ borderRadius: '10px', textTransform: 'none', height: '100%' }}
+                          >
+                            {creatingRepMint ? 'Creating...' : 'Create REP Mint'}
+                          </Button>
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  </Grid>
+                </>
               )}
 
               {action === 'initialize' && (
@@ -730,7 +1110,7 @@ export default function OgReputationView(props: any) {
                 </Grid>
               )}
 
-              {(action === 'add_points' || action === 'reset_user' || action === 'close_reputation') && (
+              {(action === 'reset_user' || action === 'close_reputation') && (
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
@@ -744,16 +1124,44 @@ export default function OgReputationView(props: any) {
               )}
 
               {action === 'add_points' && (
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Points Amount (u64)"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    variant="filled"
-                    sx={{ m: 0.65 }}
-                  />
-                </Grid>
+                <>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="User"
+                      value={user}
+                      onChange={(e) => setUser(e.target.value)}
+                      variant="filled"
+                      sx={{ m: 0.65 }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Points Amount (u64)"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      variant="filled"
+                      sx={{ m: 0.65 }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      multiline
+                      minRows={4}
+                      label="Batch CSV (optional)"
+                      placeholder={`wallet,amount\\nwallet\\n# wallet with no amount defaults to 1`}
+                      value={addPointsBatchCsv}
+                      onChange={(e) => setAddPointsBatchCsv(e.target.value)}
+                      variant="filled"
+                      sx={{ m: 0.65 }}
+                    />
+                    <Typography variant="caption" sx={{ px: 1.2, color: 'rgba(255,255,255,0.65)' }}>
+                      Batch format: `wallet,amount` or `wallet`. Duplicate wallets are summed. If batch has rows, it takes precedence over single user/amount.
+                    </Typography>
+                  </Grid>
+                </>
               )}
 
               {(action === 'add_points' || action === 'reset_user' || action === 'transfer_user') && (
