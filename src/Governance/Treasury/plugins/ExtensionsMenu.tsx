@@ -46,6 +46,7 @@ import JupiterSwapView from './JupiterSwapView';
 import SanctumSwapView from './SanctumSwapView';
 import StreamflowView from './StreamflowView';
 import IntraDAOView from './IntraDAOView';
+import OgReputationView from './OgReputationView';
 import DecommissionView from './DecommissionView';
 import CreateTreasuryWalletProposalButton from '../CreateTreasuryWalletProposalButton';
 import { IntegratedGovernanceProposalDialogView } from '../../IntegratedGovernanceProposal';
@@ -706,6 +707,17 @@ export default function ExtensionsMenuView(props: any) {
         onClose={() => setIntraDaoToolsAnchorEl(null)}
         {...submenuPosition}
       >
+        <OgReputationView
+          realm={realm}
+          governanceAddress={props?.governanceAddress || realm?.pubkey?.toBase58?.()}
+          handleCloseExtMenu={handleCloseAllMenus}
+          rulesWallet={rulesWallet}
+          governanceNativeWallet={governanceNativeWallet}
+          expandedLoader={expandedLoader}
+          setExpandedLoader={setExpandedLoader}
+          instructions={instructions}
+          setInstructions={setInstructions}
+        />
         <IntraDAOView
           realm={realm}
           governanceAddress={props?.governanceAddress || realm?.pubkey?.toBase58?.()}
