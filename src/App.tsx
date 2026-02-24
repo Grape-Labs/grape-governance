@@ -22,6 +22,7 @@ import { GovernanceProposalV2View } from "./Governance/GovernanceProposalV2";
 import { GovernanceProposalWrapper } from "./Governance/GovernanceProposalWrapper";
 import GovernanceCreateProposalView from "./Governance/GovernanceCreateProposal";
 import { GovernanceWalletView } from "./Governance/Treasury/SingleWalletWrapperView";
+import PushNotificationTestView from "./Diagnostics/PushNotificationTestView";
 
 //import CreateNewDAO from "./Governance/CreateNewDAO/CreateNewDAO";
 //import MultiSigWizard from "./Governance/CreateNewDAO/CreateMultiSig";
@@ -352,6 +353,8 @@ function DashboardContent() {
                                               <Route path="proposal/*" element={<GovernanceProposalWrapper/>} >
                                                   <Route path=":governance/:proposal" element={<GovernanceProposalWrapper />} />
                                               </Route>
+
+                                              <Route path="pushtest" element={<PushNotificationTestView />} />
                                               
                                               <Route path="proposals/*" element={<GovernanceRealtimeView />} >
                                                   <Route path=":handlekey" element={<GovernanceRealtimeView />} />
