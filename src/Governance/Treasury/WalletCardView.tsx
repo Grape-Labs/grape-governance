@@ -1247,16 +1247,29 @@ export default function WalletCardView(props:any) {
                     }
                 }
 
-                const domainAccounts = await RPC_CONNECTION.getProgramAccounts(NAME_PROGRAM_ID, {
-                    dataSlice: { offset: 0, length: 0 },
-                    filters: [
-                        { memcmp: { offset: 32, bytes: owner.toBase58() } },
-                        { memcmp: { offset: 0, bytes: ROOT_DOMAIN_ACCOUNT.toBase58() } },
-                    ],
-                });
+                const [rootDomainAccounts, ownedDomainAccounts] = await Promise.all([
+                    RPC_CONNECTION.getProgramAccounts(NAME_PROGRAM_ID, {
+                        dataSlice: { offset: 0, length: 0 },
+                        filters: [
+                            { memcmp: { offset: 32, bytes: owner.toBase58() } },
+                            { memcmp: { offset: 0, bytes: ROOT_DOMAIN_ACCOUNT.toBase58() } },
+                        ],
+                    }),
+                    RPC_CONNECTION.getProgramAccounts(NAME_PROGRAM_ID, {
+                        dataSlice: { offset: 0, length: 0 },
+                        filters: [{ memcmp: { offset: 32, bytes: owner.toBase58() } }],
+                    }),
+                ]);
 
-                if (domainAccounts.length) {
-                    const pubkeys = domainAccounts.map((item) => item.pubkey);
+                const pubkeyMap = new Map<string, PublicKey>();
+                for (const item of [...(rootDomainAccounts || []), ...(ownedDomainAccounts || [])]) {
+                    const pk = item?.pubkey;
+                    if (!pk) continue;
+                    pubkeyMap.set(pk.toBase58(), pk);
+                }
+                const pubkeys = Array.from(pubkeyMap.values());
+
+                if (pubkeys.length) {
                     const chunkSize = 75;
                     const reverseLookupNames: (string | undefined)[] = [];
 

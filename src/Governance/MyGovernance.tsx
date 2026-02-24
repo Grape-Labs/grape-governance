@@ -1,6 +1,6 @@
 import React from 'react';
 import { DataGrid, GridColDef, GridToolbar } from '@mui/x-data-grid';
-import { PublicKey } from '@solana/web3.js';
+import { PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
 import { useParams } from 'react-router-dom';
 import {
   Avatar,
@@ -42,10 +42,14 @@ import {
 import {
   getAllGovernancesIndexed,
   getAllProposalsIndexed,
+  findGovOwnerByDao,
+  getProposalNewIndexed,
   getRealmIndexed,
   getTokenOwnerRecordsByOwnerIndexed,
-  getVoteRecordsByVoterIndexed,
 } from './api/queries';
+import { withRelinquishVote } from '@solana/spl-governance';
+import { getGrapeGovernanceProgramVersion } from '../utils/grapeTools/helpers';
+import { getUnrelinquishedVoteRecords } from '../utils/governanceTools/models/api';
 import GetGovernanceFromRulesView from './GetGovernanceFromRules';
 
 import WalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -76,6 +80,17 @@ function shortenPk(pk: string, n = 4) {
   if (!pk) return '';
   if (pk.length <= n * 2 + 3) return pk;
   return `${pk.slice(0, n)}...${pk.slice(-n)}`;
+}
+
+function toBase58Safe(value: any): string {
+  try {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (value?.toBase58) return value.toBase58();
+    return new PublicKey(value).toBase58();
+  } catch {
+    return '';
+  }
 }
 
 function toNumberSafe(value: any): number {
@@ -268,11 +283,13 @@ export function MyGovernanceView(props: any) {
   const [preferredDomain, setPreferredDomain] = React.useState('');
   const [domainsLoading, setDomainsLoading] = React.useState(false);
   const [loadingGovernance, setLoadingGovernance] = React.useState(false);
+  const [relinquishingAllVotes, setRelinquishingAllVotes] = React.useState(false);
+  const [relinquishProgressLabel, setRelinquishProgressLabel] = React.useState('');
   const [refresh, setRefresh] = React.useState(true);
   const [tab, setTab] = React.useState<0 | 1 | 2>(0);
   const [touched, setTouched] = React.useState(false);
 
-  const { publicKey } = useWallet();
+  const { publicKey, sendTransaction } = useWallet();
   const { enqueueSnackbar } = useSnackbar();
 
   const isValidPubkey = React.useMemo(() => {
@@ -757,6 +774,261 @@ export function MyGovernanceView(props: any) {
     }
   }, [preferredDomain, pubkey]);
 
+  const isOwnProfile = React.useMemo(() => {
+    const connectedWallet = publicKey?.toBase58?.();
+    return !!connectedWallet && connectedWallet === pubkey;
+  }, [publicKey, pubkey]);
+
+  const handleRelinquishAllVotes = React.useCallback(async () => {
+    if (!publicKey || !sendTransaction) {
+      enqueueSnackbar('Connect wallet to relinquish votes.', { variant: 'warning' });
+      return;
+    }
+
+    const connectedWallet = publicKey.toBase58();
+    if (connectedWallet !== pubkey) {
+      enqueueSnackbar('Relinquish is only available for your connected profile.', { variant: 'warning' });
+      return;
+    }
+
+    const ownerRecords = (tokenOwnerRecords || []).filter(
+      (record) => toBase58Safe(record?.account?.governingTokenOwner) === connectedWallet
+    );
+
+    if (!ownerRecords.length) {
+      enqueueSnackbar('No token owner records found for this wallet.', { variant: 'info' });
+      return;
+    }
+
+    setRelinquishingAllVotes(true);
+    setRelinquishProgressLabel('Preparing vote records...');
+    try {
+      const builtInstructions: TransactionInstruction[] = [];
+      const voteRecordSeen = new Set<string>();
+      const proposalMapCache = new Map<string, Map<string, any>>();
+
+      let candidateVotes = 0;
+      let buildFailures = 0;
+
+      const getProposalMapForRealm = async (realmPkStr: string, programOwnerStr: string) => {
+        const cacheKey = `${programOwnerStr}:${realmPkStr}`;
+        const existing = proposalMapCache.get(cacheKey);
+        if (existing) return existing;
+
+        const programNamespace = findGovOwnerByDao(realmPkStr, programOwnerStr)?.name || programOwnerStr;
+        const realmGovernances = await getAllGovernancesIndexed(realmPkStr, programNamespace);
+        const governancePubkeys = (realmGovernances || [])
+          .map((gov: any) => toBase58Safe(gov?.pubkey))
+          .filter(Boolean);
+
+        const proposalMap = new Map<string, any>();
+        if (governancePubkeys.length > 0) {
+          const proposals = await getAllProposalsIndexed(governancePubkeys, programOwnerStr, realmPkStr);
+          (proposals || []).forEach((proposal: any) => {
+            const proposalPk = toBase58Safe(proposal?.pubkey);
+            if (proposalPk) proposalMap.set(proposalPk, proposal);
+          });
+        }
+
+        proposalMapCache.set(cacheKey, proposalMap);
+        return proposalMap;
+      };
+
+      for (let ownerRecordIndex = 0; ownerRecordIndex < ownerRecords.length; ownerRecordIndex++) {
+        const tokenOwnerRecord = ownerRecords[ownerRecordIndex];
+        setRelinquishProgressLabel(
+          `Scanning records ${ownerRecordIndex + 1}/${ownerRecords.length}...`
+        );
+        const unrelinquishedCount = toNumberSafe(tokenOwnerRecord?.account?.unrelinquishedVotesCount);
+        if (unrelinquishedCount <= 0) continue;
+
+        const tokenOwnerRecordPk = toBase58Safe(tokenOwnerRecord?.pubkey);
+        const realmPkStr = toBase58Safe(tokenOwnerRecord?.account?.realm);
+        const programOwnerStr = toBase58Safe(tokenOwnerRecord?.owner) || DEFAULT_GOV_PROGRAM;
+        const governingMintStr = toBase58Safe(tokenOwnerRecord?.account?.governingTokenMint);
+
+        if (!tokenOwnerRecordPk || !realmPkStr || !governingMintStr) continue;
+
+        const programId = new PublicKey(programOwnerStr);
+        const realmPk = new PublicKey(realmPkStr);
+        const governingMintPk = new PublicKey(governingMintStr);
+
+        let programVersion: any;
+        try {
+          programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
+        } catch (error) {
+          console.log('Unable to fetch governance program version', error);
+          buildFailures += 1;
+          continue;
+        }
+
+        let voteRecords: any[] = [];
+        try {
+          const rpcVoteRecords = await getUnrelinquishedVoteRecords(
+            RPC_CONNECTION,
+            programId,
+            new PublicKey(tokenOwnerRecordPk)
+          );
+          voteRecords = Array.isArray(rpcVoteRecords) ? rpcVoteRecords : [];
+        } catch (error) {
+          console.log('RPC unrelinquished vote lookup failed', error);
+          enqueueSnackbar(
+            `Could not load unrelinquished votes for ${shortenPk(realmPkStr, 4)} (RPC lookup failed).`,
+            { variant: 'warning' }
+          );
+        }
+
+        if (!voteRecords.length) continue;
+
+        const proposalMap = await getProposalMapForRealm(realmPkStr, programOwnerStr);
+
+        for (const voteRecord of voteRecords) {
+          const voteRecordPk = toBase58Safe(voteRecord?.pubkey);
+          if (!voteRecordPk || voteRecordSeen.has(voteRecordPk)) continue;
+
+          const proposalPk = toBase58Safe(voteRecord?.account?.proposal);
+          if (!proposalPk) continue;
+
+          let proposal = proposalMap.get(proposalPk);
+          if (!proposal?.account) {
+            try {
+              const lookedUpProposal = await getProposalNewIndexed(proposalPk, programOwnerStr, realmPkStr);
+              if (lookedUpProposal?.account) {
+                proposal = lookedUpProposal;
+                proposalMap.set(proposalPk, lookedUpProposal);
+              }
+            } catch (error) {
+              console.log('Per-proposal fallback lookup failed', error);
+            }
+          }
+
+          if (!proposal?.account) continue;
+
+          const proposalMint = toBase58Safe(proposal?.account?.governingTokenMint);
+          if (!proposalMint || proposalMint !== governingMintStr) continue;
+
+          const proposalGovernancePk = toBase58Safe(proposal?.account?.governance);
+          if (!proposalGovernancePk) continue;
+
+          candidateVotes += 1;
+          try {
+            await withRelinquishVote(
+              builtInstructions,
+              programId,
+              programVersion,
+              realmPk,
+              new PublicKey(proposalGovernancePk),
+              new PublicKey(proposalPk),
+              new PublicKey(tokenOwnerRecordPk),
+              governingMintPk,
+              new PublicKey(voteRecordPk),
+              publicKey,
+              publicKey
+            );
+            voteRecordSeen.add(voteRecordPk);
+          } catch (error) {
+            console.log('Failed to build relinquish vote instruction', error);
+            buildFailures += 1;
+          }
+        }
+      }
+
+      if (!builtInstructions.length) {
+        setRelinquishProgressLabel('');
+        enqueueSnackbar('No unrelinquished votes found to process.', { variant: 'info' });
+        return;
+      }
+
+      const RELINQUISH_IXS_PER_TX = 4;
+      const WAIT_BETWEEN_BATCH_MS = 10_000;
+      let succeeded = 0;
+      let failed = buildFailures;
+      const totalBatches = Math.ceil(builtInstructions.length / RELINQUISH_IXS_PER_TX);
+
+      setRelinquishProgressLabel(
+        `Prepared ${builtInstructions.length} vote(s). Sending ${totalBatches} batch${totalBatches === 1 ? '' : 'es'}...`
+      );
+
+      const waitWithCountdown = async (ms: number, batchCompleted: number, total: number) => {
+        const seconds = Math.max(1, Math.ceil(ms / 1000));
+        for (let left = seconds; left > 0; left--) {
+          setRelinquishProgressLabel(
+            `Batch ${batchCompleted}/${total} confirmed. Next batch in ${left}s...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      };
+
+      const sendInstructionChunk = async (chunk: TransactionInstruction[]) => {
+        const transaction = new Transaction().add(...chunk);
+        const signature = await sendTransaction(transaction, RPC_CONNECTION, {
+          skipPreflight: false,
+          preflightCommitment: 'confirmed',
+        });
+
+        const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
+        await RPC_CONNECTION.confirmTransaction(
+          {
+            blockhash: latestBlockHash.blockhash,
+            lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+            signature,
+          },
+          'confirmed'
+        );
+      };
+
+      for (let i = 0; i < builtInstructions.length; i += RELINQUISH_IXS_PER_TX) {
+        const chunk = builtInstructions.slice(i, i + RELINQUISH_IXS_PER_TX);
+        const batchNumber = Math.floor(i / RELINQUISH_IXS_PER_TX) + 1;
+        setRelinquishProgressLabel(
+          `Submitting batch ${batchNumber}/${totalBatches} (${chunk.length} vote${chunk.length === 1 ? '' : 's'})...`
+        );
+        try {
+          await sendInstructionChunk(chunk);
+          succeeded += chunk.length;
+        } catch (error) {
+          console.log('Relinquish batch transaction failed; falling back to single instruction sends', error);
+          // Recover progress by trying each instruction separately.
+          for (let itemIndex = 0; itemIndex < chunk.length; itemIndex++) {
+            const singleIx = chunk[itemIndex];
+            setRelinquishProgressLabel(
+              `Batch ${batchNumber}/${totalBatches} failed. Retrying ${itemIndex + 1}/${chunk.length} individually...`
+            );
+            try {
+              await sendInstructionChunk([singleIx]);
+              succeeded += 1;
+            } catch (singleError) {
+              console.log('Relinquish single-instruction transaction failed', singleError);
+              failed += 1;
+            }
+          }
+        }
+
+        if (batchNumber < totalBatches) {
+          await waitWithCountdown(WAIT_BETWEEN_BATCH_MS, batchNumber, totalBatches);
+        }
+      }
+
+      if (succeeded > 0) {
+        enqueueSnackbar(`Relinquished ${succeeded} vote(s).`, { variant: 'success' });
+        setRefresh(true);
+      }
+      if (failed > 0) {
+        enqueueSnackbar(`${failed} vote relinquish operation(s) failed.`, { variant: 'warning' });
+      }
+      if (candidateVotes === 0) {
+        enqueueSnackbar('No valid vote records matched your token-owner records.', { variant: 'info' });
+      }
+      setRelinquishProgressLabel('');
+    } catch (error: any) {
+      console.error('Relinquish all votes failed', error);
+      enqueueSnackbar(error?.message || 'Failed to relinquish votes.', { variant: 'error' });
+      setRelinquishProgressLabel('');
+    } finally {
+      setRelinquishingAllVotes(false);
+    }
+  }, [enqueueSnackbar, pubkey, publicKey, sendTransaction, tokenOwnerRecords]);
+
   const profileInsights = React.useMemo(() => {
     const daoCount = governanceRecordRows.length;
     const councilCount = governanceRecordRows.filter((row) => row.memberType === 'council').length;
@@ -1192,6 +1464,33 @@ export function MyGovernanceView(props: any) {
                     >
                       {loadingGovernance ? 'Loading...' : 'Load'}
                     </Button>
+
+                    {isOwnProfile ? (
+                      <Stack spacing={0.5}>
+                        <Button
+                          variant="outlined"
+                          color="warning"
+                          disabled={
+                            loadingGovernance ||
+                            relinquishingAllVotes ||
+                            profileInsights.totalUnrelinquished <= 0
+                          }
+                          onClick={handleRelinquishAllVotes}
+                          sx={{ borderRadius: 999, whiteSpace: 'nowrap' }}
+                        >
+                          {relinquishingAllVotes ? 'Relinquishing...' : 'Relinquish All Votes'}
+                        </Button>
+                        {relinquishingAllVotes && relinquishProgressLabel ? (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ maxWidth: 280, textAlign: { xs: 'left', sm: 'right' } }}
+                          >
+                            {relinquishProgressLabel}
+                          </Typography>
+                        ) : null}
+                      </Stack>
+                    ) : null}
                   </Stack>
                 </Grid>
               </Grid>
