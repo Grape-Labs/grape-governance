@@ -6,14 +6,26 @@ const ASSET_CACHE = `${CACHE_PREFIX}-assets`;
 importScripts('https://storage.googleapis.com/workbox-cdn/releases/5.1.2/workbox-sw.js');
 
 const FIREBASE_CONFIG = {
-  apiKey: 'AIzaSyD4fhk-i2FR4lm6EWlz05Bypj8LRq7r_CA',
-  authDomain: 'grp-gov-push.firebaseapp.com',
-  projectId: 'grp-gov-push',
-  storageBucket: 'grp-gov-push.appspot.com',
-  messagingSenderId: '55096092431',
-  appId: '1:55096092431:web:b58de51bbb7c3f3c0cc07a',
-  measurementId: 'G-6CNWJLWFQK',
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APPID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
 };
+
+function hasFirebaseConfig(config) {
+  return Boolean(
+    config &&
+      config.apiKey &&
+      config.authDomain &&
+      config.projectId &&
+      config.storageBucket &&
+      config.messagingSenderId &&
+      config.appId
+  );
+}
 
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") {
@@ -25,7 +37,7 @@ try {
   importScripts('https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js');
   importScripts('https://www.gstatic.com/firebasejs/10.10.0/firebase-messaging-compat.js');
 
-  if (self.firebase && !self.firebase.apps.length) {
+  if (self.firebase && !self.firebase.apps.length && hasFirebaseConfig(FIREBASE_CONFIG)) {
     self.firebase.initializeApp(FIREBASE_CONFIG);
   }
 

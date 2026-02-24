@@ -1,19 +1,29 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
-import { VAPID_KEY } from '../utils/grapeTools/constants';
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyD4fhk-i2FR4lm6EWlz05Bypj8LRq7r_CA',
-  authDomain: 'grp-gov-push.firebaseapp.com',
-  projectId: 'grp-gov-push',
-  storageBucket: 'grp-gov-push.appspot.com',
-  messagingSenderId: '55096092431',
-  appId: '1:55096092431:web:b58de51bbb7c3f3c0cc07a',
-  measurementId: 'G-6CNWJLWFQK',
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APPID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
 };
 
-const firebaseApp = initializeApp(firebaseConfig);
-const messaging = getMessaging(firebaseApp);
+const hasFirebaseConfig = Boolean(
+  firebaseConfig.apiKey &&
+    firebaseConfig.authDomain &&
+    firebaseConfig.projectId &&
+    firebaseConfig.storageBucket &&
+    firebaseConfig.messagingSenderId &&
+    firebaseConfig.appId
+);
+
+const vapidKey = process.env.REACT_APP_FIREBASE_VAPID_KEY;
+
+const firebaseApp = hasFirebaseConfig ? initializeApp(firebaseConfig) : null;
+const messaging = firebaseApp ? getMessaging(firebaseApp) : null;
 
 async function getMessagingServiceWorkerRegistration() {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return undefined;
@@ -27,9 +37,15 @@ async function getMessagingServiceWorkerRegistration() {
 
 export const fetchToken = async (setTokenFound) => {
   try {
+    if (!messaging || !vapidKey) {
+      if (typeof setTokenFound === 'function') setTokenFound(false);
+      console.warn('Firebase messaging is not configured. Missing Firebase config or VAPID key.');
+      return null;
+    }
+
     const serviceWorkerRegistration = await getMessagingServiceWorkerRegistration();
     const currentToken = await getToken(messaging, {
-      vapidKey: VAPID_KEY,
+      vapidKey,
       serviceWorkerRegistration,
     });
 
@@ -50,13 +66,20 @@ export const fetchToken = async (setTokenFound) => {
 };
 
 export const onMessageListener = () =>
-  new Promise((resolve) => {
+  new Promise((resolve, reject) => {
+    if (!messaging) {
+      reject(new Error('Firebase messaging is not configured.'));
+      return;
+    }
     onMessage(messaging, (payload) => {
       resolve(payload);
     });
   });
 
 export const listenForForegroundMessages = (handler) => {
+  if (!messaging) {
+    return () => {};
+  }
   return onMessage(messaging, (payload) => {
     if (typeof handler === 'function') handler(payload);
   });
