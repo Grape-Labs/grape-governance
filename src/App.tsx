@@ -53,7 +53,8 @@ import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { Helmet } from 'react-helmet';
 
-import { fetchToken, onMessageListener } from './firebaseNotifications/firebase';
+import { listenForForegroundMessages } from './firebaseNotifications/firebase';
+import { enableRealmPushNotifications } from './firebaseNotifications/realmPush';
 
 import { 
   CREATOR_LOGO,
@@ -144,25 +145,7 @@ function Copyright(props: any): JSX.Element {
 
 function DashboardContent() {
   const [open, setOpen] = React.useState(true);
-
-  const [isTokenFound, setTokenFound] = React.useState(false);
-  /*
-  try{
-    //fetchToken(setTokenFound);
-
-    onMessageListener().then(payload => {
-      //setNotification({title: payload.notification.title, body: payload.notification.body})
-      //setShow(true);
-      console.log(payload);
-    }).catch(err => console.log('failed: ', err));
-  }catch(e){
-    console.log("ERR: "+e);
-  }*/
-
-  const onShowNotificationClicked = () => {
-    //setNotification({title: "Notification", body: "This is a test notification"})
-    //setShow(true);
-  }
+  const REALM_PUSH_REALM = 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip';
   
   const toggleDrawer = () => {
     setOpen(!open);
@@ -185,35 +168,47 @@ function DashboardContent() {
   
   const renderLoader = () => <p>Loading</p>;
 
-  function askNotificationPermission() {
-    // function to actually ask the permissions
-    function handlePermission(permission:any) {
-      // set the button to shown or hidden, depending on what the user answers
-      //notificationBtn.style.display =
-      const perms =  
-      Notification.permission === "granted" ? "none" : "block";
-      //alert(perms);
-      console.log("Notification Permissions: "+perms);
-    }
-  
-    // Let's check if the browser supports notifications
-    if (!("Notification" in window)) {
-      console.log("This browser does not support notifications.");
-    } else {
-      Notification.requestPermission().then((permission) => {
-        handlePermission(permission);
-      });
-    }
-  }
-
   React.useEffect(() => {
-    try{
-      askNotificationPermission();
-    }catch(e){
-      console.log("Err: "+e);
-    }
+    let unsubscribe: null | (() => void) = null;
+
+    void (async () => {
+      try {
+        await enableRealmPushNotifications(REALM_PUSH_REALM);
+      } catch (error) {
+        console.warn('Failed to enable realm push notifications', error);
+      }
+
+      try {
+        unsubscribe = listenForForegroundMessages((payload: any) => {
+          const title = payload?.notification?.title || 'Governance Update';
+          const body = payload?.notification?.body || '';
+          const icon = payload?.notification?.image || '/icons/icon-192x192.png';
+          const link = payload?.data?.link || payload?.fcmOptions?.link || null;
+
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            const notification = new Notification(title, {
+              body,
+              icon,
+              data: link ? { link } : undefined,
+            });
+
+            if (link) {
+              notification.onclick = () => {
+                window.location.assign(link);
+              };
+            }
+          }
+        });
+      } catch (error) {
+        console.warn('Failed to bind foreground message listener', error);
+      }
+    })();
+
     inject();
-}, []);
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, []);
 
   return (
     <>
