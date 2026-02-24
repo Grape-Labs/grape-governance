@@ -4,7 +4,6 @@
   "buildCommand": "yarn build:client",
   "outputDirectory": "dist",
   "crons": [
-    { "path": "/api/notifications-scan", "schedule": "*/2 * * * *" }
   ],
 
   "rewrites": [
