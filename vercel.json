@@ -4,7 +4,6 @@
   "buildCommand": "yarn build:client",
   "outputDirectory": "dist",
   "crons": [
-    { }
   ],
 
   "rewrites": [
