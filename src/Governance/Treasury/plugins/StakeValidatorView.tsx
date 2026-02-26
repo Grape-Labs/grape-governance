@@ -165,6 +165,7 @@ const extractInstruction = (result: any): TransactionInstruction => {
 
 // ========== Jito MEV Harvest Constants ==========
 const STAKE_RENT_EXEMPT_LAMPORTS = 2282880; // Rent-exempt minimum for a stake account
+const HARVEST_MAX_IXS_PER_CHUNK = 4; // Keep independent withdraw batches small
 
 export default function StakeValidatorView(props: any){
     const setReload = props?.setReload;
@@ -280,6 +281,18 @@ export default function StakeValidatorView(props: any){
     const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
         setTabValue(newValue);
     };
+
+    const getAtomicProposalTxConfig = (ixCount: number) => ({
+        proposalInstructionChunkBy: Math.max(1, ixCount),
+        allowMissingAccountsPreflight: true,
+        useVersionedTransactions: true,
+    });
+
+    const getChunkedProposalTxConfig = (ixCount: number) => ({
+        proposalInstructionChunkBy: Math.max(1, Math.min(HARVEST_MAX_IXS_PER_CHUNK, ixCount)),
+        allowMissingAccountsPreflight: true,
+        useVersionedTransactions: true,
+    });
 
     // Helper function to split instructions into chunks
     const chunkInstructions = (instructions: TransactionInstruction[], chunkSize: number) => {
@@ -854,6 +867,7 @@ export default function StakeValidatorView(props: any){
                 description: proposalDescription || `Withdraw ${totalSol.toFixed(4)} SOL of excess MEV rewards from ${selected.length} stake account(s) to the governance treasury.`,
                 ix: ixs,
                 aix: [],
+                ...getChunkedProposalTxConfig(ixs.length),
                 nativeWallet: governanceNativeWallet,
                 governingMint: governingMint,
                 draft: isDraft,
@@ -905,6 +919,7 @@ export default function StakeValidatorView(props: any){
                 description: proposalDescription || `Staking ${stakeAmount} SOL to validator ${validatorVoteAddress}`,
                 ix: stakingIxs,
                 aix: [],
+                ...getAtomicProposalTxConfig(stakingIxs.length),
                 nativeWallet: governanceNativeWallet,
                 governingMint: governingMint,
                 draft: isDraft,
@@ -941,6 +956,7 @@ export default function StakeValidatorView(props: any){
                 description: proposalDescription || `Deactivate stake account ${stakeAccountAddress}`,
                 ix: deactivateIxs,
                 aix: [],
+                ...getAtomicProposalTxConfig(deactivateIxs.length),
                 nativeWallet: governanceNativeWallet,
                 governingMint: governingMint,
                 draft: isDraft,
@@ -983,6 +999,7 @@ export default function StakeValidatorView(props: any){
                     ),
                 ix: withdrawIxs,
                 aix: [],
+                ...getAtomicProposalTxConfig(withdrawIxs.length),
                 nativeWallet: governanceNativeWallet,
                 governingMint: governingMint,
                 draft: isDraft,
@@ -1148,6 +1165,7 @@ export default function StakeValidatorView(props: any){
                         description: proposalDescription || `Split ${parsedUnstakeAmount} SOL from stake account ${unstakeAddress} and deactivate`,
                         ix: splitDeactivateIxs,
                         aix: [],
+                        ...getAtomicProposalTxConfig(splitDeactivateIxs.length),
                         nativeWallet: governanceNativeWallet,
                         governingMint: governingMint,  
                         draft: isDraft,
