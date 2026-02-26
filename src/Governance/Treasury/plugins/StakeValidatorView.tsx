@@ -905,7 +905,6 @@ export default function StakeValidatorView(props: any){
                 description: proposalDescription || `Staking ${stakeAmount} SOL to validator ${validatorVoteAddress}`,
                 ix: stakingIxs,
                 aix: [],
-                proposalInstructionChunkBy: stakingIxs.length,
                 nativeWallet: governanceNativeWallet,
                 governingMint: governingMint,
                 draft: isDraft,

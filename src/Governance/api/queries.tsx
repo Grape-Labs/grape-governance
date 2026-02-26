@@ -788,9 +788,8 @@ function GET_QUERY_ALL_TOKEN_OWNER_RECORDS(owner:string, realmOwner?:string){
 
 export const getProposalInstructionsIndexed = async (filterRealm?: string, proposalPk?: string) => {
     const programId = findGovOwnerByDao(filterRealm)?.owner;
-    const allProposalIx = [];
-
-    let fallbackToRPC = false;
+    const allProposalIx: any[] = [];
+    const rpcProposalIx: any[] = [];
 
     try {
         const { data } = await client.query({
@@ -826,28 +825,38 @@ export const getProposalInstructionsIndexed = async (filterRealm?: string, propo
                 });
             }
         }
-
-        // Indexer can be temporarily stale right after proposal creation.
-        // Verify via RPC when GraphQL returns no proposal transactions.
-        if (allProposalIx.length === 0) {
-            fallbackToRPC = true;
-        }
     } catch (e) {
-        console.warn("GraphQL error for ProposalInstructions — falling back to RPC:", e);
-        fallbackToRPC = true;
+        console.warn("GraphQL error for ProposalInstructions — will merge RPC results:", e);
     }
 
-    if (fallbackToRPC) {
+    try {
         const rpcResults = await getGovernanceAccounts(
             RPC_CONNECTION,
             new PublicKey(programId),
             ProposalTransaction,
             [pubkeyFilter(1, new PublicKey(proposalPk))!]
         );
-        allProposalIx.push(...rpcResults);
+        rpcProposalIx.push(...rpcResults);
+    } catch (e) {
+        console.warn("RPC error for ProposalInstructions:", e);
     }
 
-    return allProposalIx;
+    // Merge GraphQL + RPC and prefer RPC rows (authoritative on-chain state).
+    const mergedByPubkey = new Map<string, any>();
+
+    for (const gqlItem of allProposalIx) {
+        const key = gqlItem?.pubkey?.toBase58?.() || `${gqlItem?.pubkey ?? ''}`;
+        if (!key) continue;
+        mergedByPubkey.set(key, gqlItem);
+    }
+
+    for (const rpcItem of rpcProposalIx) {
+        const key = rpcItem?.pubkey?.toBase58?.() || `${rpcItem?.pubkey ?? ''}`;
+        if (!key) continue;
+        mergedByPubkey.set(key, rpcItem);
+    }
+
+    return Array.from(mergedByPubkey.values());
 };
 
 export const getRealmsIndexed = async (programId?:string) => {

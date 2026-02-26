@@ -27,11 +27,11 @@ import BN from 'bn.js'
 import { BorshCoder } from "@coral-xyz/anchor";
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
-import { 
+import {
     AccountLayout,
     getMint, 
     TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token-v2";
-import { PublicKey, TokenAmount, Connection, TransactionInstruction, Transaction } from '@solana/web3.js';
+import { PublicKey, TokenAmount, Connection, TransactionInstruction, Transaction, SystemInstruction } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
 import React, { useCallback } from 'react';
@@ -1197,10 +1197,25 @@ export function GovernanceProposalV2View(props: any){
                     thisitem.account.options.some(
                         (option: any) => Number(option?.instructionsCount || 0) > 0
                     );
+                const expectedInstructionCount =
+                    Array.isArray(thisitem?.account?.options)
+                        ? thisitem.account.options.reduce(
+                              (sum: number, option: any) => sum + Number(option?.instructionsCount || 0),
+                              0
+                          )
+                        : 0;
+                const cachedInstructionCount = Array.isArray(thisitem?.instructions)
+                    ? thisitem.instructions.length
+                    : 0;
+                const hasLikelyStaleInstructionCache =
+                    expectedInstructionCount > 0 &&
+                    cachedInstructionCount > 0 &&
+                    cachedInstructionCount < expectedInstructionCount;
                 
                 if (
                     !Array.isArray(thisitem?.instructions) ||
-                    (hasIndexedInstructionHint && thisitem.instructions.length === 0)
+                    (hasIndexedInstructionHint && thisitem.instructions.length === 0) ||
+                    hasLikelyStaleInstructionCache
                 ) {
 
                     setLoadingMessage("Loading Proposal Instructions...");
@@ -1368,8 +1383,38 @@ export function GovernanceProposalV2View(props: any){
                                     //if (instructionItem?.account?.instructions[0].data && instructionItem.account.instructions[0].data.length > 0){
                                         const typeOfInstruction = accountInstruction.data[0];
                                         //console.log("instructionDetails "+JSON.stringify(instructionDetails))
-                                        const programId = new PublicKey(instructionItem?.account?.instructions[0].programId).toBase58();
+                                        let programId = "";
+                                        try {
+                                            programId = new PublicKey(
+                                                accountInstruction?.programId ||
+                                                    instructionItem?.account?.instructions?.[0]?.programId
+                                            ).toBase58();
+                                        } catch {
+                                            programId = "";
+                                        }
                                         const instructionInfo = InstructionMapping?.[programId]?.[typeOfInstruction];
+                                        const instructionPubkey =
+                                            instructionItem?.pubkey?.toBase58?.() || `${instructionItem?.pubkey ?? ""}`;
+                                        const instructionSourcePubkey =
+                                            accountInstruction?.accounts?.[0]?.pubkey?.toBase58?.() ||
+                                            `${accountInstruction?.accounts?.[0]?.pubkey ?? ""}`;
+                                        const instructionDataHex = Buffer.from(accountInstruction?.data || []).toString("hex");
+                                        const instructionDetailKey = `${instructionPubkey}:${programId}:${instructionSourcePubkey}:${instructionDataHex}`;
+                                        const appendInstructionTransferDetail = (newObject: any) => {
+                                            if (!newObject || !setInstructionTransferDetails) return;
+                                            const normalizedObject = {
+                                                ...newObject,
+                                                ix: newObject?.ix || instructionPubkey,
+                                                _detailKey: instructionDetailKey,
+                                            };
+                                            setInstructionTransferDetails((prevArray: any[]) => {
+                                                const existing = Array.isArray(prevArray) ? prevArray : [];
+                                                if (existing.some((obj: any) => obj?._detailKey === instructionDetailKey)) {
+                                                    return existing;
+                                                }
+                                                return [...existing, normalizedObject];
+                                            });
+                                        };
                                         
                                         if (programId === "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"){//(instructionInfo?.name === "Token Transfer"){
 
@@ -1485,16 +1530,7 @@ export function GovernanceProposalV2View(props: any){
                                                 }
                                                 accountInstruction.gai = gai;
                                                 
-                                                if (instructionTransferDetails){
-                                                    const hasInstruction = instructionTransferDetails.some(obj => 
-                                                        obj?.pubkey === instructionItem.account.instructions[0]?.accounts[0]?.pubkey ||
-                                                        obj?.ix === instructionItem?.account?.ix
-                                                    );
-                                                    if (!hasInstruction){
-                                                        //console.log("newObject: "+JSON.stringify(newObject))
-                                                        setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
-                                                    }
-                                                }
+                                                appendInstructionTransferDetail(newObject);
                                             }
                                         } else if (programId === "TbpjRtCg2Z2n2Xx7pFm5HVwsjx9GPJ5MsrfBvCoQRNL"){//(instructionInfo?.name === "Batch Token Transfer"){
 
@@ -1570,18 +1606,13 @@ export function GovernanceProposalV2View(props: any){
                                                 }
                                                 accountInstruction.gai = gai;
                                                 
-                                                const hasInstruction = instructionTransferDetails.some(obj => 
-                                                    obj?.pubkey === instructionItem.account.instructions[0]?.accounts[0]?.pubkey ||
-                                                    obj?.ix === instructionItem?.account?.ix
-                                                );
-                                                
-                                                if (!hasInstruction){
-                                                    //console.log("newObject: "+JSON.stringify(newObject))
-                                                    setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
-                                                }
+                                                appendInstructionTransferDetail(newObject);
                                                 
                                             }
-                                        } else if (programId === "11111111111111111111111111111111"){// SOL Transfer
+                                        } else if (
+                                            programId === "11111111111111111111111111111111" &&
+                                            (typeOfInstruction === 2 || typeOfInstruction === 11)
+                                        ){// SOL Transfer / TransferWithSeed
 
                                             // check if we have this in gai
                                             let gai = null;
@@ -1605,13 +1636,18 @@ export function GovernanceProposalV2View(props: any){
                                                     
                                                     const amountBuffer = accountInstruction?.data.slice(4, 12);
                                                     const amountBN = new BN(amountBuffer, 'le');
-                                                    const lamports = amountBN.toNumber();
+                                                    const lamports = amountBN.toString();
                                                     console.log("Lamports: ",lamports);
                                                     // Convert lamports to SOL (1 SOL = 1,000,000,000 lamports)
-                                                    const solAmount = lamports / 1_000_000_000;
-                                                    let amount = (solAmount % 1 === 0)
-                                                        ? solAmount.toLocaleString() // No decimals, just format as integer
-                                                        : solAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+                                                    const solAmountString = toDecimalAmount(amountBN, 9);
+                                                    const solAmountNumber = Number(solAmountString);
+                                                    let amount = Number.isFinite(solAmountNumber)
+                                                        ? (
+                                                            solAmountNumber % 1 === 0
+                                                                ? solAmountNumber.toLocaleString()
+                                                                : solAmountNumber.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })
+                                                        )
+                                                        : solAmountString;
 
                                                     let symbol = "SOL";
                                                     newObject = {
@@ -1621,7 +1657,7 @@ export function GovernanceProposalV2View(props: any){
                                                         mint: "So11111111111111111111111111111111111111112",//"SOL",//gai?.data.parsed.info.mint,
                                                         name: symbol,
                                                         logoURI: "https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/So11111111111111111111111111111111111111112.png",//tokenMap.get(gai?.data.parsed.info.mint)?.logoURI,
-                                                        amount: parseFloat(amount.replace(/,/g, '')), //amount,
+                                                        amount: Number.isFinite(solAmountNumber) ? solAmountNumber : 0,
                                                         data: accountInstruction.data,
                                                         destinationAta:accountInstruction.accounts[1].pubkey,
                                                         description:amount+' '+symbol+' to '+accountInstruction.accounts[1].pubkey,
@@ -1633,17 +1669,7 @@ export function GovernanceProposalV2View(props: any){
                                                     console.log("ERR: "+e);
                                                 }
                                                 accountInstruction.gai = gai;
-                                                
-                                                const hasInstruction = instructionTransferDetails.some(obj => 
-                                                    obj?.pubkey === instructionItem.account.instructions[0]?.accounts[0]?.pubkey ||
-                                                    obj?.ix === instructionItem?.account?.ix
-                                                );
-                                                
-                                                if (!hasInstruction){
-                                                    //console.log("newObject: "+JSON.stringify(newObject))
-
-                                                    setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
-                                                }
+                                                appendInstructionTransferDetail(newObject);
                                                 
                                             }
                                         } else if (programId === "DCA265Vj8a9CEuX1eb1LWRnDT7uK6q1xMipnNyatn23M"){
@@ -1893,16 +1919,7 @@ export function GovernanceProposalV2View(props: any){
                                                 accountInstruction.info = newObject;
 
                                                 //if (amount > 0){
-                                                    const hasInstruction = instructionTransferDetails.some(obj => 
-                                                        obj?.pubkey === instructionItem.account.instructions[0]?.accounts[0]?.pubkey ||
-                                                        obj?.ix === instructionItem?.account?.ix
-                                                    );
-                                                    
-                                                    if (!hasInstruction){
-                                                        //console.log("newObject: "+JSON.stringify(newObject))
-
-                                                        setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
-                                                    }
+                                                    appendInstructionTransferDetail(newObject);
                                                 //}
                                             }
                                         } else if (programId === "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"){
@@ -1963,11 +1980,7 @@ export function GovernanceProposalV2View(props: any){
                                                 };
                                                 accountInstruction.info = newObject;
 
-                                                const hasInstruction = instructionTransferDetails.some(obj =>
-                                                    obj?.pubkey === instructionItem.account.instructions[0]?.accounts[0]?.pubkey ||
-                                                    obj?.ix === instructionItem?.account?.ix
-                                                );
-                                                if (!hasInstruction) setInstructionTransferDetails(prev => [...prev, newObject]);
+                                                appendInstructionTransferDetail(newObject);
                                                 } catch (e) {
                                                 console.log("Token-2022 ERR:", e);
                                                 }
@@ -2188,7 +2201,7 @@ export function GovernanceProposalV2View(props: any){
                                                     description: `CreateAccount ${shortPk(newAcc)} funded by ${shortPk(funder)} with ${formatAmount(solStr)} SOL, space ${space.toString()} bytes`,
                                                     data: accountInstruction.data,
                                                     };
-                                                } else if (tag === 3 /* Assign */) {
+                                                } else if (tag === 1 /* Assign */) {
                                                     const account = accountInstruction.accounts[0]?.pubkey;
                                                     const programOwner = accountInstruction.accounts[1]?.pubkey;
                                                     accountInstruction.info = {
@@ -2199,6 +2212,40 @@ export function GovernanceProposalV2View(props: any){
                                                     description: `Assign ${shortPk(account)} to program ${shortPk(programOwner)}`,
                                                     data: accountInstruction.data,
                                                     };
+                                                } else if (tag === 3 /* CreateAccountWithSeed */) {
+                                                    try {
+                                                        const ix = new TransactionInstruction({
+                                                            programId: new PublicKey(programId),
+                                                            keys: (accountInstruction.accounts || []).map((key: any) => ({
+                                                                pubkey: new PublicKey(key.pubkey),
+                                                                isSigner: !!key.isSigner,
+                                                                isWritable: !!key.isWritable,
+                                                            })),
+                                                            data: Buffer.from(accountInstruction.data || []),
+                                                        });
+                                                        const decoded = SystemInstruction.decodeCreateWithSeed(ix as any);
+                                                        const lamportsBN = new BN(decoded.lamports.toString());
+                                                        const solStr = toDecimalAmount(lamportsBN, 9);
+                                                        accountInstruction.info = {
+                                                            type: "SystemProgram",
+                                                            op: "CreateAccountWithSeed",
+                                                            newAccount: decoded.newAccountPubkey?.toBase58?.() || accountInstruction.accounts?.[1]?.pubkey,
+                                                            base: decoded.basePubkey?.toBase58?.() || accountInstruction.accounts?.[0]?.pubkey,
+                                                            ownerProgram: decoded.programId?.toBase58?.(),
+                                                            seed: decoded.seed,
+                                                            lamports: decoded.lamports?.toString?.(),
+                                                            space: decoded.space?.toString?.(),
+                                                            description: `CreateAccountWithSeed ${shortPk(decoded.newAccountPubkey?.toBase58?.())} with ${formatAmount(solStr)} SOL`,
+                                                            data: accountInstruction.data,
+                                                        };
+                                                    } catch {
+                                                        accountInstruction.info = {
+                                                            type: "SystemProgram",
+                                                            op: "CreateAccountWithSeed",
+                                                            description: `CreateAccountWithSeed for ${shortPk(accountInstruction.accounts?.[1]?.pubkey)}`,
+                                                            data: accountInstruction.data,
+                                                        };
+                                                    }
                                                 } else if (tag === 11 /* TransferWithSeed */) {
                                                     // layout: u32 instruction + u64 lamports
                                                     const lamports = U64(data, 4);
@@ -3210,10 +3257,21 @@ export function GovernanceProposalV2View(props: any){
     const proposalState = Number(thisitem?.account?.state ?? -1);
     const proposalStateLabel = GOVERNANCE_STATE[proposalState] || "Unknown";
     const proposalTargetLabel = voteType === "Council" ? "Council" : "Community";
+    const proposalTransactionCount = (() => {
+        if (!Array.isArray(proposalInstructions) || proposalInstructions.length === 0) return 0;
+        const nestedTxRows = proposalInstructions?.[0]?.account?.instructions;
+        if (
+            proposalInstructions.length === 1 &&
+            Array.isArray(nestedTxRows) &&
+            nestedTxRows.length > 0 &&
+            nestedTxRows[0]?.account?.instructionIndex !== undefined
+        ) {
+            return nestedTxRows.length;
+        }
+        return proposalInstructions.length;
+    })();
     const proposalInstructionCount =
-        proposalInstructions?.[0]?.account?.instructions?.length > 1
-            ? proposalInstructions[0].account.instructions.length
-            : (proposalInstructions?.length || 0);
+        proposalTransactionCount;
     const isMobile = useMediaQuery('(max-width:600px)');
     const isTablet = useMediaQuery('(max-width:900px)');
     const detailsEmbedHeight = isMobile ? 420 : isTablet ? 560 : 750;
@@ -4538,7 +4596,7 @@ export function GovernanceProposalV2View(props: any){
                                         </ListItemIcon>
                                         <ListItemText primary={<>
                                             Instructions
-                                            &nbsp;{proposalInstructions[0].account.instructions.length > 1 ? proposalInstructions[0].account.instructions.length : proposalInstructions.length}
+                                            &nbsp;{proposalTransactionCount}
                                             </>
                                         } />
                                             {openInstructions ? <ExpandLess /> : <ExpandMoreIcon />}
