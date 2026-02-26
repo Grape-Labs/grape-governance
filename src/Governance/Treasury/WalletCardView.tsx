@@ -145,7 +145,9 @@ import {
     findSubdomains,
     getAllDomains,
     getDomainKeysWithReverses,
+    getHashedName,
     getMultiplePrimaryDomains,
+    getNameAccountKey,
     getTokenizedDomains,
     NAME_PROGRAM_ID,
     performReverseLookup,
@@ -1386,6 +1388,7 @@ export default function WalletCardView(props:any) {
                 let parentCount = 0;
                 let subdomainCount = 0;
                 let subdomainErrors = 0;
+                let ownedChildAccountCount = 0;
                 const seenParents = new Set<string>();
                 for (const parent of rootDomainsForSubLookup) {
                     const parentKey = parent?.key;
@@ -1398,25 +1401,55 @@ export default function WalletCardView(props:any) {
                     parentCount += 1;
 
                     try {
+                        // Only include child name accounts owned by the wallet.
+                        const ownedChildAccounts = await RPC_CONNECTION.getProgramAccounts(NAME_PROGRAM_ID, {
+                            dataSlice: { offset: 0, length: 0 },
+                            filters: [
+                                { memcmp: { offset: 0, bytes: parentKey.toBase58() } },
+                                { memcmp: { offset: 32, bytes: owner.toBase58() } },
+                            ],
+                        });
+                        const ownedChildPubkeys = (ownedChildAccounts || [])
+                            .map((item) => item?.pubkey)
+                            .filter(Boolean) as PublicKey[];
+                        ownedChildAccountCount += ownedChildPubkeys.length;
+
+                        if (!ownedChildPubkeys.length) {
+                            continue;
+                        }
+
+                        await addDomainsByPubkeys(ownedChildPubkeys, false);
+
+                        // Optional label expansion: keep only labels whose derived account is owned by this wallet.
+                        if (!parentDomain) {
+                            continue;
+                        }
+
+                        const ownedChildSet = new Set(ownedChildPubkeys.map((pk) => pk.toBase58()));
                         const subLabels = await findSubdomains(RPC_CONNECTION as any, parentKey);
                         for (const subLabelRaw of subLabels || []) {
                             const subLabel = String(subLabelRaw || '').replace(/\0/g, '').trim().toLowerCase();
                             if (!subLabel) continue;
-                            const fqdn = subLabel.endsWith('.sol')
-                                ? subLabel
-                                : parentDomain
-                                    ? `${subLabel}.${parentDomain}`
-                                    : '';
-                            if (!fqdn) continue;
+
+                            const subHashed = await getHashedName(`\0${subLabel}`);
+                            const subNameAccount = await getNameAccountKey(subHashed, undefined, parentKey);
+                            if (!ownedChildSet.has(subNameAccount.toBase58())) {
+                                continue;
+                            }
+
+                            const fqdn = subLabel.endsWith('.sol') ? subLabel : `${subLabel}.${parentDomain}`;
                             const domain = normalizeDomainName(fqdn);
                             if (domain) {
-                                subdomainCount += 1;
+                                const before = sdkDiscoveredNames.size;
                                 sdkDiscoveredNames.add(domain);
+                                if (sdkDiscoveredNames.size > before) {
+                                    subdomainCount += 1;
+                                }
                             }
                         }
                     } catch (e) {
                         subdomainErrors += 1;
-                        console.log('findSubdomains lookup error', e);
+                        console.log('subdomain owner-filtered lookup error', e);
                     }
                 }
                 addDebugSource(
@@ -1425,7 +1458,7 @@ export default function WalletCardView(props:any) {
                     subdomainCount,
                     Date.now() - subdomainsStart,
                     subdomainErrors > 0 ? `${subdomainErrors} parent lookups failed` : undefined,
-                    `parents=${parentCount};failedParents=${subdomainErrors}`,
+                    `parents=${parentCount};ownedChildAccounts=${ownedChildAccountCount};failedParents=${subdomainErrors}`,
                 );
 
                 addDebugSource('sns:total', true, sdkDiscoveredNames.size, Date.now() - snsStart);
