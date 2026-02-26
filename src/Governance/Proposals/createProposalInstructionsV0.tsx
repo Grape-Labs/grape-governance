@@ -84,6 +84,7 @@ export async function createProposalInstructionsV0(
     useDenyOption?: boolean
     maxVoterOptions?: number
     maxWinningOptions?: number
+    instructionChunkBy?: number
     optionInstructionSets?: Array<{
       optionIndex: number
       holdUpTime?: number
@@ -254,14 +255,29 @@ export async function createProposalInstructionsV0(
   const chunkSize =
     Math.min(...all.map((x) => x.chunkBy ?? 2)) || 2
 
-  for (const [idx, ix] of all.entries()) {
-    if (ix.prerequisiteInstructions?.length) {
-      prerequisiteInstructions.push(...ix.prerequisiteInstructions)
-    }
-    if (ix.prerequisiteInstructionsSigners?.length) {
-      prerequisiteSigners.push(...ix.prerequisiteInstructionsSigners)
-    }
+  const groupedCoreInstructions: Array<{ holdUpTime: number; items: any[] }> = []
+  for (let idx = 0; idx < all.length; ) {
+    const current = all[idx]
+    const requestedChunk = Math.max(1, Math.floor(Number(current?.chunkBy ?? 1)))
+    const chunk = all.slice(idx, idx + requestedChunk)
 
+    chunk.forEach((item) => {
+      if (item.prerequisiteInstructions?.length) {
+        prerequisiteInstructions.push(...item.prerequisiteInstructions)
+      }
+      if (item.prerequisiteInstructionsSigners?.length) {
+        prerequisiteSigners.push(...item.prerequisiteInstructionsSigners)
+      }
+    })
+
+    groupedCoreInstructions.push({
+      holdUpTime: current.holdUpTime ?? 0,
+      items: chunk.map((item) => item.data).filter(Boolean),
+    })
+    idx += requestedChunk
+  }
+
+  for (const [idx, grouped] of groupedCoreInstructions.entries()) {
     await withInsertTransaction(
       insertInstructions,
       programId,
@@ -272,12 +288,12 @@ export async function createProposalInstructionsV0(
       walletPk,
       idx,
       0,
-      ix.holdUpTime ?? 0,
-      [ix.data],
+      grouped.holdUpTime,
+      grouped.items,
       payer
     )
   }
-  optionInstructionIndexByOption.set(0, all.length)
+  optionInstructionIndexByOption.set(0, groupedCoreInstructions.length)
 
   const optionInstructionSets = Array.isArray(proposalConfig?.optionInstructionSets)
     ? proposalConfig.optionInstructionSets

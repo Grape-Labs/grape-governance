@@ -2634,6 +2634,10 @@ const StakeAccountsView = () => {
                         resolvedOptionInstructionSets.length > 0
                             ? resolvedOptionInstructionSets
                             : undefined,
+                    instructionChunkBy:
+                        typeof instructions?.proposalInstructionChunkBy === "number"
+                            ? Math.max(1, Math.floor(instructions.proposalInstructionChunkBy))
+                            : undefined,
                 };
 
                 const isPollPayload =
@@ -2647,11 +2651,15 @@ const StakeAccountsView = () => {
 
                 try {
                     if (useVersionedTransactions) {
+                        const instructionChunkBy =
+                            typeof instructions?.proposalInstructionChunkBy === "number"
+                                ? Math.max(1, Math.floor(instructions.proposalInstructionChunkBy))
+                                : 1;
                         const instructionsData = proposalIxs.map((ix) => ({
                             data: createInstructionData(ix),
                             holdUpTime: governanceMinInstructionHoldUpTime,
                             prerequisiteInstructions: [],
-                            chunkBy: 1,
+                            chunkBy: instructionChunkBy,
                         }));
 
                         propResponse = await createProposalInstructionsV0(

@@ -365,6 +365,11 @@ export function InstructionTableView(props: any) {
     }
 
     const handleExecuteIx = async(instructionSets:any[]) => {
+        const orderedInstructionSets = [...(instructionSets || [])].sort((a: any, b: any) => {
+            const aIndex = Number(a?.account?.instructionIndex ?? 0);
+            const bIndex = Number(b?.account?.instructionIndex ?? 0);
+            return aIndex - bIndex;
+        });
 
         const programId = new PublicKey(realm.owner);
         let instructions: TransactionInstruction[] = [];
@@ -416,7 +421,7 @@ export function InstructionTableView(props: any) {
                 [...instruction.account?.getAllInstructions()] // Assuming this returns the instructions for this set
             );
         }*/
-       for (const instruction of instructionSets) {
+       for (const instruction of orderedInstructionSets) {
             const proposal = new PublicKey(instruction.account.proposal);
             const proposalTransaction = new PublicKey(instruction.account.pubkey || instruction.pubkey);
 

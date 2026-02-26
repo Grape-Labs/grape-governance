@@ -121,6 +121,7 @@ export async function createProposalInstructionsLegacy(
       useDenyOption?: boolean
       maxVoterOptions?: number
       maxWinningOptions?: number
+      instructionChunkBy?: number
       optionInstructionSets?: Array<{
         optionIndex: number
         holdUpTime?: number
@@ -474,28 +475,32 @@ export async function createProposalInstructionsLegacy(
         instructionData.push(cid);
         
       }
+
+      const instructionChunkBy = Math.max(
+        1,
+        Math.floor(
+          Number.isFinite(Number(proposalConfig?.instructionChunkBy))
+            ? Number(proposalConfig?.instructionChunkBy)
+            : 1
+        )
+      );
+
+      const instructionDataChunks: InstructionData[][] = [];
+      for (let i = 0; i < instructionData.length; i += instructionChunkBy) {
+        instructionDataChunks.push(instructionData.slice(i, i + instructionChunkBy));
+      }
       
 
       let insertedOption0NextIndex = ixCount;
-      for(let j= 0; j < transactionInstr.instructions.length; j++) {
+      for(let j= 0; j < instructionDataChunks.length; j++) {
         
-        //console.log("ixCount: "+ixCount);
-        //console.log("j: "+j);
-        //console.log("At Ix Index: "+(ixCount+j));
-
-        let startTxIndex = startIndex || 0;
-
-        if (startTxIndex > 0){
-          if (ixCount+j > startTxIndex-2)
-            startTxIndex = startTxIndex-2;
-          else
-            startTxIndex = startTxIndex-1;
-        }
+        const startTxIndex = Math.max(0, Number(startIndex || 0));
 
         if (j >= startTxIndex){ // we are adding this in case ix fails and we need to retry with remaining instructions
           
-          console.log("Inserting tx: "+j);
-          console.log("Inserting ix: "+JSON.stringify(instructionData[j]));
+          const chunkData = instructionDataChunks[j];
+          console.log("Inserting tx chunk: "+j);
+          console.log("Inserting ix chunk size: "+chunkData.length);
 
           await withInsertTransaction(
             insertInstructions,
@@ -508,7 +513,7 @@ export async function createProposalInstructionsLegacy(
             ixCount+j-startTxIndex,
             0,
             minInstructionHoldUpTime,
-            [instructionData[j]],
+            chunkData,
             payer
           );
           insertedOption0NextIndex = ixCount + j - startTxIndex + 1;
