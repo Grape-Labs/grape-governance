@@ -158,10 +158,18 @@ export async function getNameAccountKey(
 
 export async function performReverseLookup(connection: Connection, nameAccount: PublicKey): Promise<string> {
   if (typeof snsAny.performReverseLookup === "function") {
-    return snsAny.performReverseLookup(connection, nameAccount);
+    try {
+      return await snsAny.performReverseLookup(connection, nameAccount);
+    } catch {
+      // Fall through to compatible fallback.
+    }
   }
   if (typeof snsAny.reverseLookup === "function") {
-    return snsAny.reverseLookup(connection, nameAccount);
+    try {
+      return await snsAny.reverseLookup(connection, nameAccount);
+    } catch {
+      // Fall through to compatible fallback.
+    }
   }
 
   const hashedReverseLookup = await getHashedName(nameAccount.toBase58());
@@ -179,10 +187,18 @@ export async function performReverseLookupBatch(
   nameAccounts: PublicKey[]
 ): Promise<(string | undefined)[]> {
   if (typeof snsAny.performReverseLookupBatch === "function") {
-    return snsAny.performReverseLookupBatch(connection, nameAccounts);
+    try {
+      return await snsAny.performReverseLookupBatch(connection, nameAccounts);
+    } catch {
+      // Fall through to compatible fallback.
+    }
   }
   if (typeof snsAny.reverseLookupBatch === "function") {
-    return snsAny.reverseLookupBatch(connection, nameAccounts);
+    try {
+      return await snsAny.reverseLookupBatch(connection, nameAccounts);
+    } catch {
+      // Fall through to compatible fallback.
+    }
   }
 
   const reverseLookupAccounts: PublicKey[] = [];
@@ -205,7 +221,11 @@ export async function performReverseLookupBatch(
 
 export async function getAllDomains(connection: Connection, wallet: PublicKey): Promise<PublicKey[]> {
   if (typeof snsAny.getAllDomains === "function") {
-    return snsAny.getAllDomains(connection, wallet);
+    try {
+      return await snsAny.getAllDomains(connection, wallet);
+    } catch {
+      // Fall through to compatible fallback.
+    }
   }
 
   const filters = [
@@ -224,7 +244,11 @@ export async function getDomainKeysWithReverses(
   wallet: PublicKey
 ): Promise<Array<{ pubKey: PublicKey; domain?: string }>> {
   if (typeof snsAny.getDomainKeysWithReverses === "function") {
-    return snsAny.getDomainKeysWithReverses(connection, wallet);
+    try {
+      return await snsAny.getDomainKeysWithReverses(connection, wallet);
+    } catch {
+      // Fall through to compatible fallback.
+    }
   }
 
   const pubkeys = await getAllDomains(connection, wallet);
@@ -237,7 +261,11 @@ export async function getTokenizedDomains(
   owner: PublicKey
 ): Promise<Array<{ key: PublicKey; mint?: PublicKey; reverse?: string }>> {
   if (typeof snsAny.getTokenizedDomains === "function") {
-    return snsAny.getTokenizedDomains(connection, owner);
+    try {
+      return await snsAny.getTokenizedDomains(connection, owner);
+    } catch {
+      // Fall through to compatible fallback.
+    }
   }
   return [];
 }
@@ -247,16 +275,61 @@ export async function getMultiplePrimaryDomains(
   wallets: PublicKey[]
 ): Promise<Array<string | undefined>> {
   if (typeof snsAny.getMultiplePrimaryDomains === "function") {
-    return snsAny.getMultiplePrimaryDomains(connection, wallets);
+    try {
+      return await snsAny.getMultiplePrimaryDomains(connection, wallets);
+    } catch {
+      // Fall through to compatible fallback.
+    }
   }
   return wallets.map(() => undefined);
 }
 
 export async function findSubdomains(connection: Connection, parentKey: PublicKey): Promise<string[]> {
+  let sdkError: unknown;
   if (typeof snsAny.findSubdomains === "function") {
-    return snsAny.findSubdomains(connection, parentKey);
+    try {
+      return await snsAny.findSubdomains(connection, parentKey);
+    } catch (error) {
+      sdkError = error;
+    }
   }
-  return [];
+
+  // Fallback: query child name accounts by parent and reverse-resolve them.
+  const accounts = await connection.getProgramAccounts(NAME_PROGRAM_ID, {
+    filters: [{ memcmp: { offset: 0, bytes: parentKey.toBase58() } }],
+    dataSlice: { offset: 0, length: 0 },
+  });
+
+  const pubkeys = accounts.map((item) => item.pubkey);
+  if (!pubkeys.length) return [];
+
+  const names: (string | undefined)[] = [];
+  try {
+    const batched = await performReverseLookupBatch(connection, pubkeys);
+    names.push(...batched);
+  } catch {
+    for (const pubkey of pubkeys) {
+      try {
+        names.push(await performReverseLookup(connection, pubkey));
+      } catch {
+        names.push(undefined);
+      }
+    }
+  }
+
+  const normalized = Array.from(
+    new Set(
+      names
+        .map((name) => `${name || ""}`.replace(/\0/g, "").trim())
+        .filter(Boolean)
+    )
+  );
+
+  if (sdkError && !normalized.length) {
+    throw sdkError;
+  }
+
+  return normalized;
 }
 
 export function getTwitterRegistry(...args: any[]) {
