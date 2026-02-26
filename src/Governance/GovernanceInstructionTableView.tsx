@@ -372,7 +372,6 @@ export function InstructionTableView(props: any) {
         });
 
         const programId = new PublicKey(realm.owner);
-        let instructions: TransactionInstruction[] = [];
         const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realm.pubkey);
 
         let tokenOwnerRecordPk = null;
@@ -421,23 +420,32 @@ export function InstructionTableView(props: any) {
                 [...instruction.account?.getAllInstructions()] // Assuming this returns the instructions for this set
             );
         }*/
-       for (const instruction of orderedInstructionSets) {
+        if (!orderedInstructionSets.length) {
+            enqueueSnackbar(`No pending instructions found`, { variant: 'warning' });
+            return null;
+        }
+
+        const signatures: string[] = [];
+
+        for (let i = 0; i < orderedInstructionSets.length; i++) {
+            const instruction = orderedInstructionSets[i];
+            const instructionIndex = Number(instruction?.account?.instructionIndex ?? i);
             const proposal = new PublicKey(instruction.account.proposal);
             const proposalTransaction = new PublicKey(instruction.account.pubkey || instruction.pubkey);
 
-            console.log("Preparing Execute Instruction Selected");
-            console.log("Handling instruction for transaction: " + proposalTransaction.toBase58());
-            
-            let txi: InstructionData[] = [];
+            console.log(`Preparing Execute Instruction ${i + 1}/${orderedInstructionSets.length}`);
+            console.log("Handling proposal transaction:", proposalTransaction.toBase58(), "instructionIndex:", instructionIndex);
 
+            let txi: InstructionData[] = [];
             if (typeof instruction.account?.getAllInstructions === 'function') {
                 txi = instruction.account.getAllInstructions();
             } else if (Array.isArray(instruction.account?.instructions)) {
                 txi = instruction.account.instructions;
             }
 
+            const executeIxs: TransactionInstruction[] = [];
             await withExecuteTransaction(
-                instructions,
+                executeIxs,
                 programId,
                 programVersion,
                 governanceRulesWallet,
@@ -445,26 +453,46 @@ export function InstructionTableView(props: any) {
                 proposalTransaction,
                 txi
             );
-        }
-        
-        // with instructions run a transaction and make it rain!!!
-        if (instructions && instructions.length > 0){
-            console.log("Sending "+instructions.length+" transactions");
-            const signature = await createAndSendLargeTransaction(instructions);
-            if (signature){
-                enqueueSnackbar(`Transaction Executed from Proposal - ${signature}`,{ variant: 'success' });
-                //pTransaction.add(lookupTableInst);
-                //pTransaction.feePayer = publicKey;
-                
-                if (setReload) 
-                    setReload(true);
 
-            } else{
-                enqueueSnackbar(`Error`,{ variant: 'error' });
+            if (!executeIxs.length) {
+                enqueueSnackbar(
+                    `Execution halted: no execute instruction built for tx index ${instructionIndex}`,
+                    { variant: 'error' }
+                );
+                break;
             }
-            
-            return null;
+
+            try {
+                const signature = await createAndSendV0TxInline(executeIxs);
+                signatures.push(signature);
+                enqueueSnackbar(
+                    `Executed ${i + 1}/${orderedInstructionSets.length} (index ${instructionIndex})`,
+                    { variant: 'success' }
+                );
+            } catch (e: any) {
+                const errMessage = e?.message || `${e}`;
+                console.error("Execute-all halted on failure", {
+                    instructionIndex,
+                    proposalTransaction: proposalTransaction.toBase58(),
+                    error: errMessage,
+                });
+                enqueueSnackbar(
+                    `Execution halted at index ${instructionIndex}: ${errMessage}`,
+                    { variant: 'error' }
+                );
+                if (setReload) setReload(true);
+                return null;
+            }
         }
+
+        if (signatures.length > 0) {
+            enqueueSnackbar(
+                `Executed ${signatures.length} proposal transaction${signatures.length > 1 ? 's' : ''}`,
+                { variant: 'success' }
+            );
+            if (setReload) setReload(true);
+        }
+        return null;
     }
 
     const handleRemoveIx = async(instructionSets:any[]) => {
@@ -1053,93 +1081,139 @@ export function InstructionTableView(props: any) {
     ]
 
     function findOwnerRecord(destinationAta:any){
-        //console.log("Json: "+JSON.stringify(instructionOwnerRecordATA));
-        const index = instructionOwnerRecordATA.findIndex(key => key.equals(destinationAta));
-        //return index;
-        let owner = destinationAta;
-        if (instructionOwnerRecord[index]?.data?.parsed?.info?.owner){
-            owner = instructionOwnerRecord[index].data?.parsed?.info?.owner
+        try {
+            if (!instructionOwnerRecordATA || !instructionOwnerRecord) {
+                return new PublicKey(destinationAta).toBase58();
+            }
+            const destinationPk = new PublicKey(destinationAta);
+            const index = instructionOwnerRecordATA.findIndex((key: any) => key?.equals?.(destinationPk));
+            let owner = destinationPk.toBase58();
+            if (index >= 0 && instructionOwnerRecord[index]?.data?.parsed?.info?.owner){
+                owner = instructionOwnerRecord[index].data?.parsed?.info?.owner;
+            }
+            return new PublicKey(owner).toBase58();
+        } catch {
+            return `${destinationAta ?? ''}`;
         }
-        return new PublicKey(owner).toBase58();
-
     }
 
     function createIxTable(){
         let ixarr = new Array();
         let ixarray = new Array();
         console.log("proposalIx: "+JSON.stringify(proposalIx));
-        if (proposalIx[0].account.instructions.length > 1){
-            if (proposalIx[0].account.instructions){
-                proposalIx[0].account.instructions.sort((a: any, b: any) => b.account.instructionIndex - a.account.instructionIndex);
-
-                (proposalIx[0].account.instructions).map((item: any, index:number) => (
-                    //for (const member of members){
-                        ixarr.push({
-                            id:index,
-                            index:item.account.instructionIndex,
-                            ix:item.pubkey,
-                            accounts:'',
-                            signers:'',
-                            data:item.account.instructions[0].data,
-                            description:"DA "+item?.account?.instructions[0].info.description,
-                            program: new PublicKey(item?.account?.instructions[0].programId).toBase58(),
-                            verification:item,
-                            status:item.account.executionStatus,
-                            manage:item,
-                            inspector:item
-                        })
-                ));
-            }
-        } else{
-            if (proposalIx){
-
-                // Extract signers
-                
-                proposalIx.sort((a: any, b: any) => b.account.instructionIndex - a.account.instructionIndex);
-            
-                (proposalIx).map((item: any, index:number) => {
-                    
-                    const accounts = item.account.instructions[0].accounts
-                        .filter((account: any) => !account.isSigner)
-                        .map((account: any) => account.pubkey);
-
-                    const signers = item.account.instructions[0].accounts
-                        .filter((account: any) => account.isSigner)
-                        .map((account: any) => account.pubkey);
-                        
-                    let description = '';
-                    if (item?.account?.instructions[0].info?.destinationAta){
-                        description = item?.account?.instructions[0].info.description.replace(new PublicKey(item?.account?.instructions[0].info?.destinationAta.toBase58()), findOwnerRecord(item?.account?.instructions[0].info?.destinationAta));
-                    } else{
-                        description = item?.account?.instructions[0]?.info?.description;
-                    }
-                    //description = item?.account?.instructions[0].info.description + ' > ' + (item?.account?.instructions[0].info?.destinationAta ? findOwnerRecord(item?.account?.instructions[0].info?.destinationAta) : '')
-                    
-                    if (index === 0){
-                        console.log('first ix: '+JSON.stringify(item.account.instructions[0]))
-                    }
-
-                    ixarr.push({
-                        id:index,
-                        index:item.account.instructionIndex,
-                        ix:item.pubkey,
-                        accounts: JSON.stringify(accounts),
-                        signers: signers.join('<br/> '),
-                        data:item.account.instructions[0].data,
-                        description:description,
-                        program: new PublicKey(item?.account?.instructions[0].programId).toBase58(),
-                        //manage:item.account.instructionIndex,
-                        verification:item,
-                        status:item.account.executionStatus,
-                        manage:item,
-                        inspector:item,
-                    })
-
-                    if (item.account.executionStatus === 0)
-                        ixarray.push(item);
-                })
-            }
+        if (!Array.isArray(proposalIx) || proposalIx.length === 0) {
+            setIxRows([]);
+            setInstructionSet([]);
+            return;
         }
+
+        // Some indexed payloads nest proposal transactions under the first item.
+        // Normal path is already a flat array of proposal transactions.
+        const maybeNested = proposalIx[0]?.account?.instructions;
+        const rawTxRows = (
+            Array.isArray(maybeNested) &&
+            maybeNested.length > 0 &&
+            maybeNested[0]?.account?.instructionIndex !== undefined
+        )
+            ? maybeNested
+            : proposalIx;
+
+        const txRows = [...rawTxRows].sort(
+            (a: any, b: any) =>
+                Number(b?.account?.instructionIndex ?? 0) - Number(a?.account?.instructionIndex ?? 0)
+        );
+
+        txRows.map((item: any, index:number) => {
+            const itemInstructions = typeof item?.account?.getAllInstructions === 'function'
+                ? item.account.getAllInstructions()
+                : Array.isArray(item?.account?.instructions)
+                    ? item.account.instructions
+                    : [];
+
+            const allAccounts = itemInstructions.flatMap((ix: any) =>
+                Array.isArray(ix?.accounts) ? ix.accounts : []
+            );
+
+            const accounts = Array.from(new Set(
+                allAccounts
+                    .filter((account: any) => !account?.isSigner)
+                    .map((account: any) =>
+                        account?.pubkey?.toBase58?.() || `${account?.pubkey ?? ''}`
+                    )
+                    .filter((value: string) => !!value)
+            ));
+
+            const signers = Array.from(new Set(
+                allAccounts
+                    .filter((account: any) => !!account?.isSigner)
+                    .map((account: any) =>
+                        account?.pubkey?.toBase58?.() || `${account?.pubkey ?? ''}`
+                    )
+                    .filter((value: string) => !!value)
+            ));
+
+            const descriptions = itemInstructions
+                .map((ix: any) => {
+                    const infoDescription = ix?.info?.description;
+                    if (!infoDescription) return null;
+                    if (ix?.info?.destinationAta) {
+                        try {
+                            const ataStr =
+                                ix.info.destinationAta?.toBase58?.() ||
+                                new PublicKey(ix.info.destinationAta).toBase58();
+                            return infoDescription.replace(ataStr, findOwnerRecord(ix.info.destinationAta));
+                        } catch {
+                            return infoDescription;
+                        }
+                    }
+                    return infoDescription;
+                })
+                .filter(Boolean);
+
+            const description =
+                descriptions.length > 0
+                    ? descriptions.join(" | ")
+                    : `Transaction with ${itemInstructions.length} instruction${itemInstructions.length === 1 ? '' : 's'}`;
+
+            const programIds = Array.from(new Set(
+                itemInstructions
+                    .map((ix: any) => {
+                        try {
+                            return ix?.programId?.toBase58?.()
+                                || (ix?.programId ? new PublicKey(ix.programId).toBase58() : null);
+                        } catch {
+                            return null;
+                        }
+                    })
+                    .filter(Boolean)
+            ));
+
+            const program =
+                programIds.length === 1
+                    ? programIds[0]
+                    : `${programIds.length} programs`;
+
+            const itemPubkey = item?.pubkey?.toBase58?.() || `${item?.pubkey ?? ''}`;
+
+            ixarr.push({
+                id:index,
+                index:Number(item?.account?.instructionIndex ?? index),
+                ix:itemPubkey,
+                accounts: JSON.stringify(accounts),
+                signers: signers.join('<br/> '),
+                data:itemInstructions?.[0]?.data ?? null,
+                description:description,
+                program: program,
+                verification:item,
+                status:item?.account?.executionStatus ?? 0,
+                manage:item,
+                inspector:item,
+            });
+
+            if ((item?.account?.executionStatus ?? 1) === 0)
+                ixarray.push(item);
+        });
+
         setIxRows(ixarr);
         setInstructionSet(ixarray)
     }
