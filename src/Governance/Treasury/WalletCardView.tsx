@@ -143,11 +143,11 @@ import LockIcon from '@mui/icons-material/Lock';
 import { getNativeTreasuryAddress } from '@solana/spl-governance';
 import {
     findSubdomains,
+    getAllDomains,
     getDomainKeysWithReverses,
     getMultiplePrimaryDomains,
     getTokenizedDomains,
     NAME_PROGRAM_ID,
-    ROOT_DOMAIN_ACCOUNT,
     performReverseLookup,
     performReverseLookupBatch,
 } from '../../utils/web3/snsCompat';
@@ -208,6 +208,7 @@ export interface DialogTitleProps {
   }));
 
 export default function WalletCardView(props:any) {
+    const SHOW_DOMAIN_DEBUG = false;
     const [expanded, setExpanded] = React.useState(false);
     const [expandedNft, setExpandedNft] = React.useState(false);
     const [expandedNFTs, setExpandedNFTs] = React.useState(false);
@@ -246,6 +247,8 @@ export default function WalletCardView(props:any) {
     const [realm, setRealm] = React.useState(props?.realm);
     const [nativeDomains, setNativeDomains] = React.useState(null);
     const [rulesDomains, setRulesDomains] = React.useState(null);
+    const [domainDebugByWallet, setDomainDebugByWallet] = React.useState<Record<string, any>>({});
+    const [showDomainDebug, setShowDomainDebug] = React.useState(false);
     const [proposals, setProposals] = React.useState(null);
     const [nativeStakeAccounts, setNativeStakeAccounts] = React.useState(null);
     const [rulesStakeAccounts, setRulesStakeAccounts] = React.useState(null);
@@ -427,6 +430,13 @@ export default function WalletCardView(props:any) {
             return String(a?.name || '').localeCompare(String(b?.name || ''));
         });
     }, [nativeDomains, rulesDomains, normalizeDomainName]);
+
+    const domainDebugEntries = React.useMemo(
+        () =>
+            Object.entries(domainDebugByWallet || {})
+                .filter(([wallet, report]) => !!wallet && !!report),
+        [domainDebugByWallet]
+    );
 
     const toPublicKeySafe = (value: any): PublicKey | null => {
         try {
@@ -1151,7 +1161,45 @@ export default function WalletCardView(props:any) {
                 });
     }
 
-    const getWalletDomains = async(tokenOwnerRecord: PublicKey) => {
+    const getWalletDomains = async(tokenOwnerRecord: PublicKey): Promise<{ domains: Array<{ name: string; isPrimary: boolean }>; debug: any }> => {
+        const ownerAddress = tokenOwnerRecord.toBase58();
+        const startedAtMs = Date.now();
+        const debug = {
+            wallet: ownerAddress,
+            startedAt: new Date(startedAtMs).toISOString(),
+            finishedAt: '',
+            primary: '',
+            sources: [] as Array<{ name: string; ok: boolean; count: number; durationMs: number; error?: string; meta?: string }>,
+            summary: {},
+        };
+
+        const toErrorMessage = (error: any): string => {
+            if (!error) return 'Unknown error';
+            if (typeof error === 'string') return error;
+            if (error?.response?.data?.message) return String(error.response.data.message);
+            if (error?.response?.statusText) return `${error.response.status} ${error.response.statusText}`;
+            if (error?.message) return String(error.message);
+            return String(error);
+        };
+
+        const addDebugSource = (
+            name: string,
+            ok: boolean,
+            count: number,
+            durationMs: number,
+            error?: any,
+            meta?: string,
+        ) => {
+            debug.sources.push({
+                name,
+                ok,
+                count,
+                durationMs,
+                error: error ? toErrorMessage(error) : undefined,
+                meta: meta || undefined,
+            });
+        };
+
         const parseDomainNames = (input: any): string[] => {
             if (!Array.isArray(input)) return [];
 
@@ -1166,6 +1214,7 @@ export default function WalletCardView(props:any) {
         };
 
         const getWalletDomainsFromShyft = async (owner: PublicKey): Promise<string[]> => {
+            const sourceStart = Date.now();
             const uri = `https://api.shyft.to/sol/v1/wallet/get_domains?network=mainnet-beta&wallet=${owner.toBase58()}`;
 
             return axios.get(uri, {
@@ -1175,10 +1224,13 @@ export default function WalletCardView(props:any) {
                     }
                     })
                 .then(response => {
-                    return parseDomainNames(response.data?.result);
+                    const names = parseDomainNames(response.data?.result);
+                    addDebugSource('shyft:get_domains', true, names.length, Date.now() - sourceStart);
+                    return names;
                 })
                 .catch(error => 
                     {   
+                        addDebugSource('shyft:get_domains', false, 0, Date.now() - sourceStart, error);
                         console.error(error);
                         return [];
                     });
@@ -1187,98 +1239,52 @@ export default function WalletCardView(props:any) {
         const getWalletDomainsFromSns = async (
             owner: PublicKey
         ): Promise<{ domains: string[]; primary: string }> => {
+            const snsStart = Date.now();
             try {
                 const sdkDiscoveredNames = new Set<string>();
                 let primary = '';
+                const rootDomainsForSubLookup: Array<{ key: PublicKey; domain?: string }> = [];
+                const seenLookupPubkeys = new Set<string>();
 
+                const primaryStart = Date.now();
                 try {
                     const primaryDomains = await getMultiplePrimaryDomains(RPC_CONNECTION as any, [owner]);
                     primary = normalizeDomainName(primaryDomains?.[0]);
                     if (primary) {
                         sdkDiscoveredNames.add(primary);
                     }
+                    addDebugSource('sns:getMultiplePrimaryDomains', true, primary ? 1 : 0, Date.now() - primaryStart, null, primary ? `primary=${primary}` : '');
                 } catch (error) {
+                    addDebugSource('sns:getMultiplePrimaryDomains', false, 0, Date.now() - primaryStart, error);
                     console.log('SNS primary domain lookup error', error);
                 }
 
-                const rootDomains = await getDomainKeysWithReverses(RPC_CONNECTION as any, owner);
-                const rootDomainsForSubLookup: Array<{ key: PublicKey; domain: string }> = [];
+                const addDomainsByPubkeys = async (pubkeys: PublicKey[], trackAsParent = true) => {
+                    const reverseStart = Date.now();
+                    const uniquePubkeys = (pubkeys || []).filter((pubkey) => {
+                        const key = pubkey?.toBase58?.() || '';
+                        if (!key) return false;
+                        if (seenLookupPubkeys.has(key)) return false;
+                        seenLookupPubkeys.add(key);
+                        return true;
+                    });
 
-                for (const item of rootDomains || []) {
-                    const domain = normalizeDomainName(item?.domain);
-                    if (!domain) continue;
-                    sdkDiscoveredNames.add(domain);
-                    if (item?.pubKey) {
-                        rootDomainsForSubLookup.push({ key: item.pubKey, domain });
+                    if (!uniquePubkeys.length) {
+                        addDebugSource('sns:reverseLookupByPubkeys', true, 0, Date.now() - reverseStart, null, 'pubkeys=0');
+                        return;
                     }
-                }
 
-                const tokenizedDomains = await getTokenizedDomains(RPC_CONNECTION as any, owner);
-                for (const item of tokenizedDomains || []) {
-                    const domain = normalizeDomainName(item?.reverse);
-                    if (!domain) continue;
-                    sdkDiscoveredNames.add(domain);
-                    if (item?.key) {
-                        rootDomainsForSubLookup.push({ key: item.key, domain });
-                    }
-                }
-
-                const seenParents = new Set<string>();
-                for (const parent of rootDomainsForSubLookup) {
-                    const parentKey = parent?.key;
-                    const parentDomain = normalizeDomainName(parent?.domain);
-                    if (!parentKey || !parentDomain) continue;
-
-                    const parentKeyStr = parentKey.toBase58();
-                    if (seenParents.has(parentKeyStr)) continue;
-                    seenParents.add(parentKeyStr);
-
-                    try {
-                        const subLabels = await findSubdomains(RPC_CONNECTION as any, parentKey);
-                        for (const subLabelRaw of subLabels || []) {
-                            const subLabel = String(subLabelRaw || '').replace(/\0/g, '').trim().toLowerCase();
-                            if (!subLabel) continue;
-                            const fqdn = subLabel.endsWith('.sol') ? subLabel : `${subLabel}.${parentDomain}`;
-                            const domain = normalizeDomainName(fqdn);
-                            if (domain) sdkDiscoveredNames.add(domain);
-                        }
-                    } catch (e) {
-                        console.log('findSubdomains lookup error', e);
-                    }
-                }
-
-                const [rootDomainAccounts, ownedDomainAccounts] = await Promise.all([
-                    RPC_CONNECTION.getProgramAccounts(NAME_PROGRAM_ID, {
-                        dataSlice: { offset: 0, length: 0 },
-                        filters: [
-                            { memcmp: { offset: 32, bytes: owner.toBase58() } },
-                            { memcmp: { offset: 0, bytes: ROOT_DOMAIN_ACCOUNT.toBase58() } },
-                        ],
-                    }),
-                    RPC_CONNECTION.getProgramAccounts(NAME_PROGRAM_ID, {
-                        dataSlice: { offset: 0, length: 0 },
-                        filters: [{ memcmp: { offset: 32, bytes: owner.toBase58() } }],
-                    }),
-                ]);
-
-                const pubkeyMap = new Map<string, PublicKey>();
-                for (const item of [...(rootDomainAccounts || []), ...(ownedDomainAccounts || [])]) {
-                    const pk = item?.pubkey;
-                    if (!pk) continue;
-                    pubkeyMap.set(pk.toBase58(), pk);
-                }
-                const pubkeys = Array.from(pubkeyMap.values());
-
-                if (pubkeys.length) {
                     const chunkSize = 75;
                     const reverseLookupNames: (string | undefined)[] = [];
+                    let singleFallbackLookups = 0;
 
-                    for (let i = 0; i < pubkeys.length; i += chunkSize) {
-                        const chunk = pubkeys.slice(i, i + chunkSize);
+                    for (let i = 0; i < uniquePubkeys.length; i += chunkSize) {
+                        const chunk = uniquePubkeys.slice(i, i + chunkSize);
                         try {
                             const names = await performReverseLookupBatch(RPC_CONNECTION as any, chunk);
                             reverseLookupNames.push(...(names || []));
                         } catch {
+                            singleFallbackLookups += chunk.length;
                             for (const pk of chunk) {
                                 try {
                                     const name = await performReverseLookup(RPC_CONNECTION as any, pk);
@@ -1290,17 +1296,145 @@ export default function WalletCardView(props:any) {
                         }
                     }
 
-                    for (const name of reverseLookupNames) {
-                        const domain = normalizeDomainName(name);
-                        if (domain) sdkDiscoveredNames.add(domain);
+                    let resolvedCount = 0;
+                    for (let i = 0; i < uniquePubkeys.length; i++) {
+                        const domain = normalizeDomainName(reverseLookupNames[i]);
+                        if (trackAsParent) {
+                            rootDomainsForSubLookup.push({ key: uniquePubkeys[i], domain: domain || undefined });
+                        }
+                        if (!domain) continue;
+                        resolvedCount += 1;
+                        sdkDiscoveredNames.add(domain);
                     }
+
+                    addDebugSource(
+                        'sns:reverseLookupByPubkeys',
+                        true,
+                        resolvedCount,
+                        Date.now() - reverseStart,
+                        null,
+                        `pubkeys=${uniquePubkeys.length};singleFallback=${singleFallbackLookups};trackAsParent=${trackAsParent ? '1' : '0'}`,
+                    );
+                };
+
+                const rootsStart = Date.now();
+                try {
+                    const rootDomains = await getDomainKeysWithReverses(RPC_CONNECTION as any, owner);
+                    for (const item of rootDomains || []) {
+                        const domain = normalizeDomainName(item?.domain);
+                        if (item?.pubKey) {
+                            rootDomainsForSubLookup.push({ key: item.pubKey, domain: domain || undefined });
+                        }
+                        if (!domain) continue;
+                        sdkDiscoveredNames.add(domain);
+                    }
+                    addDebugSource('sns:getDomainKeysWithReverses', true, rootDomains?.length || 0, Date.now() - rootsStart);
+                } catch (error) {
+                    addDebugSource('sns:getDomainKeysWithReverses', false, 0, Date.now() - rootsStart, error);
+                    console.log('SNS root domain reverse lookup error', error);
                 }
 
+                if (!rootDomainsForSubLookup.length) {
+                    const allDomainsStart = Date.now();
+                    try {
+                        const rootDomainPubkeys = await getAllDomains(RPC_CONNECTION as any, owner);
+                        addDebugSource('sns:getAllDomains', true, rootDomainPubkeys?.length || 0, Date.now() - allDomainsStart);
+                        await addDomainsByPubkeys(rootDomainPubkeys || []);
+                    } catch (error) {
+                        addDebugSource('sns:getAllDomains', false, 0, Date.now() - allDomainsStart, error);
+                        console.log('SNS getAllDomains fallback error', error);
+                    }
+                } else {
+                    addDebugSource('sns:getAllDomains', true, 0, 0, null, 'skipped:rootDomainsAvailable');
+                }
+
+                const ownedAccountsStart = Date.now();
+                try {
+                    const ownedNameAccounts = await RPC_CONNECTION.getProgramAccounts(NAME_PROGRAM_ID, {
+                        dataSlice: { offset: 0, length: 0 },
+                        filters: [{ memcmp: { offset: 32, bytes: owner.toBase58() } }],
+                    });
+                    const ownedPubkeys = (ownedNameAccounts || [])
+                        .map((item) => item?.pubkey)
+                        .filter(Boolean) as PublicKey[];
+                    addDebugSource('sns:getProgramAccountsOwned', true, ownedPubkeys.length, Date.now() - ownedAccountsStart);
+                    // Critical for directly-owned subdomains.
+                    await addDomainsByPubkeys(ownedPubkeys, false);
+                } catch (error) {
+                    addDebugSource('sns:getProgramAccountsOwned', false, 0, Date.now() - ownedAccountsStart, error);
+                    console.log('SNS owned name account lookup error', error);
+                }
+
+                const tokenizedStart = Date.now();
+                try {
+                    const tokenizedDomains = await getTokenizedDomains(RPC_CONNECTION as any, owner);
+                    for (const item of tokenizedDomains || []) {
+                        const domain = normalizeDomainName(item?.reverse);
+                        if (item?.key) {
+                            rootDomainsForSubLookup.push({ key: item.key, domain: domain || undefined });
+                        }
+                        if (!domain) continue;
+                        sdkDiscoveredNames.add(domain);
+                    }
+                    addDebugSource('sns:getTokenizedDomains', true, tokenizedDomains?.length || 0, Date.now() - tokenizedStart);
+                } catch (error) {
+                    addDebugSource('sns:getTokenizedDomains', false, 0, Date.now() - tokenizedStart, error);
+                    console.log('SNS tokenized domain lookup error', error);
+                }
+
+                const subdomainsStart = Date.now();
+                let parentCount = 0;
+                let subdomainCount = 0;
+                let subdomainErrors = 0;
+                const seenParents = new Set<string>();
+                for (const parent of rootDomainsForSubLookup) {
+                    const parentKey = parent?.key;
+                    const parentDomain = normalizeDomainName(parent?.domain);
+                    if (!parentKey) continue;
+
+                    const parentKeyStr = parentKey.toBase58();
+                    if (seenParents.has(parentKeyStr)) continue;
+                    seenParents.add(parentKeyStr);
+                    parentCount += 1;
+
+                    try {
+                        const subLabels = await findSubdomains(RPC_CONNECTION as any, parentKey);
+                        for (const subLabelRaw of subLabels || []) {
+                            const subLabel = String(subLabelRaw || '').replace(/\0/g, '').trim().toLowerCase();
+                            if (!subLabel) continue;
+                            const fqdn = subLabel.endsWith('.sol')
+                                ? subLabel
+                                : parentDomain
+                                    ? `${subLabel}.${parentDomain}`
+                                    : '';
+                            if (!fqdn) continue;
+                            const domain = normalizeDomainName(fqdn);
+                            if (domain) {
+                                subdomainCount += 1;
+                                sdkDiscoveredNames.add(domain);
+                            }
+                        }
+                    } catch (e) {
+                        subdomainErrors += 1;
+                        console.log('findSubdomains lookup error', e);
+                    }
+                }
+                addDebugSource(
+                    'sns:findSubdomains',
+                    subdomainErrors === 0,
+                    subdomainCount,
+                    Date.now() - subdomainsStart,
+                    subdomainErrors > 0 ? `${subdomainErrors} parent lookups failed` : undefined,
+                    `parents=${parentCount};failedParents=${subdomainErrors}`,
+                );
+
+                addDebugSource('sns:total', true, sdkDiscoveredNames.size, Date.now() - snsStart);
                 return {
                     domains: Array.from(sdkDiscoveredNames).sort((a, b) => a.localeCompare(b)),
                     primary,
                 };
             } catch (error) {
+                addDebugSource('sns:total', false, 0, Date.now() - snsStart, error);
                 console.error(error);
                 return { domains: [], primary: '' };
             }
@@ -1330,13 +1464,28 @@ export default function WalletCardView(props:any) {
                 isPrimary: !!primaryDomain && name === primaryDomain,
             }));
 
-        return uniqueDomains;
+        debug.primary = primaryDomain;
+        debug.summary = {
+            shyftCount: shyftDomains.length,
+            snsCount: snsDomains.length,
+            mergedCount: uniqueDomains.length,
+        };
+        debug.finishedAt = new Date().toISOString();
+
+        return {
+            domains: uniqueDomains,
+            debug,
+        };
     }
 
     const getAllWalletDomains = async() => {
-        // get domains
-        const domains1 = await getWalletDomains(new PublicKey(walletAddress));
-        const domains2 = await getWalletDomains(new PublicKey(rulesWalletAddress));
+        const [nativeDomainResult, rulesDomainResult] = await Promise.all([
+            getWalletDomains(new PublicKey(walletAddress)),
+            getWalletDomains(new PublicKey(rulesWalletAddress)),
+        ]);
+
+        const domains1 = nativeDomainResult?.domains || [];
+        const domains2 = rulesDomainResult?.domains || [];
         const combinedDomainMap = new Map<string, { name: string; isPrimary?: boolean }>();
         for (const item of [...(domains1 || []), ...(domains2 || [])]) {
             const name = normalizeDomainName(item?.name);
@@ -1354,6 +1503,15 @@ export default function WalletCardView(props:any) {
             return String(a?.name || '').localeCompare(String(b?.name || ''));
         });
         
+        const nextDomainDebugByWallet: Record<string, any> = {};
+        if (walletAddress) {
+            nextDomainDebugByWallet[walletAddress] = nativeDomainResult?.debug;
+        }
+        if (rulesWalletAddress) {
+            nextDomainDebugByWallet[rulesWalletAddress] = rulesDomainResult?.debug;
+        }
+
+        setDomainDebugByWallet(nextDomainDebugByWallet);
         setNativeDomains(domains1);
         setRulesDomains(domains2);
         rulesWallet.domains = combinedDomains;
@@ -3749,6 +3907,50 @@ const StakeAccountsView = () => {
                     </Box>
                 )}
             </Divider>
+            {SHOW_DOMAIN_DEBUG && domainDebugEntries.length > 0 && (
+                <Box sx={{ mt: 1, px: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                        <Chip
+                            icon={<InfoIcon sx={{ fontSize: '14px !important' }} />}
+                            size="small"
+                            variant={showDomainDebug ? 'filled' : 'outlined'}
+                            color={showDomainDebug ? 'info' : 'default'}
+                            clickable
+                            onClick={() => setShowDomainDebug((prev) => !prev)}
+                            label={showDomainDebug ? 'Hide Domain Debug' : 'Show Domain Debug'}
+                        />
+                    </Box>
+                    <Collapse in={showDomainDebug} timeout="auto" unmountOnExit>
+                        <Box sx={{ mt: 1, p: 1, borderRadius: 1, border: '1px solid', borderColor: 'rgba(145, 158, 171, 0.3)' }}>
+                            {domainDebugEntries.map(([wallet, report]: [string, any]) => (
+                                <Box key={`domain-debug-${wallet}`} sx={{ mb: 1.25 }}>
+                                    <Typography variant="caption" sx={{ display: 'block', color: '#919EAB' }}>
+                                        {`Wallet ${shortenString(wallet, 5, 5)}`}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ display: 'block', color: '#919EAB' }}>
+                                        {`Merged=${report?.summary?.mergedCount ?? 0}, SNS=${report?.summary?.snsCount ?? 0}, Shyft=${report?.summary?.shyftCount ?? 0}${report?.primary ? `, Primary=${report.primary}` : ''}`}
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                                        {(report?.sources || []).map((source: any, sourceIndex: number) => (
+                                            <Tooltip
+                                                key={`${wallet}-${source?.name || 'source'}-${sourceIndex}`}
+                                                title={`${source?.name || 'source'} | count=${source?.count ?? 0} | ${source?.durationMs ?? 0}ms${source?.meta ? ` | ${source.meta}` : ''}${source?.error ? ` | ${source.error}` : ''}`}
+                                            >
+                                                <Chip
+                                                    size="small"
+                                                    label={`${source?.ok ? 'OK' : 'ERR'} ${source?.name || 'source'} (${source?.count ?? 0})`}
+                                                    color={source?.ok ? 'success' : 'error'}
+                                                    variant={source?.ok ? 'outlined' : 'filled'}
+                                                />
+                                            </Tooltip>
+                                        ))}
+                                    </Box>
+                                </Box>
+                            ))}
+                        </Box>
+                    </Collapse>
+                </Box>
+            )}
         </Grid>
 
         <Grid container
