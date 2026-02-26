@@ -446,11 +446,13 @@ const splitJupiterInstructions = (swapIxs: any) => {
       if (handleCloseExtMenu) handleCloseExtMenu();
       setOpen(false);
 
+      const combinedIxs = [...setupIxs, ...swapIxsOnly, ...cleanupIxs];
       const propIx = {
         title: proposalTitle || "Jupiter Swap",
         description: proposalDescription || "Jupiter swap via Metis Swap API",
-        ix: [...setupIxs, ...swapIxsOnly, ...cleanupIxs],
+        ix: combinedIxs,
         aix: [],
+        proposalInstructionChunkBy: combinedIxs.length,
         nativeWallet: governanceNativeWallet,
         governingMint: governingMint,
         draft: isDraft,
