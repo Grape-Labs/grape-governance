@@ -339,6 +339,7 @@ export default function SanctumSwapView(props: any) {
           `Sanctum swap ${context.inMint.slice(0, 4)}... -> ${context.outMint.slice(0, 4)}... (${mode}).`,
         ix: ixs,
         aix: [],
+        proposalInstructionChunkBy: ixs.length,
         allowMissingAccountsPreflight: true,
         useVersionedTransactions: true,
         nativeWallet: governanceNativeWallet,
