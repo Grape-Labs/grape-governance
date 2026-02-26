@@ -570,37 +570,67 @@ export default function StakeValidatorView(props: any){
             );
 
             const rentExemptLamports = await RPC_CONNECTION.getMinimumBalanceForRentExemption(StakeProgram.space);
+            const existingStakeAccount = await RPC_CONNECTION.getParsedAccountInfo(stakePubkey);
+            const existingValue: any = existingStakeAccount?.value;
+            const exists = !!existingValue;
 
-            const createStakeAccountIx = SystemProgram.createAccountWithSeed({
-                fromPubkey: nativeWalletPubkey,
-                newAccountPubkey: stakePubkey,
-                basePubkey: nativeWalletPubkey,
-                seed: seed,
-                lamports: rentExemptLamports + stakeAmountLamports,
-                space: StakeProgram.space,
-                programId: StakeProgram.programId,
-            });
+            if (exists && !existingValue.owner?.equals?.(StakeProgram.programId)) {
+                throw new Error("Derived stake account exists but is not owned by Stake Program");
+            }
 
-            const initializeStakeIx = extractInstruction(
-                StakeProgram.initialize({
-                    stakePubkey: stakePubkey,
-                    authorized: new Authorized(
-                        nativeWalletPubkey,
-                        nativeWalletPubkey
-                    ),
-                    lockup: new Lockup(0, 0, nativeWalletPubkey),
-                })
-            );
+            const existingStakeType = existingValue?.data?.parsed?.type;
+            const stakingIxs: TransactionInstruction[] = [];
 
-            const delegateStakeIx = extractInstruction(
-                StakeProgram.delegate({
-                    stakePubkey: stakePubkey,
-                    authorizedPubkey: nativeWalletPubkey,
-                    votePubkey: new PublicKey(validatorVoteAddress),
-                })
-            );
+            if (!exists) {
+                const createStakeAccountIx = SystemProgram.createAccountWithSeed({
+                    fromPubkey: nativeWalletPubkey,
+                    newAccountPubkey: stakePubkey,
+                    basePubkey: nativeWalletPubkey,
+                    seed: seed,
+                    lamports: rentExemptLamports + stakeAmountLamports,
+                    space: StakeProgram.space,
+                    programId: StakeProgram.programId,
+                });
+                stakingIxs.push(createStakeAccountIx);
+            } else {
+                enqueueSnackbar(
+                    "Derived stake account already exists. Skipping create-account step and building remaining staking instructions.",
+                    { variant: "info" }
+                );
+            }
 
-            return [createStakeAccountIx, initializeStakeIx, delegateStakeIx];
+            if (!exists || existingStakeType === "uninitialized") {
+                const initializeStakeIx = extractInstruction(
+                    StakeProgram.initialize({
+                        stakePubkey: stakePubkey,
+                        authorized: new Authorized(
+                            nativeWalletPubkey,
+                            nativeWalletPubkey
+                        ),
+                        lockup: new Lockup(0, 0, nativeWalletPubkey),
+                    })
+                );
+                stakingIxs.push(initializeStakeIx);
+            }
+
+            if (!exists || existingStakeType === "uninitialized" || existingStakeType === "initialized") {
+                const delegateStakeIx = extractInstruction(
+                    StakeProgram.delegate({
+                        stakePubkey: stakePubkey,
+                        authorizedPubkey: nativeWalletPubkey,
+                        votePubkey: new PublicKey(validatorVoteAddress),
+                    })
+                );
+                stakingIxs.push(delegateStakeIx);
+            }
+
+            if (stakingIxs.length === 0) {
+                throw new Error(
+                    "No staking instructions generated. Stake account appears already delegated or in an unsupported state."
+                );
+            }
+
+            return stakingIxs;
         } catch (error) {
             console.error("Error creating staking instructions:", error);
             throw error;
@@ -875,6 +905,7 @@ export default function StakeValidatorView(props: any){
                 description: proposalDescription || `Staking ${stakeAmount} SOL to validator ${validatorVoteAddress}`,
                 ix: stakingIxs,
                 aix: [],
+                proposalInstructionChunkBy: stakingIxs.length,
                 nativeWallet: governanceNativeWallet,
                 governingMint: governingMint,
                 draft: isDraft,
