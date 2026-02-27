@@ -92,6 +92,14 @@ function normalizeName(value: any): string {
   return String(value || '').trim();
 }
 
+function normalizeSearchText(value: any): string {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
 function hasNamedGovernance(governanceName: string, governanceAddress?: string): boolean {
   const name = normalizeName(governanceName);
   if (!name) return false;
@@ -173,7 +181,6 @@ export function GovernanceDirectoryView(props: Props) {
   const [lastSyncedAt, setLastSyncedAt] = React.useState<number | null>(null);
   const [syncSource, setSyncSource] = React.useState<'graphql' | 'cache' | 'mixed'>('graphql');
   const metadataInFlight = React.useRef<Set<string>>(new Set());
-  const deferredSearchFilter = React.useDeferredValue(searchFilter);
 
   const buildMergedDirectory = React.useCallback(
     (
@@ -184,12 +191,14 @@ export function GovernanceDirectoryView(props: Props) {
       indexedRealms: any[],
       indexedGovernances: any[]
     ) => {
-      const gsplByName = new Map<string, any>();
+      const gsplByExactName = new Map<string, any>();
+      const gsplByCompactName = new Map<string, any>();
       for (const gsplEntry of gsplEntries || []) {
-        const name = String(gsplEntry?.name || '')
-          .trim()
-          .toLowerCase();
-        if (name) gsplByName.set(name, gsplEntry);
+        const name = normalizeName(gsplEntry?.name);
+        const exactName = name.toLowerCase();
+        const compactName = normalizeSearchText(name);
+        if (exactName) gsplByExactName.set(exactName, gsplEntry);
+        if (compactName) gsplByCompactName.set(compactName, gsplEntry);
       }
 
       const gqlByGovernance = new Map<string, any>();
@@ -353,11 +362,8 @@ export function GovernanceDirectoryView(props: Props) {
         const gsplMatch =
           directGSPLMatch ||
           (governanceName
-            ? gsplByName.get(
-                String(governanceName)
-                  .trim()
-                  .toLowerCase()
-              )
+            ? gsplByExactName.get(String(governanceName).trim().toLowerCase()) ||
+              gsplByCompactName.get(normalizeSearchText(governanceName))
             : null);
 
         if (!governanceName) {
@@ -442,7 +448,10 @@ export function GovernanceDirectoryView(props: Props) {
         if (!realmAddress || existingRealmOrGovernanceKeys.has(realmAddress)) continue;
 
         const realmName = normalizeName(realmItem?.account?.name);
-        const gsplMatch = realmName ? gsplByName.get(realmName.toLowerCase()) : null;
+        const gsplMatch = realmName
+          ? gsplByExactName.get(realmName.toLowerCase()) ||
+            gsplByCompactName.get(normalizeSearchText(realmName))
+          : null;
         const governanceName =
           realmName ||
           normalizeName(gsplMatch?.name) ||
@@ -495,6 +504,10 @@ export function GovernanceDirectoryView(props: Props) {
 
         const governanceName = normalizeName(gqlItem?.governanceName || gqlItem?.name);
         if (!hasNamedGovernance(governanceName, governanceAddress)) continue;
+        const gsplMatch = governanceName
+          ? gsplByExactName.get(governanceName.toLowerCase()) ||
+            gsplByCompactName.get(normalizeSearchText(governanceName))
+          : null;
 
         const votingProposals = Array.isArray(votingProposalsByGovernance?.[governanceAddress])
           ? votingProposalsByGovernance[governanceAddress]
@@ -517,6 +530,7 @@ export function GovernanceDirectoryView(props: Props) {
           totalVaultSol: 0,
           totalVaultSolValue: 0,
           lastProposalDate: gqlItem?.lastProposalDate || '0',
+          gspl: gsplMatch || undefined,
         } as GovernanceLookupItem);
       }
 
@@ -666,7 +680,7 @@ export function GovernanceDirectoryView(props: Props) {
   }, [governanceLookup]);
 
   const filteredGovernances = React.useMemo(() => {
-    const query = (deferredSearchFilter || '').trim();
+    const query = (searchFilter || '').trim();
     const queryTerms = query
       .toLowerCase()
       .split(/\s+/)
@@ -704,16 +718,21 @@ export function GovernanceDirectoryView(props: Props) {
 
       const searchable = searchFields.join(' ');
       const compactSearchable = searchable.replace(/\s+/g, '');
+      const compactQuery = normalizeSearchText(query);
+
+      if (compactQuery && compactSearchable.includes(compactQuery)) {
+        return true;
+      }
 
       return queryTerms.every((term) => {
         if (searchable.includes(term)) return true;
-        const compactTerm = term.replace(/\s+/g, '');
+        const compactTerm = normalizeSearchText(term);
         return compactTerm.length > 0 && compactSearchable.includes(compactTerm);
       });
     });
   }, [
     sortedGovernances,
-    deferredSearchFilter,
+    searchFilter,
     filterVerified,
     filterActiveVoting,
     filterHasTreasury,
@@ -722,7 +741,7 @@ export function GovernanceDirectoryView(props: Props) {
 
   React.useEffect(() => {
     setVisibleCount(viewMode === 'grid' ? 48 : 80);
-  }, [viewMode, deferredSearchFilter, filterVerified, filterActiveVoting, filterHasTreasury]);
+  }, [viewMode, searchFilter, filterVerified, filterActiveVoting, filterHasTreasury]);
 
   React.useEffect(() => {
     let cancelled = false;
