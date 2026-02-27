@@ -3,7 +3,6 @@ import React from 'react';
 import {
   Box,
   Button,
-  ButtonGroup,
   Chip,
   Divider,
   Fab,
@@ -15,18 +14,12 @@ import {
   TextField,
   ToggleButton,
   ToggleButtonGroup,
-  Tooltip,
   Typography,
   useScrollTrigger,
 } from '@mui/material/';
 
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import BallotIcon from '@mui/icons-material/Ballot';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import GroupIcon from '@mui/icons-material/Group';
-import SortIcon from '@mui/icons-material/Sort';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import SearchIcon from '@mui/icons-material/Search';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
@@ -172,8 +165,6 @@ export function GovernanceDirectoryView(props: Props) {
   const [filterActiveVoting, setFilterActiveVoting] = React.useState(false);
   const [filterHasTreasury, setFilterHasTreasury] = React.useState(false);
 
-  const [sortingType, setSortingType] = React.useState<number>(3);
-  const [sortingDirection, setSortingDirection] = React.useState<0 | 1>(0);
   const [visibleCount, setVisibleCount] = React.useState(48);
 
   const [gspl, setGSPL] = React.useState<any[]>([]);
@@ -651,32 +642,36 @@ export function GovernanceDirectoryView(props: Props) {
 
   const sortedGovernances = React.useMemo(() => {
     const items = [...governanceLookup];
-
-    const pickSortValue = (item: GovernanceLookupItem) => {
-      if (sortingType === 1) return toNumeric(item?.totalMembers, 0);
-      if (sortingType === 2) return toNumeric(item?.totalProposals, 0);
-      if (sortingType === 3) return toNumeric(item?.totalProposalsVoting, 0);
-      if (sortingType === 4) return toNumeric(item?.totalVaultValue, 0);
-      if (sortingType === 5) return Number(`0x${item?.lastProposalDate || '0'}`);
-      if (sortingType === 6) return toNumeric(item?.totalVaultStableCoinValue, 0);
-      return toNumeric(item?.totalProposalsVoting, 0);
-    };
-
     items.sort((a, b) => {
-      const aValue = pickSortValue(a);
-      const bValue = pickSortValue(b);
-      if (aValue === bValue) return 0;
+      const liveVotesDiff =
+        toNumeric(b?.totalProposalsVoting, 0) - toNumeric(a?.totalProposalsVoting, 0);
+      if (liveVotesDiff !== 0) return liveVotesDiff;
 
-      const directionMultiplier = sortingDirection === 0 ? -1 : 1;
-      return aValue > bValue ? directionMultiplier : -directionMultiplier;
+      const latestProposalDiff =
+        Number(`0x${b?.lastProposalDate || '0'}`) - Number(`0x${a?.lastProposalDate || '0'}`);
+      if (latestProposalDiff !== 0) return latestProposalDiff;
+
+      const totalProposalDiff = toNumeric(b?.totalProposals, 0) - toNumeric(a?.totalProposals, 0);
+      if (totalProposalDiff !== 0) return totalProposalDiff;
+
+      const membersDiff = toNumeric(b?.totalMembers, 0) - toNumeric(a?.totalMembers, 0);
+      if (membersDiff !== 0) return membersDiff;
+
+      const aName = normalizeName(a?.governanceName || a?.governanceAddress).toLowerCase();
+      const bName = normalizeName(b?.governanceName || b?.governanceAddress).toLowerCase();
+      return aName.localeCompare(bName);
     });
 
     return items;
-  }, [governanceLookup, sortingType, sortingDirection]);
+  }, [governanceLookup]);
 
   const filteredGovernances = React.useMemo(() => {
     const query = (deferredSearchFilter || '').trim();
-    const normalizedQuery = query.replace(/\s+/g, '').toUpperCase();
+    const queryTerms = query
+      .toLowerCase()
+      .split(/\s+/)
+      .map((term) => term.trim())
+      .filter(Boolean);
 
     return sortedGovernances.filter((item: GovernanceLookupItem) => {
       if (filterVerified && !item?.gspl) return false;
@@ -689,23 +684,32 @@ export function GovernanceDirectoryView(props: Props) {
       if (!query) return true;
 
       const metadata = item?.gspl?.metadataUri ? metadataMap[item.gspl.metadataUri] : null;
-      const searchableName = String(
-        metadata?.displayName || item?.governanceName || item?.governanceAddress || ''
-      )
-        .replace(/\s+/g, '')
-        .toUpperCase();
+      const searchFields = [
+        metadata?.displayName,
+        metadata?.shortDescription,
+        metadata?.website,
+        metadata?.twitter,
+        metadata?.discord,
+        metadata?.github,
+        item?.governanceName,
+        item?.governanceAddress,
+        item?.communityMint,
+        item?.councilMint,
+        item?.gspl?.name,
+      ]
+        .map((field) => String(field || '').trim().toLowerCase())
+        .filter(Boolean);
 
-      if (searchableName.includes(normalizedQuery)) return true;
+      if (searchFields.length === 0) return false;
 
-      if (isValidSolanaPublicKey(query)) {
-        return (
-          String(item?.governanceAddress || '').includes(query) ||
-          String(item?.communityMint || '').includes(query) ||
-          String(item?.councilMint || '').includes(query)
-        );
-      }
+      const searchable = searchFields.join(' ');
+      const compactSearchable = searchable.replace(/\s+/g, '');
 
-      return false;
+      return queryTerms.every((term) => {
+        if (searchable.includes(term)) return true;
+        const compactTerm = term.replace(/\s+/g, '');
+        return compactTerm.length > 0 && compactSearchable.includes(compactTerm);
+      });
     });
   }, [
     sortedGovernances,
@@ -788,32 +792,10 @@ export function GovernanceDirectoryView(props: Props) {
     [governanceLookup]
   );
 
-  const activeSortLabel =
-    sortingType === 1
-      ? 'Members'
-      : sortingType === 2
-      ? 'Proposals'
-      : sortingType === 3
-      ? 'Voting'
-      : sortingType === 4
-      ? 'Treasury'
-      : sortingType === 5
-      ? 'Latest'
-      : 'Stablecoin Treasury';
-
   const syncSourceLabel =
     syncSource === 'graphql' ? 'GraphQL' : syncSource === 'mixed' ? 'GraphQL + cache' : 'Cache fallback';
 
   const syncTimeLabel = lastSyncedAt ? new Date(lastSyncedAt).toLocaleTimeString() : 'Not synced yet';
-
-  const sortGovernance = (type: number) => {
-    if (sortingType === type) {
-      setSortingDirection((direction) => (direction === 0 ? 1 : 0));
-    } else {
-      setSortingType(type);
-      setSortingDirection(0);
-    }
-  };
 
   const clearFilters = () => {
     setSearchFilter('');
@@ -999,7 +981,6 @@ export function GovernanceDirectoryView(props: Props) {
               size="small"
               label={`${governanceTotalProposals ? getFormattedNumberToLocale(governanceTotalProposals) : 0} proposals`}
             />
-            <Chip size="small" label={`Sorted by ${activeSortLabel}`} variant="outlined" />
           </Stack>
         </Grid>
 
@@ -1121,63 +1102,6 @@ export function GovernanceDirectoryView(props: Props) {
       )}
 
       <Divider sx={{ my: 2, opacity: 0.15 }} />
-
-      <Box sx={{ mb: 1.5, overflowX: 'auto', pb: 0.5 }}>
-        <ButtonGroup
-          color="inherit"
-          size="small"
-          variant="outlined"
-          sx={{ borderRadius: '17px', display: 'inline-flex', minWidth: 'max-content' }}
-        >
-          <Tooltip title="Sort by members">
-            <Button onClick={() => sortGovernance(1)}>
-              <GroupIcon />
-              {sortingType === 1 &&
-                (sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{ transform: 'scaleX(-1)' }} />)}
-            </Button>
-          </Tooltip>
-
-          <Tooltip title="Sort by total proposals">
-            <Button onClick={() => sortGovernance(2)}>
-              <BallotIcon />
-              {sortingType === 2 &&
-                (sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{ transform: 'scaleX(-1)' }} />)}
-            </Button>
-          </Tooltip>
-
-          <Tooltip title="Sort by proposals currently in voting">
-            <Button onClick={() => sortGovernance(3)}>
-              <HowToVoteIcon />
-              {sortingType === 3 &&
-                (sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{ transform: 'scaleX(-1)' }} />)}
-            </Button>
-          </Tooltip>
-
-          <Tooltip title="Sort by latest proposal timestamp">
-            <Button onClick={() => sortGovernance(5)}>
-              <AccessTimeIcon />
-              {sortingType === 5 &&
-                (sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{ transform: 'scaleX(-1)' }} />)}
-            </Button>
-          </Tooltip>
-
-          <Tooltip title="Sort by treasury value">
-            <Button onClick={() => sortGovernance(4)}>
-              <AccountBalanceIcon />
-              {sortingType === 4 &&
-                (sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{ transform: 'scaleX(-1)' }} />)}
-            </Button>
-          </Tooltip>
-
-          <Tooltip title="Sort by stablecoin treasury value">
-            <Button onClick={() => sortGovernance(6)}>
-              <AttachMoneyIcon />
-              {sortingType === 6 &&
-                (sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{ transform: 'scaleX(-1)' }} />)}
-            </Button>
-          </Tooltip>
-        </ButtonGroup>
-      </Box>
 
       {!searchFilter && filteredGovernances.length > 0 && (
         <Box sx={{ mb: 1.5 }}>
