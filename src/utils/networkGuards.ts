@@ -1,9 +1,11 @@
 import axios from 'axios';
 
-const BLOCKED_HOSTS = new Set(['shdw-drive.genesysgo.net']);
+const BLOCKED_HOSTS = new Set(['shdw-drive.genesysgo.net', 'shadow-storage.genesysgo.net']);
+const BLOCKED_HOST_SUFFIXES = ['genesysgo.net'];
 
 const INSTALL_FLAG = '__grapeNetworkGuardsInstalled__';
 const AXIOS_INTERCEPTOR_FLAG = '__grapeBlockedHostAxiosInterceptorId__';
+const DOM_ATTRIBUTE_GUARD_FLAG = '__grapeBlockedHostDomAttributeGuardInstalled__';
 
 const BLOCKED_PAYLOAD = {
   error: {
@@ -32,7 +34,9 @@ function isBlockedHostUrl(url: string | null): boolean {
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
-    return BLOCKED_HOSTS.has(parsed.hostname.toLowerCase());
+    const host = parsed.hostname.toLowerCase();
+    if (BLOCKED_HOSTS.has(host)) return true;
+    return BLOCKED_HOST_SUFFIXES.some((suffix) => host === suffix || host.endsWith(`.${suffix}`));
   } catch {
     return false;
   }
@@ -44,6 +48,13 @@ function createBlockedResponse(): Response {
     statusText: 'Blocked host',
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+function sanitizeDomUrl(value: string, baseUrl: string, attrName: string): string {
+  const resolved = resolveUrl(value, baseUrl);
+  if (!isBlockedHostUrl(resolved)) return value;
+  if (attrName === 'href') return 'about:blank';
+  return '';
 }
 
 export function installNetworkGuards() {
@@ -58,7 +69,6 @@ export function installNetworkGuards() {
     const rawUrl = getUrlFromFetchInput(input);
     const resolved = rawUrl ? resolveUrl(rawUrl, window.location.href) : null;
     if (isBlockedHostUrl(resolved)) {
-      console.warn('[network-guard] blocked fetch:', resolved);
       return Promise.resolve(createBlockedResponse());
     }
     return originalFetch(input, init);
@@ -66,6 +76,20 @@ export function installNetworkGuards() {
 
   globalThis.fetch = guardedFetch;
   window.fetch = guardedFetch;
+
+  if (!(globalScope[DOM_ATTRIBUTE_GUARD_FLAG] as boolean) && typeof Element !== 'undefined') {
+    const originalSetAttribute = Element.prototype.setAttribute;
+    Element.prototype.setAttribute = function setAttributeGuard(name: string, value: string) {
+      const attrName = String(name || '').toLowerCase();
+      const isUrlAttr = attrName === 'src' || attrName === 'href' || attrName === 'content';
+      const safeValue =
+        isUrlAttr && typeof value === 'string'
+          ? sanitizeDomUrl(value, window.location.href, attrName)
+          : value;
+      return originalSetAttribute.call(this, name, safeValue);
+    };
+    globalScope[DOM_ATTRIBUTE_GUARD_FLAG] = true;
+  }
 
   if (globalScope[AXIOS_INTERCEPTOR_FLAG] !== undefined) return;
   const interceptorId = axios.interceptors.request.use((config) => {

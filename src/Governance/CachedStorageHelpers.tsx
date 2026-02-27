@@ -227,7 +227,7 @@ export const fetchGovernanceLookupFile = async (pool: string): Promise<any | nul
   const legacy = await loadLegacyFromSrc();
   if (legacy) return legacy;
 
-  if (pool) {
+  if (pool && GGAPI_STORAGE_URI) {
     const netUrlBase = `${GGAPI_STORAGE_URI}/${pool}/governance_lookup.json`;
     const netUrl = withCacheBust(netUrlBase);
     try {
@@ -251,6 +251,7 @@ export const fetchGovernanceMasterMembersFile = async (storagePool: string): Pro
 export const fetchGovernanceMasterMembersFile = async (
   storagePool: string
 ): Promise<any | null> => {
+  if (!GGAPI_STORAGE_URI || !storagePool) return null;
   const url = `${GGAPI_STORAGE_URI}/${storagePool}/governance_mastermembers.json`;
   return fetchAndDecompressFileSafe(url, 5000); // 5s cap
 };
@@ -267,6 +268,7 @@ export const fetchLookupFile = async (
   storagePool: string,
   ms = 5000
 ): Promise<any | null> => {
+  if (!GGAPI_STORAGE_URI || !storagePool || !fileName) return null;
   const url = `${GGAPI_STORAGE_URI}/${storagePool}/${fileName}`;
   return fetchAndDecompressFileSafe(url, ms);
 };
