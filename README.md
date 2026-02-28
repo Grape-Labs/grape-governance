@@ -92,3 +92,4 @@ yarn build
 Optional env flags used by specific extensions:
 
 - `APP_SANCTUM_API_KEY` (enables Sanctum extension UI)
+- `REACT_APP_SOLANA_CLUSTER` (`mainnet` or `devnet`, defaults to `mainnet`)

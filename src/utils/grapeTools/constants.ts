@@ -29,28 +29,162 @@ export const SHYFT_KEY = process.env.REACT_APP_API_SHYFT_KEY;
 export const FLUX_RPC_ENDPOINT = process.env.REACT_APP_API_FLUX_RPC_ENDPOINT || null;
 export const SHYFT_RPC_ENDPOINT = SHYFT_KEY ? `https://rpc.shyft.to?api_key=${SHYFT_KEY}` : null;
 export const SHYFT_RPC_DEVNET_ENDPOINT = SHYFT_KEY ? `https://devnet-rpc.shyft.to?api_key=${SHYFT_KEY}` : null;
-//export const RPC_ENDPOINT =  QUICKNODE_RPC_ENDPOINT || SHYFT_RPC_ENDPOINT || ALCHEMY_RPC_ENDPOINT || FLUX_RPC_ENDPOINT || HELIUS_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
-export const RPC_OPTIONS = {
-  SHYFT: SHYFT_RPC_ENDPOINT,
-  QUICKNODE: QUICKNODE_RPC_ENDPOINT,
-  HELIUS: HELIUS_RPC_ENDPOINT,
-  ALCHEMY: ALCHEMY_RPC_ENDPOINT,
-  FLUX: FLUX_RPC_ENDPOINT,
-//  SOLANA: 'https://api.mainnet-beta.solana.com',
+export type AppCluster = 'mainnet' | 'devnet';
+
+const DEFAULT_RPC_ENDPOINTS: Record<AppCluster, string> = {
+  mainnet: 'https://api.mainnet-beta.solana.com',
+  devnet: 'https://api.devnet.solana.com',
 };
 
-export const getPreferredRpc = () => {
-  return localStorage.getItem('preferred_rpc') || RPC_OPTIONS.QUICKNODE;
+const DEFAULT_WS_ENDPOINTS: Record<AppCluster, string> = {
+  mainnet: 'wss://api.mainnet-beta.solana.com',
+  devnet: 'wss://api.devnet.solana.com',
 };
 
-export const setPreferredRpc = (url: string) => {
-  localStorage.setItem('preferred_rpc', url);
+const PREFERRED_CLUSTER_STORAGE_KEY = 'preferred_cluster';
+const LEGACY_PREFERRED_RPC_STORAGE_KEY = 'preferred_rpc';
+const PREFERRED_RPC_STORAGE_KEYS: Record<AppCluster, string> = {
+  mainnet: 'preferred_rpc_mainnet',
+  devnet: 'preferred_rpc_devnet',
 };
 
-export const RPC_ENDPOINT = getPreferredRpc();
+const normalizeCluster = (value: string | null | undefined): AppCluster => {
+  const normalized = String(value || '').toLowerCase();
+  return normalized === 'devnet' ? 'devnet' : 'mainnet';
+};
 
-export const RPC_DEVNET_ENDPOINT = QUICKNODE_RPC_DEVNET_ENDPOINT || ALCHEMY_RPC_DEVNET_ENDPOINT || QUICKNODE_RPC_DEVNET_ENDPOINT || SHYFT_RPC_DEVNET_ENDPOINT || HELLO_MOON_DEVNET_ENDPOINT || HELIUS_RPC_DEVNET_ENDPOINT || 'https://api.devnet.solana.com';
-export const WS_ENDPOINT = process.env?.REACT_APP_API_QUICKNODE_RPC_ENDPOINT ? process.env.REACT_APP_API_QUICKNODE_RPC_ENDPOINT.replace('https://', 'wss://') : 'wss://api.mainnet-beta.solana.com';
+const getLocalStorage = (): Storage | null => {
+  try {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+};
+
+const RPC_OPTIONS_BY_CLUSTER: Record<AppCluster, Record<string, string | null | undefined>> = {
+  mainnet: {
+    QUICKNODE: QUICKNODE_RPC_ENDPOINT,
+    ALCHEMY: ALCHEMY_RPC_ENDPOINT,
+    SHYFT: SHYFT_RPC_ENDPOINT,
+    HELLO_MOON: HELLO_MOON_ENDPOINT,
+    HELIUS: HELIUS_RPC_ENDPOINT,
+    FLUX: FLUX_RPC_ENDPOINT,
+  },
+  devnet: {
+    QUICKNODE: QUICKNODE_RPC_DEVNET_ENDPOINT,
+    ALCHEMY: ALCHEMY_RPC_DEVNET_ENDPOINT,
+    SHYFT: SHYFT_RPC_DEVNET_ENDPOINT,
+    HELLO_MOON: HELLO_MOON_DEVNET_ENDPOINT,
+    HELIUS: HELIUS_RPC_DEVNET_ENDPOINT,
+  },
+};
+
+const BLOCKED_RPC_SUFFIXES = ['genesysgo.net'];
+
+const isBlockedRpcHost = (url: string): boolean => {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return BLOCKED_RPC_SUFFIXES.some((suffix) => host === suffix || host.endsWith(`.${suffix}`));
+  } catch {
+    return false;
+  }
+};
+
+const isUsableRpcUrl = (url: string | null | undefined): url is string => {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  if (!/^https?:\/\//i.test(trimmed)) return false;
+  if (isBlockedRpcHost(trimmed)) return false;
+  return true;
+};
+
+const getRpcStorageKey = (cluster: AppCluster): string => PREFERRED_RPC_STORAGE_KEYS[cluster];
+
+const getRpcOptionsForCluster = (cluster: AppCluster): Record<string, string | null | undefined> =>
+  RPC_OPTIONS_BY_CLUSTER[cluster];
+
+const ENV_CLUSTER = normalizeCluster(process.env.REACT_APP_SOLANA_CLUSTER);
+
+export const getPreferredCluster = (): AppCluster => {
+  const storage = getLocalStorage();
+  const stored = storage?.getItem(PREFERRED_CLUSTER_STORAGE_KEY);
+  const selected = normalizeCluster(stored || ENV_CLUSTER);
+
+  if (storage && stored !== selected) {
+    storage.setItem(PREFERRED_CLUSTER_STORAGE_KEY, selected);
+  }
+
+  return selected;
+};
+
+export const setPreferredCluster = (cluster: AppCluster) => {
+  const storage = getLocalStorage();
+  if (!storage) return;
+  storage.setItem(PREFERRED_CLUSTER_STORAGE_KEY, normalizeCluster(cluster));
+};
+
+export const APP_CLUSTER: AppCluster = getPreferredCluster();
+
+export const getPreferredRpc = (cluster: AppCluster = APP_CLUSTER) => {
+  const storage = getLocalStorage();
+  const rpcStorageKey = getRpcStorageKey(cluster);
+  const preferred =
+    storage?.getItem(rpcStorageKey) ||
+    (cluster === 'mainnet' ? storage?.getItem(LEGACY_PREFERRED_RPC_STORAGE_KEY) : null);
+  const clusterRpcOptions = getRpcOptionsForCluster(cluster);
+  const candidates = [
+    preferred,
+    clusterRpcOptions.QUICKNODE,
+    clusterRpcOptions.ALCHEMY,
+    clusterRpcOptions.SHYFT,
+    clusterRpcOptions.HELLO_MOON,
+    clusterRpcOptions.HELIUS,
+    clusterRpcOptions.FLUX,
+    DEFAULT_RPC_ENDPOINTS[cluster],
+  ];
+
+  const selected = candidates.find((candidate) => isUsableRpcUrl(candidate));
+  if (!selected) return DEFAULT_RPC_ENDPOINTS[cluster];
+
+  // Self-heal stale/blocked stored preference per cluster.
+  if (storage && preferred && preferred !== selected) {
+    storage.setItem(rpcStorageKey, selected);
+    if (cluster === 'mainnet') {
+      storage.setItem(LEGACY_PREFERRED_RPC_STORAGE_KEY, selected);
+    }
+  }
+
+  return selected;
+};
+
+export const setPreferredRpc = (url: string, cluster: AppCluster = APP_CLUSTER) => {
+  const storage = getLocalStorage();
+  if (!storage) return;
+  const rpcStorageKey = getRpcStorageKey(cluster);
+
+  if (!isUsableRpcUrl(url)) {
+    storage.removeItem(rpcStorageKey);
+    if (cluster === 'mainnet') {
+      storage.removeItem(LEGACY_PREFERRED_RPC_STORAGE_KEY);
+    }
+    return;
+  }
+  storage.setItem(rpcStorageKey, url);
+  if (cluster === 'mainnet') {
+    storage.setItem(LEGACY_PREFERRED_RPC_STORAGE_KEY, url);
+  }
+};
+
+export const RPC_OPTIONS = getRpcOptionsForCluster(APP_CLUSTER);
+export const RPC_MAINNET_ENDPOINT = getPreferredRpc('mainnet');
+export const RPC_DEVNET_ENDPOINT = getPreferredRpc('devnet');
+export const RPC_ENDPOINT = getPreferredRpc(APP_CLUSTER);
+export const WS_ENDPOINT =
+  RPC_ENDPOINT && /^https?:\/\//i.test(RPC_ENDPOINT)
+    ? RPC_ENDPOINT.replace(/^https:\/\//i, 'wss://').replace(/^http:\/\//i, 'ws://')
+    : DEFAULT_WS_ENDPOINTS[APP_CLUSTER];
 export const ALCHEMY_ETH_KEY = process.env.REACT_APP_API_ALCHEMY_ETH || null;
 export const WALLET_CONNECT_PROJECT_ID = process.env.REACT_APP_API_WALLET_CONNECT_PROJECT_ID || null;
 export const DYNAMICXYZ_KEY = process.env.REACT_APP_API_DYNAMICXYZ_KEY || null;

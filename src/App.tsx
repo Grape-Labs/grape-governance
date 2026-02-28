@@ -59,7 +59,8 @@ import { enableRealmPushNotifications } from './firebaseNotifications/realmPush'
 
 import { 
   CREATOR_LOGO,
-  RPC_ENDPOINT
+  RPC_ENDPOINT,
+  APP_CLUSTER,
 } from './utils/grapeTools/constants';
 
 import { useTranslation } from 'react-i18next';
@@ -153,7 +154,7 @@ function DashboardContent() {
   };
 
   // You can also provide a custom RPC endpoint
-  const network = WalletAdapterNetwork.Devnet; //.Devnet; //.Mainnet;
+  const network = APP_CLUSTER === 'devnet' ? WalletAdapterNetwork.Devnet : WalletAdapterNetwork.Mainnet;
   // You can also provide a custom RPC endpoint
   //const endpoint =  useMemo(() => clusterApiUrl(network), [network]);
   const endpoint =  RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
