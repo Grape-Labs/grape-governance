@@ -3,6 +3,8 @@ import React, { useCallback } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
 import axios from 'axios';
 import moment from 'moment';
+import { Connection, PublicKey } from '@solana/web3.js';
+import { getProposal, getTokenOwnerRecord } from '@solana/spl-governance';
 
 import {
   Typography,
@@ -26,8 +28,11 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 
 import { 
-    SHYFT_KEY
+    SHYFT_KEY,
+    RPC_CONNECTION
 } from '../utils/grapeTools/constants';
+
+const REALTIME_MAINNET_CONNECTION = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
 
 const BlinkingDotContainer = styled("div")({
     width: 10,
@@ -47,48 +52,178 @@ const BlinkingDot = () => {
     );
 };
 
+function shortenAddress(value: any, left = 6, right = 4): string {
+    const text = String(value || '');
+    if (!text) return '';
+    if (text.length <= left + right + 3) return text;
+    return `${text.slice(0, left)}...${text.slice(-right)}`;
+}
+
+function firstNonEmptyString(candidates: any[]): string {
+    for (const value of candidates) {
+        if (value === null || value === undefined) continue;
+        const text = String(value).trim();
+        if (text) return text;
+    }
+    return '';
+}
+
+function extractProposalContext(event: any): { proposalAddress: string; realmAddress: string; directCreator: string } {
+    const actions = Array.isArray(event?.actions) ? event.actions : [];
+    let proposalAddress = '';
+    let realmAddress = '';
+    let directCreator = '';
+
+    for (const action of actions) {
+        const info = action?.info || {};
+
+        if (!proposalAddress) {
+            proposalAddress = firstNonEmptyString([
+                info?.proposal,
+                info?.proposal_address,
+                info?.proposalAddress,
+            ]);
+        }
+
+        if (!realmAddress) {
+            realmAddress = firstNonEmptyString([
+                info?.realm_address,
+                info?.realm,
+                info?.realmAddress,
+            ]);
+        }
+
+        if (!directCreator) {
+            directCreator = firstNonEmptyString([
+                info?.proposal_authority,
+                info?.proposal_creator,
+                info?.proposalOwner,
+                info?.governing_token_owner,
+                info?.governingTokenOwner,
+                info?.token_owner,
+                info?.creator,
+                info?.owner,
+            ]);
+        }
+    }
+
+    return { proposalAddress, realmAddress, directCreator };
+}
+
 export default function GovernanceRealtimeInfo(props: any){
     const governanceLookup = props?.governanceLookup;
     const address = props.governanceAddress;
     const title = props.title;
     const expanded = props?.expanded || false;
+    const compact = props?.compact === true;
     const tokenMap = props?.tokenMap;
     const [showLive, setShowLive] = React.useState(expanded);
     const [realtimeEventsLoaded, setRealtimeEventsLoaded] = React.useState(false);
     const [loadingRealtimeEvents, setLoadingRealtimeEvents] = React.useState(false);
-    const [realtimeEvents, setRealtimeEvents] = React.useState(null);
+    const [realtimeEvents, setRealtimeEvents] = React.useState<any[]>([]);
+    const [proposalAuthors, setProposalAuthors] = React.useState<Record<string, string>>({});
     const [currentIndex, setCurrentIndex] = React.useState(0);
     const [fadeIn, setFadeIn] = React.useState(true);
     const [carouselData, setCarousel] = React.useState(null);
     const fadeTime = 1000;
     
     const [openInstructions, setOpenInstructions] = React.useState(expanded);
+    const proposalAuthorInFlight = React.useRef<Set<string>>(new Set());
+    const realmNameByAddress = React.useMemo(() => {
+        const map = new Map<string, string>();
+        if (!Array.isArray(governanceLookup)) return map;
+        for (const item of governanceLookup) {
+            const key = String(item?.governanceAddress || '');
+            if (!key) continue;
+            const value = String(item?.governanceName || '');
+            if (!value) continue;
+            map.set(key, value);
+        }
+        return map;
+    }, [governanceLookup]);
 
     const handleClickOpenInstructions = () => {
-        setShowLive(true);
-        setOpenInstructions(!openInstructions);
+        const nextOpenState = !openInstructions;
+        setOpenInstructions(nextOpenState);
+        setShowLive(nextOpenState);
     }
 
-    function fetchRealtimeEvents(){
-
-        const uri = `https://api.shyft.to/sol/v1/transaction/history?network=mainnet-beta&account=${address}&enable_raw=true`;
-
-        axios.get(uri, {
-        headers: {
-            'x-api-key': SHYFT_KEY
+    const fetchRealtimeEvents = React.useCallback(async () => {
+        if (!address || !SHYFT_KEY) {
+            setRealtimeEvents([]);
+            setRealtimeEventsLoaded(true);
+            return;
         }
-        })
-        .then(response => {
-            if (response.data?.result){
-                
-                setRealtimeEvents(response.data.result); // Update the realtimeEvents state with the response data
-                //console.log(response.data); // Log the response data to the console
-            }
-        })
-        .catch(error => console.error(error));
 
-        setRealtimeEventsLoaded(false);
-    }
+        const uri = `https://api.shyft.to/sol/v1/transaction/history?network=mainnet-beta&account=${address}&tx_num=20`;
+        setLoadingRealtimeEvents(true);
+        try {
+            const response = await axios.get(uri, {
+                headers: {
+                    'x-api-key': SHYFT_KEY
+                },
+                timeout: 12000,
+            });
+            const events = Array.isArray(response?.data?.result) ? response.data.result : [];
+            setRealtimeEvents(events);
+        } catch (error) {
+            console.error('Failed to fetch realtime governance events', error);
+            setRealtimeEvents([]);
+        } finally {
+            setLoadingRealtimeEvents(false);
+            setRealtimeEventsLoaded(true);
+        }
+    }, [address]);
+
+    const resolveProposalAuthor = React.useCallback(async (proposalAddress: string, _realmAddress?: string) => {
+        if (!proposalAddress || proposalAuthors[proposalAddress] || proposalAuthorInFlight.current.has(proposalAddress)) {
+            return;
+        }
+
+        proposalAuthorInFlight.current.add(proposalAddress);
+
+        try {
+            const resolveFromConnection = async (connection: Connection): Promise<string> => {
+                const proposal = await getProposal(connection as any, new PublicKey(proposalAddress));
+                const tokenOwnerRecordPk =
+                    proposal?.account?.tokenOwnerRecord?.toBase58?.() || proposal?.account?.tokenOwnerRecord;
+                if (!tokenOwnerRecordPk) return '';
+
+                const tokenOwnerRecord = await getTokenOwnerRecord(connection as any, new PublicKey(tokenOwnerRecordPk));
+                return tokenOwnerRecord?.account?.governingTokenOwner?.toBase58?.() || '';
+            };
+
+            let governingTokenOwner = '';
+            try {
+                governingTokenOwner = await resolveFromConnection(RPC_CONNECTION as any);
+            } catch {
+                governingTokenOwner = '';
+            }
+
+            if (!governingTokenOwner) {
+                try {
+                    governingTokenOwner = await resolveFromConnection(REALTIME_MAINNET_CONNECTION);
+                } catch {
+                    governingTokenOwner = '';
+                }
+            }
+
+            if (governingTokenOwner) {
+                setProposalAuthors((current) => {
+                    if (current[proposalAddress] === governingTokenOwner) return current;
+                    return {
+                        ...current,
+                        [proposalAddress]: governingTokenOwner,
+                    };
+                });
+            }
+        } catch (error) {
+            // Keep UI responsive; author field is an optional enrichment.
+            console.log('Could not resolve proposal author', error);
+        } finally {
+            proposalAuthorInFlight.current.delete(proposalAddress);
+        }
+    }, [proposalAuthors]);
 
     function capitalizeFirstLetter(sentence:string) {
         let newsSentence = sentence.toLowerCase();
@@ -99,7 +234,74 @@ export default function GovernanceRealtimeInfo(props: any){
             .join(' ');
     }
 
-    const EventItem = ({ event }) => {
+    const EventItem = ({ event, compactMode = false }) => {
+        if (!event?.actions || event.actions.length === 0) {
+            return (
+                <Typography variant="caption" sx={{color:'#999'}}>
+                    Unknown governance event payload
+                </Typography>
+            );
+        }
+        const firstAction = event.actions[0] || {};
+        const secondAction = event.actions[1] || {};
+        const firstInfo = firstAction.info || {};
+        const secondInfo = secondAction.info || {};
+        const sourceProtocolAddress = firstAction?.source_protocol?.address;
+        const context = extractProposalContext(event);
+        const realmAddress = context.realmAddress || firstInfo?.realm_address || '';
+        const realmName = realmAddress ? realmNameByAddress.get(realmAddress) : '';
+        const proposalAddress = context.proposalAddress || String(firstInfo?.proposal || '');
+        const resolvedAuthor = proposalAddress ? proposalAuthors[proposalAddress] || '' : '';
+        const creatorAddress = context.directCreator || resolvedAuthor;
+
+        let displayedAmount: any = null;
+        for (const action of event.actions) {
+            if (action?.info?.amount !== undefined && action?.info?.amount !== null) {
+                displayedAmount = action.info.amount;
+                break;
+            }
+        }
+
+        if (compactMode) {
+            const actionLabel =
+                firstAction.type && firstAction.type !== 'UNKNOWN'
+                    ? capitalizeFirstLetter(String(firstAction.type).replace(/_/g, ' '))
+                    : 'Governance Event';
+
+            return (
+                <Grid sx={{ color: 'gray' }}>
+                    <Typography variant="subtitle1">{actionLabel}</Typography>
+                    {realmName && (
+                        <Typography variant="caption" sx={{ display: 'block' }}>
+                            DAO: {realmName}
+                        </Typography>
+                    )}
+                    {firstInfo?.proposal_name && (
+                        <Typography variant="caption" sx={{ display: 'block' }}>
+                            Proposal: {firstInfo.proposal_name}
+                        </Typography>
+                    )}
+                    {firstInfo?.proposal && (
+                        <Typography variant="caption" sx={{ display: 'block' }}>
+                            Proposal ID: {shortenAddress(firstInfo.proposal)}
+                        </Typography>
+                    )}
+                    {creatorAddress && (
+                        <Typography variant="caption" sx={{ display: 'block' }}>
+                            Creator: {shortenAddress(creatorAddress)}
+                        </Typography>
+                    )}
+                    {(displayedAmount !== null && displayedAmount !== undefined) && (
+                        <Typography variant="caption" sx={{ display: 'block' }}>
+                            Amount: {displayedAmount?.toLocaleString?.() || displayedAmount}
+                        </Typography>
+                    )}
+                    <Typography variant="caption" sx={{color:'#999', display:'block', mt:0.5}}>
+                        {moment(event.timestamp).fromNow()}
+                    </Typography>
+                </Grid>
+            );
+        }
         
         return (
           <>
@@ -112,35 +314,29 @@ export default function GovernanceRealtimeInfo(props: any){
             >
                 <div>
                     <Grid sx={{color:'gray'}}>
-                        {(event.actions[0].type && event.actions[0].type !== 'UNKNOWN') ?
+                        {(firstAction.type && firstAction.type !== 'UNKNOWN') ?
                             <Grid>
-                                <Typography variant="h6">{capitalizeFirstLetter(event.actions[0].type.replace(/_/g, ' '))}</Typography>  
+                                <Typography variant="h6">{capitalizeFirstLetter(firstAction.type.replace(/_/g, ' '))}</Typography>  
                             </Grid>
                             :
                             <> 
-                                {(event.actions[0]?.source_protocol?.address && 
-                                    (event.actions[0].source_protocol?.address === "VoteMBhDCqGLRgYpp9o7DGyq81KNmwjXQRAHStjtJsS")) &&
+                                {(sourceProtocolAddress && 
+                                    (sourceProtocolAddress === "VoteMBhDCqGLRgYpp9o7DGyq81KNmwjXQRAHStjtJsS")) &&
                                     <>Marinade VSR Interaction</>
                                 } 
-                                {(event.actions[0]?.source_protocol?.address && 
-                                    (event.actions[0].source_protocol?.address === "GqTPL6qRf5aUuqscLh8Rg2HTxPUXfhhAXDptTLhp1t2J") ||
-                                    event.actions[0].source_protocol?.address === "4Q6WW2ouZ6V3iaNm56MTd5n2tnTm4C5fiH8miFHnAFHo") &&
+                                {(sourceProtocolAddress && 
+                                    (sourceProtocolAddress === "GqTPL6qRf5aUuqscLh8Rg2HTxPUXfhhAXDptTLhp1t2J") ||
+                                    sourceProtocolAddress === "4Q6WW2ouZ6V3iaNm56MTd5n2tnTm4C5fiH8miFHnAFHo") &&
                                     <>Mango VSR Interaction</>
                                 } 
                             </>
                         }
                         
-                        {(governanceLookup && event.actions[0].info?.realm_address) &&
+                        {(realmName && realmAddress) &&
                             <Grid>
-                                {governanceLookup
-                                    .filter(item => item.governanceAddress === event.actions[0].info.realm_address)
-                                    .map(filteredItem => (
-                                    <Typography variant="subtitle1" key={filteredItem.governanceAddress}>
-                                        {/* Render the properties of the filtered item */}
-                                        {filteredItem.governanceName}
-                                        {/* Add more properties as needed */}
-                                    </Typography>
-                                ))}
+                                <Typography variant="subtitle1" key={realmAddress}>
+                                    {realmName}
+                                </Typography>
                                 {/*
                                 <Typography variant="body2">DAO:
                                     <ExplorerView
@@ -152,27 +348,43 @@ export default function GovernanceRealtimeInfo(props: any){
                             </Grid>
                         }
 
-                        {(event.actions[0].info?.proposal_name) &&
+                        {(firstInfo?.proposal_name) &&
                             <Grid>
-                                <Typography variant="subtitle1">Name: {event.actions[0].info?.proposal_name}</Typography>  
+                                <Typography variant="subtitle1">Name: {firstInfo?.proposal_name}</Typography>  
                             </Grid>
                         }
-                        {(event.actions[0].info?.proposal) &&
+                        {(firstInfo?.proposal) &&
                             <Grid>
                                 <Typography variant="subtitle1">Proposal: 
                                     <ExplorerView
-                                        address={event.actions[0].info.proposal} type='address'
+                                        address={firstInfo.proposal} type='address'
                                         shorten={8}
                                         hideTitle={false} hideIcon={true} style='text' color='inherit' fontSize='10px'/>
                                 </Typography>  
                             </Grid>
                         }
+                        {creatorAddress &&
+                            <Grid>
+                                <Typography variant="body2">Creator: 
+                                    <ExplorerView
+                                        address={creatorAddress}
+                                        type='address'
+                                        shorten={8}
+                                        hideTitle={false}
+                                        hideIcon={true}
+                                        style='text'
+                                        color='inherit'
+                                        fontSize='10px'
+                                    />
+                                </Typography>  
+                            </Grid>
+                        }
 
-                        {(event.actions[0].info?.vote_governing_token) &&
+                        {(firstInfo?.vote_governing_token) &&
                             <Grid>
                                 <Typography variant="body2">Token:
                                     <ExplorerView
-                                        address={event.actions[0].info?.vote_governing_token} type='address'
+                                        address={firstInfo?.vote_governing_token} type='address'
                                         shorten={8}
                                         hideTitle={false} hideIcon={true} style='text' color='inherit' fontSize='12px'
                                         tokenMap={tokenMap}
@@ -180,51 +392,44 @@ export default function GovernanceRealtimeInfo(props: any){
                                 </Typography>  
                             </Grid>
                         }
-                        {(event.actions[0].info?.vote_type) &&
+                        {(firstInfo?.vote_type) &&
                             <Grid>
-                                <Typography variant="body2">Vote: {event.actions[0].info?.vote_type}</Typography>  
+                                <Typography variant="body2">Vote: {firstInfo?.vote_type}</Typography>  
                             </Grid>
                         }
 
-                        {(event.actions.length > 0) &&
-                            <>
-                                {event.actions.reduce((foundAmount, item: any, index: number) => (
-                                    // Check if amount is found and it's the first one
-                                    (!foundAmount && item.info?.amount &&
-                                        <Grid key={index}>
-                                            <Typography variant="body2">Amount: {item.info.amount.toLocaleString()}</Typography>
-                                        </Grid>
-                                    ) || foundAmount
-                                ), false)}
-                            </>
+                        {(displayedAmount !== null && displayedAmount !== undefined) &&
+                            <Grid>
+                                <Typography variant="body2">Amount: {displayedAmount?.toLocaleString?.() || displayedAmount}</Typography>
+                            </Grid>
                         }
 
                         <Grid>
-                            {(event.actions.length > 1 && event.actions[1].info?.sender) &&
+                            {(event.actions.length > 1 && secondInfo?.sender) &&
                                 <Grid item>
                                     <Typography variant="caption">From: 
                                         <ExplorerView
-                                            address={event.actions[1].info.sender} type='address'
+                                            address={secondInfo.sender} type='address'
                                             shorten={8}
                                             hideTitle={false} hideIcon={true} style='text' color='inherit' fontSize='9px'/>
                                     </Typography>  
                                 </Grid>
                             }
-                            {(event.actions.length > 1 && event.actions[1].info?.receiver) &&
+                            {(event.actions.length > 1 && secondInfo?.receiver) &&
                                 <Grid item>
                                     <Typography variant="caption">To: 
                                         <ExplorerView
-                                            address={event.actions[1].info.receiver} type='address'
+                                            address={secondInfo.receiver} type='address'
                                             shorten={8}
                                             hideTitle={false} hideIcon={true} style='text' color='inherit' fontSize='9px'/>
                                     </Typography>  
                                 </Grid>
                             }
-                            {(event.actions.length > 1 && event.actions[1].info?.token) &&
+                            {(event.actions.length > 1 && secondInfo?.token) &&
                                 <Grid item>
                                     <Typography variant="caption">Token: 
                                         <ExplorerView
-                                            address={event.actions[1].info.token} type='address'
+                                            address={secondInfo.token} type='address'
                                             shorten={8}
                                             hideTitle={false} hideIcon={true} style='text' color='inherit'  fontSize='12px'
                                             tokenMap={tokenMap}
@@ -232,9 +437,9 @@ export default function GovernanceRealtimeInfo(props: any){
                                     </Typography>  
                                 </Grid>
                             }
-                            {(event.actions[0].info?.vote_record_address) &&
+                            {(firstInfo?.vote_record_address) &&
                                 <Grid>
-                                    <Typography variant="caption">Voter Record: {event.actions[0].info.vote_record_address}</Typography>  
+                                    <Typography variant="caption">Voter Record: {firstInfo.vote_record_address}</Typography>  
                                 </Grid>
                             }
                             {(event.fee_payer) &&
@@ -271,7 +476,7 @@ export default function GovernanceRealtimeInfo(props: any){
     
     const animationIndexRef = React.useRef(1);
     React.useEffect(() => {
-        if (!showLive || !realtimeEvents || realtimeEvents.length <= 0) {
+        if (!openInstructions || !showLive || !Array.isArray(realtimeEvents) || realtimeEvents.length <= 1) {
             return;
         }
 
@@ -292,23 +497,49 @@ export default function GovernanceRealtimeInfo(props: any){
         return () => {
             window.clearInterval(animationInterval);
         };
-      }, [realtimeEvents, showLive]);
+      }, [openInstructions, realtimeEvents, showLive]);
     
 
-    function toggleLive(){
-        setShowLive(!showLive);
-        if (showLive){
-            setCurrentIndex(0);
-        }
-    }
+    React.useEffect(() => {
+        setRealtimeEventsLoaded(false);
+        setCurrentIndex(0);
+        setRealtimeEvents([]);
+        setProposalAuthors({});
+        void fetchRealtimeEvents();
+    }, [address, fetchRealtimeEvents]);
 
     React.useEffect(() => {
-        if (!realtimeEventsLoaded){
-            setLoadingRealtimeEvents(true);
-            fetchRealtimeEvents();
-            setLoadingRealtimeEvents(false);
+        if (!Array.isArray(realtimeEvents) || realtimeEvents.length === 0) return;
+
+        const candidates = new Map<string, string | undefined>();
+        for (const event of realtimeEvents) {
+            const context = extractProposalContext(event);
+            const proposalAddress = context.proposalAddress;
+            if (!proposalAddress) continue;
+            if (proposalAuthors[proposalAddress]) continue;
+            const realmAddress = context.realmAddress;
+            candidates.set(proposalAddress, realmAddress || undefined);
         }
-    }, []);
+
+        if (candidates.size === 0) return;
+
+        for (const [proposalAddress, realmAddress] of candidates.entries()) {
+            void resolveProposalAuthor(proposalAddress, realmAddress);
+        }
+    }, [proposalAuthors, realtimeEvents, resolveProposalAuthor]);
+
+    const selectedEvent = React.useMemo(() => {
+        if (!Array.isArray(realtimeEvents) || realtimeEvents.length === 0) return null;
+        return realtimeEvents[currentIndex] || realtimeEvents[0];
+    }, [currentIndex, realtimeEvents]);
+
+    React.useEffect(() => {
+        if (!selectedEvent) return;
+        const context = extractProposalContext(selectedEvent);
+        if (!context.proposalAddress) return;
+        if (proposalAuthors[context.proposalAddress]) return;
+        void resolveProposalAuthor(context.proposalAddress, context.realmAddress || undefined);
+    }, [proposalAuthors, resolveProposalAuthor, selectedEvent]);
 
     return(
         <Grid xs={12}>
@@ -351,14 +582,18 @@ export default function GovernanceRealtimeInfo(props: any){
                         backgroundColor:'rgba(0,0,0,0.1)'}}
                 >
                     {loadingRealtimeEvents ?
-                        <><CircularProgress color='inherit' /></>
+                        <Box sx={{p:2, display:'flex', justifyContent:'center'}}>
+                            <CircularProgress color='inherit' size={22} />
+                        </Box>
                     :
                         <Box sx={{p:2}}>
-                            {(realtimeEvents && realtimeEvents.length > 0) &&
-                            <>
-                                <EventItem event={realtimeEvents[currentIndex]} />
-                            </>
-                            }
+                            {selectedEvent ? (
+                                <EventItem event={selectedEvent} compactMode={compact} />
+                            ) : (
+                                <Typography variant="caption" sx={{color:'#999'}}>
+                                    No recent governance activity found for this address.
+                                </Typography>
+                            )}
                         </Box>   
                     }
                     </Collapse>
