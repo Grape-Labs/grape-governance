@@ -671,7 +671,7 @@ export default function CreateSplGovernanceDaoButton() {
               onChange={(e) => {
                 const next = Number(e.target.value);
                 if (!Number.isFinite(next)) {
-                  setDepositExemptProposalCount(5);
+                  setDepositExemptProposalCount(10);
                   return;
                 }
                 setDepositExemptProposalCount(Math.max(5, Math.min(10, Math.floor(next))));
