@@ -17,8 +17,12 @@ import '@khmyznikov/pwa-install';
 import { 
     APP_LOGO,
     APP_ICON,
+    APP_CLUSTER,
     getPreferredRpc,
+    getPreferredCluster,
+    setPreferredCluster,
     setPreferredRpc,
+    type AppCluster,
     RPC_OPTIONS,
 } from '../utils/grapeTools/constants';
 
@@ -832,6 +836,36 @@ const rowSX = { display: "flex", alignItems: "center", gap: 1 };
         />
       </Box>
 
+      <Box sx={{ mb: 2 }}>
+        <Typography sx={{ fontSize: 12, opacity: 0.75, mb: 1 }}>Cluster</Typography>
+        <ToggleButtonGroup
+          exclusive
+          value={APP_CLUSTER}
+          onChange={(_, value) => {
+            const nextCluster = value as AppCluster | null;
+            if (!nextCluster || nextCluster === getPreferredCluster()) return;
+            setPreferredCluster(nextCluster);
+            handleCloseRpcSettings();
+            window.location.reload();
+          }}
+          sx={{
+            width: "100%",
+            "& .MuiToggleButton-root": {
+              flex: 1,
+              textTransform: "none",
+              borderRadius: 6,
+              py: 0.8,
+            },
+          }}
+        >
+          <ToggleButton value="mainnet">Mainnet</ToggleButton>
+          <ToggleButton value="devnet">Devnet</ToggleButton>
+        </ToggleButtonGroup>
+        <Typography sx={{ fontSize: 11, opacity: 0.65, mt: 1 }}>
+          Switching cluster reloads the app.
+        </Typography>
+      </Box>
+
       {/* Segmented control */}
       <FormControl fullWidth>
         <ToggleButtonGroup
@@ -875,8 +909,10 @@ const rowSX = { display: "flex", alignItems: "center", gap: 1 };
             }
             FormHelperTextProps={{ sx: { mt: 1 } }}
             >
-            {Object.entries(RPC_OPTIONS).map(([label, url]) => (
-                <MenuItem key={label} value={url}>
+            {Object.entries(RPC_OPTIONS)
+              .filter(([, url]) => typeof url === 'string' && url.trim().length > 0)
+              .map(([label, url]) => (
+                <MenuItem key={label} value={url as string}>
                 <Box
                     sx={{
                     display: "flex",
