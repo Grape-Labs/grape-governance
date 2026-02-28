@@ -46,6 +46,7 @@ import {
   getProposalNewIndexed,
   getRealmIndexed,
   getTokenOwnerRecordsByOwnerIndexed,
+  getVoteRecordsByVoterIndexed,
 } from './api/queries';
 import { withRelinquishVote } from '@solana/spl-governance';
 import { getGrapeGovernanceProgramVersion } from '../utils/grapeTools/helpers';
@@ -682,7 +683,10 @@ export function MyGovernanceView(props: any) {
       const { allProposals } = await buildRealmProposalSet(normalizedOwnerRecords);
       const [authoredProposals, votesCastRows] = await Promise.all([
         buildCreatedProposals(normalizedOwnerRecords, allProposals),
-        buildVoteHistoryRows(pubkey, allProposals, rows),
+        buildVoteHistoryRows(pubkey, allProposals, rows).catch((error) => {
+          console.error('Profile vote history load failed', error);
+          return [];
+        }),
       ]);
 
       setTokenOwnerRecords(normalizedOwnerRecords);

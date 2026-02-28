@@ -19,7 +19,6 @@ import {
 } from '@mui/material/';
 
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import SearchIcon from '@mui/icons-material/Search';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
@@ -171,7 +170,7 @@ export function GovernanceDirectoryView(props: Props) {
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
   const [filterVerified, setFilterVerified] = React.useState(false);
   const [filterActiveVoting, setFilterActiveVoting] = React.useState(false);
-  const [filterHasTreasury, setFilterHasTreasury] = React.useState(false);
+  const [filterOver100Proposals, setFilterOver100Proposals] = React.useState(false);
 
   const [visibleCount, setVisibleCount] = React.useState(48);
 
@@ -690,10 +689,7 @@ export function GovernanceDirectoryView(props: Props) {
     return sortedGovernances.filter((item: GovernanceLookupItem) => {
       if (filterVerified && !item?.gspl) return false;
       if (filterActiveVoting && !(toNumeric(item?.totalProposalsVoting, 0) > 0)) return false;
-
-      const treasuryValue =
-        toNumeric(item?.totalVaultValue, 0) + toNumeric(item?.totalVaultStableCoinValue, 0);
-      if (filterHasTreasury && !(treasuryValue > 0)) return false;
+      if (filterOver100Proposals && !(toNumeric(item?.totalProposals, 0) > 100)) return false;
 
       if (!query) return true;
 
@@ -735,13 +731,13 @@ export function GovernanceDirectoryView(props: Props) {
     searchFilter,
     filterVerified,
     filterActiveVoting,
-    filterHasTreasury,
+    filterOver100Proposals,
     metadataMap,
   ]);
 
   React.useEffect(() => {
     setVisibleCount(viewMode === 'grid' ? 48 : 80);
-  }, [viewMode, searchFilter, filterVerified, filterActiveVoting, filterHasTreasury]);
+  }, [viewMode, searchFilter, filterVerified, filterActiveVoting, filterOver100Proposals]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -800,6 +796,23 @@ export function GovernanceDirectoryView(props: Props) {
     [filteredGovernances, visibleCount]
   );
 
+  const latestActivityAddress = React.useMemo(() => {
+    const validItems = sortedGovernances.filter((item) =>
+      isValidSolanaPublicKey(governanceKey(item?.governanceAddress))
+    );
+    if (!validItems.length) return DEFAULT_GOVERNANCE_PROGRAM_NAME;
+
+    const activeVoting = validItems.find((item) => toNumeric(item?.totalProposalsVoting, 0) > 0);
+    if (activeVoting) return governanceKey(activeVoting?.governanceAddress);
+
+    const withRecentProposal = validItems.find(
+      (item) => Number(`0x${item?.lastProposalDate || '0'}`) > 0
+    );
+    if (withRecentProposal) return governanceKey(withRecentProposal?.governanceAddress);
+
+    return governanceKey(validItems[0]?.governanceAddress) || DEFAULT_GOVERNANCE_PROGRAM_NAME;
+  }, [sortedGovernances]);
+
   const hasMoreGovernances = displayedGovernances.length < filteredGovernances.length;
 
   const totalLiveProposals = React.useMemo(
@@ -820,7 +833,7 @@ export function GovernanceDirectoryView(props: Props) {
     setSearchFilter('');
     setFilterVerified(false);
     setFilterActiveVoting(false);
-    setFilterHasTreasury(false);
+    setFilterOver100Proposals(false);
   };
 
   if (loading) {
@@ -1055,12 +1068,12 @@ export function GovernanceDirectoryView(props: Props) {
                     onClick={() => setFilterActiveVoting((value) => !value)}
                   />
                   <Chip
-                    icon={<AccountBalanceIcon />}
-                    label="Has treasury"
-                    color={filterHasTreasury ? 'primary' : 'default'}
-                    variant={filterHasTreasury ? 'filled' : 'outlined'}
+                    icon={<WhatshotIcon />}
+                    label=">100 proposals"
+                    color={filterOver100Proposals ? 'primary' : 'default'}
+                    variant={filterOver100Proposals ? 'filled' : 'outlined'}
                     size="small"
-                    onClick={() => setFilterHasTreasury((value) => !value)}
+                    onClick={() => setFilterOver100Proposals((value) => !value)}
                   />
                 </Stack>
 
@@ -1125,10 +1138,12 @@ export function GovernanceDirectoryView(props: Props) {
       {!searchFilter && filteredGovernances.length > 0 && (
         <Box sx={{ mb: 1.5 }}>
           <GovernanceRealtimeInfo
+            key={latestActivityAddress}
             governanceLookup={governanceLookup}
-            governanceAddress={'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw'}
+            governanceAddress={latestActivityAddress}
             title={'Latest Activity'}
             expanded={false}
+            compact={true}
           />
         </Box>
       )}
