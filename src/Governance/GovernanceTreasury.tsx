@@ -18,9 +18,9 @@ import { useParams } from "react-router-dom";
 
 import {
   Typography,
-  Button,
   Grid,
   Box,
+  Paper,
   Tooltip,
   LinearProgress,
 } from '@mui/material/';
@@ -261,6 +261,14 @@ export function GovernanceTreasuryView(props: any) {
     return arr;
   }, [governanceWallets, walletSortTick]);
 
+  const walletCount = sortedWallets.length;
+  const valuedWalletCount = sortedWallets.filter((item: any) => (Number(item?.walletValue) || 0) > 0).length;
+  const valuedWalletCoverage = walletCount > 0 ? (valuedWalletCount / walletCount) * 100 : 0;
+  const stableShare = totals.totalVal > 0 ? (totals.stableVal / totals.totalVal) * 100 : 0;
+  const solShare = totals.totalVal > 0 ? (totals.solVal / totals.totalVal) * 100 : 0;
+  const topWalletValue = sortedWallets.reduce((max, item: any) => Math.max(max, Number(item?.walletValue) || 0), 0);
+  const topWalletShare = totals.totalVal > 0 ? (topWalletValue / totals.totalVal) * 100 : 0;
+
   const formatUSD = (n: number) =>
     `$${Number((Number(n) || 0).toFixed(2)).toLocaleString()}`;
 
@@ -317,64 +325,204 @@ export function GovernanceTreasuryView(props: any) {
           {filterRulesWallet ? null : (
             <Box sx={{ p: 1 }}>
               <Grid container spacing={1}>
-                <Grid item xs={12} md={4} lg={4} key="total">
-                  <Box sx={{ borderRadius: '24px', m: 0, p: 1, background: 'rgba(0, 0, 0, 0.2)' }}>
-                    <Typography variant="body2" sx={{ color: '#2ecc71' }}>
-                      <>Treasury</>
-                    </Typography>
-
-                    <Box sx={{ borderRadius: '17px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                      <Tooltip title={<>Total Token Value (value does not include NFT floor prices)</>}>
-                        <Button color="inherit" sx={{ borderRadius: '17px' }}>
-                          <Grid container sx={{ verticalAlign: 'bottom', textAlign: 'center' }}>
-                            <Typography variant="h4" sx={{ textAlign: 'center' }}>
-                              {formatUSD(totals.totalVal)}
-                            </Typography>
-                          </Grid>
-                        </Button>
-                      </Tooltip>
-                    </Box>
-                  </Box>
+                <Grid item xs={12} sm={6} md={6} lg={3} key="total">
+                  <Tooltip title={<>Total token + SOL treasury value (excludes NFT floor prices).</>}>
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        borderRadius: '16px',
+                        m: 0,
+                        p: 1.25,
+                        height: '100%',
+                        background: 'linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        cursor: 'help',
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ color: '#8ec5ff', letterSpacing: 0.25, textTransform: 'uppercase' }}>
+                        Treasury Value
+                      </Typography>
+                      <Typography
+                        sx={{
+                          mt: 0.35,
+                          fontSize: '1.55rem',
+                          fontWeight: 700,
+                          lineHeight: 1.15,
+                          color: 'rgba(255,255,255,0.96)',
+                        }}
+                      >
+                        {formatUSD(totals.totalVal)}
+                      </Typography>
+                      <Box sx={{ mt: 1 }}>
+                        <LinearProgress
+                          variant="determinate"
+                          value={Math.min(100, Math.max(0, valuedWalletCoverage))}
+                          sx={{
+                            height: 6,
+                            borderRadius: 99,
+                            backgroundColor: 'rgba(255,255,255,0.14)',
+                            '& .MuiLinearProgress-bar': {
+                              borderRadius: 99,
+                              backgroundColor: '#8ec5ff',
+                            },
+                          }}
+                        />
+                      </Box>
+                      <Typography variant="caption" sx={{ display: 'block', mt: 0.55, color: 'rgba(255,255,255,0.66)' }}>
+                        {valuedWalletCount}/{walletCount} wallets priced
+                      </Typography>
+                    </Paper>
+                  </Tooltip>
                 </Grid>
 
-                <Grid item xs={12} md={4} lg={4} key="stable">
-                  <Box sx={{ borderRadius: '24px', m: 0, p: 1, background: 'rgba(0, 0, 0, 0.2)' }}>
-                    <Typography variant="body2" sx={{ color: '#2ecc71' }}>
-                      <>Stable Coin Treasury</>
-                    </Typography>
-
-                    <Box sx={{ borderRadius: '17px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                      <Tooltip title={<>Total Value in stable coins</>}>
-                        <Button color="inherit" sx={{ borderRadius: '17px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                          <Grid container sx={{ verticalAlign: 'bottom' }}>
-                            <Typography variant="h4" sx={{ textAlign: 'center' }}>
-                              {formatUSD(totals.stableVal)}
-                            </Typography>
-                          </Grid>
-                        </Button>
-                      </Tooltip>
-                    </Box>
-                  </Box>
+                <Grid item xs={12} sm={6} md={6} lg={3} key="stable">
+                  <Tooltip title={<>Total treasury value held in stable coins.</>}>
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        borderRadius: '16px',
+                        m: 0,
+                        p: 1.25,
+                        height: '100%',
+                        background: 'linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        cursor: 'help',
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ color: '#72d38c', letterSpacing: 0.25, textTransform: 'uppercase' }}>
+                        Stable Coin Treasury
+                      </Typography>
+                      <Typography
+                        sx={{
+                          mt: 0.35,
+                          fontSize: '1.55rem',
+                          fontWeight: 700,
+                          lineHeight: 1.15,
+                          color: 'rgba(255,255,255,0.96)',
+                        }}
+                      >
+                        {formatUSD(totals.stableVal)}
+                      </Typography>
+                      <Box sx={{ mt: 1 }}>
+                        <LinearProgress
+                          variant="determinate"
+                          value={Math.min(100, Math.max(0, stableShare))}
+                          sx={{
+                            height: 6,
+                            borderRadius: 99,
+                            backgroundColor: 'rgba(255,255,255,0.14)',
+                            '& .MuiLinearProgress-bar': {
+                              borderRadius: 99,
+                              backgroundColor: '#72d38c',
+                            },
+                          }}
+                        />
+                      </Box>
+                      <Typography variant="caption" sx={{ display: 'block', mt: 0.55, color: 'rgba(255,255,255,0.66)' }}>
+                        {stableShare.toFixed(1)}% of treasury value
+                      </Typography>
+                    </Paper>
+                  </Tooltip>
                 </Grid>
 
-                <Grid item xs={12} md={4} lg={4} key="sol">
-                  <Box sx={{ borderRadius: '24px', m: 0, p: 1, background: 'rgba(0, 0, 0, 0.2)' }}>
-                    <Typography variant="body2" sx={{ color: '#2ecc71' }}>
-                      <>Solana Treasury</>
-                    </Typography>
+                <Grid item xs={12} sm={6} md={6} lg={3} key="sol">
+                  <Tooltip title={<>Total SOL-denominated value and aggregate SOL held by treasury wallets.</>}>
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        borderRadius: '16px',
+                        m: 0,
+                        p: 1.25,
+                        height: '100%',
+                        background: 'linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        cursor: 'help',
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ color: '#f8bc72', letterSpacing: 0.25, textTransform: 'uppercase' }}>
+                        Solana Treasury
+                      </Typography>
+                      <Typography
+                        sx={{
+                          mt: 0.35,
+                          fontSize: '1.55rem',
+                          fontWeight: 700,
+                          lineHeight: 1.15,
+                          color: 'rgba(255,255,255,0.96)',
+                        }}
+                      >
+                        {formatUSD(totals.solVal)}
+                      </Typography>
+                      <Box sx={{ mt: 1 }}>
+                        <LinearProgress
+                          variant="determinate"
+                          value={Math.min(100, Math.max(0, solShare))}
+                          sx={{
+                            height: 6,
+                            borderRadius: 99,
+                            backgroundColor: 'rgba(255,255,255,0.14)',
+                            '& .MuiLinearProgress-bar': {
+                              borderRadius: 99,
+                              backgroundColor: '#f8bc72',
+                            },
+                          }}
+                        />
+                      </Box>
+                      <Typography variant="caption" sx={{ display: 'block', mt: 0.55, color: 'rgba(255,255,255,0.66)' }}>
+                        {Number(totals.solHeld.toFixed(2)).toLocaleString()} SOL held • {solShare.toFixed(1)}% of treasury
+                      </Typography>
+                    </Paper>
+                  </Tooltip>
+                </Grid>
 
-                    <Box sx={{ borderRadius: '17px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                      <Tooltip title={<>Total Value in <strong>{Number(totals.solHeld.toFixed(2)).toLocaleString()}</strong> SOL held</>}>
-                        <Button color="inherit" sx={{ borderRadius: '17px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                          <Grid container sx={{ verticalAlign: 'bottom' }}>
-                            <Typography variant="h4" sx={{ textAlign: 'center' }}>
-                              {formatUSD(totals.solVal)}
-                            </Typography>
-                          </Grid>
-                        </Button>
-                      </Tooltip>
-                    </Box>
-                  </Box>
+                <Grid item xs={12} sm={6} md={6} lg={3} key="concentration">
+                  <Tooltip title={<>Largest treasury wallet value and its share of total treasury value.</>}>
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        borderRadius: '16px',
+                        m: 0,
+                        p: 1.25,
+                        height: '100%',
+                        background: 'linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        cursor: 'help',
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ color: '#dcb3ff', letterSpacing: 0.25, textTransform: 'uppercase' }}>
+                        Largest Wallet / Share
+                      </Typography>
+                      <Typography
+                        sx={{
+                          mt: 0.35,
+                          fontSize: '1.55rem',
+                          fontWeight: 700,
+                          lineHeight: 1.15,
+                          color: 'rgba(255,255,255,0.96)',
+                        }}
+                      >
+                        {formatUSD(topWalletValue)} / {topWalletShare.toFixed(1)}%
+                      </Typography>
+                      <Box sx={{ mt: 1 }}>
+                        <LinearProgress
+                          variant="determinate"
+                          value={Math.min(100, Math.max(0, topWalletShare))}
+                          sx={{
+                            height: 6,
+                            borderRadius: 99,
+                            backgroundColor: 'rgba(255,255,255,0.14)',
+                            '& .MuiLinearProgress-bar': {
+                              borderRadius: 99,
+                              backgroundColor: '#dcb3ff',
+                            },
+                          }}
+                        />
+                      </Box>
+                      <Typography variant="caption" sx={{ display: 'block', mt: 0.55, color: 'rgba(255,255,255,0.66)' }}>
+                        Treasury concentration across priced wallets
+                      </Typography>
+                    </Paper>
+                  </Tooltip>
                 </Grid>
               </Grid>
             </Box>
