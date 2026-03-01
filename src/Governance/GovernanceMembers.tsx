@@ -701,6 +701,37 @@ export function GovernanceMembersView(props: any) {
         }
     }, []);
 
+    const allVotersCount = Number(totalParticipants || 0);
+    const activeVotersCount = Number(activeParticipants || 0);
+    const participatingVotersCount = Number(votingParticipants || 0);
+    const activeVoterRate = allVotersCount > 0 ? (activeVotersCount / allVotersCount) * 100 : 0;
+    const participatingVoterRate = allVotersCount > 0 ? (participatingVotersCount / allVotersCount) * 100 : 0;
+    const communityVotesDepositedUi = totalDepositedVotes
+        ? +((totalDepositedVotes) / Math.pow(10, governingTokenDecimals || 0)).toFixed(0)
+        : 0;
+    const councilVotesDepositedUi = Number(totalDepositedCouncilVotes || 0);
+    const top10Votes = Number(top10Participants?.votes || 0);
+    const top10GovernanceShare = Number(top10Participants?.percentageOfGovernanceSupply || 0);
+    const top10SupplyShare = Number(top10Participants?.percentageOfSupply || 0);
+    const circulatingAmount = Number(circulatingSupply?.value?.amount || 0);
+    const depositedCirculatingShare = circulatingAmount > 0 && totalDepositedVotes
+        ? (Number(totalDepositedVotes) / circulatingAmount) * 100
+        : null;
+    const delegatedVotersCount = Array.isArray(members)
+        ? members.reduce((count: number, member: any) => {
+            try {
+                const owner = member?.governingTokenOwner?.toBase58?.() || `${member?.governingTokenOwner || ''}`;
+                const delegate = member?.governanceDelegate?.toBase58?.() || `${member?.governanceDelegate || ''}`;
+                if (delegate && owner && delegate !== owner) return count + 1;
+            } catch (e) {
+                // ignore malformed member rows in delegation metric
+            }
+            return count;
+        }, 0)
+        : 0;
+    const undelegatedVotersCount = Math.max(0, allVotersCount - delegatedVotersCount);
+    const delegationRate = allVotersCount > 0 ? (delegatedVotersCount / allVotersCount) * 100 : 0;
+
     
         if(loading){
             return (
@@ -760,261 +791,233 @@ export function GovernanceMembersView(props: any) {
                             {(totalDepositedVotes || totalCouncilVotes) &&
                                 <Box sx={{ p:1}}>
                                     <Grid container spacing={1}>
-                                        <Grid item xs={12} md={6} lg={3} key={1}>
-                                            <Box
-                                                sx={{
-                                                    borderRadius:'24px',
-                                                    m:0,
-                                                    p:1,
-                                                    background: 'rgba(0, 0, 0, 0.2)'
-                                                }}
-                                            >
-                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Active{votingParticipants && `/Participating`}/All Voters</>
-                                                </Typography>
-                                                <Grid
-                                                    container
-                                                    justifyContent='center'
-                                                    alignItems='center'
-                                                    sx={{}}
-                                                >
-                                                    <Tooltip title={<>
-                                                            <strong>Active:</strong> Currently Active Deposited<br/>
-                                                            <strong>Participating:</strong> All time Participating voters<br/>
-                                                            <strong>All:</strong> Total Lifetime Deposited in Governance</>
-                                                        }>
-                                                        <Button
-                                                            color='inherit'
-                                                            sx={{
-                                                                borderRadius:'17px'
-                                                            }}
-                                                        >
-                                                            <Grid container
-                                                                sx={{
-                                                                    verticalAlign: 'bottom'}}
-                                                            >
-                                                                <Typography variant="h4">
-                                                                    {activeParticipants}{votingParticipants && `/${votingParticipants}`}/{totalParticipants}
-                                                                </Typography>
-                                                            </Grid>
-                                                        </Button>
-                                                    </Tooltip>
-                                                </Grid>
-                                            </Box>
-                                        </Grid>
-                                        
-                                        <Grid item xs={12} md={6} lg={3} key={2}>
-                                            <Box
-                                                sx={{
-                                                    borderRadius:'24px',
-                                                    m:0,
-                                                    p:1,
-                                                    background: 'rgba(0, 0, 0, 0.2)'
-                                                }}
-                                            >
-                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Top 10</>
-                                                </Typography>
-                                                {top10Participants &&
-                                                    <Grid
-                                                        container
-                                                        justifyContent='center'
-                                                        alignItems='center'
-                                                        sx={{}}
-                                                    >
-                                                        <Tooltip title={<>
-                                                                    <Typography variant="subtitle2">
-                                                                        <strong>Top 10:</strong>
-                                                                    </Typography>
-                                                                    <Typography variant="body2">
-                                                                        <ul>
-                                                                            <li>Holders have {getFormattedNumberToLocale(+(top10Participants.votes.toFixed(0)))} votes deposited</li>
-                                                                            <li>Hold {top10Participants.percentageOfGovernanceSupply.toFixed(1)}% of the total deposited in Governance</li>
-                                                                            <li>Comprise {top10Participants.percentageOfSupply.toFixed(1)}% of the total token supply</li>
-                                                                        </ul>
-                                                                    </Typography>
-                                                                </>
-                                                            }>
-                                                            <Button
-                                                                color='inherit'
-                                                                sx={{
-                                                                    borderRadius:'17px'
-                                                                }}
-                                                            >
-                                                                <Grid container
-                                                                    sx={{
-                                                                        verticalAlign: 'bottom'}}
-                                                                    >
-                                                                    <Typography variant="h4">
-                                                                        {getFormattedNumberToLocale(top10Participants.votes.toFixed(0))}
-                                                                    </Typography>
-                                                                </Grid>
-                                                            </Button>
-                                                        </Tooltip>
-                                                    </Grid>
+                                        <Grid item xs={12} sm={6} md={6} lg={3}>
+                                            <Tooltip
+                                                title={
+                                                    <>
+                                                        <strong>Active:</strong> currently staked members
+                                                        <br />
+                                                        <strong>Participating:</strong> members who casted votes
+                                                        <br />
+                                                        <strong>All:</strong> lifetime token owner records
+                                                    </>
                                                 }
-                                            </Box>
-                                        </Grid>
-
-                                        {/*
-                                        <Grid item xs={12} md={6} lg={3} key={2}>
-                                            <Box
-                                                sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
-                                                    <>Total Votes</>
-                                                </Typography>
-                                                <Tooltip title={<>
-                                                            {totalVotesCasted && <>Total Votes Casted</>}
-                                                            {(totalVotesCasted && totalDepositedCouncilVotes) &&
-                                                                <>/</>
-                                                            }
-                                                            {totalCouncilVotes && <>Total Council Votes Casted</>}
-                                                        </>
-                                                    }>
-                                                    <Button
-                                                        color='inherit'
-                                                        sx={{
-                                                            borderRadius:'17px'
-                                                        }}
-                                                    >
-                                                        <Typography variant="h3">
-                                                            {totalVotesCasted && <>{totalVotesCasted}</>}
-                                                            {(totalVotesCasted && totalDepositedCouncilVotes) &&
-                                                                <>/</>
-                                                            }
-                                                            {totalCouncilVotes && <>{totalCouncilVotes}</>}
-                                                        </Typography>
-                                                    </Button>
-                                                </Tooltip>
-                                            </Box>
-                                        </Grid>
-                                        */}
-                                        
-                                        <Grid item xs={12} md={6} lg={3} key={3}>
-                                            <Box
-                                                sx={{
-                                                    borderRadius:'24px',
-                                                    m:0,
-                                                    p:1,
-                                                    background: 'rgba(0, 0, 0, 0.2)'
-                                                }}
-                                            >
-                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Total Votes Deposited</>
-                                                </Typography>
-                                                <Grid
-                                                    container
-                                                    justifyContent='center'
-                                                    alignItems='center'
-                                                    sx={{}}
-                                                >
-                                                    <Tooltip title={<>
-                                                        {totalUnstakedVotes ?
-                                                                <>
-                                                                    <Typography variant="subtitle2">
-                                                                        <strong>Total Not Staked:</strong>
-                                                                    </Typography>
-                                                                    <Typography variant="body2">
-                                                                        
-                                                                        <ul>
-                                                                        {/*totalVotesCasted && <>Total Votes Deposited</>}
-                                                                        {(totalVotesCasted && totalDepositedCouncilVotes) &&
-                                                                            <>/</>
-                                                                        }
-                                                                        {totalCouncilVotes && <>Total Council Votes Deposited</>*/}
-                                                                        
-                                                                        <li>{getFormattedNumberToLocale(totalUnstakedVotes)} held in voter wallets</li> : <li>-</li>}
-                                                                        </ul>
-                                                                    </Typography>
-                                                                </>:<>Votes Deposited &amp; Eligible to participate in this DAO</>}
-                                                            </>
-                                                        }>
-                                                        <Button
-                                                            color='inherit'
-                                                            sx={{
-                                                                borderRadius:'17px'
-                                                            }}
-                                                        >
-                                                            <Grid container
-                                                                sx={{
-                                                                    verticalAlign: 'bottom'}}
-                                                                >
-                                                                <Typography variant="h4">
-                                                                    {totalDepositedVotes &&
-                                                                        <>
-                                                                            {getFormattedNumberToLocale(+((totalDepositedVotes)/Math.pow(10, governingTokenDecimals || 0)).toFixed(0))}
-                                                                        </>
-                                                                    }
-                                                                    {(totalDepositedVotes && totalDepositedCouncilVotes) &&
-                                                                        <>/</>
-                                                                    }
-                                                                    {totalDepositedCouncilVotes && <>{totalDepositedCouncilVotes}</>}
-                                                                </Typography>
-                                                            </Grid>
-                                                        </Button>
-                                                    </Tooltip>
-                                                </Grid>
-                                                
-                                            </Box>
-                                        </Grid>
-                                        {circulatingSupply && 
-                                            <Grid item xs={12} md={6} lg={3} key={4}>
-                                                <Box
+                                                <Paper
+                                                    elevation={0}
                                                     sx={{
-                                                        borderRadius:'24px',
-                                                        m:0,
-                                                        p:1,
-                                                        background: 'rgba(0, 0, 0, 0.2)'
+                                                        borderRadius: '16px',
+                                                        m: 0,
+                                                        p: 1.25,
+                                                        height: '100%',
+                                                        background: 'linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                                                        border: '1px solid rgba(255,255,255,0.1)',
+                                                        cursor: 'help',
                                                     }}
                                                 >
-                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                        <>% Circulating Supply</>
+                                                    <Typography variant="caption" sx={{ color: '#8ec5ff', letterSpacing: 0.25, textTransform: 'uppercase' }}>
+                                                        Active / Participating / All Voters
                                                     </Typography>
-                                                    <Grid
-                                                        container
-                                                        justifyContent='center'
-                                                        alignItems='center'
-                                                        sx={{}}
+                                                    <Typography
+                                                        sx={{
+                                                            mt: 0.35,
+                                                            fontSize: '1.45rem',
+                                                            fontWeight: 700,
+                                                            lineHeight: 1.15,
+                                                            color: 'rgba(255,255,255,0.96)',
+                                                        }}
                                                     >
-                                                        <Tooltip title={<>
-                                                                Calculated from the total token circulating supply
-                                                            </>
-                                                        }>
-                                                            <Button
-                                                                color='inherit'
-                                                                sx={{
-                                                                    borderRadius:'17px'
-                                                                }}
-                                                            >
-                                                                <Grid container
-                                                                    sx={{
-                                                                        verticalAlign: 'bottom'}}
-                                                                    >
-                                                                    <Typography variant="h4">
-                                                                        {circulatingSupply.value.amount > 0 ?
-                                                                            <>
-                                                                                {((totalDepositedVotes/circulatingSupply.value.amount)*100).toFixed(1)}%
-                                                                            </>
-                                                                        :
-                                                                            <>-</>
-                                                                        }
-                                                                    </Typography>
-                                                                </Grid>
-                                                            </Button>
-                                                        </Tooltip>
-                                                    </Grid>
-                                                </Box>
-                                            </Grid>
-                                        }
-                                        
+                                                        {activeVotersCount}/{participatingVotersCount}/{allVotersCount}
+                                                    </Typography>
+                                                    <Box sx={{ mt: 1 }}>
+                                                        <LinearProgress
+                                                            variant="determinate"
+                                                            value={Math.min(100, Math.max(0, activeVoterRate))}
+                                                            sx={{
+                                                                height: 6,
+                                                                borderRadius: 99,
+                                                                backgroundColor: 'rgba(255,255,255,0.14)',
+                                                                '& .MuiLinearProgress-bar': {
+                                                                    borderRadius: 99,
+                                                                    backgroundColor: '#8ec5ff',
+                                                                },
+                                                            }}
+                                                        />
+                                                    </Box>
+                                                    <Typography variant="caption" sx={{ display: 'block', mt: 0.55, color: 'rgba(255,255,255,0.66)' }}>
+                                                        {activeVoterRate.toFixed(1)}% active • {participatingVoterRate.toFixed(1)}% participating
+                                                    </Typography>
+                                                </Paper>
+                                            </Tooltip>
+                                        </Grid>
+
+                                        <Grid item xs={12} sm={6} md={6} lg={3}>
+                                            <Tooltip
+                                                title={
+                                                    <>
+                                                        Top 10 holders by deposited community votes.
+                                                        <br />
+                                                        Shows concentration of governance power.
+                                                    </>
+                                                }
+                                            >
+                                                <Paper
+                                                    elevation={0}
+                                                    sx={{
+                                                        borderRadius: '16px',
+                                                        m: 0,
+                                                        p: 1.25,
+                                                        height: '100%',
+                                                        background: 'linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                                                        border: '1px solid rgba(255,255,255,0.1)',
+                                                        cursor: 'help',
+                                                    }}
+                                                >
+                                                    <Typography variant="caption" sx={{ color: '#72d38c', letterSpacing: 0.25, textTransform: 'uppercase' }}>
+                                                        Top 10 Deposited Votes
+                                                    </Typography>
+                                                    <Typography
+                                                        sx={{
+                                                            mt: 0.35,
+                                                            fontSize: '1.45rem',
+                                                            fontWeight: 700,
+                                                            lineHeight: 1.15,
+                                                            color: 'rgba(255,255,255,0.96)',
+                                                        }}
+                                                    >
+                                                        {getFormattedNumberToLocale(+(top10Votes.toFixed(0)))}
+                                                    </Typography>
+                                                    <Box sx={{ mt: 1 }}>
+                                                        <LinearProgress
+                                                            variant="determinate"
+                                                            value={Math.min(100, Math.max(0, top10GovernanceShare))}
+                                                            sx={{
+                                                                height: 6,
+                                                                borderRadius: 99,
+                                                                backgroundColor: 'rgba(255,255,255,0.14)',
+                                                                '& .MuiLinearProgress-bar': {
+                                                                    borderRadius: 99,
+                                                                    backgroundColor: '#72d38c',
+                                                                },
+                                                            }}
+                                                        />
+                                                    </Box>
+                                                    <Typography variant="caption" sx={{ display: 'block', mt: 0.55, color: 'rgba(255,255,255,0.66)' }}>
+                                                        {top10GovernanceShare.toFixed(1)}% of deposited
+                                                        {top10SupplyShare > 0 ? ` • ${top10SupplyShare.toFixed(1)}% of supply` : ''}
+                                                    </Typography>
+                                                </Paper>
+                                            </Tooltip>
+                                        </Grid>
+
+                                        <Grid item xs={12} sm={6} md={6} lg={3}>
+                                            <Tooltip
+                                                title={
+                                                    <>
+                                                        Total votes currently deposited in governance.
+                                                        <br />
+                                                        Community / Council split when council exists.
+                                                    </>
+                                                }
+                                            >
+                                                <Paper
+                                                    elevation={0}
+                                                    sx={{
+                                                        borderRadius: '16px',
+                                                        m: 0,
+                                                        p: 1.25,
+                                                        height: '100%',
+                                                        background: 'linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                                                        border: '1px solid rgba(255,255,255,0.1)',
+                                                        cursor: 'help',
+                                                    }}
+                                                >
+                                                    <Typography variant="caption" sx={{ color: '#f8bc72', letterSpacing: 0.25, textTransform: 'uppercase' }}>
+                                                        Total Votes Deposited
+                                                    </Typography>
+                                                    <Typography
+                                                        sx={{
+                                                            mt: 0.35,
+                                                            fontSize: '1.45rem',
+                                                            fontWeight: 700,
+                                                            lineHeight: 1.15,
+                                                            color: 'rgba(255,255,255,0.96)',
+                                                        }}
+                                                    >
+                                                        {getFormattedNumberToLocale(communityVotesDepositedUi)}
+                                                        {councilVotesDepositedUi > 0 ? ` / ${getFormattedNumberToLocale(councilVotesDepositedUi)}` : ''}
+                                                    </Typography>
+                                                    <Typography variant="caption" sx={{ display: 'block', mt: 0.55, color: 'rgba(255,255,255,0.66)' }}>
+                                                        {totalUnstakedVotes ? `${getFormattedNumberToLocale(totalUnstakedVotes)} unstaked in wallets` : 'No unstaked amount found'}
+                                                    </Typography>
+                                                    <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.66)' }}>
+                                                        {depositedCirculatingShare !== null
+                                                            ? `${depositedCirculatingShare.toFixed(1)}% of circulating supply`
+                                                            : 'Circulating supply unavailable'}
+                                                    </Typography>
+                                                </Paper>
+                                            </Tooltip>
+                                        </Grid>
+
+                                        <Grid item xs={12} sm={6} md={6} lg={3}>
+                                            <Tooltip
+                                                title={
+                                                    <>
+                                                        Voters that delegated governance power to another wallet.
+                                                        <br />
+                                                        Excludes self-delegation.
+                                                    </>
+                                                }
+                                            >
+                                                <Paper
+                                                    elevation={0}
+                                                    sx={{
+                                                        borderRadius: '16px',
+                                                        m: 0,
+                                                        p: 1.25,
+                                                        height: '100%',
+                                                        background: 'linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                                                        border: '1px solid rgba(255,255,255,0.1)',
+                                                        cursor: 'help',
+                                                    }}
+                                                >
+                                                    <Typography variant="caption" sx={{ color: '#dcb3ff', letterSpacing: 0.25, textTransform: 'uppercase' }}>
+                                                        Delegated Voters / Rate
+                                                    </Typography>
+                                                    <Typography
+                                                        sx={{
+                                                            mt: 0.35,
+                                                            fontSize: '1.45rem',
+                                                            fontWeight: 700,
+                                                            lineHeight: 1.15,
+                                                            color: 'rgba(255,255,255,0.96)',
+                                                        }}
+                                                    >
+                                                        {delegatedVotersCount}/{allVotersCount} • {delegationRate.toFixed(1)}%
+                                                    </Typography>
+                                                    <Box sx={{ mt: 1 }}>
+                                                        <LinearProgress
+                                                            variant="determinate"
+                                                            value={Math.min(100, Math.max(0, delegationRate))}
+                                                            sx={{
+                                                                height: 6,
+                                                                borderRadius: 99,
+                                                                backgroundColor: 'rgba(255,255,255,0.14)',
+                                                                '& .MuiLinearProgress-bar': {
+                                                                    borderRadius: 99,
+                                                                    backgroundColor: '#dcb3ff',
+                                                                },
+                                                            }}
+                                                        />
+                                                    </Box>
+                                                    <Typography variant="caption" sx={{ display: 'block', mt: 0.55, color: 'rgba(255,255,255,0.66)' }}>
+                                                        {undelegatedVotersCount} direct voters
+                                                        {participatingVotersCount ? ` • ${participatingVotersCount} participating` : ''}
+                                                    </Typography>
+                                                </Paper>
+                                            </Tooltip>
+                                        </Grid>
                                     </Grid>
-                                    {/*
-                                    <LinearProgress color={((totalMintsOnCurve)/totalMints*100) < 50 ?'error' : 'success'} variant="determinate" value={(totalMintsOnCurve)/totalMints*100} />
-                                        <Typography variant='caption'>
-                                            {((totalMintsOnCurve)/totalMints*100).toFixed(0)}% held on a valid wallet address (address on a Ed25519 curve)
-                                        </Typography>
-                                    */}
                                 </Box>
                             }
 
