@@ -693,7 +693,7 @@ const rowSX = { display: "flex", alignItems: "center", gap: 1 };
                             <ListItem disablePadding>
                                 <Tooltip title={`Governance & GSPL Documentation`} placement="right" arrow>
                                     <a
-                                        href="https://grape-governance.gitbook.io/gspl"
+                                        href="https://grapedao.gitbook.io"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         style={{ textDecoration: 'none', color: 'inherit' }}
