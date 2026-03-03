@@ -73,7 +73,7 @@ export default function AboutDialog() {
               <Button
                 variant="outlined"
                 color="primary"
-                href="https://grape-governance.gitbook.io/gspl"
+                href="https://grapedao.gitbook.io"
                 target="_blank"
                 rel="noopener noreferrer"
                 startIcon={<i className="fas fa-book" />}
