@@ -1,11 +1,14 @@
 import { getRealmAllowlist } from '../_realmPushConfig.js';
-import { getApiKey } from './_auth.js';
+import { getApiKey, requireApiAccess } from './_auth.js';
 import { DEFAULT_CLUSTER, DEFAULT_PROGRAM_ID } from './_data.js';
 import { sendJson, sendMethodNotAllowed } from './_http.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return sendMethodNotAllowed(res, req);
+  }
+  if (!requireApiAccess(req, res, { scope: 'read' })) {
+    return;
   }
 
   const apiKey = getApiKey(req);

@@ -1,9 +1,13 @@
 import legacyRegister from '../../notifications-register.js';
+import { requireApiAccess } from '../_auth.js';
 import { parseBody, sendMethodNotAllowed } from '../_http.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST' && req.method !== 'DELETE') {
     return sendMethodNotAllowed(res, req);
+  }
+  if (!requireApiAccess(req, res, { scope: 'read' })) {
+    return;
   }
 
   const body = parseBody(req);

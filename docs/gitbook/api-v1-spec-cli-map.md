@@ -50,6 +50,17 @@ Breaking changes require `/v2`.
 
 - Require `scope=admin:notifications` or equivalent server secret.
 
+### Strict runtime controls (implemented)
+
+`/api/v1` is now protected by strict guardrails:
+
+- `API_V1_STRICT=true` (default) requires auth for all v1 routes.
+- `API_V1_KEYS` or `GOVSO_API_KEYS`: comma-separated read tokens.
+- `API_V1_ADMIN_KEYS` or `GOVSO_ADMIN_KEYS`: comma-separated admin tokens.
+- `API_V1_ALLOWED_ORIGINS` (optional): comma-separated origin allowlist (supports `*` wildcards).
+- `API_V1_IP_ALLOWLIST` (optional): comma-separated IP allowlist (supports `*` wildcards).
+- `API_V1_READ_RPM` (default `20`) and `API_V1_ADMIN_RPM` (default `5`) enforce strict per-minute limits.
+
 ---
 
 ## Common Request Conventions

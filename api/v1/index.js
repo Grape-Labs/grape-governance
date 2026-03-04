@@ -1,8 +1,12 @@
+import { requireApiAccess } from './_auth.js';
 import { sendJson, sendMethodNotAllowed } from './_http.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return sendMethodNotAllowed(res, req);
+  }
+  if (!requireApiAccess(req, res, { scope: 'read' })) {
+    return;
   }
 
   return sendJson(res, 200, {

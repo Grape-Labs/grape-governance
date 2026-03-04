@@ -8,11 +8,15 @@ import {
   sendJson,
   sendMethodNotAllowed,
 } from '../../_http.js';
+import { requireApiAccess } from '../../_auth.js';
 import { listRealmProposals, resolveProgramId } from '../../_data.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return sendMethodNotAllowed(res, req);
+  }
+  if (!requireApiAccess(req, res, { scope: 'read' })) {
+    return;
   }
 
   const realmId = String(getPathParam(req, 'realm_id', '') || '').trim();

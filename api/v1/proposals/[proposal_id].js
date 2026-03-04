@@ -1,9 +1,13 @@
 import { getPathParam, getQueryValue, sendError, sendJson, sendMethodNotAllowed } from '../_http.js';
+import { requireApiAccess } from '../_auth.js';
 import { getProposal } from '../_data.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return sendMethodNotAllowed(res, req);
+  }
+  if (!requireApiAccess(req, res, { scope: 'read' })) {
+    return;
   }
 
   const proposalId = String(getPathParam(req, 'proposal_id', '') || '').trim();
