@@ -61,6 +61,13 @@ Breaking changes require `/v2`.
 - `API_V1_IP_ALLOWLIST` (optional): comma-separated IP allowlist (supports `*` wildcards).
 - `API_V1_READ_RPM` (default `20`) and `API_V1_ADMIN_RPM` (default `5`) enforce strict per-minute limits.
 
+### Vercel Hobby deployment constraint (implemented)
+
+To stay under Hobby function limits, v1 is deployed as a single function:
+
+- entrypoint: `/api/v1` (file: `api/v1.js`)
+- all `/api/v1/*` routes are rewritten to that entrypoint via `vercel.json`
+
 ---
 
 ## Common Request Conventions

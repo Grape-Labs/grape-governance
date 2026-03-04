@@ -1,5 +1,5 @@
-import { fetchRealmProposals, isVotingState } from '../_realmProposalIndex.js';
-import { getProgramIdForRealm, getRealmAllowlist } from '../_realmPushConfig.js';
+import { fetchRealmProposals, isVotingState } from '../../../api/_realmProposalIndex.js';
+import { getProgramIdForRealm, getRealmAllowlist } from '../../../api/_realmPushConfig.js';
 import { ensureGraphqlIdentifier, graphqlQuote, runQuery } from './_graphql.js';
 import {
   parseBoolean,
