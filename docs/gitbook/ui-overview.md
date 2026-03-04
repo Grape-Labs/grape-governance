@@ -317,3 +317,6 @@ Recommended page split:
 9. `Realtime and Notifications`
 10. `Configuration and Feature Flags`
 
+Related spec:
+
+- [`API v1 + CLI Command Map (Draft)`](/Users/kirk/Development/grape-governance/docs/gitbook/api-v1-spec-cli-map.md)

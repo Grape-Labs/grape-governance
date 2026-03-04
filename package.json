@@ -24,6 +24,7 @@
         "build:client": "yarn clean && parcel build --target client",
         "build:server": "parcel build src/server/index.js --target server --dist-dir dist-server",
         "build": "yarn build:client && yarn build:server",
+        "govso": "node ./bin/govso.mjs",
         "startServer": "node -r esm dist-server/index.js",
         "buildOld": "yarn clean && parcel build src/index.html --no-source-maps",
         "start": "yarn clean && parcel src/index.html",
@@ -34,6 +35,9 @@
         "xnft-build": "xnft build",
         "xnft-start": "xnft watch",
         "xnft-dev": "xnft dev"
+    },
+    "bin": {
+        "govso": "./bin/govso.mjs"
     },
     "type": "module",
     "targets": {
