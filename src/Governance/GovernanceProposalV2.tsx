@@ -2,7 +2,9 @@ import {
     getGovernanceAccounts,
     pubkeyFilter,
     ProposalTransaction,
-    getNativeTreasuryAddress } from '@solana/spl-governance';
+    getNativeTreasuryAddress,
+    getProposal,
+} from '@solana/spl-governance';
 import { Buffer } from 'buffer';
 import DOMPurify from "dompurify";
 import { 
@@ -351,6 +353,36 @@ export function GovernanceProposalV2View(props: any){
 
     const [vetoCount, setVetoCount] = React.useState<number | null>(null);
     const [vetoVoters, setVetoVoters] = React.useState<any[]>([]);
+
+    const fetchLiveProposalFromRpc = React.useCallback(async () => {
+        try {
+            const proposalPkStr = toBase58Safe(proposalPk || thisitem?.pubkey);
+            if (!proposalPkStr) return null;
+            const liveProposal = await getProposal(RPC_CONNECTION, new PublicKey(proposalPkStr));
+            if (!liveProposal) return null;
+
+            setThisitem((prev: any) => {
+                if (!prev) return liveProposal;
+                const merged: any = {
+                    ...prev,
+                    ...liveProposal,
+                    account: {
+                        ...prev.account,
+                        ...liveProposal.account,
+                    },
+                };
+                if (!merged.instructions && prev?.instructions) {
+                    merged.instructions = prev.instructions;
+                }
+                return merged;
+            });
+
+            return liveProposal;
+        } catch (e) {
+            console.log("Error fetching live proposal via RPC", e);
+            return null;
+        }
+    }, [proposalPk, thisitem?.pubkey]);
 
     const normalizePkString = React.useCallback((value: any): string | null => {
         try {
@@ -2953,7 +2985,27 @@ export function GovernanceProposalV2View(props: any){
             console.log("Calling Index/RPC");
             //const prop = await getProposal(RPC_CONNECTION, new PublicKey(proposalPk));
             const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
-            const prop = await getProposalIndexed(governanceRulesStrArr, realmOwner, governanceAddress, proposalPk);
+            const indexedProp = await getProposalIndexed(governanceRulesStrArr, realmOwner, governanceAddress, proposalPk);
+
+            let prop = indexedProp;
+            const liveProposal = await fetchLiveProposalFromRpc();
+            if (liveProposal) {
+                const indexedState = Number(indexedProp?.account?.state ?? -1);
+                const liveState = Number(liveProposal?.account?.state ?? -1);
+                if (!prop || reload || liveState >= indexedState) {
+                    prop = prop
+                        ? {
+                              ...prop,
+                              ...liveProposal,
+                              account: {
+                                  ...prop.account,
+                                  ...liveProposal.account,
+                              },
+                          }
+                        : liveProposal;
+                }
+            }
+
             //console.log("prop: "+JSON.stringify(prop));
             setThisitem(prop);
         }
@@ -3085,17 +3137,15 @@ export function GovernanceProposalV2View(props: any){
                     console.log("Step 4.")
                     
                     if (reload){
-                        setTimeout(() => {
+                        const refreshTimer = setTimeout(async () => {
                             // Your function code here
-                            if (thisitem?.instructions)
-                                thisitem.instructions = null;
-                            // we need to updat the status of the proposal every time
-                            // thisitem.account?.state
-                            validateGovernanceSetup();
+                            await fetchLiveProposalFromRpc();
+                            await validateGovernanceSetup();
                             
-                            getVotingParticipants();
+                            await getVotingParticipants();
                             setReload(false);
-                          }, 7500);
+                          }, 1500);
+                        return () => clearTimeout(refreshTimer);
                     } else{
                         getVotingParticipants();
                     }
