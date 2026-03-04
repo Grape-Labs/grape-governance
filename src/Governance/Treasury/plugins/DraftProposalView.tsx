@@ -1,6 +1,7 @@
 import React from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import {
+  Box,
   Button,
   Dialog,
   DialogActions,
@@ -17,6 +18,7 @@ import {
 } from '@mui/material/';
 import NoteAddIcon from '@mui/icons-material/NoteAdd';
 import { useSnackbar } from 'notistack';
+import CreateGistWithOAuth from '../../CreateGist';
 
 function toBase58(value: any): string {
   try {
@@ -156,6 +158,15 @@ export default function DraftProposalView(props: any) {
             minRows={4}
             onKeyDown={stopMenuKeyHandling}
           />
+
+          <Box sx={{ mt: 1, mb: 1 }}>
+            <CreateGistWithOAuth
+              onGistCreated={(url) => {
+                setProposalDescription(url);
+              }}
+              defaultText={proposalDescription}
+            />
+          </Box>
 
           <FormControl fullWidth margin="dense" disabled={mintSelectionDisabled}>
             <InputLabel id="draft-governing-mint-label">Governing Mint</InputLabel>
