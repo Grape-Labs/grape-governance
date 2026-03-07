@@ -252,7 +252,15 @@ export default function GovernanceRealtimeInfo(props: any){
         const realmName = realmAddress ? realmNameByAddress.get(realmAddress) : '';
         const proposalAddress = context.proposalAddress || String(firstInfo?.proposal || '');
         const resolvedAuthor = proposalAddress ? proposalAuthors[proposalAddress] || '' : '';
-        const creatorAddress = context.directCreator || resolvedAuthor;
+        const isProposalEvent = Boolean(proposalAddress || firstInfo?.proposal_name);
+        const proposalAuthorAddress = resolvedAuthor || (isProposalEvent ? context.directCreator : '');
+        const actorAddress = !isProposalEvent ? context.directCreator : '';
+        const authorResolutionPending = Boolean(
+            isProposalEvent &&
+            proposalAddress &&
+            !proposalAuthorAddress &&
+            proposalAuthorInFlight.current.has(proposalAddress)
+        );
 
         let displayedAmount: any = null;
         for (const action of event.actions) {
@@ -286,9 +294,19 @@ export default function GovernanceRealtimeInfo(props: any){
                             Proposal ID: {shortenAddress(firstInfo.proposal)}
                         </Typography>
                     )}
-                    {creatorAddress && (
+                    {proposalAuthorAddress && (
                         <Typography variant="caption" sx={{ display: 'block' }}>
-                            Creator: {shortenAddress(creatorAddress)}
+                            Proposal Author: {shortenAddress(proposalAuthorAddress)}
+                        </Typography>
+                    )}
+                    {authorResolutionPending && (
+                        <Typography variant="caption" sx={{ display: 'block', opacity: 0.75 }}>
+                            Proposal Author: resolving...
+                        </Typography>
+                    )}
+                    {actorAddress && (
+                        <Typography variant="caption" sx={{ display: 'block' }}>
+                            Actor: {shortenAddress(actorAddress)}
                         </Typography>
                     )}
                     {(displayedAmount !== null && displayedAmount !== undefined) && (
@@ -363,11 +381,32 @@ export default function GovernanceRealtimeInfo(props: any){
                                 </Typography>  
                             </Grid>
                         }
-                        {creatorAddress &&
+                        {proposalAuthorAddress &&
                             <Grid>
-                                <Typography variant="body2">Creator: 
+                                <Typography variant="body2">Proposal Author: 
                                     <ExplorerView
-                                        address={creatorAddress}
+                                        address={proposalAuthorAddress}
+                                        type='address'
+                                        shorten={8}
+                                        hideTitle={false}
+                                        hideIcon={true}
+                                        style='text'
+                                        color='inherit'
+                                        fontSize='10px'
+                                    />
+                                </Typography>  
+                            </Grid>
+                        }
+                        {authorResolutionPending &&
+                            <Grid>
+                                <Typography variant="body2">Proposal Author: resolving...</Typography>
+                            </Grid>
+                        }
+                        {actorAddress &&
+                            <Grid>
+                                <Typography variant="body2">Actor: 
+                                    <ExplorerView
+                                        address={actorAddress}
                                         type='address'
                                         shorten={8}
                                         hideTitle={false}
