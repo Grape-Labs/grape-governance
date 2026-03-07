@@ -4,7 +4,7 @@ import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useWallet } from '@solana/wallet-adapter-react';
 import React, { useCallback } from 'react';
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { styled, useTheme } from '@mui/material/styles';
+import { styled, useTheme, keyframes } from '@mui/material/styles';
 import DOMPurify from "dompurify";
 import ErrorBoundary from '../../Governance/ErrorBoundary';
 
@@ -271,6 +271,21 @@ const GOVERNANCE_STATE = {
 }
 
 const REALTIME_PROPOSALS_LAST_SEEN_STORAGE_KEY = 'governance-realtime-proposals-last-seen';
+const realtimePulse = keyframes`
+  0% { transform: translateY(0px); box-shadow: 0 0 0 rgba(0,0,0,0); }
+  50% { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(8, 12, 18, 0.26); }
+  100% { transform: translateY(0px); box-shadow: 0 0 0 rgba(0,0,0,0); }
+`;
+const realtimeBadgePulse = keyframes`
+  0% { box-shadow: 0 0 0 0 rgba(255, 111, 97, 0.28); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 111, 97, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 111, 97, 0); }
+`;
+const realtimeRefreshFlash = keyframes`
+  0% { box-shadow: 0 0 0 rgba(0,0,0,0), 0 0 0 rgba(88,166,255,0); }
+  25% { box-shadow: 0 22px 54px rgba(9,14,21,0.34), 0 0 0 1px rgba(88,166,255,0.18); }
+  100% { box-shadow: 0 0 0 rgba(0,0,0,0), 0 0 0 rgba(88,166,255,0); }
+`;
 
 function toBase58Safe(value: any): string {
     try {
@@ -345,6 +360,184 @@ function getProposalCardSummary(item: any): string {
     }
 
     return options.length > 2 ? `${options.length} options` : 'No instructions';
+}
+
+function formatExactTimestamp(unixValue: any): string {
+    const numeric = Number(unixValue?.toString?.() ?? unixValue ?? 0);
+    if (!Number.isFinite(numeric) || numeric <= 0) return 'Unknown time';
+    return moment.unix(numeric).format('MMM D, YYYY, h:mm:ss a');
+}
+
+function formatReadablePercent(value: any): string {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric <= 0) return '0%';
+    if (numeric >= 100) return '100%+';
+    const maximumFractionDigits = numeric >= 50 ? 0 : numeric >= 10 ? 1 : 2;
+    return `${numeric.toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits,
+    })}%`;
+}
+
+function getTurnoutLabel(voteStats: any): string {
+    if (voteStats?.turnoutPct === null || voteStats?.turnoutPct === undefined) return 'Turnout unavailable';
+    return `${formatReadablePercent(voteStats.turnoutPct)} turnout`;
+}
+
+function getTurnoutTooltip(voteStats: any): string {
+    if (voteStats?.turnoutPct === null || voteStats?.turnoutPct === undefined) return 'Turnout unavailable';
+    const turnoutLabel = getTurnoutLabel(voteStats);
+    const participatingVotes = formatCompactNumber(voteStats?.total ?? 0);
+    const maxVoteWeight = Number(voteStats?.maxVoteWeight ?? 0);
+    const maxVotesLabel = maxVoteWeight > 0 ? formatCompactNumber(maxVoteWeight) : null;
+    const thresholdLabel =
+        voteStats?.thresholdPct !== null && voteStats?.thresholdPct !== undefined
+            ? ` • threshold ${formatReadablePercent(voteStats.thresholdPct)}`
+            : '';
+
+    return `${turnoutLabel} of voting power • ${participatingVotes} votes participating${maxVotesLabel ? ` / ${maxVotesLabel} max` : ''}${thresholdLabel}`;
+}
+
+function preserveChipTone(config: {
+    background?: string;
+    bgcolor?: string;
+    color?: string;
+    border?: string;
+    borderColor?: string;
+}) {
+    const stableState: Record<string, string> = {};
+    if (config.background) stableState.background = config.background;
+    if (config.bgcolor) stableState.backgroundColor = config.bgcolor;
+    if (config.color) stableState.color = config.color;
+    if (config.border) stableState.border = config.border;
+    if (config.borderColor) stableState.borderColor = config.borderColor;
+
+    return {
+        '&:hover': stableState,
+        '&:active': stableState,
+        '&.Mui-focusVisible': stableState,
+        '& .MuiChip-label': {
+            color: 'inherit',
+        },
+        '& .MuiChip-icon': {
+            color: 'inherit',
+        },
+    };
+}
+
+function getVoteThresholdPercent(voteThreshold: any): number | null {
+    if (voteThreshold === null || voteThreshold === undefined) return null;
+    if (typeof voteThreshold === 'number') return Number.isFinite(voteThreshold) ? voteThreshold : null;
+    if (typeof voteThreshold === 'string') {
+        const parsed = Number(voteThreshold);
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+    const candidates = [
+        voteThreshold?.value,
+        voteThreshold?.percentage,
+        voteThreshold?.yesVotePercentage,
+        voteThreshold?.votePercentage,
+    ];
+    for (const candidate of candidates) {
+        const parsed = Number(candidate);
+        if (Number.isFinite(parsed)) return parsed;
+    }
+    return null;
+}
+
+function getProposalVoteStats(item: any) {
+    const yesRaw = Number(item?.account?.options?.[0]?.voteWeight ?? item?.account?.yesVoteCount ?? 0);
+    const noRaw = Number(item?.account?.denyVoteWeight ?? item?.account?.noVoteCount ?? 0);
+    const yes = Number.isFinite(yesRaw) ? yesRaw : 0;
+    const no = Number.isFinite(noRaw) ? noRaw : 0;
+    const total = Math.max(0, yes + no);
+    const yesPct = total > 0 ? (yes / total) * 100 : 0;
+    const noPct = total > 0 ? (no / total) * 100 : 0;
+    const maxVoteWeightRaw = Number(item?.account?.maxVoteWeight ?? 0);
+    const maxVoteWeight = Number.isFinite(maxVoteWeightRaw) ? maxVoteWeightRaw : 0;
+    const turnoutPct = maxVoteWeight > 0 ? (total / maxVoteWeight) * 100 : null;
+    const thresholdPct = getVoteThresholdPercent(item?.account?.voteThreshold);
+    const thresholdProgressPct =
+        thresholdPct !== null && turnoutPct !== null && thresholdPct > 0
+            ? Math.min(100, (turnoutPct / thresholdPct) * 100)
+            : null;
+
+    return {
+        yes,
+        no,
+        total,
+        yesPct,
+        noPct,
+        maxVoteWeight,
+        turnoutPct,
+        thresholdPct,
+        thresholdProgressPct,
+    };
+}
+
+function getProposalDecisionSignal(item: any, proposalTypeLabel: 'Community' | 'Council' | ''): string | null {
+    const voteStats = getProposalVoteStats(item);
+    const instructionCount = Array.isArray(item?.account?.options)
+        ? item.account.options.reduce((sum: number, option: any) => sum + Math.max(0, Number(option?.instructionsNextIndex ?? 0)), 0)
+        : 0;
+    const isPoll = item?.account?.voteType?.type === 1;
+
+    if (proposalTypeLabel === 'Council') return 'Council vote';
+    if (Number(item?.account?.state) === 0) {
+        if (instructionCount <= 0) return isPoll ? 'Poll only' : '0 instructions';
+        return `${instructionCount} executable ${instructionCount === 1 ? 'instruction' : 'instructions'}`;
+    }
+    if (voteStats.turnoutPct !== null) {
+        if (voteStats.turnoutPct >= 20) return 'High participation';
+        if (voteStats.turnoutPct <= 5) return 'Low turnout';
+        return 'Building turnout';
+    }
+    return instructionCount > 0 ? `${instructionCount} instructions queued` : null;
+}
+
+function getProposalIdentityLabel(governanceName?: string | null): string {
+    const text = String(governanceName || 'DAO').trim();
+    if (!text) return 'DA';
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+    return `${words[0][0] || ''}${words[1][0] || ''}`.toUpperCase();
+}
+
+function getProposalStateTone(state: number) {
+    if (state === 2) {
+        return {
+            accent: '#58a6ff',
+            soft: 'rgba(88,166,255,0.15)',
+            border: 'rgba(88,166,255,0.28)',
+            text: '#d7ebff',
+            glow: '0 18px 44px rgba(26, 76, 126, 0.18)',
+        };
+    }
+    if (state === 3 || state === 5) {
+        return {
+            accent: '#5ec98f',
+            soft: 'rgba(94,201,143,0.15)',
+            border: 'rgba(94,201,143,0.24)',
+            text: '#d8f6e5',
+            glow: '0 18px 44px rgba(22, 88, 55, 0.18)',
+        };
+    }
+    if (state === 0) {
+        return {
+            accent: '#f2bf6d',
+            soft: 'rgba(242,191,109,0.15)',
+            border: 'rgba(242,191,109,0.24)',
+            text: '#fff1d5',
+            glow: '0 18px 44px rgba(93, 64, 21, 0.16)',
+        };
+    }
+    return {
+        accent: '#f0746a',
+        soft: 'rgba(240,116,106,0.14)',
+        border: 'rgba(240,116,106,0.22)',
+        text: '#ffe0dc',
+        glow: '0 18px 44px rgba(99, 33, 28, 0.18)',
+    };
 }
 
 TablePaginationActions.propTypes = {
@@ -433,6 +626,7 @@ function TablePaginationActions(props) {
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
     const governanceLookup = props.governanceLookup;
+    const updatedProposalKeys = Array.isArray(props?.updatedProposalKeys) ? props.updatedProposalKeys : [];
     const [lastSeenTimestamp] = React.useState<number>(() => {
         if (typeof window === 'undefined') return 0;
         const stored = window.localStorage.getItem(REALTIME_PROPOSALS_LAST_SEEN_STORAGE_KEY);
@@ -470,6 +664,7 @@ function TablePaginationActions(props) {
     
     function GetProposalStatus(props: any){
         const thisitem = props.item;
+        const stateTone = getProposalStateTone(Number(thisitem.account?.state));
         
         React.useEffect(() => { 
             if (thisitem.account?.state === 2){ // if voting state
@@ -489,31 +684,18 @@ function TablePaginationActions(props) {
                 <Chip variant="outlined" 
                     
                     sx={{
-                        borderRadius:'17px',
+                        borderRadius:'999px',
                         p:'4px 12px',
-                        color:
-                            (thisitem.account?.state === 3 || thisitem.account?.state === 5) ?
-                                `green`
-                            :
-                                (thisitem.account?.state === 2) ?
-                                    `#A688FA` // voting
-                                    :
-                                    (thisitem.account?.state === 0) ?
-                                        `gray`
-                                        :
-                                        `#AB4D47`,
-                        borderColor:
-                            (thisitem.account?.state === 3 || thisitem.account?.state === 5) ?
-                                `green`
-                            :
-                                (thisitem.account?.state === 2) ?
-                                    `#A688FA` // voting
-                                    :
-                                    (thisitem.account?.state === 0) ?
-                                        `gray`
-                                        :
-                                        `#AB4D47`,
-                        
+                        color: stateTone.text,
+                        borderColor: stateTone.border,
+                        background: stateTone.soft,
+                        backdropFilter: 'blur(10px)',
+                        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 24px ${stateTone.soft}`,
+                        ...preserveChipTone({
+                            background: stateTone.soft,
+                            color: stateTone.text,
+                            borderColor: stateTone.border,
+                        }),
                     }}
                     avatar={
                         <>
@@ -604,8 +786,19 @@ function TablePaginationActions(props) {
         const [authorVotingPowerLabel, setAuthorVotingPowerLabel] = React.useState('');
         const [proposalMetaLoading, setProposalMetaLoading] = React.useState(false);
         const lastSeenTimestamp = props?.lastSeenTimestamp || 0;
+        const wasUpdatedRecently = props?.wasUpdatedRecently === true;
         const isNewProposal = lastSeenTimestamp > 0 && getDraftTimestampMs(draftAt) > lastSeenTimestamp;
         const proposalSummary = React.useMemo(() => getProposalCardSummary(item), [item]);
+        const stateTone = React.useMemo(() => getProposalStateTone(Number(state)), [state]);
+        const proposalVoteStats = React.useMemo(() => getProposalVoteStats(item), [item]);
+        const draftTimestampMs = React.useMemo(() => getDraftTimestampMs(draftAt), [draftAt]);
+        const exactDraftTimestamp = React.useMemo(() => formatExactTimestamp(draftAt), [draftAt]);
+        const proposalDecisionSignal = React.useMemo(
+            () => getProposalDecisionSignal(item, proposalTypeLabel),
+            [item, proposalTypeLabel]
+        );
+        const proposalTypeIcon = proposalTypeLabel === 'Council' ? <AssuredWorkloadIcon fontSize="inherit" /> : <EditNoteIcon fontSize="inherit" />;
+        const governanceIdentity = getProposalIdentityLabel(governanceInfo?.governanceName);
 
         React.useEffect(() => {
         const loadGovernanceInfo = async () => {
@@ -838,63 +1031,187 @@ function TablePaginationActions(props) {
                                 */
                                 color='inherit'
                                 sx={{
-                                    borderRadius:'25px',
-                                    p:1,
+                                    borderRadius:'30px',
+                                    p:0.75,
                                     m:0,
                                     textTransform:'none',
                                     width:'100%',
-                                    textDecoration: (state === 6) ? 'line-through' : 'none'
+                                    textDecoration: (state === 6) ? 'line-through' : 'none',
+                                    alignItems: 'stretch',
+                                    transition: 'transform 180ms ease, filter 180ms ease',
+                                    '&:hover': {
+                                        backgroundColor: 'transparent',
+                                        transform: 'translateY(-2px)',
+                                        filter: 'brightness(1.04)',
+                                    }
                                 }}
                                 //disabled={!governanceInfo}
                             >
                                 <Box
                                     sx={{
-                                        borderRadius:'17px',
-                                        background: '#2E2934',
+                                        position: 'relative',
+                                        overflow: 'hidden',
+                                        borderRadius:'24px',
+                                        background: `linear-gradient(180deg, rgba(23,29,38,0.92) 0%, rgba(16,20,28,0.94) 100%)`,
+                                        border: `1px solid ${stateTone.border}`,
+                                        boxShadow: stateTone.glow,
                                         p:2,
-                                        width:'100%'
+                                        width:'100%',
+                                        backdropFilter: 'blur(18px)',
+                                        animation: isNewProposal || wasUpdatedRecently ? `${realtimePulse} 2.8s ease-in-out 1` : 'none',
+                                        '&::before': {
+                                            content: '""',
+                                            position: 'absolute',
+                                            top: 16,
+                                            bottom: 16,
+                                            left: 0,
+                                            width: 5,
+                                            borderRadius: '0 999px 999px 0',
+                                            background: `linear-gradient(180deg, ${stateTone.accent} 0%, rgba(255,255,255,0.22) 100%)`,
+                                            boxShadow: `0 0 22px ${stateTone.soft}`,
+                                        },
+                                        '&::after': {
+                                            content: '""',
+                                            position: 'absolute',
+                                            inset: 0,
+                                            background: 'linear-gradient(140deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 42%)',
+                                            pointerEvents: 'none',
+                                        },
+                                        ...(wasUpdatedRecently ? {
+                                            boxShadow: `${stateTone.glow}, 0 0 0 1px rgba(88,166,255,0.22)`,
+                                            animation: `${realtimeRefreshFlash} 2.2s ease-out 1`,
+                                        } : {})
                                     }}
                                 >
                                     <Grid container>
                                         <Grid item xs={12} sx={{
 
                                         }}>
-                                            
-                                            <Typography variant="body2"
-                                                sx={{
-                                                    color:'gray',
-                                                    textAlign:'left'
-                                                }}
-                                            >
-                                                {(governanceInfo && governanceInfo.governanceName) ? 
-                                                    <>
-                                                        {governanceInfo.governanceName}
-                                                    </>
-                                                :
-                                                    <>
-                                                        <Typography sx={{fontSize:'9px'}}>
-                                                            DNV Proposal 
-                                                            <ExplorerView
-                                                                address={item.pubkey.toBase58()} type='address'
-                                                                shorten={8}
-                                                                hideTitle={false} style='text' color='inherit' fontSize='9px'/>
-                                                            </Typography>
-                                                        </>
-                                                }
-                                                
-                                                
-                                            </Typography>
+                                            <Box sx={{ display:'flex', alignItems:'center', gap:1, mb:0.95, pl:1.25, pr:1 }}>
+                                                <Box
+                                                    sx={{
+                                                        width: 28,
+                                                        height: 28,
+                                                        borderRadius: '10px',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        background: `linear-gradient(180deg, ${stateTone.soft} 0%, rgba(255,255,255,0.05) 100%)`,
+                                                        border: `1px solid ${stateTone.border}`,
+                                                        color: stateTone.text,
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: 700,
+                                                        letterSpacing: '0.08em',
+                                                        flexShrink: 0,
+                                                    }}
+                                                >
+                                                    {governanceIdentity}
+                                                </Box>
+                                                <Box sx={{ minWidth: 0 }}>
+                                                    <Typography
+                                                        variant="overline"
+                                                        sx={{
+                                                            color:'rgba(201, 212, 226, 0.72)',
+                                                            textAlign:'left',
+                                                            display: 'block',
+                                                            letterSpacing: '0.14em',
+                                                            fontSize: '0.67rem',
+                                                            lineHeight: 1.2,
+                                                            textTransform: 'uppercase'
+                                                        }}
+                                                    >
+                                                        {(governanceInfo && governanceInfo.governanceName) ?
+                                                            governanceInfo.governanceName
+                                                            :
+                                                            `DNV Proposal ${shortenString(item.pubkey.toBase58())}`
+                                                        }
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
 
-                                            <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.25, mt: 0.5 }}>
+                                            <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.15, mt: 0.2, pl: 1.25, pr:1 }}>
                                                 {proposalTypeLabel && (
                                                     <Chip
                                                         size="small"
+                                                        icon={proposalTypeIcon}
                                                         label={`${proposalTypeLabel} Proposal`}
                                                         sx={{
                                                             height: 22,
                                                             borderRadius: '999px',
-                                                            bgcolor: proposalTypeLabel === 'Council' ? 'rgba(255,179,71,0.16)' : 'rgba(88,166,255,0.14)',
+                                                            bgcolor: proposalTypeLabel === 'Council' ? 'rgba(255,179,71,0.12)' : 'rgba(88,166,255,0.12)',
                                                             color: proposalTypeLabel === 'Council' ? '#ffd18a' : '#9ac7ff',
+                                                            border: `1px solid ${proposalTypeLabel === 'Council' ? 'rgba(255,209,138,0.18)' : 'rgba(154,199,255,0.18)'}`,
+                                                            ...preserveChipTone({
+                                                                bgcolor: proposalTypeLabel === 'Council' ? 'rgba(255,179,71,0.12)' : 'rgba(88,166,255,0.12)',
+                                                                color: proposalTypeLabel === 'Council' ? '#ffd18a' : '#9ac7ff',
+                                                                border: `1px solid ${proposalTypeLabel === 'Council' ? 'rgba(255,209,138,0.18)' : 'rgba(154,199,255,0.18)'}`,
+                                                            }),
+                                                            '& .MuiChip-icon': {
+                                                                color: 'inherit',
+                                                                fontSize: '0.9rem',
+                                                            },
+                                                        }}
+                                                    />
+                                                )}
+                                                <Chip
+                                                    size="small"
+                                                    label={
+                                                        proposalAuthor
+                                                            ? `By ${shortenString(proposalAuthor)}${authorVotingPowerLabel ? ` with ${authorVotingPowerLabel}` : ''}`
+                                                            : `By ${proposalMetaLoading ? 'resolving...' : 'unavailable'}`
+                                                    }
+                                                    sx={{
+                                                        height: 22,
+                                                        borderRadius: '999px',
+                                                        bgcolor: 'rgba(255,255,255,0.04)',
+                                                        color: 'rgba(235,239,244,0.84)',
+                                                        border: '1px solid rgba(255,255,255,0.1)',
+                                                        ...preserveChipTone({
+                                                            bgcolor: 'rgba(255,255,255,0.04)',
+                                                            color: 'rgba(235,239,244,0.84)',
+                                                            border: '1px solid rgba(255,255,255,0.1)',
+                                                        }),
+                                                    }}
+                                                />
+                                                <Tooltip title={exactDraftTimestamp}>
+                                                    <Chip
+                                                        size="small"
+                                                        icon={(state === 0 || state === 2) ?
+                                                            <HourglassTopIcon fontSize='small'/>
+                                                            :
+                                                            <HourglassBottomIcon fontSize='small'/>
+                                                        }
+                                                        label={draftTimestampMs > 0 ? moment(draftTimestampMs).fromNow() : 'Unknown time'}
+                                                        sx={{
+                                                            height: 22,
+                                                            borderRadius:'999px',
+                                                            color:'rgba(230,236,243,0.8)',
+                                                            fontSize:'11px',
+                                                            border: '1px solid rgba(255,255,255,0.08)',
+                                                            background:'rgba(255,255,255,0.05)',
+                                                            ...preserveChipTone({
+                                                                background: 'rgba(255,255,255,0.05)',
+                                                                color: 'rgba(230,236,243,0.8)',
+                                                                border: '1px solid rgba(255,255,255,0.08)',
+                                                            }),
+                                                        }}
+                                                    />
+                                                </Tooltip>
+                                                {proposalDecisionSignal && (
+                                                    <Chip
+                                                        size="small"
+                                                        label={proposalDecisionSignal}
+                                                        sx={{
+                                                            height: 22,
+                                                            borderRadius: '999px',
+                                                            bgcolor: 'rgba(255,255,255,0.035)',
+                                                            color: 'rgba(221,228,236,0.82)',
+                                                            border: '1px solid rgba(255,255,255,0.1)',
+                                                            ...preserveChipTone({
+                                                                bgcolor: 'rgba(255,255,255,0.035)',
+                                                                color: 'rgba(221,228,236,0.82)',
+                                                                border: '1px solid rgba(255,255,255,0.1)',
+                                                            }),
                                                         }}
                                                     />
                                                 )}
@@ -903,7 +1220,15 @@ function TablePaginationActions(props) {
                                                         size="small"
                                                         label="New"
                                                         color="error"
-                                                        sx={{ height: 22, borderRadius: '999px' }}
+                                                        sx={{
+                                                            height: 22,
+                                                            borderRadius: '999px',
+                                                            animation: `${realtimeBadgePulse} 2.2s ease-out infinite`,
+                                                            ...preserveChipTone({
+                                                                bgcolor: '#d32f2f',
+                                                                color: '#fff',
+                                                            }),
+                                                        }}
                                                     />
                                                 )}
                                                 <Chip
@@ -913,8 +1238,14 @@ function TablePaginationActions(props) {
                                                     sx={{
                                                         height: 22,
                                                         borderRadius: '999px',
-                                                        borderColor: 'rgba(255,255,255,0.12)',
-                                                        color: '#aaa',
+                                                        borderColor: 'rgba(255,255,255,0.1)',
+                                                        color: '#a7b0bb',
+                                                        background: 'rgba(255,255,255,0.025)',
+                                                        ...preserveChipTone({
+                                                            background: 'rgba(255,255,255,0.025)',
+                                                            color: '#a7b0bb',
+                                                            borderColor: 'rgba(255,255,255,0.1)',
+                                                        }),
                                                     }}
                                                 />
                                             </Box>
@@ -927,37 +1258,70 @@ function TablePaginationActions(props) {
                                                 >
                                                     <Typography 
                                                         variant="h6"
-                                                        color={(state === 2) ? `white` : `#ddd`} 
+                                                        color={stateTone.text} 
                                                         //color="white"
-                                                        sx={{ textDecoration: (state === 6) ? 'line-through' : 'none' }}
+                                                        sx={{
+                                                            textDecoration: (state === 6) ? 'line-through' : 'none',
+                                                            pl: 1.25,
+                                                            pr: 1,
+                                                            mb: 1,
+                                                            fontWeight: 700,
+                                                            lineHeight: 1.08,
+                                                            letterSpacing: '-0.02em',
+                                                        }}
                                                     >
                                                         {shortenString(name)}
                                                     </Typography>
 
-                                                    <Box sx={{ mb: 1, color: 'rgba(255,255,255,0.72)' }}>
-                                                        {proposalAuthor ? (
-                                                            <Typography variant="caption" sx={{ display: 'block', textAlign: 'left' }}>
-                                                                Proposal Author:{' '}
-                                                                <ExplorerView
-                                                                    address={proposalAuthor}
-                                                                    type='address'
-                                                                    shorten={8}
-                                                                    hideTitle={false}
-                                                                    hideIcon={true}
-                                                                    style='text'
-                                                                    color='inherit'
-                                                                    fontSize='10px'
-                                                                />
-                                                                {authorVotingPowerLabel ? ` • ${authorVotingPowerLabel}` : ''}
-                                                            </Typography>
-                                                        ) : (
-                                                            <Typography variant="caption" sx={{ display: 'block', textAlign: 'left', opacity: proposalMetaLoading ? 0.8 : 0.55 }}>
-                                                                Proposal Author: {proposalMetaLoading ? 'resolving...' : 'unavailable'}
-                                                            </Typography>
+                                                    <Box
+                                                        sx={{
+                                                            display: { xs: 'flex', sm: 'none' },
+                                                            flexWrap: 'wrap',
+                                                            alignItems: 'center',
+                                                            gap: 0.75,
+                                                            px: 1.25,
+                                                            pb: 1,
+                                                        }}
+                                                    >
+                                                        <GetProposalStatus item={item} />
+                                                        {proposalVoteStats.total > 0 && (
+                                                            <Chip
+                                                                size="small"
+                                                                label={`${proposalVoteStats.yesPct.toFixed(0)} / ${proposalVoteStats.noPct.toFixed(0)}`}
+                                                                sx={{
+                                                                    height: 22,
+                                                                    borderRadius: '999px',
+                                                                    color: 'rgba(235,239,244,0.86)',
+                                                                    background: 'rgba(255,255,255,0.05)',
+                                                                    border: '1px solid rgba(255,255,255,0.08)',
+                                                                    ...preserveChipTone({
+                                                                        background: 'rgba(255,255,255,0.05)',
+                                                                        color: 'rgba(235,239,244,0.86)',
+                                                                        border: '1px solid rgba(255,255,255,0.08)',
+                                                                    }),
+                                                                }}
+                                                            />
                                                         )}
-                                                        <Typography variant="caption" sx={{ display: 'block', textAlign: 'left', color: '#8f8f8f', mt: 0.35 }}>
-                                                            Summary: {proposalSummary}
-                                                        </Typography>
+                                                        {proposalVoteStats.turnoutPct !== null && (
+                                                            <Tooltip title={getTurnoutTooltip(proposalVoteStats)}>
+                                                                <Chip
+                                                                    size="small"
+                                                                    label={getTurnoutLabel(proposalVoteStats)}
+                                                                    sx={{
+                                                                        height: 22,
+                                                                        borderRadius: '999px',
+                                                                        color: 'rgba(208,216,226,0.82)',
+                                                                        background: 'rgba(255,255,255,0.04)',
+                                                                        border: '1px solid rgba(255,255,255,0.08)',
+                                                                        ...preserveChipTone({
+                                                                            background: 'rgba(255,255,255,0.04)',
+                                                                            color: 'rgba(208,216,226,0.82)',
+                                                                            border: '1px solid rgba(255,255,255,0.08)',
+                                                                        }),
+                                                                    }}
+                                                                />
+                                                            </Tooltip>
+                                                        )}
                                                     </Box>
 
                                                     <Grid
@@ -965,24 +1329,69 @@ function TablePaginationActions(props) {
                                                         xs={12}
                                                         sx={{
                                                             mb: 1,
-                                                            // Make ellipsis actually work on small screens
-                                                            '@media (max-width: 600px)': {
+                                                            minWidth: 0,
+                                                            width: '100%',
                                                             overflow: 'hidden',
-                                                            textOverflow: 'ellipsis',
-                                                            whiteSpace: 'nowrap',
-                                                            display: 'block',
-                                                            maxWidth: '100%',
+                                                            '& img, & video, & canvas, & svg': {
+                                                                maxWidth: '100%',
+                                                                height: 'auto',
+                                                            },
+                                                            '& iframe': {
+                                                                maxWidth: '100%',
+                                                            },
+                                                            '& pre, & code': {
+                                                                whiteSpace: 'pre-wrap',
+                                                                wordBreak: 'break-word',
+                                                            },
+                                                            '& table': {
+                                                                display: 'block',
+                                                                width: '100%',
+                                                                overflowX: 'auto',
                                                             },
                                                         }}
                                                         >
                                                         {irysUrl ? (
-                                          <Box sx={{ alignItems: "left", textAlign: "left" }}>
+                                          <Box
+                                                sx={{
+                                                    alignItems: "left",
+                                                    textAlign: "left",
+                                                    width: '100%',
+                                                    minWidth: 0,
+                                                    overflow: 'hidden',
+                                                    '& *': {
+                                                        maxWidth: '100%',
+                                                    },
+                                                    '& img, & video, & iframe': {
+                                                        maxWidth: '100%',
+                                                        height: 'auto',
+                                                    },
+                                                    '& table': {
+                                                        display: 'block',
+                                                        width: '100%',
+                                                        overflowX: 'auto',
+                                                    },
+                                                    '& pre': {
+                                                        whiteSpace: 'pre-wrap',
+                                                        wordBreak: 'break-word',
+                                                        overflowX: 'auto',
+                                                    },
+                                                    '& a': {
+                                                        overflowWrap: 'anywhere',
+                                                    },
+                                                    '& p, & div, & span, & li, & h1, & h2, & h3, & h4, & h5, & h6': {
+                                                        overflowWrap: 'anywhere',
+                                                        wordBreak: 'break-word',
+                                                    },
+                                                }}
+                                            >
                                                 <div
                                                 style={{
                                                     border: "solid",
                                                     borderRadius: 15,
                                                     borderColor: "rgba(255,255,255,0.05)",
                                                     padding: 12,
+                                                    maxWidth: "100%",
+                                                    overflow: "hidden",
                                                 }}
                                                 >
                                                 {irysLoading ? (
@@ -1000,6 +1409,10 @@ function TablePaginationActions(props) {
                                                         fontSize: 14,
                                                         lineHeight: 1.6,
                                                         wordBreak: "break-word",
+                                                        overflowWrap: "anywhere",
+                                                        maxWidth: "100%",
+                                                        width: "100%",
+                                                        overflowX: "hidden",
                                                     }}
                                                     />
                                                 )}
@@ -1018,13 +1431,15 @@ function TablePaginationActions(props) {
                                             </Box>
                                         ) : gist ? (
                                         // --- your existing GIST branch unchanged ---
-                                        <Box sx={{ alignItems: "left", textAlign: "left" }}>
+                                        <Box sx={{ alignItems: "left", textAlign: "left", width:'100%', minWidth:0, overflow:'hidden' }}>
                                         <div
                                             style={{
                                             border: "solid",
                                             borderRadius: 15,
                                             borderColor: "rgba(255,255,255,0.05)",
                                             padding: 4,
+                                            maxWidth: "100%",
+                                            overflow: "hidden",
                                             }}
                                         >
                                             <Typography variant="body2">
@@ -1035,7 +1450,7 @@ function TablePaginationActions(props) {
                                                     children={description}
                                                     components={{
                                                     img: ({ node, ...props }) => (
-                                                        <img {...props} style={{ width: "100%", height: "auto" }} />
+                                                        <img {...props} style={{ width: "100%", height: "auto", maxWidth: "100%" }} />
                                                     ),
                                                     a: ({ node, ...props }) => {
                                                         const href = props.href || "";
@@ -1046,7 +1461,7 @@ function TablePaginationActions(props) {
                                                             href={safe ? href : undefined}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            style={{ color: "#1976d2", textDecoration: "underline" }}
+                                                            style={{ color: "#1976d2", textDecoration: "underline", overflowWrap: "anywhere", wordBreak: "break-word" }}
                                                         >
                                                             {props.children}
                                                         </a>
@@ -1148,6 +1563,8 @@ function TablePaginationActions(props) {
                                                 
                                                 <Divider orientation="vertical" flexItem
                                                     sx={{
+                                                    borderColor: stateTone.border,
+                                                    opacity: 0.8,
                                                     // Responsive visibility for mobile devices
                                                     '@media (max-width: 600px)': {
                                                         display: 'none',
@@ -1158,7 +1575,7 @@ function TablePaginationActions(props) {
                                                 </Divider>
                                                 
                                                 <Grid item xs
-                                                    sx={{textAlign:'right'}}
+                                                    sx={{textAlign:'right', pl: { xs: 1.25, sm: 1.5 }, display: { xs: 'none', sm: 'block' }}}
                                                 >
                                                     <Grid sx={{mb:2}}>
                                                         <GetProposalStatus item={item} />
@@ -1166,29 +1583,15 @@ function TablePaginationActions(props) {
                                                     
                                                     {state === 2 ?
                                                         <>
-                                                            <Grid container sx={{ml:1}}>
+                                                            <Grid container sx={{ml:1, alignItems:'center', mb: 0.35}}>
                                                                 <Grid item xs alignContent={'left'} justifyContent={'left'}>
-                                                                    <Typography variant="body2" sx={{color:'white',mr:1,textAlign:'left'}}>
-                                                                        YES:&nbsp;
-                                                                            {Number(item.account?.options[0].voteWeight) > 0 ?
-                                                                            <>
-                                                                            {`${(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
-                                                                            </>
-                                                                            :
-                                                                            <>0%</>
-                                                                        }
-                                                                    
+                                                                    <Typography variant="body2" sx={{color:'#dbf6e8',mr:1,textAlign:'left', fontWeight:700}}>
+                                                                        For {proposalVoteStats.yesPct.toFixed(1)}%
                                                                     </Typography>
                                                                 </Grid>
                                                                 <Grid item xs alignContent={'right'} justifyContent={'right'}>
-                                                                    <Typography variant="body2" sx={{color:'white',mr:1}}>
-                                                                        NO:&nbsp;
-                                                                        {Number(item.account?.denyVoteWeight) > 0 ?
-                                                                        <>
-                                                                        {`${(((Number(item.account?.denyVoteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
-                                                                        </>:
-                                                                        <>0%</>
-                                                                        }
+                                                                    <Typography variant="body2" sx={{color:'#ffd9d5',mr:1, fontWeight:700}}>
+                                                                        Against {proposalVoteStats.noPct.toFixed(1)}%
                                                                     </Typography>
                                                                 </Grid>
                                                                 <Grid xs={12}>
@@ -1203,6 +1606,16 @@ function TablePaginationActions(props) {
                                                                         } 
                                                                     />
                                                                 </Grid>
+                                                                {proposalVoteStats.turnoutPct !== null && (
+                                                                    <Grid xs={12}>
+                                                                        <Tooltip title={getTurnoutTooltip(proposalVoteStats)}>
+                                                                            <Typography variant="caption" sx={{ display:'block', mt:0.55, color:'rgba(210,218,228,0.78)', textAlign:'left' }}>
+                                                                                {getTurnoutLabel(proposalVoteStats)}
+                                                                                {proposalVoteStats.thresholdPct !== null ? ` • threshold ${formatReadablePercent(proposalVoteStats.thresholdPct)}` : ''}
+                                                                            </Typography>
+                                                                        </Tooltip>
+                                                                    </Grid>
+                                                                )}
                                                             </Grid>  
                                                         </>
                                                     :
@@ -1210,63 +1623,41 @@ function TablePaginationActions(props) {
 
                                                             <Grid container>
                                                                 <Grid item xs alignContent={'right'} justifyContent={'right'}>
-                                                                    <Typography variant="body2" sx={{color:'white',mr:1}}>
-                                                                        YES: 
+                                                                    <Typography variant="body2" sx={{color:'#dbf6e8',mr:1, fontWeight:700}}>
+                                                                        For
                                                                     </Typography>
                                                                 </Grid>
                                                                 <Grid item>
-                                                                    <Typography variant="body2" sx={{color:"green"}}>
-                                                                        {Number(item.account?.options[0].voteWeight) > 0 ?
-                                                                        <>
-                                                                        {`${(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
-                                                                        </>
-                                                                        :
-                                                                        <>0%</>
-                                                                        }
+                                                                    <Typography variant="body2" sx={{color:"#5ec98f"}}>
+                                                                        {proposalVoteStats.yesPct.toFixed(1)}%
                                                                     </Typography>
                                                                 </Grid>
                                                             </Grid>
 
                                                             <Grid container sx={{mb:1}}>
                                                                 <Grid item xs alignContent={'right'} justifyContent={'right'}>
-                                                                    <Typography variant="body2" sx={{color:'white',mr:1}}>
-                                                                        No:
+                                                                    <Typography variant="body2" sx={{color:'#ffd9d5',mr:1, fontWeight:700}}>
+                                                                        Against
                                                                     </Typography>
                                                                 </Grid>
                                                                 <Grid item>
                                                                     <Typography variant="body2" sx={{color:"#AB4D47"}}>
-                                                                        {Number(item.account?.denyVoteWeight) > 0 ?
-                                                                        <>
-                                                                        {`${(((Number(item.account?.denyVoteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
-                                                                        </>:
-                                                                        <>0%</>
-                                                                        }
+                                                                        {proposalVoteStats.noPct.toFixed(1)}%
                                                                     </Typography>
                                                                 </Grid>
                                                             </Grid>
 
+                                                            {proposalVoteStats.turnoutPct !== null && (
+                                                                <Tooltip title={getTurnoutTooltip(proposalVoteStats)}>
+                                                                    <Typography variant="caption" sx={{ display:'block', mb:1, color:'rgba(210,218,228,0.78)' }}>
+                                                                        {getTurnoutLabel(proposalVoteStats)}
+                                                                        {proposalVoteStats.thresholdPct !== null ? ` • threshold ${formatReadablePercent(proposalVoteStats.thresholdPct)}` : ''}
+                                                                    </Typography>
+                                                                </Tooltip>
+                                                            )}
+
                                                         </Grid>
                                                     }
-                                                    
-                                                    <Grid sx={{mb:1}}>
-                                                        <Chip
-                                                            clickable={false}
-                                                            size="small"
-                                                            color='primary'
-                                                            icon={(state === 0 || state === 2) ?
-                                                                <HourglassTopIcon color="inherit" fontSize='small'/>
-                                                                :
-                                                                <HourglassBottomIcon color="inherit" fontSize='small'/>
-                                                            }
-                                                            label={moment.unix(draftAt).fromNow()}
-                                                            sx={{
-                                                                background:'#45404A',
-                                                                borderRadius:'17px',
-                                                                color:(state === 2) ? 'white' : '#888',
-                                                                fontSize:'11px'
-                                                            }}
-                                                        />
-                                                    </Grid>
 
                                                     {governanceInfo &&
                                                         <Grid
@@ -1287,8 +1678,14 @@ function TablePaginationActions(props) {
                                                                         color:"#ddd"}}
                                                                     />}
                                                                 sx={{
-                                                                    borderRadius:'17px',
-                                                                
+                                                                    borderRadius:'999px',
+                                                                    px: 1.2,
+                                                                    py: 0.5,
+                                                                    background: 'rgba(255,255,255,0.04)',
+                                                                    border: '1px solid rgba(255,255,255,0.08)',
+                                                                    '&:hover': {
+                                                                        background: 'rgba(255,255,255,0.08)',
+                                                                    }
                                                                 }}
                                                                 >
                                                                 <Typography
@@ -1336,9 +1733,13 @@ function TablePaginationActions(props) {
                     sx={{ 
                         ml:1,
                         mr:1,
-                        mb:2
+                        mb:2,
+                        p: { xs: 1, sm: 1.25 },
+                        borderRadius: '28px',
+                        background: 'linear-gradient(180deg, rgba(10,14,20,0.34) 0%, rgba(10,14,20,0.18) 100%)',
+                        backdropFilter: 'blur(12px)',
                     }}>
-                    <Grid container direction="row">
+                    <Grid container direction="row" alignItems="center">
                         <Grid item sm={8} xs={12}
                             sx={{mb:1}}
                         >
@@ -1357,8 +1758,10 @@ function TablePaginationActions(props) {
                                 }}
                                 sx={{
                                     '.MuiInputBase-input': { fontSize: '16px' },
-                                    backgroundColor:'#2E2934',
-                                    borderRadius:'17px',
+                                    backgroundColor:'rgba(255,255,255,0.045)',
+                                    borderRadius:'20px',
+                                    border: '1px solid rgba(255,255,255,0.08)',
+                                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
                                     "& fieldset": {
                                     border: "none",
                                     },
@@ -1371,18 +1774,18 @@ function TablePaginationActions(props) {
                             display="flex"
                             justifyContent="flex-end"
                             sx={{
-                                alignItems:"right",
+                                alignItems:"center",
                                 
                             }}
                         >
                             <FormGroup row>
-                                <FormControlLabel control={<IOSSwitch onChange={handleFilterStateChange} size="small" />} label={<><Typography variant="body2" sx={{ml:1}}>Show Cancelled Proposals</Typography></>} />
+                                <FormControlLabel control={<IOSSwitch onChange={handleFilterStateChange} size="small" />} label={<><Typography variant="body2" sx={{ml:1, color:'rgba(230,236,243,0.8)'}}>Show Cancelled Proposals</Typography></>} />
                             </FormGroup>
                         </Grid>
                     </Grid>
                 </Box>
                 
-                <TableContainer component={Paper} sx={{background:'none'}}>
+                <TableContainer component={Paper} sx={{background:'transparent', boxShadow:'none'}}>
                     <Table sx={{ }}>
                         <StyledTable sx={{  }} size="small" aria-label="Proposals Table">
                             
@@ -1477,6 +1880,7 @@ function TablePaginationActions(props) {
                                                                     draftAt={item.account.draftAt}
                                                                     item={item}
                                                                     lastSeenTimestamp={lastSeenTimestamp}
+                                                                    wasUpdatedRecently={updatedProposalKeys.includes(toBase58Safe(item.pubkey))}
                                                                 />
 
                                                             </Typography>
@@ -1603,13 +2007,15 @@ function TablePaginationActions(props) {
                                 sx={{ 
                                     m:1,
                                     mt:2,
-                                    borderRadius:'17px',
+                                    borderRadius:'22px',
                                     background:'none',
                                 }}>
                                 <TableFooter
                                     sx={{
-                                        backgroundColor:'#2E2934',
-                                        borderRadius:'17px',
+                                        background:'rgba(14,18,24,0.7)',
+                                        border:'1px solid rgba(255,255,255,0.08)',
+                                        borderRadius:'22px',
+                                        backdropFilter:'blur(14px)',
                                     }}
                                 >
                                     <TableRow
@@ -1635,7 +2041,8 @@ function TablePaginationActions(props) {
                                             ActionsComponent={TablePaginationActions}
                                             sx={{
                                                 mt:2,
-                                                borderRadius:'17px',
+                                                borderRadius:'22px',
+                                                color:'rgba(225,232,240,0.8)',
                                             }}
                                         />
                                     </TableRow>
@@ -1661,6 +2068,37 @@ export function GovernanceRealtimeView(props: any) {
     const [proposals, setProposals] = React.useState(null);
     const [allProposals, setAllProposals] = React.useState(null);
     const [filterState, setFilterState] = React.useState(true);
+    const [lastRefreshTime, setLastRefreshTime] = React.useState<number | null>(null);
+    const [refreshNow, setRefreshNow] = React.useState(Date.now());
+    const [updatedProposalKeys, setUpdatedProposalKeys] = React.useState<string[]>([]);
+    const previousProposalFingerprintRef = React.useRef<Map<string, string>>(new Map());
+    const hasHydratedRealtimeRef = React.useRef(false);
+    const updatedKeysTimeoutRef = React.useRef<number | null>(null);
+    const renderDurationMs =
+        startTime !== null && endTime !== null
+            ? Math.max(0, endTime - startTime)
+            : null;
+    const renderDurationLabel =
+        renderDurationMs === null
+            ? ''
+            : renderDurationMs < 1000
+                ? `${renderDurationMs}ms`
+                : `${(renderDurationMs / 1000).toFixed(renderDurationMs >= 10000 ? 1 : 2)}s (${renderDurationMs}ms)`;
+
+    React.useEffect(() => {
+        const interval = window.setInterval(() => {
+            setRefreshNow(Date.now());
+        }, 30000);
+        return () => window.clearInterval(interval);
+    }, []);
+
+    React.useEffect(() => {
+        return () => {
+            if (updatedKeysTimeoutRef.current) {
+                window.clearTimeout(updatedKeysTimeoutRef.current);
+            }
+        };
+    }, []);
     
     const getGovernanceParameters = async () => {
         if (!loading){
@@ -1700,6 +2138,41 @@ export function GovernanceRealtimeView(props: any) {
                         }
                     }
                     const sortedRPCResults = rpcprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
+                    const nextFingerprintMap = new Map<string, string>();
+                    const nextUpdatedKeys: string[] = [];
+                    for (const proposal of sortedRPCResults) {
+                        const proposalPk = toBase58Safe(proposal?.pubkey);
+                        if (!proposalPk) continue;
+                        const fingerprint = JSON.stringify({
+                            state: proposal?.account?.state,
+                            draftAt: proposal?.account?.draftAt,
+                            votingCompletedAt: proposal?.account?.votingCompletedAt,
+                            signingOffAt: proposal?.account?.signingOffAt,
+                            yes: proposal?.account?.options?.[0]?.voteWeight ?? proposal?.account?.yesVoteCount ?? 0,
+                            no: proposal?.account?.denyVoteWeight ?? proposal?.account?.noVoteCount ?? 0,
+                            instructions: proposal?.account?.options?.map?.((option: any) => option?.instructionsNextIndex ?? 0) || [],
+                        });
+                        nextFingerprintMap.set(proposalPk, fingerprint);
+                        if (
+                            hasHydratedRealtimeRef.current &&
+                            previousProposalFingerprintRef.current.get(proposalPk) !== fingerprint
+                        ) {
+                            nextUpdatedKeys.push(proposalPk);
+                        }
+                    }
+                    previousProposalFingerprintRef.current = nextFingerprintMap;
+                    if (hasHydratedRealtimeRef.current) {
+                        setUpdatedProposalKeys(nextUpdatedKeys);
+                        if (updatedKeysTimeoutRef.current) {
+                            window.clearTimeout(updatedKeysTimeoutRef.current);
+                        }
+                        updatedKeysTimeoutRef.current = window.setTimeout(() => {
+                            setUpdatedProposalKeys([]);
+                        }, 9000);
+                    } else {
+                        hasHydratedRealtimeRef.current = true;
+                    }
+                    setLastRefreshTime(Date.now());
                     //console.log("prop: "+JSON.stringify(sortedRPCResults[0]))
                     setAllProposals(sortedRPCResults);
                     setProposals(sortedRPCResults);
@@ -1767,22 +2240,24 @@ export function GovernanceRealtimeView(props: any) {
                         <Box
                             sx={{
                                 width:'100%',
-                                background: 'rgba(0, 0, 0, 0.6)',
-                                borderRadius: '17px',
+                                background: 'linear-gradient(180deg, rgba(13, 17, 24, 0.88) 0%, rgba(10, 14, 20, 0.78) 100%)',
+                                borderRadius: '28px',
+                                border: '1px solid rgba(255,255,255,0.08)',
+                                boxShadow: '0 24px 60px rgba(5, 9, 15, 0.28)',
                                 mt:2,
                                 p: 2,
                                 pt: 4,
                                 pb: 4,
                                 alignItems: 'center', textAlign: 'center',
-                                //backgroundImage: `url(${FRICTIONLESS_BG})`,
-                                backgroundRepeat: "repeat",
-                                backgroundSize: "cover",
-                                
+                                backdropFilter: 'blur(18px)',
                             }} 
                         > 
-                            <Typography variant="caption" sx={{color:'white'}}>Loading Governance Realtime Proposals</Typography>
-                            
-                            <LinearProgress color="inherit" />
+                            <Typography variant="overline" sx={{color:'rgba(173,183,197,0.72)', letterSpacing:'0.14em'}}>Live Sync</Typography>
+                            <Typography variant="h6" sx={{color:'white', mt:0.6, mb:0.5}}>Loading governance proposal flow</Typography>
+                            <Typography variant="body2" sx={{color:'rgba(209,217,226,0.74)', mb:1.4}}>
+                                Pulling the latest drafts, votes, and outcomes across supported DAOs.
+                            </Typography>
+                            <LinearProgress color="inherit" sx={{ borderRadius:'999px', height:8 }} />
                         
                     </Box>
                 </Grid>
@@ -1811,16 +2286,16 @@ export function GovernanceRealtimeView(props: any) {
                         <Box
                             sx={{
                                 width:'100%',
-                                background: 'rgba(0, 0, 0, 0.6)',
-                                borderRadius: '17px',
+                                background: 'linear-gradient(180deg, rgba(10, 14, 20, 0.82) 0%, rgba(8, 11, 17, 0.74) 100%)',
+                                borderRadius: '32px',
+                                border: '1px solid rgba(255,255,255,0.08)',
+                                boxShadow: '0 28px 80px rgba(5, 9, 15, 0.32)',
                                 mt:2,
                                 p: 2,
                                 pt: 4,
                                 pb: 4,
                                 alignItems: 'center', textAlign: 'center',
-                                //backgroundImage: `url(${FRICTIONLESS_BG})`,
-                                backgroundRepeat: "repeat",
-                                backgroundSize: "cover",
+                                backdropFilter: 'blur(22px)',
                                 // Responsive padding for mobile devices
                                 '@media (max-width: 600px)': {
                                     p: 0,
@@ -1832,16 +2307,27 @@ export function GovernanceRealtimeView(props: any) {
                         
                             <Box
                                 sx={{
-                                    background: `#19141F`,
-                                    borderRadius: '17px',
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                    background: `linear-gradient(180deg, rgba(16, 20, 27, 0.94) 0%, rgba(11, 14, 19, 0.96) 100%)`,
+                                    borderRadius: '28px',
+                                    border: '1px solid rgba(255,255,255,0.08)',
                                     m:2,
                                     p: 4,
+                                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
                                     // Responsive padding for mobile devices
                                     '@media (max-width: 600px)': {
                                         m: 0,
                                         p: 0,
                                         pt:0.5,
                                     },
+                                    '&::before': {
+                                        content: '""',
+                                        position: 'absolute',
+                                        inset: 0,
+                                        pointerEvents: 'none',
+                                        background: 'radial-gradient(circle at top right, rgba(88,166,255,0.10), transparent 30%), radial-gradient(circle at bottom left, rgba(94,201,143,0.08), transparent 28%)',
+                                    }
                                 }}
                                 > 
 
@@ -1851,37 +2337,84 @@ export function GovernanceRealtimeView(props: any) {
                                 mb:2,
                                 }}>
                                 <Grid item xs>
-                                    <Typography variant="h4" sx={{ textAlign: "left" }}>Realtime Proposals <BlinkingDot /></Typography>
-                                </Grid>
-                                <Grid item alignContent="right">
+                                    <Typography variant="h4" sx={{ textAlign: "left", letterSpacing:'-0.03em', fontWeight:700, color:'#eef3f8' }}>
+                                        Realtime Proposals <BlinkingDot />
+                                    </Typography>
                                     <Typography
                                         variant="body2"
                                         sx={{
-                                        textAlign: "left",
-                                        fontSize: "10px",
-                                        color: "gray",
-                                        a: {
-                                            display: 'inline-block',
-                                            color: 'gray',
-                                            textDecoration: 'none',
-                                            '&:hover': {
-                                            textDecoration: 'none',
-                                            },
-                                        },
-                                        img: {
-                                            maxHeight: '14px',
-                                            verticalAlign: 'middle',
-                                        },
-                                        '@media (max-width: 600px)': {
-                                            mr: 1.5,
-                                        },
+                                            textAlign:'left',
+                                            color:'rgba(173, 183, 197, 0.78)',
+                                            mt:0.6,
+                                            maxWidth:'52rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 1,
+                                            flexWrap: 'wrap',
                                         }}
                                     >
-                                        Powered by<br />
-                                        <a href="https://governance.so" target="_blank" rel="noopener noreferrer">
-                                        <img src={APP_LOGO} alt="Governance.so" />
-                                        </a>
+                                        <Box component="span">
+                                            Watch drafts, votes, and outcomes move across Solana DAOs in a single live surface.
+                                        </Box>
+                                        {lastRefreshTime && (
+                                            <Tooltip title={moment(lastRefreshTime).format('MMM D, YYYY, h:mm:ss a')}>
+                                                <Box
+                                                    component="span"
+                                                    sx={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: 0.7,
+                                                        color: 'rgba(173, 183, 197, 0.74)',
+                                                        whiteSpace: 'nowrap',
+                                                    }}
+                                                >
+                                                    <Box
+                                                        component="span"
+                                                        sx={{
+                                                            width: 6,
+                                                            height: 6,
+                                                            borderRadius: '999px',
+                                                            background: 'rgba(94,201,143,0.9)',
+                                                            boxShadow: '0 0 10px rgba(94,201,143,0.35)',
+                                                            flexShrink: 0,
+                                                        }}
+                                                    />
+                                                    {refreshNow ? `Updated ${moment(lastRefreshTime).fromNow()}` : 'Updated'}
+                                                </Box>
+                                            </Tooltip>
+                                        )}
                                     </Typography>
+                                </Grid>
+                                <Grid item alignContent="right">
+                                    <Box sx={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:0.8, '@media (max-width: 600px)': { mr:1.5 } }}>
+                                        <Typography
+                                            variant="body2"
+                                            sx={{
+                                            textAlign: "left",
+                                            fontSize: "10px",
+                                            color: "rgba(173, 183, 197, 0.72)",
+                                            a: {
+                                                display: 'inline-block',
+                                                color: 'rgba(220,228,236,0.82)',
+                                                textDecoration: 'none',
+                                                '&:hover': {
+                                                textDecoration: 'none',
+                                                },
+                                            },
+                                            img: {
+                                                maxHeight: '14px',
+                                                verticalAlign: 'middle',
+                                            },
+                                            }}
+                                        >
+                                            Powered by<br />
+                                            <Tooltip title="Go to Home">
+                                                <a href="https://governance.so" target="_blank" rel="noopener noreferrer">
+                                                <img src={APP_LOGO} alt="Governance.so" />
+                                                </a>
+                                            </Tooltip>
+                                        </Typography>
+                                    </Box>
                                     </Grid>
                             </Grid>
                                 
@@ -1891,10 +2424,13 @@ export function GovernanceRealtimeView(props: any) {
                                     filterState={filterState}
                                     setFilterState={setFilterState}
                                     governanceLookup={governanceLookup}
+                                    lastRefreshTime={lastRefreshTime}
+                                    refreshNow={refreshNow}
+                                    updatedProposalKeys={updatedProposalKeys}
                                 />
                                     
                                     
-                                {endTime &&
+                                {renderDurationMs !== null &&
                                     <Grid
                                         sx={{
                                             m: 0,
@@ -1905,14 +2441,14 @@ export function GovernanceRealtimeView(props: any) {
                                                 mb:1,
                                             },
                                         }}
-                                    >
-                                        <Typography 
-                                            variant="caption"
-                                            sx={{
+                                        >
+                                            <Typography 
+                                                variant="caption"
+                                                sx={{
                                                 textAlign:'left'
                                             }}
                                         >
-                                            Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime *Beta<br/>
+                                            Render time: {renderDurationLabel}<br/>
                                         </Typography>
 
                                     </Grid>
@@ -1927,15 +2463,21 @@ export function GovernanceRealtimeView(props: any) {
                         sx={{
                             width:'100%',
                             mt: 6,
-                            background: 'rgba(0, 0, 0, 0.5)',
-                            borderRadius: '17px',
+                            background: 'linear-gradient(180deg, rgba(13, 17, 24, 0.84) 0%, rgba(10, 14, 20, 0.72) 100%)',
+                            borderRadius: '24px',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            boxShadow: '0 24px 60px rgba(5, 9, 15, 0.24)',
                             p: 4,
                             pt:4,
                             pb:4,
                             alignItems: 'center', textAlign: 'center'
                         }} 
                     > 
-                        <Typography variant="caption" sx={{color:'white'}}>Governance Proposals</Typography>
+                        <Typography variant="overline" sx={{color:'rgba(173,183,197,0.72)', letterSpacing:'0.14em'}}>Quiet Feed</Typography>
+                        <Typography variant="h6" sx={{color:'white', mt:0.6, mb:0.5}}>No proposals to show right now</Typography>
+                        <Typography variant="body2" sx={{color:'rgba(209,217,226,0.74)'}}>
+                            Try widening the search, toggling cancelled proposals, or wait for the next refresh cycle.
+                        </Typography>
                     </Box>
                 );
             }
