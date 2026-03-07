@@ -1,4 +1,5 @@
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
+import { getMint } from '@solana/spl-token';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useWallet } from '@solana/wallet-adapter-react';
 import React, { useCallback } from 'react';
@@ -131,8 +132,10 @@ import {
     getAllProposalsFromAllPrograms,
     getAllProposalsIndexed,
     getAllGovernancesIndexed,
-    fetchRealmNameFromRulesWallet
+    fetchRealmNameFromRulesWallet,
+    getAllTokenOwnerRecordsIndexed
 } from '../../Governance/api/queries';
+import { getRealm, getTokenOwnerRecord } from '@solana/spl-governance';
 
 import { formatAmount, getFormattedNumberToLocale } from '../../utils/grapeTools/helpers'
 import ProgressBar from '../../components/progress-bar/progress-bar';
@@ -267,6 +270,83 @@ const GOVERNANCE_STATE = {
     9:'Vetoed',
 }
 
+const REALTIME_PROPOSALS_LAST_SEEN_STORAGE_KEY = 'governance-realtime-proposals-last-seen';
+
+function toBase58Safe(value: any): string {
+    try {
+        if (!value) return '';
+        if (typeof value === 'string') return value;
+        if (value?.toBase58) return value.toBase58();
+        return String(value);
+    } catch {
+        return '';
+    }
+}
+
+function parseRawVoteWeight(raw: any): bigint {
+    try {
+        if (raw === null || raw === undefined) return 0n;
+        if (typeof raw === 'bigint') return raw;
+        if (typeof raw === 'number') return Number.isFinite(raw) ? BigInt(Math.trunc(raw)) : 0n;
+        if (typeof raw === 'string') {
+            const value = raw.trim();
+            if (!value) return 0n;
+            if (value.startsWith('0x') || value.startsWith('0X')) return BigInt(value);
+            if (/^-?\d+$/.test(value)) return BigInt(value);
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? BigInt(Math.trunc(parsed)) : 0n;
+        }
+        return BigInt(raw?.toString?.() || 0);
+    } catch {
+        return 0n;
+    }
+}
+
+function voteWeightToUi(raw: any, decimals = 0): number {
+    const value = parseRawVoteWeight(raw);
+    const normalizedDecimals = Math.max(0, Number(decimals || 0));
+    if (normalizedDecimals === 0) return Number(value);
+    const base = 10n ** BigInt(normalizedDecimals);
+    const whole = value / base;
+    const frac = value % base;
+    return Number(whole) + Number(frac) / Math.pow(10, normalizedDecimals);
+}
+
+function formatCompactNumber(value: any): string {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return '0';
+    const compact = new Intl.NumberFormat('en-US', {
+        notation: 'compact',
+        compactDisplay: 'short',
+        maximumFractionDigits: 2,
+    }).format(numeric);
+    return compact.replace(/K/g, 'k').replace(/M/g, 'm').replace(/B/g, 'b').replace(/T/g, 't');
+}
+
+function getDraftTimestampMs(raw: any): number {
+    const numeric = Number(raw?.toString?.() ?? raw ?? 0);
+    if (!Number.isFinite(numeric) || numeric <= 0) return 0;
+    return numeric * 1000;
+}
+
+function getProposalCardSummary(item: any): string {
+    const options = Array.isArray(item?.account?.options) ? item.account.options : [];
+    const instructionCount = options.reduce((sum: number, option: any) => {
+        const next = Number(option?.instructionsNextIndex ?? 0);
+        return sum + (Number.isFinite(next) ? next : 0);
+    }, 0);
+
+    if (item?.account?.voteType?.type === 1) {
+        return `${options.length} options${instructionCount > 0 ? ` • ${instructionCount} instruction${instructionCount === 1 ? '' : 's'}` : ''}`;
+    }
+
+    if (instructionCount > 0) {
+        return `${instructionCount} instruction${instructionCount === 1 ? '' : 's'}`;
+    }
+
+    return options.length > 2 ? `${options.length} options` : 'No instructions';
+}
+
 TablePaginationActions.propTypes = {
     count: PropTypes.number.isRequired,
     onPageChange: PropTypes.func.isRequired,
@@ -353,6 +433,12 @@ function TablePaginationActions(props) {
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
     const governanceLookup = props.governanceLookup;
+    const [lastSeenTimestamp] = React.useState<number>(() => {
+        if (typeof window === 'undefined') return 0;
+        const stored = window.localStorage.getItem(REALTIME_PROPOSALS_LAST_SEEN_STORAGE_KEY);
+        const parsed = stored ? Number(stored) : 0;
+        return Number.isFinite(parsed) ? parsed : 0;
+    });
     
     // Avoid a layout jump when reaching the last page with empty rows.
     const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - proposals.length) : 0;
@@ -369,6 +455,18 @@ function TablePaginationActions(props) {
     const handleFilterStateChange = () => {
         setFilterState(!filterState);
     }
+
+    React.useEffect(() => {
+        if (!Array.isArray(proposals) || proposals.length === 0) return;
+        if (typeof window === 'undefined') return;
+        const latestDraftTimestamp = proposals.reduce((max: number, proposal: any) => {
+            const ts = getDraftTimestampMs(proposal?.account?.draftAt);
+            return ts > max ? ts : max;
+        }, 0);
+        if (latestDraftTimestamp > 0) {
+            window.localStorage.setItem(REALTIME_PROPOSALS_LAST_SEEN_STORAGE_KEY, String(latestDraftTimestamp));
+        }
+    }, [proposals]);
     
     function GetProposalStatus(props: any){
         const thisitem = props.item;
@@ -501,6 +599,13 @@ function TablePaginationActions(props) {
         
 
         const [governanceInfo, setGovernanceInfo] = React.useState(null);
+        const [proposalAuthor, setProposalAuthor] = React.useState('');
+        const [proposalTypeLabel, setProposalTypeLabel] = React.useState<'Community' | 'Council' | ''>('');
+        const [authorVotingPowerLabel, setAuthorVotingPowerLabel] = React.useState('');
+        const [proposalMetaLoading, setProposalMetaLoading] = React.useState(false);
+        const lastSeenTimestamp = props?.lastSeenTimestamp || 0;
+        const isNewProposal = lastSeenTimestamp > 0 && getDraftTimestampMs(draftAt) > lastSeenTimestamp;
+        const proposalSummary = React.useMemo(() => getProposalCardSummary(item), [item]);
 
         React.useEffect(() => {
         const loadGovernanceInfo = async () => {
@@ -520,6 +625,84 @@ function TablePaginationActions(props) {
 
         loadGovernanceInfo();
     }, [rulesWallet]);
+
+        React.useEffect(() => {
+            let cancelled = false;
+
+            const loadProposalMeta = async () => {
+                const tokenOwnerRecordPk = item?.account?.tokenOwnerRecord;
+                const realmPk = item?.account?.realm || governanceInfo?.governanceAddress;
+                const governingMintPk = item?.account?.governingTokenMint;
+                if (!tokenOwnerRecordPk || !realmPk || !governingMintPk) return;
+
+                setProposalMetaLoading(true);
+                try {
+                    const realmPublicKey = new PublicKey(toBase58Safe(realmPk));
+                    const indexedOwnerRecords = await getAllTokenOwnerRecordsIndexed(
+                        realmPublicKey.toBase58(),
+                        item?.owner?.toBase58?.() || item?.owner
+                    ).catch(() => []);
+
+                    let tokenOwnerRecord = Array.isArray(indexedOwnerRecords)
+                        ? indexedOwnerRecords.find(
+                            (record: any) =>
+                                toBase58Safe(record?.pubkey) === toBase58Safe(tokenOwnerRecordPk)
+                        ) || null
+                        : null;
+
+                    const realm = await getRealm(RPC_CONNECTION as any, realmPublicKey);
+
+                    if (!tokenOwnerRecord) {
+                        tokenOwnerRecord = await getTokenOwnerRecord(
+                            RPC_CONNECTION as any,
+                            new PublicKey(toBase58Safe(tokenOwnerRecordPk))
+                        );
+                    }
+
+                    if (cancelled) return;
+
+                    const author = toBase58Safe(tokenOwnerRecord?.account?.governingTokenOwner);
+                    const governingMint = toBase58Safe(governingMintPk);
+                    const councilMint = toBase58Safe(realm?.account?.config?.councilMint);
+                    const isCouncilProposal = Boolean(councilMint && governingMint && councilMint === governingMint);
+                    const proposalType: 'Community' | 'Council' = isCouncilProposal ? 'Council' : 'Community';
+                    let decimals = 0;
+
+                    if (!isCouncilProposal) {
+                        try {
+                            const mintInfo = await getMint(RPC_CONNECTION as any, new PublicKey(governingMint));
+                            decimals = mintInfo?.decimals || 0;
+                        } catch {
+                            decimals = 0;
+                        }
+                    }
+
+                    const votingPower = voteWeightToUi(tokenOwnerRecord?.account?.governingTokenDepositAmount || 0, decimals);
+                    const powerLabel =
+                        proposalType === 'Council'
+                            ? `${formatCompactNumber(votingPower)} council`
+                            : `${formatCompactNumber(votingPower)} votes`;
+
+                    setProposalAuthor(author);
+                    setProposalTypeLabel(proposalType);
+                    setAuthorVotingPowerLabel(powerLabel);
+                } catch (error) {
+                    if (!cancelled) {
+                        console.log('Failed to load realtime proposal metadata', error);
+                    }
+                } finally {
+                    if (!cancelled) {
+                        setProposalMetaLoading(false);
+                    }
+                }
+            };
+
+            void loadProposalMeta();
+
+            return () => {
+                cancelled = true;
+            };
+        }, [governanceInfo, item]);
 
         const shortenWordRegex: RegExp = /^(.{6})(?:\.(.{6}))?$/;
 
@@ -701,6 +884,40 @@ function TablePaginationActions(props) {
                                                 
                                                 
                                             </Typography>
+
+                                            <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.25, mt: 0.5 }}>
+                                                {proposalTypeLabel && (
+                                                    <Chip
+                                                        size="small"
+                                                        label={`${proposalTypeLabel} Proposal`}
+                                                        sx={{
+                                                            height: 22,
+                                                            borderRadius: '999px',
+                                                            bgcolor: proposalTypeLabel === 'Council' ? 'rgba(255,179,71,0.16)' : 'rgba(88,166,255,0.14)',
+                                                            color: proposalTypeLabel === 'Council' ? '#ffd18a' : '#9ac7ff',
+                                                        }}
+                                                    />
+                                                )}
+                                                {isNewProposal && (
+                                                    <Chip
+                                                        size="small"
+                                                        label="New"
+                                                        color="error"
+                                                        sx={{ height: 22, borderRadius: '999px' }}
+                                                    />
+                                                )}
+                                                <Chip
+                                                    size="small"
+                                                    label={proposalSummary}
+                                                    variant="outlined"
+                                                    sx={{
+                                                        height: 22,
+                                                        borderRadius: '999px',
+                                                        borderColor: 'rgba(255,255,255,0.12)',
+                                                        color: '#aaa',
+                                                    }}
+                                                />
+                                            </Box>
                                             
                                             <Grid container>
                                                 <Grid item sm={8} xs={12}
@@ -716,6 +933,32 @@ function TablePaginationActions(props) {
                                                     >
                                                         {shortenString(name)}
                                                     </Typography>
+
+                                                    <Box sx={{ mb: 1, color: 'rgba(255,255,255,0.72)' }}>
+                                                        {proposalAuthor ? (
+                                                            <Typography variant="caption" sx={{ display: 'block', textAlign: 'left' }}>
+                                                                Proposal Author:{' '}
+                                                                <ExplorerView
+                                                                    address={proposalAuthor}
+                                                                    type='address'
+                                                                    shorten={8}
+                                                                    hideTitle={false}
+                                                                    hideIcon={true}
+                                                                    style='text'
+                                                                    color='inherit'
+                                                                    fontSize='10px'
+                                                                />
+                                                                {authorVotingPowerLabel ? ` • ${authorVotingPowerLabel}` : ''}
+                                                            </Typography>
+                                                        ) : (
+                                                            <Typography variant="caption" sx={{ display: 'block', textAlign: 'left', opacity: proposalMetaLoading ? 0.8 : 0.55 }}>
+                                                                Proposal Author: {proposalMetaLoading ? 'resolving...' : 'unavailable'}
+                                                            </Typography>
+                                                        )}
+                                                        <Typography variant="caption" sx={{ display: 'block', textAlign: 'left', color: '#8f8f8f', mt: 0.35 }}>
+                                                            Summary: {proposalSummary}
+                                                        </Typography>
+                                                    </Box>
 
                                                     <Grid
                                                         item
@@ -1233,6 +1476,7 @@ function TablePaginationActions(props) {
                                                                     state={item.account?.state}
                                                                     draftAt={item.account.draftAt}
                                                                     item={item}
+                                                                    lastSeenTimestamp={lastSeenTimestamp}
                                                                 />
 
                                                             </Typography>

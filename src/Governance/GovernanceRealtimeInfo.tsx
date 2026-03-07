@@ -4,7 +4,8 @@ import { styled, useTheme } from '@mui/material/styles';
 import axios from 'axios';
 import moment from 'moment';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { getProposal, getTokenOwnerRecord } from '@solana/spl-governance';
+import { getProposal, getRealm, getTokenOwnerRecord } from '@solana/spl-governance';
+import { getMint } from '@solana/spl-token';
 
 import {
   Typography,
@@ -20,6 +21,7 @@ import {
   ButtonGroup,
   Fade,
   CircularProgress,
+  Chip,
 } from '@mui/material/';
 
 import ExplorerView from '../utils/grapeTools/Explorer';
@@ -33,6 +35,14 @@ import {
 } from '../utils/grapeTools/constants';
 
 const REALTIME_MAINNET_CONNECTION = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+const REALTIME_SEEN_STORAGE_PREFIX = 'governance-realtime-last-seen:';
+
+type ProposalInsight = {
+    author: string;
+    proposalTypeLabel: 'Community' | 'Council';
+    votingPower: number;
+    votingPowerLabel: string;
+};
 
 const BlinkingDotContainer = styled("div")({
     width: 10,
@@ -66,6 +76,107 @@ function firstNonEmptyString(candidates: any[]): string {
         if (text) return text;
     }
     return '';
+}
+
+function toBase58Safe(value: any): string {
+    try {
+        if (!value) return '';
+        if (typeof value === 'string') return value;
+        if (value?.toBase58) return value.toBase58();
+        return String(value);
+    } catch {
+        return '';
+    }
+}
+
+function parseRawVoteWeight(raw: any): bigint {
+    try {
+        if (raw === null || raw === undefined) return 0n;
+        if (typeof raw === 'bigint') return raw;
+        if (typeof raw === 'number') return Number.isFinite(raw) ? BigInt(Math.trunc(raw)) : 0n;
+        if (typeof raw === 'string') {
+            const value = raw.trim();
+            if (!value) return 0n;
+            if (value.startsWith('0x') || value.startsWith('0X')) return BigInt(value);
+            if (/^-?\d+$/.test(value)) return BigInt(value);
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? BigInt(Math.trunc(parsed)) : 0n;
+        }
+        return BigInt(raw?.toString?.() || 0);
+    } catch {
+        return 0n;
+    }
+}
+
+function voteWeightToUi(raw: any, decimals = 0): number {
+    const d = Math.max(0, Number(decimals || 0));
+    const value = parseRawVoteWeight(raw);
+    if (d === 0) return Number(value);
+    const base = 10n ** BigInt(d);
+    const whole = value / base;
+    const frac = value % base;
+    return Number(whole) + Number(frac) / Math.pow(10, d);
+}
+
+function formatCompactNumber(value: any): string {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return '0';
+    const compact = new Intl.NumberFormat('en-US', {
+        notation: 'compact',
+        compactDisplay: 'short',
+        maximumFractionDigits: 2,
+    }).format(numeric);
+    return compact.replace(/K/g, 'k').replace(/M/g, 'm').replace(/B/g, 'b').replace(/T/g, 't');
+}
+
+function getTokenMapDecimals(tokenMap: any, mintAddress: string): number | null {
+    if (!tokenMap || !mintAddress) return null;
+    const fromMap = typeof tokenMap?.get === 'function' ? tokenMap.get(mintAddress) : tokenMap?.[mintAddress];
+    const decimals = fromMap?.decimals;
+    return Number.isFinite(Number(decimals)) ? Number(decimals) : null;
+}
+
+function formatActionLabel(actionType: any): string {
+    const rawType = String(actionType || '').trim();
+    if (!rawType || rawType === 'UNKNOWN') return '';
+    return rawType
+        .toLowerCase()
+        .split('_')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
+function buildActionSummary(actions: any[]): { count: number; label: string } | null {
+    if (!Array.isArray(actions) || actions.length === 0) return null;
+
+    const counts = new Map<string, number>();
+    const orderedLabels: string[] = [];
+    for (const action of actions) {
+        const label = formatActionLabel(action?.type) || 'Unknown';
+        if (!counts.has(label)) orderedLabels.push(label);
+        counts.set(label, (counts.get(label) || 0) + 1);
+    }
+
+    const parts = orderedLabels.map((label) => {
+        const count = counts.get(label) || 0;
+        return count > 1 ? `${label} x${count}` : label;
+    });
+
+    const preview = parts.slice(0, 2).join(' • ');
+    const remaining = parts.length - 2;
+    const suffix = remaining > 0 ? ` +${remaining} more` : '';
+
+    return {
+        count: actions.length,
+        label: `${actions.length} action${actions.length === 1 ? '' : 's'}: ${preview}${suffix}`,
+    };
+}
+
+function getEventTimestampMs(event: any): number {
+    const ts = event?.timestamp;
+    if (!ts) return 0;
+    const parsed = moment(ts);
+    return parsed.isValid() ? parsed.valueOf() : 0;
 }
 
 function extractProposalContext(event: any): { proposalAddress: string; realmAddress: string; directCreator: string } {
@@ -121,14 +232,21 @@ export default function GovernanceRealtimeInfo(props: any){
     const [realtimeEventsLoaded, setRealtimeEventsLoaded] = React.useState(false);
     const [loadingRealtimeEvents, setLoadingRealtimeEvents] = React.useState(false);
     const [realtimeEvents, setRealtimeEvents] = React.useState<any[]>([]);
-    const [proposalAuthors, setProposalAuthors] = React.useState<Record<string, string>>({});
+    const [proposalInsights, setProposalInsights] = React.useState<Record<string, ProposalInsight>>({});
     const [currentIndex, setCurrentIndex] = React.useState(0);
     const [fadeIn, setFadeIn] = React.useState(true);
     const [carouselData, setCarousel] = React.useState(null);
+    const [lastSeenTimestamp, setLastSeenTimestamp] = React.useState(0);
     const fadeTime = 1000;
     
     const [openInstructions, setOpenInstructions] = React.useState(expanded);
     const proposalAuthorInFlight = React.useRef<Set<string>>(new Set());
+    const latestAcknowledgedTimestampRef = React.useRef(0);
+    const mintDecimalsCacheRef = React.useRef<Record<string, number>>({});
+    const seenStorageKey = React.useMemo(
+        () => `${REALTIME_SEEN_STORAGE_PREFIX}${String(address || 'unknown')}`,
+        [address]
+    );
     const realmNameByAddress = React.useMemo(() => {
         const map = new Map<string, string>();
         if (!Array.isArray(governanceLookup)) return map;
@@ -141,6 +259,12 @@ export default function GovernanceRealtimeInfo(props: any){
         }
         return map;
     }, [governanceLookup]);
+    const newEventCount = React.useMemo(
+        () => lastSeenTimestamp > 0
+            ? realtimeEvents.filter((event) => getEventTimestampMs(event) > lastSeenTimestamp).length
+            : 0,
+        [lastSeenTimestamp, realtimeEvents]
+    );
 
     const handleClickOpenInstructions = () => {
         const nextOpenState = !openInstructions;
@@ -175,55 +299,103 @@ export default function GovernanceRealtimeInfo(props: any){
         }
     }, [address]);
 
-    const resolveProposalAuthor = React.useCallback(async (proposalAddress: string, _realmAddress?: string) => {
-        if (!proposalAddress || proposalAuthors[proposalAddress] || proposalAuthorInFlight.current.has(proposalAddress)) {
+    const resolveProposalInsight = React.useCallback(async (proposalAddress: string, _realmAddress?: string) => {
+        if (!proposalAddress || proposalInsights[proposalAddress] || proposalAuthorInFlight.current.has(proposalAddress)) {
             return;
         }
 
         proposalAuthorInFlight.current.add(proposalAddress);
 
         try {
-            const resolveFromConnection = async (connection: Connection): Promise<string> => {
+            const resolveFromConnection = async (connection: Connection): Promise<ProposalInsight | null> => {
                 const proposal = await getProposal(connection as any, new PublicKey(proposalAddress));
                 const tokenOwnerRecordPk =
                     proposal?.account?.tokenOwnerRecord?.toBase58?.() || proposal?.account?.tokenOwnerRecord;
-                if (!tokenOwnerRecordPk) return '';
+                if (!tokenOwnerRecordPk) return null;
 
                 const tokenOwnerRecord = await getTokenOwnerRecord(connection as any, new PublicKey(tokenOwnerRecordPk));
-                return tokenOwnerRecord?.account?.governingTokenOwner?.toBase58?.() || '';
+                const author = tokenOwnerRecord?.account?.governingTokenOwner?.toBase58?.() || '';
+                if (!author) return null;
+
+                const proposalMint = toBase58Safe(proposal?.account?.governingTokenMint);
+                const proposalRealm = toBase58Safe(proposal?.account?.realm) || _realmAddress || '';
+                let proposalTypeLabel: 'Community' | 'Council' = 'Community';
+                let decimals = getTokenMapDecimals(tokenMap, proposalMint) ?? mintDecimalsCacheRef.current[proposalMint];
+
+                if (proposalRealm) {
+                    try {
+                        const realm = await getRealm(connection as any, new PublicKey(proposalRealm));
+                        const councilMint = toBase58Safe(realm?.account?.config?.councilMint);
+                        if (councilMint && proposalMint === councilMint) {
+                            proposalTypeLabel = 'Council';
+                            decimals = 0;
+                        }
+                    } catch {
+                        // Continue with defaults if realm lookup fails.
+                    }
+                }
+
+                if (proposalTypeLabel === 'Community' && proposalMint && (decimals === null || decimals === undefined)) {
+                    try {
+                        const mintInfo = await getMint(connection as any, new PublicKey(proposalMint));
+                        decimals = mintInfo?.decimals ?? 0;
+                        mintDecimalsCacheRef.current[proposalMint] = decimals;
+                    } catch {
+                        decimals = 0;
+                    }
+                }
+
+                const votingPower = voteWeightToUi(tokenOwnerRecord?.account?.governingTokenDepositAmount || 0, decimals || 0);
+                const votingPowerLabel =
+                    proposalTypeLabel === 'Council'
+                        ? `${formatCompactNumber(votingPower)} council`
+                        : `${formatCompactNumber(votingPower)} votes`;
+
+                return {
+                    author,
+                    proposalTypeLabel,
+                    votingPower,
+                    votingPowerLabel,
+                };
             };
 
-            let governingTokenOwner = '';
+            let insight: ProposalInsight | null = null;
             try {
-                governingTokenOwner = await resolveFromConnection(RPC_CONNECTION as any);
+                insight = await resolveFromConnection(RPC_CONNECTION as any);
             } catch {
-                governingTokenOwner = '';
+                insight = null;
             }
 
-            if (!governingTokenOwner) {
+            if (!insight) {
                 try {
-                    governingTokenOwner = await resolveFromConnection(REALTIME_MAINNET_CONNECTION);
+                    insight = await resolveFromConnection(REALTIME_MAINNET_CONNECTION);
                 } catch {
-                    governingTokenOwner = '';
+                    insight = null;
                 }
             }
 
-            if (governingTokenOwner) {
-                setProposalAuthors((current) => {
-                    if (current[proposalAddress] === governingTokenOwner) return current;
+            if (insight?.author) {
+                setProposalInsights((current) => {
+                    if (
+                        current[proposalAddress]?.author === insight?.author &&
+                        current[proposalAddress]?.proposalTypeLabel === insight?.proposalTypeLabel &&
+                        current[proposalAddress]?.votingPower === insight?.votingPower
+                    ) {
+                        return current;
+                    }
                     return {
                         ...current,
-                        [proposalAddress]: governingTokenOwner,
+                        [proposalAddress]: insight as ProposalInsight,
                     };
                 });
             }
         } catch (error) {
             // Keep UI responsive; author field is an optional enrichment.
-            console.log('Could not resolve proposal author', error);
+            console.log('Could not resolve proposal insight', error);
         } finally {
             proposalAuthorInFlight.current.delete(proposalAddress);
         }
-    }, [proposalAuthors]);
+    }, [proposalInsights, tokenMap]);
 
     function capitalizeFirstLetter(sentence:string) {
         let newsSentence = sentence.toLowerCase();
@@ -251,9 +423,12 @@ export default function GovernanceRealtimeInfo(props: any){
         const realmAddress = context.realmAddress || firstInfo?.realm_address || '';
         const realmName = realmAddress ? realmNameByAddress.get(realmAddress) : '';
         const proposalAddress = context.proposalAddress || String(firstInfo?.proposal || '');
-        const resolvedAuthor = proposalAddress ? proposalAuthors[proposalAddress] || '' : '';
+        const proposalInsight = proposalAddress ? proposalInsights[proposalAddress] || null : null;
+        const resolvedAuthor = proposalInsight?.author || '';
         const isProposalEvent = Boolean(proposalAddress || firstInfo?.proposal_name);
         const proposalAuthorAddress = resolvedAuthor || (isProposalEvent ? context.directCreator : '');
+        const proposalTypeLabel = proposalInsight?.proposalTypeLabel || '';
+        const votingPowerLabel = proposalInsight?.votingPowerLabel || '';
         const actorAddress = !isProposalEvent ? context.directCreator : '';
         const authorResolutionPending = Boolean(
             isProposalEvent &&
@@ -261,6 +436,8 @@ export default function GovernanceRealtimeInfo(props: any){
             !proposalAuthorAddress &&
             proposalAuthorInFlight.current.has(proposalAddress)
         );
+        const actionSummary = buildActionSummary(event.actions);
+        const isNewEvent = lastSeenTimestamp > 0 && getEventTimestampMs(event) > lastSeenTimestamp;
 
         let displayedAmount: any = null;
         for (const action of event.actions) {
@@ -278,7 +455,28 @@ export default function GovernanceRealtimeInfo(props: any){
 
             return (
                 <Grid sx={{ color: 'gray' }}>
-                    <Typography variant="subtitle1">{actionLabel}</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', mb: 0.35 }}>
+                        <Typography variant="subtitle1">{actionLabel}</Typography>
+                        {proposalTypeLabel && (
+                            <Chip
+                                size="small"
+                                label={`${proposalTypeLabel} Proposal`}
+                                sx={{
+                                    height: 20,
+                                    bgcolor: proposalTypeLabel === 'Council' ? 'rgba(255,179,71,0.18)' : 'rgba(88,166,255,0.16)',
+                                    color: proposalTypeLabel === 'Council' ? '#ffd18a' : '#9ac7ff',
+                                }}
+                            />
+                        )}
+                        {isNewEvent && (
+                            <Chip
+                                size="small"
+                                label="New"
+                                color="error"
+                                sx={{ height: 20 }}
+                            />
+                        )}
+                    </Box>
                     {realmName && (
                         <Typography variant="caption" sx={{ display: 'block' }}>
                             DAO: {realmName}
@@ -296,7 +494,7 @@ export default function GovernanceRealtimeInfo(props: any){
                     )}
                     {proposalAuthorAddress && (
                         <Typography variant="caption" sx={{ display: 'block' }}>
-                            Proposal Author: {shortenAddress(proposalAuthorAddress)}
+                            Proposal Author: {shortenAddress(proposalAuthorAddress)}{votingPowerLabel ? ` • ${votingPowerLabel}` : ''}
                         </Typography>
                     )}
                     {authorResolutionPending && (
@@ -307,6 +505,11 @@ export default function GovernanceRealtimeInfo(props: any){
                     {actorAddress && (
                         <Typography variant="caption" sx={{ display: 'block' }}>
                             Actor: {shortenAddress(actorAddress)}
+                        </Typography>
+                    )}
+                    {actionSummary && (
+                        <Typography variant="caption" sx={{ display: 'block' }}>
+                            Summary: {actionSummary.label}
                         </Typography>
                     )}
                     {(displayedAmount !== null && displayedAmount !== undefined) && (
@@ -332,23 +535,38 @@ export default function GovernanceRealtimeInfo(props: any){
             >
                 <div>
                     <Grid sx={{color:'gray'}}>
-                        {(firstAction.type && firstAction.type !== 'UNKNOWN') ?
-                            <Grid>
-                                <Typography variant="h6">{capitalizeFirstLetter(firstAction.type.replace(/_/g, ' '))}</Typography>  
-                            </Grid>
-                            :
-                            <> 
-                                {(sourceProtocolAddress && 
-                                    (sourceProtocolAddress === "VoteMBhDCqGLRgYpp9o7DGyq81KNmwjXQRAHStjtJsS")) &&
-                                    <>Marinade VSR Interaction</>
-                                } 
-                                {(sourceProtocolAddress && 
-                                    (sourceProtocolAddress === "GqTPL6qRf5aUuqscLh8Rg2HTxPUXfhhAXDptTLhp1t2J") ||
-                                    sourceProtocolAddress === "4Q6WW2ouZ6V3iaNm56MTd5n2tnTm4C5fiH8miFHnAFHo") &&
-                                    <>Mango VSR Interaction</>
-                                } 
-                            </>
-                        }
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', mb: 0.5 }}>
+                            {(firstAction.type && firstAction.type !== 'UNKNOWN') ?
+                                <Typography variant="h6">{capitalizeFirstLetter(firstAction.type.replace(/_/g, ' '))}</Typography>
+                                :
+                                <Typography variant="h6">
+                                    {(sourceProtocolAddress && 
+                                        (sourceProtocolAddress === "VoteMBhDCqGLRgYpp9o7DGyq81KNmwjXQRAHStjtJsS")) ?
+                                        'Marinade VSR Interaction'
+                                        :
+                                        ((sourceProtocolAddress && 
+                                            ((sourceProtocolAddress === "GqTPL6qRf5aUuqscLh8Rg2HTxPUXfhhAXDptTLhp1t2J") ||
+                                            sourceProtocolAddress === "4Q6WW2ouZ6V3iaNm56MTd5n2tnTm4C5fiH8miFHnAFHo")) ?
+                                            'Mango VSR Interaction'
+                                            :
+                                            'Governance Event'
+                                        )
+                                    }
+                                </Typography>
+                            }
+                            {proposalTypeLabel && (
+                                <Chip
+                                    size="small"
+                                    label={`${proposalTypeLabel} Proposal`}
+                                    sx={{
+                                        height: 22,
+                                        bgcolor: proposalTypeLabel === 'Council' ? 'rgba(255,179,71,0.18)' : 'rgba(88,166,255,0.16)',
+                                        color: proposalTypeLabel === 'Council' ? '#ffd18a' : '#9ac7ff',
+                                    }}
+                                />
+                            )}
+                            {isNewEvent && <Chip size="small" label="New" color="error" sx={{ height: 22 }} />}
+                        </Box>
                         
                         {(realmName && realmAddress) &&
                             <Grid>
@@ -394,6 +612,7 @@ export default function GovernanceRealtimeInfo(props: any){
                                         color='inherit'
                                         fontSize='10px'
                                     />
+                                    {votingPowerLabel ? ` • ${votingPowerLabel}` : ''}
                                 </Typography>  
                             </Grid>
                         }
@@ -416,6 +635,11 @@ export default function GovernanceRealtimeInfo(props: any){
                                         fontSize='10px'
                                     />
                                 </Typography>  
+                            </Grid>
+                        }
+                        {actionSummary &&
+                            <Grid>
+                                <Typography variant="body2">Summary: {actionSummary.label}</Typography>
                             </Grid>
                         }
 
@@ -543,9 +767,16 @@ export default function GovernanceRealtimeInfo(props: any){
         setRealtimeEventsLoaded(false);
         setCurrentIndex(0);
         setRealtimeEvents([]);
-        setProposalAuthors({});
+        setProposalInsights({});
         void fetchRealtimeEvents();
     }, [address, fetchRealtimeEvents]);
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const stored = window.localStorage.getItem(seenStorageKey);
+        const parsed = stored ? Number(stored) : 0;
+        setLastSeenTimestamp(Number.isFinite(parsed) ? parsed : 0);
+    }, [seenStorageKey]);
 
     React.useEffect(() => {
         if (!Array.isArray(realtimeEvents) || realtimeEvents.length === 0) return;
@@ -555,7 +786,7 @@ export default function GovernanceRealtimeInfo(props: any){
             const context = extractProposalContext(event);
             const proposalAddress = context.proposalAddress;
             if (!proposalAddress) continue;
-            if (proposalAuthors[proposalAddress]) continue;
+            if (proposalInsights[proposalAddress]) continue;
             const realmAddress = context.realmAddress;
             candidates.set(proposalAddress, realmAddress || undefined);
         }
@@ -563,9 +794,9 @@ export default function GovernanceRealtimeInfo(props: any){
         if (candidates.size === 0) return;
 
         for (const [proposalAddress, realmAddress] of candidates.entries()) {
-            void resolveProposalAuthor(proposalAddress, realmAddress);
+            void resolveProposalInsight(proposalAddress, realmAddress);
         }
-    }, [proposalAuthors, realtimeEvents, resolveProposalAuthor]);
+    }, [proposalInsights, realtimeEvents, resolveProposalInsight]);
 
     const selectedEvent = React.useMemo(() => {
         if (!Array.isArray(realtimeEvents) || realtimeEvents.length === 0) return null;
@@ -576,9 +807,21 @@ export default function GovernanceRealtimeInfo(props: any){
         if (!selectedEvent) return;
         const context = extractProposalContext(selectedEvent);
         if (!context.proposalAddress) return;
-        if (proposalAuthors[context.proposalAddress]) return;
-        void resolveProposalAuthor(context.proposalAddress, context.realmAddress || undefined);
-    }, [proposalAuthors, resolveProposalAuthor, selectedEvent]);
+        if (proposalInsights[context.proposalAddress]) return;
+        void resolveProposalInsight(context.proposalAddress, context.realmAddress || undefined);
+    }, [proposalInsights, resolveProposalInsight, selectedEvent]);
+
+    React.useEffect(() => {
+        if (!openInstructions || !Array.isArray(realtimeEvents) || realtimeEvents.length === 0) return;
+        if (typeof window === 'undefined') return;
+        const latestTimestamp = realtimeEvents.reduce((max, event) => {
+            const ts = getEventTimestampMs(event);
+            return ts > max ? ts : max;
+        }, 0);
+        if (!latestTimestamp || latestTimestamp <= latestAcknowledgedTimestampRef.current) return;
+        latestAcknowledgedTimestampRef.current = latestTimestamp;
+        window.localStorage.setItem(seenStorageKey, String(latestTimestamp));
+    }, [openInstructions, realtimeEvents, seenStorageKey]);
 
     return(
         <Grid xs={12}>
@@ -604,13 +847,18 @@ export default function GovernanceRealtimeInfo(props: any){
                     <ListItemIcon>
                         <BlinkingDot />
                     </ListItemIcon>
-                    <ListItemText primary={<>
-                        {title ?
-                            <>{title}</>
-                        :
-                            <>Live</>
-                        }
-                        </>
+                    <ListItemText primary={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                            <span>{title ? title : 'Live'}</span>
+                            {newEventCount > 0 && (
+                                <Chip
+                                    size="small"
+                                    label={`${newEventCount} new`}
+                                    color="error"
+                                    sx={{ height: 20 }}
+                                />
+                            )}
+                        </Box>
                     } />
                         {openInstructions ? <ExpandLess /> : <ExpandMoreIcon />}
                 </ListItemButton>
