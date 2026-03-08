@@ -31,6 +31,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { PublicKey } from '@solana/web3.js';
 import GRAPE_LOGO_SQUARE from '../public/grape_logo_square.png';
 import OG_LOGO_SQUARE from '../public/og_logo_square.png';
+import GRAPE_DAO_LOGO from '../public/grape-dao-512.png';
 
 import GovernanceRealtimeInfo from './GovernanceRealtimeInfo';
 import GovernanceDirectoryCardView from './GovernanceDirectoryCardView';
@@ -868,8 +869,72 @@ export function GovernanceDirectoryView(props: Props) {
         backdropFilter: 'blur(10px)',
       }}
     >
+      <Typography
+        variant="caption"
+        sx={{
+          display: 'block',
+          mb: 1.35,
+          px: 0.25,
+          textAlign: 'left',
+          color: 'rgba(225,232,240,0.7)',
+          letterSpacing: '0.01em',
+        }}
+      >
+        Featured Grape tools from a broader stack of 6 on-chain programs, 4 APIs, 5 interfaces, and 5 Discord bots.
+      </Typography>
+
       <Grid container spacing={1.5} sx={{ mb: 2.25 }}>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={4}>
+          <Box
+            component="a"
+            href="https://grapedao.org"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              p: 1.5,
+              borderRadius: '16px',
+              textDecoration: 'none',
+              color: 'inherit',
+              background:
+                'linear-gradient(120deg, rgba(120, 66, 255, 0.24), rgba(255, 97, 161, 0.18))',
+              border: '1px solid rgba(255,255,255,0.14)',
+              transition: 'transform 120ms ease, border-color 120ms ease, background 120ms ease',
+              '&:hover': {
+                transform: 'translateY(-1px)',
+                borderColor: 'rgba(255,255,255,0.24)',
+                background:
+                  'linear-gradient(120deg, rgba(120, 66, 255, 0.3), rgba(255, 97, 161, 0.24))',
+              },
+            }}
+          >
+            <Box
+              component="img"
+              src={GRAPE_DAO_LOGO}
+              alt="Grape DAO"
+              sx={{
+                width: 50,
+                height: 50,
+                borderRadius: '12px',
+                objectFit: 'cover',
+                border: '1px solid rgba(255,255,255,0.16)',
+              }}
+            />
+            <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, letterSpacing: 0.2 }}>
+                Grape DAO
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.84 }}>
+                Main hub for the Grape ecosystem
+              </Typography>
+            </Box>
+            <OpenInNewIcon fontSize="small" sx={{ opacity: 0.85 }} />
+          </Box>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
           <Box
             component="a"
             href="https://vine.governance.so"
@@ -919,7 +984,7 @@ export function GovernanceDirectoryView(props: Props) {
           </Box>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={4}>
           <Box
             component="a"
             href="https://verification.governance.so"
