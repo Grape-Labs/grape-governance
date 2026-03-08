@@ -43,6 +43,14 @@ import CloseIcon from "@mui/icons-material/Close";
 
 import AdvancedProposalView from "./AdvancedProposalView";
 import { RPC_CONNECTION } from "../../../utils/grapeTools/constants";
+import {
+  SOL_MINT,
+  fetchGovernanceWalletTokenOptions,
+  formatWalletTokenOptionLabel,
+  normalizeMintInput,
+  shortMintLabel,
+  type WalletTokenOption,
+} from "./swapTokenOptions";
 
 // -------------------- Dialog header --------------------
 export interface DialogTitleProps {
@@ -80,7 +88,6 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
 }));
 
 // -------------------- Helpers --------------------
-const SOL_MINT = "So11111111111111111111111111111111111111112"; // wSOL mint
 const isPk = (s: string) => {
   try {
     // eslint-disable-next-line no-new
@@ -164,10 +171,14 @@ export default function JupiterSwapView(props: any) {
   // Swap form
   const [inputMint, setInputMint] = React.useState<string>(SOL_MINT);
   const [outputMint, setOutputMint] = React.useState<string>("");
+  const [customOutputMint, setCustomOutputMint] = React.useState<string>("");
+  const [outputMintMode, setOutputMintMode] = React.useState<"select" | "custom">("select");
   const [uiAmount, setUiAmount] = React.useState<string>("0.01");
   const [slippageBps, setSlippageBps] = React.useState<string>("50");
   const [wrapUnwrapSol, setWrapUnwrapSol] = React.useState<boolean>(true);
   const [onlyDirectRoutes, setOnlyDirectRoutes] = React.useState<boolean>(false);
+  const [walletTokenOptions, setWalletTokenOptions] = React.useState<WalletTokenOption[]>([]);
+  const [loadingWalletTokenOptions, setLoadingWalletTokenOptions] = React.useState(false);
 
   const [quoteSummary, setQuoteSummary] = React.useState<any>(null);
   const [loadingQuote, setLoadingQuote] = React.useState(false);
@@ -221,6 +232,33 @@ export default function JupiterSwapView(props: any) {
     }
   }, []);
 
+  React.useEffect(() => {
+    if (!open || !governanceNativeWallet || !isPk(governanceNativeWallet)) return;
+
+    let cancelled = false;
+    setLoadingWalletTokenOptions(true);
+    fetchGovernanceWalletTokenOptions(governanceNativeWallet)
+      .then((options) => {
+        if (cancelled) return;
+        setWalletTokenOptions(options);
+        const availableInputOptions = options.filter((option) => option.balanceUi > 0);
+        if (availableInputOptions.length && !availableInputOptions.some((option) => option.mint === inputMint)) {
+          setInputMint(availableInputOptions[0].mint);
+        }
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.error("Failed to load governance wallet tokens", error);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingWalletTokenOptions(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [governanceNativeWallet, inputMint, open]);
+
   // ---- your existing chunk + simulate pattern (no ALT support here) ----
   const chunkInstructions = (instructions: TransactionInstruction[], chunkSize: number) => {
     const chunks: TransactionInstruction[][] = [];
@@ -270,18 +308,11 @@ export default function JupiterSwapView(props: any) {
     }
   };
 
-  const normalizeMint = (m: string) => {
-    const t = (m || "").trim();
-    if (!t) return "";
-    if (t.toLowerCase() === "sol") return SOL_MINT;
-    return t;
-  };
-
   const fetchQuote = async () => {
   if (!governanceNativeWallet) return;
 
-  const inMint = normalizeMint(inputMint);
-  const outMint = normalizeMint(outputMint);
+  const inMint = normalizeMintInput(inputMint);
+  const outMint = normalizeMintInput(outputMintMode === "custom" ? customOutputMint : outputMint);
 
   if (!isPk(inMint) || !isPk(outMint)) {
     enqueueSnackbar("Invalid mint(s). Use 'SOL' or a valid mint address.", { variant: "warning" });
@@ -506,25 +537,66 @@ const splitJupiterInstructions = (swapIxs: any) => {
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <TextField
+                  select
                   fullWidth
-                  label="Input Mint (or 'SOL')"
+                  label="From"
                   value={inputMint}
                   onChange={(e) => setInputMint(e.target.value)}
                   variant="filled"
                   sx={{ m: 0.65 }}
-                />
+                  helperText="Assets available in the governance wallet."
+                  disabled={loadingWalletTokenOptions}
+                >
+                  {walletTokenOptions.filter((option) => option.balanceUi > 0).map((option) => (
+                    <MenuItem key={option.mint} value={option.mint}>
+                      {formatWalletTokenOptionLabel(option)}
+                    </MenuItem>
+                  ))}
+                </TextField>
               </Grid>
 
               <Grid item xs={12}>
                 <TextField
+                  select
                   fullWidth
-                  label="Output Mint"
-                  value={outputMint}
-                  onChange={(e) => setOutputMint(e.target.value)}
+                  label="To"
+                  value={outputMintMode === "custom" ? "__custom__" : outputMint}
+                  onChange={(e) => {
+                    if (e.target.value === "__custom__") {
+                      setOutputMintMode("custom");
+                      return;
+                    }
+                    setOutputMintMode("select");
+                    setOutputMint(e.target.value);
+                  }}
                   variant="filled"
                   sx={{ m: 0.65 }}
-                />
+                  helperText="Select an existing asset or switch to a custom mint / SOL."
+                >
+                  <MenuItem value="">
+                    <em>Select output asset</em>
+                  </MenuItem>
+                  {walletTokenOptions.map((option) => (
+                    <MenuItem key={option.mint} value={option.mint}>
+                      {formatWalletTokenOptionLabel(option)}
+                    </MenuItem>
+                  ))}
+                  <MenuItem value="__custom__">Custom mint / SOL</MenuItem>
+                </TextField>
               </Grid>
+
+              {outputMintMode === "custom" && (
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Custom Output Mint (or SOL)"
+                    value={customOutputMint}
+                    onChange={(e) => setCustomOutputMint(e.target.value)}
+                    variant="filled"
+                    sx={{ m: 0.65 }}
+                  />
+                </Grid>
+              )}
 
               <Grid item xs={12} sm={6}>
                 <TextField
@@ -587,7 +659,7 @@ const splitJupiterInstructions = (swapIxs: any) => {
                       />
                     </Box>
                     <Typography variant="body2" sx={{ mt: 0.5, color: "white" }}>
-                      Est. output: ~{Number(quoteSummary.outUi || 0).toFixed(6)}
+                      Est. output: ~{Number(quoteSummary.outUi || 0).toFixed(6)} {shortMintLabel(normalizeMintInput(outputMintMode === "custom" ? customOutputMint : outputMint))}
                     </Typography>
                     <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.4)" }}>
                       If simulation fails, try Only Direct Routes or reduce route complexity.

@@ -36,8 +36,14 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import CloseIcon from '@mui/icons-material/Close';
 import AdvancedProposalView from './AdvancedProposalView';
 import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
-
-const SOL_MINT = 'So11111111111111111111111111111111111111112';
+import {
+  SOL_MINT,
+  fetchGovernanceWalletTokenOptions,
+  formatWalletTokenOptionLabel,
+  normalizeMintInput,
+  shortMintLabel,
+  type WalletTokenOption,
+} from './swapTokenOptions';
 const SANCTUM_API_KEY = process.env.APP_SANCTUM_API_KEY?.trim() || '';
 const SANCTUM_ORDER_URL = 'https://sanctum-api.ironforge.network/swap/token/order';
 
@@ -82,13 +88,6 @@ const isPk = (s: string) => {
   }
 };
 
-const normalizeMint = (value: string): string => {
-  const cleaned = `${value ?? ''}`.trim();
-  if (!cleaned) return '';
-  if (cleaned.toLowerCase() === 'sol') return SOL_MINT;
-  return cleaned;
-};
-
 const loadLookupTables = async (vtx: VersionedTransaction): Promise<AddressLookupTableAccount[]> => {
   const lookups = vtx.message.addressTableLookups || [];
   if (!lookups.length) return [];
@@ -123,13 +122,6 @@ const getMintDecimals = async (mint: string): Promise<number> => {
   const account = await RPC_CONNECTION.getParsedAccountInfo(mintPk);
   const decimals = (account?.value?.data as any)?.parsed?.info?.decimals;
   return typeof decimals === 'number' ? decimals : 9;
-};
-
-const shortMintLabel = (mint: string): string => {
-  if (!mint) return '';
-  if (mint === SOL_MINT) return 'SOL';
-  if (mint.length <= 10) return mint;
-  return `${mint.slice(0, 4)}...${mint.slice(-4)}`;
 };
 
 const toBigIntAmount = (value: unknown): bigint | null => {
@@ -192,11 +184,15 @@ export default function SanctumSwapView(props: any) {
 
   const [inputMint, setInputMint] = React.useState<string>(SOL_MINT);
   const [outputLstMint, setOutputLstMint] = React.useState<string>('');
+  const [customOutputMint, setCustomOutputMint] = React.useState<string>('');
+  const [outputMintMode, setOutputMintMode] = React.useState<'select' | 'custom'>('select');
   const [uiAmount, setUiAmount] = React.useState<string>('0.1');
   const [mode, setMode] = React.useState<SwapMode>('ExactIn');
   const [priorityFeeAuto, setPriorityFeeAuto] = React.useState<boolean>(true);
   const [priorityFeeLamports, setPriorityFeeLamports] = React.useState<string>('0');
   const [loadingQuote, setLoadingQuote] = React.useState(false);
+  const [walletTokenOptions, setWalletTokenOptions] = React.useState<WalletTokenOption[]>([]);
+  const [loadingWalletTokenOptions, setLoadingWalletTokenOptions] = React.useState(false);
   const [quoteResponse, setQuoteResponse] = React.useState<any>(null);
   const [quoteContext, setQuoteContext] = React.useState<{
     inMint: string;
@@ -224,6 +220,33 @@ export default function SanctumSwapView(props: any) {
     }
   }, [realm, rulesWallet]);
 
+  React.useEffect(() => {
+    if (!open || !governanceNativeWallet || !isPk(governanceNativeWallet)) return;
+
+    let cancelled = false;
+    setLoadingWalletTokenOptions(true);
+    fetchGovernanceWalletTokenOptions(governanceNativeWallet)
+      .then((options) => {
+        if (cancelled) return;
+        setWalletTokenOptions(options);
+        const availableInputOptions = options.filter((option) => option.balanceUi > 0);
+        if (availableInputOptions.length && !availableInputOptions.some((option) => option.mint === inputMint)) {
+          setInputMint(availableInputOptions[0].mint);
+        }
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.error('Failed to load governance wallet tokens', error);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingWalletTokenOptions(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [governanceNativeWallet, inputMint, open]);
+
   const toggleGoverningMintSelected = (council: boolean) => {
     if (council) {
       setIsGoverningMintCouncilSelected(true);
@@ -242,8 +265,8 @@ export default function SanctumSwapView(props: any) {
   };
 
   const getOrder = async (includeSigner: boolean) => {
-    const inMint = normalizeMint(inputMint);
-    const outMint = normalizeMint(outputLstMint);
+    const inMint = normalizeMintInput(inputMint);
+    const outMint = normalizeMintInput(outputMintMode === 'custom' ? customOutputMint : outputLstMint);
     if (!isPk(inMint) || !isPk(outMint)) {
       throw new Error("Invalid mint(s). Use 'SOL' or valid mint addresses.");
     }
@@ -406,25 +429,66 @@ export default function SanctumSwapView(props: any) {
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <TextField
+                  select
                   fullWidth
-                  label="Input Mint (or SOL)"
+                  label="From"
                   value={inputMint}
                   onChange={(e) => setInputMint(e.target.value)}
                   variant="filled"
                   sx={{ m: 0.65 }}
-                />
+                  helperText="Assets available in the governance wallet."
+                  disabled={loadingWalletTokenOptions}
+                >
+                  {walletTokenOptions.filter((option) => option.balanceUi > 0).map((option) => (
+                    <MenuItem key={option.mint} value={option.mint}>
+                      {formatWalletTokenOptionLabel(option)}
+                    </MenuItem>
+                  ))}
+                </TextField>
               </Grid>
 
               <Grid item xs={12}>
                 <TextField
+                  select
                   fullWidth
-                  label="Output LST Mint"
-                  value={outputLstMint}
-                  onChange={(e) => setOutputLstMint(e.target.value)}
+                  label="To"
+                  value={outputMintMode === 'custom' ? '__custom__' : outputLstMint}
+                  onChange={(e) => {
+                    if (e.target.value === '__custom__') {
+                      setOutputMintMode('custom');
+                      return;
+                    }
+                    setOutputMintMode('select');
+                    setOutputLstMint(e.target.value);
+                  }}
                   variant="filled"
                   sx={{ m: 0.65 }}
-                />
+                  helperText="Select an existing asset or switch to a custom mint / SOL."
+                >
+                  <MenuItem value="">
+                    <em>Select output asset</em>
+                  </MenuItem>
+                  {walletTokenOptions.map((option) => (
+                    <MenuItem key={option.mint} value={option.mint}>
+                      {formatWalletTokenOptionLabel(option)}
+                    </MenuItem>
+                  ))}
+                  <MenuItem value="__custom__">Custom mint / SOL</MenuItem>
+                </TextField>
               </Grid>
+
+              {outputMintMode === 'custom' ? (
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Custom Output Mint (or SOL)"
+                    value={customOutputMint}
+                    onChange={(e) => setCustomOutputMint(e.target.value)}
+                    variant="filled"
+                    sx={{ m: 0.65 }}
+                  />
+                </Grid>
+              ) : null}
 
               <Grid item xs={12} sm={6}>
                 <TextField
