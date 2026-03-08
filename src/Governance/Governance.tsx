@@ -368,7 +368,7 @@ function RenderGovernanceTable(props:any) {
             })();
             if (state === 2) voting++;
             if (state === 0) draft++;
-            if (state === 3 || state === 5) passed++;
+            if (state === 3 || state === 4 || state === 5) passed++;
             if (state === 7 || state === 9) defeated++;
             if (isPoll) polls++;
             if (hasInstructions) withInstructions++;
@@ -600,7 +600,7 @@ function RenderGovernanceTable(props:any) {
                 const isPoll = Number(item?.account?.voteType?.type) === 1;
                 if (statusFilter === 'voting') return state === 2;
                 if (statusFilter === 'draft') return state === 0;
-                if (statusFilter === 'passed') return state === 3 || state === 5;
+                if (statusFilter === 'passed') return state === 3 || state === 4 || state === 5;
                 if (statusFilter === 'defeated') return state === 7 || state === 9;
                 if (statusFilter === 'polls') return isPoll;
                 if (statusFilter === 'instructions') {
