@@ -43,7 +43,10 @@ import Diversity3Icon from '@mui/icons-material/Diversity3';
 import CollectionsBookmarkIcon from '@mui/icons-material/CollectionsBookmark';
 import {
   Alert,
+  Box,
   Button,
+  Chip,
+  Divider,
   Dialog,
   DialogActions,
   DialogContent,
@@ -90,7 +93,7 @@ export default function CreateSplGovernanceDaoButton() {
 
   const [realmName, setRealmName] = React.useState('');
   const [minCommunityTokens, setMinCommunityTokens] = React.useState('1');
-  const [depositExemptProposalCount, setDepositExemptProposalCount] = React.useState(5);
+  const [depositExemptProposalCount, setDepositExemptProposalCount] = React.useState(10);
 
   const [multisigMembers, setMultisigMembers] = React.useState('');
 
@@ -118,7 +121,7 @@ export default function CreateSplGovernanceDaoButton() {
     setDaoType('multisig');
     setRealmName('');
     setMinCommunityTokens('1');
-    setDepositExemptProposalCount(5);
+    setDepositExemptProposalCount(10);
     setCommunityMint('');
     setUseCouncil(false);
     setCouncilMembers('');
@@ -602,6 +605,34 @@ export default function CreateSplGovernanceDaoButton() {
     }
   };
 
+  const daoTypeMeta: Record<DaoType, { label: string; caption: string; accent: string }> = {
+    multisig: {
+      label: 'Multi-sig DAO',
+      caption: 'Create a council-driven realm with membership tokens for each signer.',
+      accent: 'rgba(88,166,255,0.18)',
+    },
+    community: {
+      label: 'Community DAO',
+      caption: 'Use an existing community mint and optionally add a council layer.',
+      accent: 'rgba(94,201,143,0.18)',
+    },
+    nft: {
+      label: 'NFT DAO',
+      caption: 'Set up NFT-gated governance with the configured voter plugin.',
+      accent: 'rgba(242,191,109,0.18)',
+    },
+  };
+
+  const activeDaoMeta = daoTypeMeta[daoType];
+
+  const sectionCardSx = {
+    p: 2,
+    borderRadius: '18px',
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.02) 100%)',
+    border: '1px solid rgba(255,255,255,0.09)',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
+  };
+
   return (
     <>
       <Button
@@ -614,13 +645,68 @@ export default function CreateSplGovernanceDaoButton() {
         Create DAO
       </Button>
 
-      <Dialog open={open} onClose={closeDialog} fullWidth maxWidth="md">
-        <DialogTitle>Create SPL Governance DAO</DialogTitle>
+      <Dialog
+        open={open}
+        onClose={closeDialog}
+        fullWidth
+        maxWidth="md"
+        PaperProps={{
+          sx: {
+            borderRadius: '26px',
+            overflow: 'hidden',
+            background:
+              'radial-gradient(900px 420px at 0% 0%, rgba(88,166,255,0.14), transparent 48%), radial-gradient(700px 360px at 100% 0%, rgba(94,201,143,0.12), transparent 42%), linear-gradient(180deg, rgba(13,17,24,0.98) 0%, rgba(9,12,18,0.98) 100%)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 30px 90px rgba(0,0,0,0.42)',
+          },
+        }}
+      >
+        <DialogTitle sx={{ pb: 1.25, pt: 2.4 }}>
+          <Stack spacing={1.25}>
+            <Box>
+              <Typography
+                variant="overline"
+                sx={{ display: 'block', color: 'rgba(181,191,204,0.72)', letterSpacing: '0.16em' }}
+              >
+                Governance Launcher
+              </Typography>
+              <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: '-0.02em', color: '#f4f8fc' }}>
+                Create SPL Governance DAO
+              </Typography>
+            </Box>
+            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
+              <Chip
+                size="small"
+                label={activeDaoMeta.label}
+                sx={{
+                  borderRadius: '999px',
+                  color: '#eef5fb',
+                  background: activeDaoMeta.accent,
+                  border: '1px solid rgba(255,255,255,0.08)',
+                }}
+              />
+              <Typography variant="body2" sx={{ color: 'rgba(201,210,220,0.8)' }}>
+                {activeDaoMeta.caption}
+              </Typography>
+            </Stack>
+          </Stack>
+        </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 0.5 }}>
-            <Alert severity="info">
-              This creates a new realm on SPL Governance. For Multi-sig and optional council setups, this flow also
-              creates a council mint and distributes one membership token per council member.
+            <Alert
+              severity="info"
+              sx={{
+                borderRadius: '16px',
+                background: 'rgba(32, 83, 130, 0.2)',
+                border: '1px solid rgba(112, 170, 224, 0.2)',
+                color: 'rgba(224,236,247,0.92)',
+                '& .MuiAlert-icon': {
+                  color: '#9ac7ff',
+                },
+              }}
+            >
+              This creates a new realm on SPL Governance. Multi-sig and optional council setups also create a council
+              mint and distribute one membership token per council member.
             </Alert>
 
             <Tabs
@@ -629,6 +715,28 @@ export default function CreateSplGovernanceDaoButton() {
               textColor="inherit"
               indicatorColor="secondary"
               variant="fullWidth"
+              sx={{
+                minHeight: 54,
+                p: 0.5,
+                borderRadius: '18px',
+                background: 'rgba(255,255,255,0.035)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                '& .MuiTabs-indicator': {
+                  display: 'none',
+                },
+                '& .MuiTab-root': {
+                  minHeight: 42,
+                  borderRadius: '14px',
+                  color: 'rgba(208,216,226,0.76)',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  transition: 'background 160ms ease, color 160ms ease',
+                },
+                '& .Mui-selected': {
+                  color: '#f5f8fb !important',
+                  background: 'rgba(255,255,255,0.08)',
+                },
+              }}
             >
               <Tab icon={<GroupsIcon fontSize="small" />} iconPosition="start" value="multisig" label="Multi-sig" />
               <Tab
@@ -645,125 +753,199 @@ export default function CreateSplGovernanceDaoButton() {
               />
             </Tabs>
 
-            <TextField
-              fullWidth
-              size="small"
-              label="DAO Name"
-              value={realmName}
-              onChange={(e) => setRealmName(e.target.value)}
-            />
-
-            <TextField
-              fullWidth
-              size="small"
-              label="Min Community Tokens To Create Governance"
-              value={minCommunityTokens}
-              onChange={(e) => setMinCommunityTokens(e.target.value)}
-              helperText="Realm-level minimum to create governance accounts."
-            />
-
-            <TextField
-              fullWidth
-              size="small"
-              type="number"
-              label="Deposit Exempt Proposal Count"
-              value={depositExemptProposalCount}
-              onChange={(e) => {
-                const next = Number(e.target.value);
-                if (!Number.isFinite(next)) {
-                  setDepositExemptProposalCount(10);
-                  return;
-                }
-                setDepositExemptProposalCount(Math.max(5, Math.min(10, Math.floor(next))));
-              }}
-              helperText="Recommended range for new DAOs: 5-10."
-            />
-
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={createInitialTreasury}
-                  onChange={(e) => setCreateInitialTreasury(e.target.checked)}
-                />
-              }
-              label="Create initial treasury governance wallet"
-            />
-
-            {daoType === 'multisig' && (
-              <TextField
-                fullWidth
-                size="small"
-                multiline
-                minRows={4}
-                label="Council Member Wallets (one per line)"
-                value={multisigMembers}
-                onChange={(e) => setMultisigMembers(e.target.value)}
-                helperText={`Up to ${MAX_MEMBERS} members in this flow.`}
-              />
-            )}
-
-            {daoType === 'community' && (
-              <>
+            <Box sx={sectionCardSx}>
+              <Stack spacing={1.5}>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ color: '#f2f6fa', fontWeight: 700 }}>
+                    Base Configuration
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(186,197,210,0.72)', mt: 0.35 }}>
+                    Set the realm identity and proposal defaults before choosing the DAO structure.
+                  </Typography>
+                </Box>
                 <TextField
                   fullWidth
                   size="small"
-                  label="Community Mint Address"
-                  value={communityMint}
-                  onChange={(e) => setCommunityMint(e.target.value)}
+                  label="DAO Name"
+                  value={realmName}
+                  onChange={(e) => setRealmName(e.target.value)}
                 />
+
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Min Community Tokens To Create Governance"
+                  value={minCommunityTokens}
+                  onChange={(e) => setMinCommunityTokens(e.target.value)}
+                  helperText="Realm-level minimum to create governance accounts."
+                />
+
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="number"
+                  label="Deposit Exempt Proposal Count"
+                  value={depositExemptProposalCount}
+                  onChange={(e) => {
+                    const next = Number(e.target.value);
+                    if (!Number.isFinite(next)) {
+                      setDepositExemptProposalCount(10);
+                      return;
+                    }
+                    setDepositExemptProposalCount(Math.max(5, Math.min(10, Math.floor(next))));
+                  }}
+                  helperText="Recommended range for new DAOs: 5-10."
+                />
+
+                <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)' }} />
+
                 <FormControlLabel
-                  control={<Switch checked={useCouncil} onChange={(e) => setUseCouncil(e.target.checked)} />}
-                  label="Create council mint and distribute council membership tokens"
+                  control={
+                    <Switch
+                      checked={createInitialTreasury}
+                      onChange={(e) => setCreateInitialTreasury(e.target.checked)}
+                    />
+                  }
+                  label="Create initial treasury governance wallet"
+                  sx={{ m: 0 }}
                 />
-                {useCouncil && (
+              </Stack>
+            </Box>
+
+            {daoType === 'multisig' && (
+              <Box sx={sectionCardSx}>
+                <Stack spacing={1.5}>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ color: '#f2f6fa', fontWeight: 700 }}>
+                      Council Membership
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'rgba(186,197,210,0.72)', mt: 0.35 }}>
+                      Add the signer wallets that will receive one council membership token each.
+                    </Typography>
+                  </Box>
                   <TextField
                     fullWidth
                     size="small"
                     multiline
                     minRows={4}
                     label="Council Member Wallets (one per line)"
-                    value={councilMembers}
-                    onChange={(e) => setCouncilMembers(e.target.value)}
+                    value={multisigMembers}
+                    onChange={(e) => setMultisigMembers(e.target.value)}
                     helperText={`Up to ${MAX_MEMBERS} members in this flow.`}
                   />
-                )}
-              </>
+                </Stack>
+              </Box>
+            )}
+
+            {daoType === 'community' && (
+              <Box sx={sectionCardSx}>
+                <Stack spacing={1.5}>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ color: '#f2f6fa', fontWeight: 700 }}>
+                      Community Mint Setup
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'rgba(186,197,210,0.72)', mt: 0.35 }}>
+                      Point the realm to an existing community mint and optionally add a council layer.
+                    </Typography>
+                  </Box>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Community Mint Address"
+                    value={communityMint}
+                    onChange={(e) => setCommunityMint(e.target.value)}
+                  />
+                  <FormControlLabel
+                    control={<Switch checked={useCouncil} onChange={(e) => setUseCouncil(e.target.checked)} />}
+                    label="Create council mint and distribute council membership tokens"
+                    sx={{ m: 0 }}
+                  />
+                  {useCouncil && (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      multiline
+                      minRows={4}
+                      label="Council Member Wallets (one per line)"
+                      value={councilMembers}
+                      onChange={(e) => setCouncilMembers(e.target.value)}
+                      helperText={`Up to ${MAX_MEMBERS} members in this flow.`}
+                    />
+                  )}
+                </Stack>
+              </Box>
             )}
 
             {daoType === 'nft' && (
-              <>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="NFT Voter Plugin Program"
-                  value={nftPluginProgram}
-                  onChange={(e) => setNftPluginProgram(e.target.value)}
-                  helperText="Used as both voterWeightAddin and maxVoterWeightAddin."
-                />
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Community Mint Address (optional)"
-                  value={nftCommunityMint}
-                  onChange={(e) => setNftCommunityMint(e.target.value)}
-                  helperText="Leave empty to auto-create a 0-decimal mint for the realm."
-                />
-              </>
+              <Box sx={sectionCardSx}>
+                <Stack spacing={1.5}>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ color: '#f2f6fa', fontWeight: 700 }}>
+                      NFT Governance Plugin
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'rgba(186,197,210,0.72)', mt: 0.35 }}>
+                      Configure the NFT voter plugin and optional realm mint used for membership.
+                    </Typography>
+                  </Box>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="NFT Voter Plugin Program"
+                    value={nftPluginProgram}
+                    onChange={(e) => setNftPluginProgram(e.target.value)}
+                    helperText="Used as both voterWeightAddin and maxVoterWeightAddin."
+                  />
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Community Mint Address (optional)"
+                    value={nftCommunityMint}
+                    onChange={(e) => setNftCommunityMint(e.target.value)}
+                    helperText="Leave empty to auto-create a 0-decimal mint for the realm."
+                  />
+                </Stack>
+              </Box>
             )}
 
-            <Typography variant="caption" sx={{ opacity: 0.75 }}>
-              Wallet must be connected and able to pay transaction fees for mint and realm account creation.
-            </Typography>
+            <Box
+              sx={{
+                px: 0.25,
+                py: 0.5,
+              }}
+            >
+              <Typography variant="caption" sx={{ display: 'block', opacity: 0.78 }}>
+                Wallet must be connected and able to pay transaction fees for mint and realm account creation.
+              </Typography>
+            </Box>
           </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={closeDialog} disabled={submitting}>
+        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.25 }}>
+          <Button
+            onClick={closeDialog}
+            disabled={submitting}
+            sx={{
+              borderRadius: '999px',
+              px: 2,
+              color: 'rgba(215,223,232,0.84)',
+            }}
+          >
             Cancel
           </Button>
           <Button
             variant="contained"
             onClick={handleCreateDao}
             disabled={submitting || !connected || !publicKey}
+            sx={{
+              borderRadius: '999px',
+              px: 2.4,
+              background: 'linear-gradient(90deg, #5b8cff 0%, #45c48c 100%)',
+              color: '#09111b',
+              fontWeight: 700,
+              boxShadow: '0 16px 34px rgba(46, 125, 90, 0.24)',
+              '&:hover': {
+                background: 'linear-gradient(90deg, #6a98ff 0%, #56d798 100%)',
+              },
+            }}
           >
             {submitting ? 'Creating...' : 'Create DAO'}
           </Button>
