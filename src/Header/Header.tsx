@@ -100,6 +100,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import BookIcon from '@mui/icons-material/Book';
+import ForumIcon from '@mui/icons-material/Forum';
+import LanguageIcon from '@mui/icons-material/Language';
 
 import AboutDialog from '../About/AboutDialog';
 
@@ -701,6 +703,38 @@ const rowSX = { display: "flex", alignItems: "center", gap: 1 };
                                         <ListItemButton>
                                             <ListItemIcon><BookIcon /></ListItemIcon>
                                             <Typography variant="h6">Documentation</Typography>
+                                        </ListItemButton>
+                                    </a>
+                                </Tooltip>
+                            </ListItem>
+
+                            <ListItem disablePadding>
+                                <Tooltip title={`Visit Grape DAO`} placement="right" arrow>
+                                    <a
+                                        href="https://grapedao.org"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ textDecoration: 'none', color: 'inherit' }}
+                                        >
+                                        <ListItemButton>
+                                            <ListItemIcon><LanguageIcon /></ListItemIcon>
+                                            <Typography variant="h6">Grape DAO</Typography>
+                                        </ListItemButton>
+                                    </a>
+                                </Tooltip>
+                            </ListItem>
+
+                            <ListItem disablePadding>
+                                <Tooltip title={`Join Grape Discord`} placement="right" arrow>
+                                    <a
+                                        href="https://discord.gg/grapedao"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ textDecoration: 'none', color: 'inherit' }}
+                                        >
+                                        <ListItemButton>
+                                            <ListItemIcon><ForumIcon /></ListItemIcon>
+                                            <Typography variant="h6">Discord</Typography>
                                         </ListItemButton>
                                     </a>
                                 </Tooltip>
