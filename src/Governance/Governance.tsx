@@ -923,6 +923,7 @@ function RenderGovernanceTable(props:any) {
                 <Box
                     sx={{
                         mb: 1.1,
+                        mx: 1,
                         p: 0.95,
                         borderRadius: '14px',
                         background: 'linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.018))',
