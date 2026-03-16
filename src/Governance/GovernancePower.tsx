@@ -211,6 +211,8 @@ export default function GovernancePower(props: any){
     const [loading, setLoading] = React.useState(false);
     const [depositedCommunityMint, setDepositedCommunityMint] = React.useState(null);
     const [depositedCouncilMint, setDepositedCouncilMint] = React.useState(null);
+    const [communityUnrelinquishedVotesCount, setCommunityUnrelinquishedVotesCount] = React.useState(0);
+    const [councilUnrelinquishedVotesCount, setCouncilUnrelinquishedVotesCount] = React.useState(0);
     const [walletCommunityMintAddress, setWalletCommunityMintAddress] = React.useState(null);
     const [walletCouncilMintAddress, setWalletCouncilMintAddress] = React.useState(null);
     const [walletCommunityMintAmount, setWalletCommunityMintAmount] = React.useState(null);
@@ -336,6 +338,8 @@ export default function GovernancePower(props: any){
             let depCouncilMint = null;
             let depCommunityDelegate = null;
             let depCouncilDelegate = null;
+            let depCommunityUnrelinquishedVotesCount = 0;
+            let depCouncilUnrelinquishedVotesCount = 0;
             let fetchedTMI = false;
             setCurrentCommunityDelegate(null);
             setCurrentCouncilDelegate(null);
@@ -343,6 +347,8 @@ export default function GovernancePower(props: any){
             setCurrentCouncilDelegateFrom(null);
             setCurrentCommunityDelegateFromAmount(null);
             setCurrentCouncilDelegateFromAmount(null);
+            setCommunityUnrelinquishedVotesCount(0);
+            setCouncilUnrelinquishedVotesCount(0);
             
             for (let record of tokenOwnerRecord){
                 if (record.account.realm.toBase58() === governanceAddress){
@@ -353,9 +359,11 @@ export default function GovernancePower(props: any){
                             fetchedTMI = true;
                             //console.log("tokenMintInfo: "+JSON.stringify(tki));
                             depCommunityMint = Number(record.account.governingTokenDepositAmount);
+                            depCommunityUnrelinquishedVotesCount = toNumberSafe(record.account?.unrelinquishedVotesCount);
                             depCommunityDelegate = record.account?.governanceDelegate;
                         }else if (record.account.governingTokenMint.toBase58() === councilMint){
-                            depCouncilMint = Number(record.account.governingTokenDepositAmount); 
+                            depCouncilMint = Number(record.account.governingTokenDepositAmount);
+                            depCouncilUnrelinquishedVotesCount = toNumberSafe(record.account?.unrelinquishedVotesCount);
                             depCouncilDelegate = record.account?.governanceDelegate;
                         }
                         //console.log("record "+JSON.stringify(record));
@@ -380,13 +388,19 @@ export default function GovernancePower(props: any){
                 setDepositedCommunityMint(depCommunityMint);
                 if (depCommunityDelegate)
                     setCurrentCommunityDelegate(depCommunityDelegate.toBase58());
-            } 
+            } else {
+                setDepositedCommunityMint(null);
+            }
+            setCommunityUnrelinquishedVotesCount(depCommunityUnrelinquishedVotesCount);
             // do not change this to an else (we show both council/community)
             if (depCouncilMint && Number(depCouncilMint) > 0){
                 setDepositedCouncilMint(depCouncilMint);
                 if (depCouncilDelegate)
                     setCurrentCouncilDelegate(depCouncilDelegate.toBase58());
+            } else {
+                setDepositedCouncilMint(null);
             }
+            setCouncilUnrelinquishedVotesCount(depCouncilUnrelinquishedVotesCount);
 
             //const govOwnerRecord = await getTokenOwnerRecord(RPC_CONNECTION, publicKey);
 
@@ -992,12 +1006,12 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
   const selectedMintAddress = props?.mintAddress;
   const selectedMintAvailableAmount = props?.mintAvailableAmount;
   const selectedMintDepositedAmount = props?.mintVotingPower;
+  const unrelinquishedVotesCount = toNumberSafe(props?.unrelinquishedVotesCount);
   const isCouncil = props?.isCouncil;
   const decimals = isCouncil ? 0 : (props?.decimals || mintDecimals);
 
   const [delegatedStr, setDelegatedStr] = React.useState<string | null>(null);
   const [open, setOpen] = React.useState(false);
-  const [relinquishingVotes, setRelinquishingVotes] = React.useState(false);
 
   const maxHuman = React.useMemo(() => {
     const v = Number(selectedMintAvailableAmount || 0) / Math.pow(10, decimals);
@@ -1057,15 +1071,6 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
     }
     setOpen(false);
   }
-
-  const handleRelinquishOnly = async () => {
-    try {
-      setRelinquishingVotes(true);
-      await relinquishVotesForDaoMint(selectedMintAddress);
-    } finally {
-      setRelinquishingVotes(false);
-    }
-  };
 
   const deposited = fmtInt(selectedMintDepositedAmount, decimals);
   const inWallet = fmt(selectedMintAvailableAmount, decimals);
@@ -1201,17 +1206,9 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                   </Box>
                 </Box>
 
-                <Box sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="inherit"
-                    disabled={relinquishingVotes}
-                    onClick={handleRelinquishOnly}
-                    sx={{ textTransform: "none", borderRadius: 2 }}
-                  >
-                    {relinquishingVotes ? 'Relinquishing...' : 'Relinquish DAO Votes'}
-                  </Button>
+                <Box sx={metricRowSX}>
+                  <Typography sx={metricLabelSX}>Unrelinquished votes</Typography>
+                  <Typography sx={metricValueSX}>{unrelinquishedVotesCount.toLocaleString()}</Typography>
                 </Box>
 
                 {hasAvailable && (
@@ -1573,6 +1570,7 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                                 </Button>
                                 <AdvancedCommunityVoteDepositPrompt 
                                     mintVotingPower={depositedCommunityMint} 
+                                    unrelinquishedVotesCount={communityUnrelinquishedVotesCount}
                                     mintAvailableAmount={walletCommunityMintAmount} 
                                     mintAddress={walletCommunityMintAddress} 
                                     mintName={mintName} 
@@ -1649,6 +1647,7 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                                         <AdvancedCommunityVoteDepositPrompt 
                                             inlineAdvanced={true} 
                                             mintVotingPower={depositedCommunityMint} 
+                                            unrelinquishedVotesCount={communityUnrelinquishedVotesCount}
                                             mintAvailableAmount={walletCommunityMintAmount} 
                                             mintAddress={walletCommunityMintAddress} 
                                             mintName={mintName} 
@@ -1664,6 +1663,7 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                                     isCouncil={true} 
                                     inlineAdvanced={true} 
                                     mintVotingPower={depositedCouncilMint} 
+                                    unrelinquishedVotesCount={councilUnrelinquishedVotesCount}
                                     mintAvailableAmount={walletCouncilMintAmount} 
                                     mintAddress={walletCouncilMintAddress} 
                                     decimals={0} />
