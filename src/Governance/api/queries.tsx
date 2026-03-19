@@ -1167,6 +1167,83 @@ export const getTokenOwnerRecordsByOwnerIndexed = async (filterRealm?:string, re
     return allResults;
 }
 
+export const getTokenOwnerRecordsByOwnerAcrossProgramsIndexed = async (tokenOwner?: string) => {
+    if (!tokenOwner) {
+        return [];
+    }
+
+    const programs = Array.from(
+        new Map(
+            [
+                {
+                    owner: 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw',
+                    name: 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw',
+                },
+                ...govOwners,
+            ].map((program) => [program.name, program])
+        ).values()
+    );
+
+    const mergedRecords: any[] = [];
+    const seenRecordPks = new Set<string>();
+
+    await Promise.all(
+        programs.map(async (program) => {
+            const namespaces = Array.from(
+                new Set([program.name, program.owner].filter((value): value is string => !!value))
+            );
+
+            for (const namespace of namespaces) {
+                try {
+                    const { data } = await client.query({
+                        query: GET_QUERY_ALL_TOKEN_OWNER_RECORDS(tokenOwner, namespace),
+                        fetchPolicy: 'no-cache',
+                    });
+
+                    const pushRecord = (item: any) => {
+                        const recordPk = item?.pubkey ? new PublicKey(item.pubkey) : null;
+                        const recordPkString = recordPk?.toBase58?.() || '';
+                        if (!recordPkString || seenRecordPks.has(recordPkString)) {
+                            return;
+                        }
+
+                        seenRecordPks.add(recordPkString);
+                        mergedRecords.push({
+                            owner: new PublicKey(program.owner),
+                            pubkey: recordPk,
+                            account: {
+                                realm: new PublicKey(item.realm),
+                                accountType: item.accountType,
+                                governingTokenMint: new PublicKey(item.governingTokenMint),
+                                governingTokenOwner: new PublicKey(item.governingTokenOwner),
+                                governanceDelegate: item?.governanceDelegate ? new PublicKey(item.governanceDelegate) : null,
+                                governingTokenDepositAmount: new BN(item.governingTokenDepositAmount),
+                                unrelinquishedVotesCount: item.unrelinquishedVotesCount,
+                                totalVotesCount: item.totalVotesCount,
+                                outstandingProposalCount: item.outstandingProposalCount,
+                                reserved: item.reserved,
+                                version: item.version,
+                            }
+                        });
+                    };
+
+                    const rowsBeforeNamespace = mergedRecords.length;
+                    data?.[`${namespace}_TokenOwnerRecordV1`]?.forEach(pushRecord);
+                    data?.[`${namespace}_TokenOwnerRecordV2`]?.forEach(pushRecord);
+
+                    if (mergedRecords.length > rowsBeforeNamespace) {
+                        break;
+                    }
+                } catch (e) {
+                    console.log(`Error fetching owner records via ${namespace}`, e);
+                }
+            }
+        })
+    );
+
+    return mergedRecords;
+}
+
 export const getTokenOwnerRecordsByRealmIndexed = async (filterRealm?:string, realmOwner?:string, tokenOwner?:string) => {
 
     const allTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed (filterRealm, realmOwner);
