@@ -9,6 +9,7 @@
     },
     "files": [
         "src",
+        "vendor/expo-plist",
         ".editorconfig",
         ".eslintignore",
         ".eslintrc.json",
@@ -259,7 +260,9 @@
         "util": "^0.12.4"
     },
     "resolutions": {
-        "@types/react": "17.0.40"
+        "@types/react": "17.0.40",
+        "@expo/plist": "file:vendor/expo-plist",
+        "@xmldom/xmldom": "0.9.9"
     },
     "staticFiles": {
         "staticPath": [
