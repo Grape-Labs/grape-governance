@@ -90,6 +90,8 @@ dist-server/
 
 # React build output
 build
+!vendor/expo-plist/build/
+!vendor/expo-plist/build/*.js
 
 # IDE files
 .idea
