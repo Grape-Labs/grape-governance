@@ -214,6 +214,28 @@ export function VoteForProposal(props:any){
 
     const councilMint58 = realm?.account?.config?.councilMint?.toBase58?.() || "";
     const proposalMint58 = thisitem?.account?.governingTokenMint?.toBase58?.() || "";
+    const delegatedVoteOptions = React.useMemo(
+        () => (Array.isArray(delegatedVoterRecord) ? delegatedVoterRecord : []),
+        [delegatedVoterRecord]
+    );
+    const votedOwners = React.useMemo(() => {
+        const owners = new Set<string>();
+        if (!Array.isArray(votingParticipants)) return owners;
+
+        for (const participant of votingParticipants) {
+            if (participant?.governingTokenOwner) {
+                owners.add(participant.governingTokenOwner);
+            }
+        }
+
+        return owners;
+    }, [votingParticipants]);
+    const hasPendingDelegatedVotes = delegatedVoteOptions.some((option: any) => {
+        const owner58 = option?.account?.governingTokenOwner?.toBase58?.() || "";
+        return !!owner58 && !votedOwners.has(owner58);
+    });
+    const hasAnyDelegatedVotes = delegatedVoteOptions.length > 0;
+    const canCastCombinedVote = !hasVoted || hasPendingDelegatedVotes;
 
     const StyledMenu = styled(Menu)(({ theme }) => ({
     "& .MuiPaper-root": {
@@ -271,11 +293,11 @@ export function VoteForProposal(props:any){
     //console.log(">>>  thisitem?.account.governingTokenMint: "+JSON.stringify(thisitem?.account.governingTokenMint));
     
     const handleVoteYes = async () => {
-        await handleVote(0, null, true)
+        await handleVote(0, null, true, true)
     }
 
     const handleVoteNo = async () => {
-        await handleVote(1, null, true)
+        await handleVote(1, null, true, true)
     }
 
     const handleRelinquishVotes = async (delegate?: string, withOwnerRecord?:boolean, withAllDelegates?:boolean) => {
@@ -448,9 +470,6 @@ export function VoteForProposal(props:any){
         }
     }
 
-    // Single-vote sender:
-    // - Casts one vote instruction per action (own or one delegated owner)
-    // - Prevents "cast all delegated votes" multi-instruction flow which can fail on-chain
     const handleVote = async (
     type: Number,
     delegate?: string,
@@ -466,13 +485,6 @@ export function VoteForProposal(props:any){
         const wOwner = !!withOwnerRecord;
         const wAllDelegates = !!withAllDelegates;
 
-        if (wAllDelegates) {
-        enqueueSnackbar("Casting all delegated votes at once is disabled. Vote one delegate at a time.", {
-            variant: "warning",
-        });
-        return;
-        }
-
         setAnchorElYes(false);
         setAnchorElNo(false);
 
@@ -480,9 +492,6 @@ export function VoteForProposal(props:any){
         enqueueSnackbar("Wallet not connected.", { variant: "error" });
         return;
         }
-
-        // NOTE: programId kept (though not used below) in case you need it for non-indexed paths
-        const programId = new PublicKey(realm.owner);
 
         // Load token owner records
         let rawTokenOwnerRecords: any[] = [];
@@ -527,146 +536,166 @@ export function VoteForProposal(props:any){
 
         const transactionData = { proposal, action: 0 }; // 0 = yes (as per your original)
 
-        if (!memberItem) {
+        if (wOwner && !memberItem) {
         enqueueSnackbar("Voter Record Not Found!", { variant: "error" });
         return;
         }
 
-        // -------------------------
-        // Build vote instructions list
-        // -------------------------
-        const ixs: any[] = [];
-        let supportedVote = true;
-
-        // Helper: has already voted?
-        const hasVoted = (owner58: string) =>
+        const hasRecordedVote = (owner58: string) =>
         (Array.isArray(votingParticipants) ? votingParticipants : []).some(
             (p: any) => p.governingTokenOwner === owner58
         );
 
-        // Add "own vote" (optional)
+        const voteTargets: Array<{
+        owner58: string;
+        delegate: string | null;
+        memberItem: any;
+        label: string;
+        }> = [];
+
         if (wOwner) {
-        const iAlreadyVoted = hasVoted(myPk58);
-        console.log("*** isCommunityVote:", isCommunityVote);
-
-        if (!iAlreadyVoted) {
-            const ix = await createCastVoteTransaction(
-            realm,
-            publicKey,
-            transactionData,
+        const iAlreadyVoted = hasRecordedVote(myPk58);
+        if (!iAlreadyVoted && memberItem) {
+            voteTargets.push({
+            owner58: myPk58,
+            delegate: null,
             memberItem,
-            null,
-            isCommunityVote,
-            multiChoice,
-            type
-            );
-
-            if (ix) {
-            ixs.push(ix);
-            } else {
-            supportedVote = false;
-            enqueueSnackbar("Additional Plugin Voting Support Coming Soon (NFT, Gateway)", {
-                variant: "error",
+            label: "your voting power",
             });
-            }
         }
         }
 
-        // Add delegate votes
-        if (delegatedItems && delegatedItems.length && delegate) {
+        if (delegatedItems && delegatedItems.length && (delegate || wAllDelegates)) {
         for (const delegateItem of delegatedItems) {
             const owner58 = delegateItem?.account?.governingTokenOwner?.toBase58?.();
             if (!owner58) continue;
 
-            // skip if already voted
-            if (hasVoted(owner58)) continue;
+            if (hasRecordedVote(owner58)) continue;
+
+            if (wAllDelegates || delegate === owner58) {
+                voteTargets.push({
+                owner58,
+                delegate: owner58,
+                memberItem: delegateItem,
+                label: `delegated power from ${trimAddress(owner58, 3)}`,
+                });
+            }
 
             if (delegate === owner58) {
-                const ix = await createCastVoteTransaction(
-                realm,
-                publicKey,
-                transactionData,
-                delegateItem,
-                owner58,
-                isCommunityVote,
-                multiChoice,
-                type
-                );
-                if (ix) ixs.push(ix);
                 break;
             }
         }
         }
 
-        if (!supportedVote) return;
-
-        if (!ixs.length) {
+        if (!voteTargets.length) {
         enqueueSnackbar("No eligible votes to cast (already voted / no delegates).", {
             variant: "warning",
         });
         return;
         }
 
-        enqueueSnackbar("Preparing to cast vote…", { variant: "info" });
-        const snackprogress = (key: any) => <CircularProgress sx={{ padding: "10px" }} />;
-        const voteTx = new Transaction();
-        voteTx.add(ixs[0]);
-
-        // IMPORTANT: use same blockhash for send+confirm for this tx
-        const { blockhash, lastValidBlockHeight } = await RPC_CONNECTION.getLatestBlockhash(
-            "confirmed"
+        enqueueSnackbar(
+        voteTargets.length > 1
+            ? `Preparing ${voteTargets.length} vote transactions…`
+            : "Preparing to cast vote…",
+        { variant: "info" }
         );
-        voteTx.recentBlockhash = blockhash;
-        voteTx.feePayer = publicKey;
-
-        // Optional: simulate to catch size/compute/account errors with logs
+        const snackprogress = (key: any) => <CircularProgress sx={{ padding: "10px" }} />;
         try {
-            const sim = await RPC_CONNECTION.simulateTransaction(voteTx);
-            if (sim.value.err) {
-            console.log("SIM ERR:", sim.value.err);
-            console.log("SIM LOGS:", sim.value.logs);
-            enqueueSnackbar(`Simulation failed: ${JSON.stringify(sim.value.err)}`, {
-                variant: "error",
-            });
-            return;
-            }
-        } catch (e) {
-            // simulation itself can fail sometimes on some RPCs; don’t hard stop unless you want to
-            console.warn("simulateTransaction failed (continuing):", e);
-        }
+            const signatures: string[] = [];
 
-        const cnfrmkey = enqueueSnackbar(`Confirming transaction`, {
-            variant: "info",
-            action: snackprogress,
-            persist: true,
-        });
-
-        try {
-            const signature = await sendTransaction(voteTx, RPC_CONNECTION, {
-            skipPreflight: false, // IMPORTANT: get real errors
-            preflightCommitment: "confirmed",
-            });
-
-            await RPC_CONNECTION.confirmTransaction(
-            { signature, blockhash, lastValidBlockHeight },
-            "confirmed"
+            for (let index = 0; index < voteTargets.length; index++) {
+            const target = voteTargets[index];
+            const voteTx = await createCastVoteTransaction(
+                realm,
+                publicKey,
+                transactionData,
+                target.memberItem,
+                target.delegate,
+                isCommunityVote,
+                multiChoice,
+                type
             );
 
-            closeSnackbar(cnfrmkey);
+            if (!voteTx) {
+                enqueueSnackbar("Additional Plugin Voting Support Coming Soon (NFT, Gateway)", {
+                variant: "error",
+                });
+                return;
+            }
 
-            const action = (key: any) => (
-            <Button
-                href={`https://explorer.solana.com/tx/${signature}`}
+            const { blockhash, lastValidBlockHeight } = await RPC_CONNECTION.getLatestBlockhash(
+                "confirmed"
+            );
+            voteTx.recentBlockhash = blockhash;
+            voteTx.feePayer = publicKey;
+
+            try {
+                const sim = await RPC_CONNECTION.simulateTransaction(voteTx);
+                if (sim.value.err) {
+                console.log("SIM ERR:", sim.value.err);
+                console.log("SIM LOGS:", sim.value.logs);
+                enqueueSnackbar(
+                    `Simulation failed for ${target.label}: ${JSON.stringify(sim.value.err)}`,
+                    { variant: "error" }
+                );
+                return;
+                }
+            } catch (e) {
+                console.warn("simulateTransaction failed (continuing):", e);
+            }
+
+            let cnfrmkey = null;
+            try {
+                cnfrmkey = enqueueSnackbar(
+                voteTargets.length > 1
+                    ? `Confirming vote ${index + 1}/${voteTargets.length}`
+                    : "Confirming transaction",
+                {
+                    variant: "info",
+                    action: snackprogress,
+                    persist: true,
+                }
+                );
+
+                const signature = await sendTransaction(voteTx, RPC_CONNECTION, {
+                skipPreflight: false,
+                preflightCommitment: "confirmed",
+                });
+
+                await RPC_CONNECTION.confirmTransaction(
+                    { signature, blockhash, lastValidBlockHeight },
+                    "confirmed"
+                );
+
+                signatures.push(signature);
+            } finally {
+                if (cnfrmkey) {
+                closeSnackbar(cnfrmkey);
+                }
+            }
+            }
+
+            const latestSignature = signatures[signatures.length - 1];
+            const action = latestSignature
+            ? (key: any) => (
+                <Button
+                href={`https://explorer.solana.com/tx/${latestSignature}`}
                 target="_blank"
                 sx={{ color: "white" }}
-            >
-                Signature: {shortenString(signature, 5, 5)}
-            </Button>
-            );
+                >
+                Signature: {shortenString(latestSignature, 5, 5)}
+                </Button>
+            )
+            : undefined;
 
-            enqueueSnackbar(`Vote confirmed`, { variant: "success", action });
+            enqueueSnackbar(
+            signatures.length > 1
+                ? `Confirmed ${signatures.length} votes with all available voting power`
+                : "Vote confirmed",
+            { variant: "success", action }
+            );
         } catch (e: any) {
-            closeSnackbar(cnfrmkey);
             console.error("vote tx failed:", e);
             enqueueSnackbar(e?.message ? `${e.name}: ${e.message}` : e?.name || "Vote failed", {
             variant: "error",
@@ -822,7 +851,7 @@ export function VoteForProposal(props:any){
             {type === 0 ? (
               <>
                 {/* YES: split button + delegates menu (keeps original delegate behavior) */}
-                {!hasVoted ? (
+                {canCastCombinedVote ? (
                   <ButtonGroup
                     variant="outlined"
                     color="success"
@@ -913,6 +942,12 @@ export function VoteForProposal(props:any){
                 >
                   <ClickAwayListener onClickAway={handleDelegateCloseYesToggle}>
                     <MenuList id="split-yes-menu" autoFocusItem>
+                      <MenuItem disabled={!canCastCombinedVote} onClick={() => handleVote(0, null, true, true)}>
+                        Vote with all Voting Power
+                      </MenuItem>
+
+                      <Divider />
+
                       <MenuItem disabled={hasVoted} onClick={() => handleVote(0, null, true)}>
                         Vote only with my Voting Power
                       </MenuItem>
@@ -952,7 +987,7 @@ export function VoteForProposal(props:any){
             ) : (
               <>
                 {/* NO: keep your existing behavior (button + separate caret/menu) */}
-                {!hasVoted ? (
+                {canCastCombinedVote ? (
                   <ButtonGroup
                     variant="outlined"
                     color="error"
@@ -1010,10 +1045,8 @@ export function VoteForProposal(props:any){
                       </Button>
                     )}
                   </ButtonGroup>
-                ) : null}
-
-                {(hasVoted && delegatedVoterRecord && delegatedVoterRecord.length > 0) && (
-                  <>
+                ) : (
+                  hasAnyDelegatedVotes && (
                     <Button
                       size="small"
                       color="error"
@@ -1025,62 +1058,68 @@ export function VoteForProposal(props:any){
                     >
                       <ArrowDropDownIcon />
                     </Button>
-
-                    <StyledMenu
-                      id="basic-no-menu"
-                      anchorEl={anchorElNo}
-                      open={openDelegateNo}
-                      onClose={handleDelegateCloseNoToggle}
-                      MenuListProps={{ "aria-labelledby": "basic-no-button" }}
-                      sx={{ zIndex: 9999 }}
-                    >
-                      <ClickAwayListener onClickAway={handleDelegateCloseNoToggle}>
-                        <MenuList id="split-no-menu" autoFocusItem>
-                          <MenuItem disabled={hasVoted} onClick={() => handleVote(1, null, true)}>
-                            Vote only with my Voting Power
-                          </MenuItem>
-
-                          <Divider />
-
-                          {delegatedVoterRecord &&
-                            delegatedVoterRecord.map((option: any, index: number) => {
-                              const owner58 =
-                                option?.account?.governingTokenOwner?.toBase58?.() || "";
-                              const already =
-                                votingParticipants &&
-                                votingParticipants.some((i: any) => i.governingTokenOwner === owner58);
-
-                              return (
-                                <MenuItem
-                                  key={`no-${owner58}-${index}`}
-                                  disabled={already}
-                                  onClick={() => handleVote(1, owner58)}
-                                >
-                                  <Typography variant="caption">
-                                    Vote with {trimAddress(owner58, 3)} delegated Voting Power
-                                    {already && (
-                                      <CheckCircleIcon fontSize="inherit" sx={{ ml: 1 }} />
-                                    )}
-                                  </Typography>
-                                </MenuItem>
-                              );
-                            })}
-
-                          <Divider />
-                          <MenuItem disabled>
-                            Cast delegated votes one at a time
-                          </MenuItem>
-                        </MenuList>
-                      </ClickAwayListener>
-                    </StyledMenu>
-                  </>
+                  )
                 )}
+
+                <StyledMenu
+                  id="basic-no-menu"
+                  anchorEl={anchorElNo}
+                  open={openDelegateNo}
+                  onClose={handleDelegateCloseNoToggle}
+                  MenuListProps={{ "aria-labelledby": "basic-no-button" }}
+                  sx={{ zIndex: 9999 }}
+                >
+                  <ClickAwayListener onClickAway={handleDelegateCloseNoToggle}>
+                    <MenuList id="split-no-menu" autoFocusItem>
+                      <MenuItem disabled={!canCastCombinedVote} onClick={() => handleVote(1, null, true, true)}>
+                        Vote with all Voting Power
+                      </MenuItem>
+
+                      <Divider />
+
+                      <MenuItem disabled={hasVoted} onClick={() => handleVote(1, null, true)}>
+                        Vote only with my Voting Power
+                      </MenuItem>
+
+                      <Divider />
+
+                      {delegatedVoterRecord &&
+                        delegatedVoterRecord.map((option: any, index: number) => {
+                          const owner58 =
+                            option?.account?.governingTokenOwner?.toBase58?.() || "";
+                          const already =
+                            votingParticipants &&
+                            votingParticipants.some((i: any) => i.governingTokenOwner === owner58);
+
+                          return (
+                            <MenuItem
+                              key={`no-${owner58}-${index}`}
+                              disabled={already}
+                              onClick={() => handleVote(1, owner58)}
+                            >
+                              <Typography variant="caption">
+                                Vote with {trimAddress(owner58, 3)} delegated Voting Power
+                                {already && (
+                                  <CheckCircleIcon fontSize="inherit" sx={{ ml: 1 }} />
+                                )}
+                              </Typography>
+                            </MenuItem>
+                          );
+                        })}
+
+                      <Divider />
+                      <MenuItem disabled>
+                        Cast delegated votes one at a time
+                      </MenuItem>
+                    </MenuList>
+                  </ClickAwayListener>
+                </StyledMenu>
               </>
             )}
           </>
         )}
 
-        {(hasVoted && publicKey) && (
+        {(hasVoted && publicKey && !canCastCombinedVote) && (
           <>
             {title && subtitle && showIcon ? (
               <>
