@@ -3160,7 +3160,7 @@ export function GovernanceProposalV2View(props: any){
                     //getGovernanceProps()
                 }
             }*/
-    }, [loadingValidation, thisitem, !thisGovernance, governanceLookup, tokenMap, memberMap, realm, reload]);
+    }, [loadingValidation, thisitem, thisGovernance, governanceLookup, tokenMap, memberMap, realm, reload]);
 
     React.useEffect(() => { 
         // check again if this voter has voted:
