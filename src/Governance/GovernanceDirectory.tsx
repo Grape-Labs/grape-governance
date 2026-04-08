@@ -1308,10 +1308,16 @@ export function GovernanceDirectoryView(props: Props) {
       <Divider sx={{ my: 2, opacity: 0.15 }} />
 
       {walletAddress && (
-        <Box sx={{ mb: 2.25 }}>
+        <Box sx={{
+          mb: 2.5,
+          p: 2,
+          borderRadius: '14px',
+          border: '2px solid rgba(132, 190, 255, 0.3)',
+          background: 'linear-gradient(135deg, rgba(77, 163, 255, 0.08) 0%, rgba(132, 190, 255, 0.04) 100%)',
+        }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.75 }} useFlexGap flexWrap="wrap">
             <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: -0.25 }}>
-              Favorites
+              Participating DAOs
             </Typography>
             <Chip
               size="small"
@@ -1319,7 +1325,7 @@ export function GovernanceDirectoryView(props: Props) {
               label={
                 walletFavoritesLoading
                   ? 'Checking wallet votes...'
-                  : `${favoriteGovernances.length} favorite DAO${favoriteGovernances.length === 1 ? '' : 's'}`
+                  : `${favoriteGovernances.length} DAO${favoriteGovernances.length === 1 ? '' : 's'}`
               }
               variant="outlined"
               sx={{ borderRadius: '999px' }}
@@ -1327,7 +1333,7 @@ export function GovernanceDirectoryView(props: Props) {
           </Stack>
 
           <Typography variant="body2" sx={{ opacity: 0.78, mb: walletFavoritesLoading ? 1 : 1.25 }}>
-            DAOs where the connected wallet currently has deposited voting power greater than zero.
+            DAOs where you currently have deposited voting power.
           </Typography>
 
           {walletFavoritesLoading ? (
@@ -1360,7 +1366,7 @@ export function GovernanceDirectoryView(props: Props) {
               }}
             >
               <Typography variant="body2" sx={{ opacity: 0.75 }}>
-                No favorite DAOs found for the connected wallet under the current filters.
+                No participating DAOs found for the connected wallet under the current filters.
               </Typography>
             </Box>
           )}
@@ -1378,6 +1384,12 @@ export function GovernanceDirectoryView(props: Props) {
             compact={true}
           />
         </Box>
+      )}
+
+      {nonFavoriteGovernances.length > 0 && (
+        <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: -0.25, mt: 3, mb: 1.5 }}>
+          All Other DAOs
+        </Typography>
       )}
 
       {nonFavoriteGovernances.length > 0 ? (
