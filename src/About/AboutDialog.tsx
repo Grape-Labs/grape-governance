@@ -19,6 +19,7 @@ import InfoIcon from '@mui/icons-material/Info';
 import ForumIcon from '@mui/icons-material/Forum';
 import LanguageIcon from '@mui/icons-material/Language';
 import BookIcon from '@mui/icons-material/Book';
+import { APP_VERSION } from '../appVersion';
 
 export default function AboutDialog() {
   const [open, setOpen] = React.useState(false);
@@ -51,6 +52,9 @@ export default function AboutDialog() {
           {"About Governance.so"}
         </DialogTitle>
         <DialogContent>
+          <Typography variant="caption" sx={{ display: 'block', opacity: 0.75, mb: 2 }}>
+            Version {APP_VERSION}
+          </Typography>
           <DialogContentText id="alert-dialog-description">
             <Typography variant="body1" gutterBottom>
               <strong>Governance.so</strong> is a faster, richer interface for SPL Governance on Solana. It gives DAOs and contributors a clean place to discover organizations, inspect proposals, follow live voting activity, and act on governance without feeling like they are navigating raw on-chain data.

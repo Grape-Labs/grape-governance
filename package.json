@@ -1,6 +1,6 @@
 {
     "name": "@grape-labs/grape-governance",
-    "version": "1.2.10",
+    "version": "1.2.11",
     "author": "Governance by Grape",
     "repository": "https://github.com/omg-labs/grape-governance",
     "license": "Apache-2.0",
@@ -25,6 +25,9 @@
         "build:client": "yarn clean && parcel build --target client",
         "build:server": "parcel build src/server/index.js --target server --dist-dir dist-server",
         "build": "yarn build:client && yarn build:server",
+        "release:patch": "npm version patch --no-git-tag-version && yarn build",
+        "release:minor": "npm version minor --no-git-tag-version && yarn build",
+        "release:major": "npm version major --no-git-tag-version && yarn build",
         "govso": "node ./bin/govso.mjs",
         "startServer": "node -r esm dist-server/index.js",
         "buildOld": "yarn clean && parcel build src/index.html --no-source-maps",
