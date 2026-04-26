@@ -786,8 +786,12 @@ function GET_QUERY_ALL_TOKEN_OWNER_RECORDS(owner:string, realmOwner?:string){
         `
 }
 
-export const getProposalInstructionsIndexed = async (filterRealm?: string, proposalPk?: string) => {
-    const programId = findGovOwnerByDao(filterRealm)?.owner;
+export const getProposalInstructionsIndexed = async (filterRealm?: string, proposalPk?: string, realmOwner?: string) => {
+    const resolvedRealmOwner = resolvePublicKeyString(realmOwner);
+    const programId =
+        resolvedRealmOwner ||
+        findGovOwnerByDao(filterRealm)?.owner ||
+        'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     const allProposalIx: any[] = [];
     const rpcProposalIx: any[] = [];
 

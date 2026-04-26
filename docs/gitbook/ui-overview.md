@@ -10,7 +10,7 @@
 - governance automation via extensions
 - member and participation analytics
 
-Current app version in `package.json`: `1.2.10`.
+Current app version in `package.json`: `1.2.11`.
 
 ---
 
