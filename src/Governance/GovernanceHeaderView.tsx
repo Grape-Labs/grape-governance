@@ -37,8 +37,21 @@ import {
     
 import { toRealmsV2Image } from '../utils/grapeTools/utils';
 
+function getOgSrc(metadata: any) {
+    const og = metadata?.ogImage;
+    if (!og || typeof og !== 'string' || og.endsWith('/')) return null;
+
+    if (og === '/realms/Grape/img/grape.png') return GRAPE_LOGO;
+
+    return toRealmsV2Image(og.startsWith('http') ? og : og);
+}
+
 export function GovernanceHeaderView(props: any) {
     const { governanceName, governanceAddress, gsplMetadata } = props;
+    const shareImage =
+        gsplMetadata?.metadata?.ogImage
+            ? getOgSrc(gsplMetadata.metadata)
+            : GRAPE_LOGO;
     
     return (
         <>
@@ -55,20 +68,19 @@ export function GovernanceHeaderView(props: any) {
                 <meta property="og:type" content="website"/>
                 <meta property="og:title" content={`${governanceName}`}/>
                 <meta property="og:description" content={`${governanceName} powered by Governance.so by Grape`}/>
-                <meta property="og:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplashv2.png"/>  
+                <meta property="og:image" content={shareImage}/>
                 
                 <meta name="twitter:card" content="summary_large_image"/>
                 <meta name="twitter:title" content={`${governanceName}`}/>
                 <meta name="twitter:site" content="@grapeprotocol"/>
                 <meta name="twitter:description" content={`${governanceName} powered by Governance.so by Grape`}/>
-                <meta name="twitter:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplashv2.png"/>
+                <meta name="twitter:image" content={shareImage}/>
                 <meta name="twitter:image:alt" content={`${governanceName}`}/>
             </Helmet>
             
             <Grid item sm={6} container justifyContent="flex-start">
                 <Grid container>
                     <Grid item xs={12}>
-                        
                         {gsplMetadata ?
                             <Grid container alignItems="center" spacing={1}>
                                 {/* Governance Image as a Small Circular Icon */}

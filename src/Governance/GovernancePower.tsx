@@ -4,6 +4,7 @@ import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useWallet } from '@solana/wallet-adapter-react';
 import React, { useCallback } from 'react';
 import bs58 from 'bs58';
+import { AnchorProvider, BN as AnchorBN } from '@coral-xyz/anchor';
 
 import { 
     TOKEN_PROGRAM_ID, 
@@ -70,6 +71,8 @@ import {
     withSetGovernanceDelegate,
     withRelinquishVote,
 } from '@solana/spl-governance';
+import { getGovernanceAddinAccount } from '@solana/spl-governance/lib/addins/api';
+import { VoterWeightRecord as GovernanceVoterWeightRecord } from '@solana/spl-governance/lib/addins/accounts';
 import { getGrapeGovernanceProgramVersion } from '../utils/grapeTools/helpers';
 
 import { 
@@ -82,7 +85,8 @@ import {
 
 import { 
     shortenString, 
-    parseMintNaturalAmountFromDecimalAsBN } from '../utils/grapeTools/helpers';
+    parseMintNaturalAmountFromDecimalAsBN,
+    VSR_PLUGIN_PKS } from '../utils/grapeTools/helpers';
 
 import { 
     RPC_CONNECTION,
@@ -92,6 +96,10 @@ import {
     findObjectByGoverningTokenOwner
   } from '../utils/grapeTools/helpers';
 import { getUnrelinquishedVoteRecords } from '../utils/governanceTools/models/api';
+import { VsrClient } from '../utils/governanceTools/components/instructions/client';
+import { withVoteRegistryDeposit } from '../utils/governanceTools/components/instructions/withVoteRegistryDeposit';
+import { withVoteRegistryWithdraw } from '../utils/governanceTools/components/instructions/withVoteRegistryWithdraw';
+import { getRegistrarPDA, getVoterPDA, getVoterWeightPDA } from '../utils/governanceTools/components/instructions/account';
 //import { LogoutIcon } from '@dynamic-labs/sdk-react-core';
 
 export interface DialogTitleProps {
@@ -169,6 +177,41 @@ function toNumberSafe(value: any): number {
     return 0;
 }
 
+function getLockupKindName(kind: any): string {
+    if (!kind || typeof kind !== 'object') return 'unknown';
+
+    const key = Object.keys(kind)[0];
+    return key || 'unknown';
+}
+
+function getVsrWithdrawableAmountNative(deposit: any, nowTs: number): number {
+    const depositedNative = toNumberSafe(deposit?.amountDepositedNative);
+    if (depositedNative <= 0) return 0;
+
+    const lockupKind = getLockupKindName(deposit?.lockup?.kind);
+    const endTs = toNumberSafe(deposit?.lockup?.endTs);
+
+    if (lockupKind === 'none') {
+        return depositedNative;
+    }
+
+    if (endTs > 0 && endTs <= nowTs) {
+        return depositedNative;
+    }
+
+    return 0;
+}
+
+function formatUnixDate(ts: number | null): string {
+    if (!ts || ts <= 0) return 'No unlock date';
+
+    try {
+        return new Date(ts * 1000).toLocaleString();
+    } catch (_e) {
+        return 'No unlock date';
+    }
+}
+
 const BootstrapDialogTitle = (props: DialogTitleProps) => {
     const { children, onClose, ...other } = props;
   
@@ -230,9 +273,218 @@ export default function GovernancePower(props: any){
     const [currentCommunityDelegateFromAmount, setCurrentCommunityDelegateFromAmount] = React.useState(null);
     const [currentCouncilDelegateFromAmount, setCurrentCouncilDelegateFromAmount] = React.useState(null);
     const [isPlugin, setIsPlugin] = React.useState(false);
+    const [isVsrPlugin, setIsVsrPlugin] = React.useState(false);
     const [realmConfig, setRealmConfig] = React.useState(null);
+    const [communityTokenOwnerRecordPk, setCommunityTokenOwnerRecordPk] = React.useState(null);
+    const [councilTokenOwnerRecordPk, setCouncilTokenOwnerRecordPk] = React.useState(null);
+    const [vsrState, setVsrState] = React.useState<any>({
+        enabled: false,
+        programId: null,
+        stakedAmount: 0,
+        withdrawableAmount: 0,
+        voterWeight: 0,
+        deposits: [],
+    });
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+
+    const resetVsrState = React.useCallback(() => {
+        setVsrState({
+            enabled: false,
+            programId: null,
+            stakedAmount: 0,
+            withdrawableAmount: 0,
+            voterWeight: 0,
+            deposits: [],
+        });
+    }, []);
+
+    const getVsrClient = React.useCallback(async (programPk: PublicKey) => {
+        if (!publicKey) {
+            throw new Error('Wallet not connected');
+        }
+
+        const walletAdapter =
+            (wallet as any)?.adapter ||
+            ({
+                publicKey,
+                signTransaction: async (tx: any) => tx,
+                signAllTransactions: async (txs: any) => txs,
+            } as any);
+
+        const provider = new AnchorProvider(
+            RPC_CONNECTION,
+            walletAdapter,
+            AnchorProvider.defaultOptions()
+        );
+
+        return VsrClient.connect(provider, programPk, false);
+    }, [publicKey, wallet]);
+
+    const sendAndConfirmTx = React.useCallback(async (
+        instructions: TransactionInstruction[],
+        preparingMessage: string,
+        successMessage: string
+    ) => {
+        if (!instructions?.length) {
+            throw new Error('No instructions to send');
+        }
+
+        const transaction = new Transaction();
+        transaction.add(...instructions);
+
+        enqueueSnackbar(preparingMessage, { variant: 'info' });
+        const signature = await sendTransaction(transaction, RPC_CONNECTION, {
+            skipPreflight: true,
+            preflightCommitment: 'confirmed',
+        });
+
+        const snackprogress = (_key: any) => (
+            <CircularProgress sx={{ padding: '10px' }} />
+        );
+        const cnfrmkey = enqueueSnackbar(`Confirming transaction`, {
+            variant: 'info',
+            action: snackprogress,
+            persist: true,
+        });
+
+        const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
+        await RPC_CONNECTION.confirmTransaction(
+            {
+                blockhash: latestBlockHash.blockhash,
+                lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+                signature,
+            },
+            'finalized'
+        );
+        closeSnackbar(cnfrmkey);
+
+        const action = (_key: any) => (
+            <Button
+                href={`https://explorer.solana.com/tx/${signature}`}
+                target="_blank"
+                sx={{ color: 'white' }}
+            >
+                Signature: {shortenString(signature, 5, 5)}
+            </Button>
+        );
+
+        enqueueSnackbar(successMessage, { variant: 'success', action });
+        return signature;
+    }, [closeSnackbar, enqueueSnackbar, sendTransaction]);
+
+    const loadVsrState = React.useCallback(async (
+        realmPk: PublicKey,
+        communityMintPk: PublicKey,
+        voterWeightAddinPk: PublicKey
+    ) => {
+        if (!publicKey) {
+            resetVsrState();
+            return;
+        }
+
+        const pluginPkStr = voterWeightAddinPk.toBase58();
+        if (!VSR_PLUGIN_PKS.includes(pluginPkStr)) {
+            setIsVsrPlugin(false);
+            resetVsrState();
+            return;
+        }
+
+        setIsVsrPlugin(true);
+
+        try {
+            const client = await getVsrClient(voterWeightAddinPk);
+            const clientProgramId = client.program.programId;
+            const { registrar } = await getRegistrarPDA(
+                realmPk,
+                communityMintPk,
+                clientProgramId
+            );
+            const { voter } = await getVoterPDA(registrar, publicKey, clientProgramId);
+            const { voterWeightPk } = await getVoterWeightPDA(
+                registrar,
+                publicKey,
+                clientProgramId
+            );
+
+            const voterAccount =
+                typeof (client.program.account.voter as any)?.fetchNullable === 'function'
+                    ? await (client.program.account.voter as any).fetchNullable(voter)
+                    : await client.program.account.voter.fetch(voter).catch(() => null);
+
+            const nowTs = Math.floor(Date.now() / 1000);
+            const deposits = (voterAccount?.deposits || [])
+                .map((deposit: any, index: number) => {
+                    const amountDepositedNative = toNumberSafe(
+                        deposit?.amountDepositedNative
+                    );
+                    const endTs = toNumberSafe(deposit?.lockup?.endTs);
+                    const lockupKind = getLockupKindName(deposit?.lockup?.kind);
+                    const withdrawableAmount = getVsrWithdrawableAmountNative(
+                        deposit,
+                        nowTs
+                    );
+
+                    return {
+                        ...deposit,
+                        index,
+                        amountDepositedNative,
+                        amountInitiallyLockedNative: toNumberSafe(
+                            deposit?.amountInitiallyLockedNative
+                        ),
+                        endTs,
+                        lockupKind,
+                        unlockLabel:
+                            lockupKind === 'none'
+                                ? 'Withdrawable now'
+                                : endTs > 0
+                                ? formatUnixDate(endTs)
+                                : 'Locked',
+                        withdrawableAmount,
+                    };
+                })
+                .filter((deposit: any) => deposit?.isUsed);
+
+            let voterWeight = 0;
+            try {
+                const voterWeightRecord = await getGovernanceAddinAccount(
+                    RPC_CONNECTION,
+                    voterWeightPk,
+                    GovernanceVoterWeightRecord
+                );
+                voterWeight = toNumberSafe(voterWeightRecord?.account?.voterWeight);
+            } catch (_e) {
+                voterWeight = 0;
+            }
+
+            setVsrState({
+                enabled: true,
+                programId: pluginPkStr,
+                stakedAmount: deposits.reduce(
+                    (sum: number, deposit: any) =>
+                        sum + toNumberSafe(deposit?.amountDepositedNative),
+                    0
+                ),
+                withdrawableAmount: deposits.reduce(
+                    (sum: number, deposit: any) =>
+                        sum + toNumberSafe(deposit?.withdrawableAmount),
+                    0
+                ),
+                voterWeight,
+                deposits,
+            });
+        } catch (e) {
+            console.log('Failed to load VSR state', e);
+            setVsrState({
+                enabled: true,
+                programId: pluginPkStr,
+                stakedAmount: 0,
+                withdrawableAmount: 0,
+                voterWeight: 0,
+                deposits: [],
+            });
+        }
+    }, [getVsrClient, publicKey, resetVsrState]);
 
 
     const getTokenMintInfo = async(mintAddress:string) => {
@@ -279,7 +531,11 @@ export default function GovernancePower(props: any){
         return asset?.metadata;
     }
 
-    async function getWalletAndGovernanceOwner(){
+    const getWalletAndGovernanceOwner = React.useCallback(async () => {
+        if (!publicKey || !realm) {
+            return;
+        }
+
         //console.log("realm.owner? "+realm?.owner)
         //console.log("governnaceAddress "+governanceAddress)
         //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(realm?.owner || SYSTEM_PROGRAM_ID), new PublicKey(governanceAddress));
@@ -316,6 +572,9 @@ export default function GovernancePower(props: any){
             const config = await getRealmConfigIndexed(null, new PublicKey(realm?.owner), new PublicKey(realm?.pubkey));
             let plugin = false;
             setIsPlugin(false);
+            setIsVsrPlugin(false);
+            setRealmConfig(null);
+            resetVsrState();
             
             //if (realm.pubkey != "9mS8GuMx2MkZGMSwa2k87HNLTFZ1ssa9mJ1RkGFKcGyQ"){
 
@@ -340,6 +599,8 @@ export default function GovernancePower(props: any){
             let depCouncilDelegate = null;
             let depCommunityUnrelinquishedVotesCount = 0;
             let depCouncilUnrelinquishedVotesCount = 0;
+            let depCommunityTorPk = null;
+            let depCouncilTorPk = null;
             let fetchedTMI = false;
             setCurrentCommunityDelegate(null);
             setCurrentCouncilDelegate(null);
@@ -349,12 +610,15 @@ export default function GovernancePower(props: any){
             setCurrentCouncilDelegateFromAmount(null);
             setCommunityUnrelinquishedVotesCount(0);
             setCouncilUnrelinquishedVotesCount(0);
+            setCommunityTokenOwnerRecordPk(null);
+            setCouncilTokenOwnerRecordPk(null);
             
             for (let record of tokenOwnerRecord){
                 if (record.account.realm.toBase58() === governanceAddress){
                     
                     if (record.account.governingTokenOwner.toBase58() === publicKey.toBase58()){
                         if (record.account.governingTokenMint.toBase58() === communityMint){
+                            depCommunityTorPk = record?.pubkey?.toBase58?.() || record?.pubkey || null;
                             const tki = await getTokenMintInfo(communityMint);
                             fetchedTMI = true;
                             //console.log("tokenMintInfo: "+JSON.stringify(tki));
@@ -362,6 +626,7 @@ export default function GovernancePower(props: any){
                             depCommunityUnrelinquishedVotesCount = toNumberSafe(record.account?.unrelinquishedVotesCount);
                             depCommunityDelegate = record.account?.governanceDelegate;
                         }else if (record.account.governingTokenMint.toBase58() === councilMint){
+                            depCouncilTorPk = record?.pubkey?.toBase58?.() || record?.pubkey || null;
                             depCouncilMint = Number(record.account.governingTokenDepositAmount);
                             depCouncilUnrelinquishedVotesCount = toNumberSafe(record.account?.unrelinquishedVotesCount);
                             depCouncilDelegate = record.account?.governanceDelegate;
@@ -383,6 +648,8 @@ export default function GovernancePower(props: any){
 
             //console.log("de com: "+depCommunityDelegate);
             //console.log("dep con: "+depCouncilDelegate);
+            setCommunityTokenOwnerRecordPk(depCommunityTorPk);
+            setCouncilTokenOwnerRecordPk(depCouncilTorPk);
 
             if (depCommunityMint && Number(depCommunityMint) > 0){
                 setDepositedCommunityMint(depCommunityMint);
@@ -424,8 +691,24 @@ export default function GovernancePower(props: any){
                     }
                 }
             }
+
+            const communityVoterWeightAddin =
+                config?.account?.communityTokenConfig?.voterWeightAddin;
+            const communityVoterWeightAddinPk =
+                communityVoterWeightAddin &&
+                new PublicKey(
+                    communityVoterWeightAddin?.toBase58?.() || communityVoterWeightAddin
+                );
+
+            if (communityVoterWeightAddinPk) {
+                await loadVsrState(
+                    new PublicKey(realm?.pubkey),
+                    new PublicKey(communityMint),
+                    communityVoterWeightAddinPk
+                );
+            }
         }
-    }
+    }, [governanceAddress, loadVsrState, publicKey, realm, resetVsrState]);
 
     React.useEffect(() => {
         if (publicKey && rpcMemberMap){
@@ -439,13 +722,28 @@ export default function GovernancePower(props: any){
     }, [rpcMemberMap]);
 
     React.useEffect(() => {
-        if (publicKey || refresh){
+        if (!(publicKey && realm)) return;
+
+        let cancelled = false;
+
+        const run = async () => {
             setLoading(true);
-            getWalletAndGovernanceOwner();
-            setLoading(false);
-            setRefresh(false);
-        }
-    }, [publicKey, refresh]);
+            try {
+                await getWalletAndGovernanceOwner();
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                    setRefresh(false);
+                }
+            }
+        };
+
+        run();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [publicKey, refresh, realm, getWalletAndGovernanceOwner]);
 
     const setGovernanceDelegate = async(mintAddress: string, delegateAddress: string) => {
         const withMint = new PublicKey(mintAddress);
@@ -864,13 +1162,158 @@ export default function GovernancePower(props: any){
         }
     };
 
+    const withdrawVotesFromVsr = async (mintAddress: string) => {
+        if (!publicKey) {
+            enqueueSnackbar(`Wallet not connected`, { variant: 'error' });
+            return;
+        }
+
+        if (!realm?.pubkey || !realm?.owner) {
+            enqueueSnackbar(`Realm is not loaded`, { variant: 'error' });
+            return;
+        }
+
+        const withdrawableDeposits = (vsrState?.deposits || []).filter(
+            (deposit: any) => toNumberSafe(deposit?.withdrawableAmount) > 0
+        );
+
+        if (!withdrawableDeposits.length) {
+            enqueueSnackbar(`No unlocked VSR deposits available to withdraw`, {
+                variant: 'info',
+            });
+            return;
+        }
+
+        const relinquishResult = await relinquishVotesForDaoMint(mintAddress);
+        if (relinquishResult.failed > 0) {
+            enqueueSnackbar(`Some vote relinquish operations failed. VSR withdraw may still fail.`, {
+                variant: 'warning',
+            });
+        }
+
+        try {
+            const withMint = new PublicKey(mintAddress);
+            const realmPk = new PublicKey(realm.pubkey);
+            const programId = new PublicKey(realm.owner);
+            const programVersion = await getGrapeGovernanceProgramVersion(
+                RPC_CONNECTION,
+                programId,
+                realmPk
+            );
+            const clientProgramPk = new PublicKey(vsrState.programId);
+            const client = await getVsrClient(clientProgramPk);
+            const tokenOwnerRecordPubKey = communityTokenOwnerRecordPk
+                ? new PublicKey(communityTokenOwnerRecordPk)
+                : undefined;
+
+            let processedDeposits = 0;
+            for (const deposit of withdrawableDeposits) {
+                const instructions: TransactionInstruction[] = [];
+                await withVoteRegistryWithdraw({
+                    instructions,
+                    walletPk: publicKey,
+                    mintPk: withMint,
+                    realmPk,
+                    amount: new AnchorBN(
+                        toNumberSafe(deposit.withdrawableAmount).toString()
+                    ),
+                    tokenOwnerRecordPubKey,
+                    depositIndex: deposit.index,
+                    communityMintPk: withMint,
+                    closeDepositAfterOperation:
+                        toNumberSafe(deposit.withdrawableAmount) >=
+                        toNumberSafe(deposit.amountDepositedNative),
+                    splProgramId: programId,
+                    splProgramVersion: programVersion,
+                    client,
+                    connection: RPC_CONNECTION,
+                });
+
+                await sendAndConfirmTx(
+                    instructions,
+                    `Preparing VSR withdrawal`,
+                    `Unlocked VSR stake withdrawn`
+                );
+                processedDeposits += 1;
+            }
+
+            if (processedDeposits > 1) {
+                enqueueSnackbar(
+                    `Withdrew unlocked stake from ${processedDeposits} VSR deposits`,
+                    { variant: 'success' }
+                );
+            }
+            setRefresh(true);
+        } catch (e: any) {
+            enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, {
+                variant: 'error',
+            });
+        }
+    };
+
     const depositVotesToGovernance = async(tokenAmount: number, tokenDecimals: number, mintAddress: string) => {
         const withMint = new PublicKey(mintAddress);
         const programId = new PublicKey(realm.owner);
         console.log("programId: "+JSON.stringify(programId));
 
-        if (isPlugin){
-            alert("Plugin/VSR/NFT Deposits Coming Soon - use the Realms UI to deposit your tokens to this Governance")
+        if (isVsrPlugin){
+            try {
+                if (!publicKey) {
+                    enqueueSnackbar(`Wallet not connected`, { variant: 'error' });
+                    return;
+                }
+
+                const realmPk = new PublicKey(realm.pubkey);
+                const programVersion = await getGrapeGovernanceProgramVersion(
+                    RPC_CONNECTION,
+                    programId,
+                    realmPk
+                );
+                const userAtaPk = await getAssociatedTokenAddress(
+                    withMint,
+                    publicKey,
+                    true
+                );
+                const atomicAmount = parseMintNaturalAmountFromDecimalAsBN(
+                    tokenAmount,
+                    tokenDecimals
+                );
+
+                const clientProgramPk = new PublicKey(vsrState.programId);
+                const client = await getVsrClient(clientProgramPk);
+                const instructions: TransactionInstruction[] = [];
+
+                await withVoteRegistryDeposit({
+                    instructions,
+                    walletPk: publicKey,
+                    fromPk: userAtaPk,
+                    mintPk: withMint,
+                    realmPk,
+                    programId,
+                    programVersion,
+                    amount: new AnchorBN(atomicAmount.toString()),
+                    tokenOwnerRecordPk: communityTokenOwnerRecordPk
+                        ? new PublicKey(communityTokenOwnerRecordPk)
+                        : null,
+                    lockUpPeriodInDays: 0,
+                    lockupKind: 'none',
+                    communityMintPk: withMint,
+                    client,
+                });
+
+                await sendAndConfirmTx(
+                    instructions,
+                    `Preparing VSR deposit`,
+                    `VSR stake deposited`
+                );
+                setRefresh(true);
+            } catch (e: any) {
+                enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, {
+                    variant: 'error',
+                });
+            }
+        } else if (isPlugin){
+            alert("Plugin/NFT Deposits Coming Soon - use the Realms UI to deposit your tokens to this Governance")
         } else {
             const realmPk = new PublicKey(realm.pubkey);
             const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
@@ -993,7 +1436,11 @@ export default function GovernancePower(props: any){
     }
 
     function handleWithdrawCommunityMax(){
-        withdrawVotesToGovernance(walletCommunityMintAmount, 0, walletCommunityMintAddress)
+        if (isVsrPlugin) {
+            withdrawVotesFromVsr(walletCommunityMintAddress)
+        } else {
+            withdrawVotesToGovernance(walletCommunityMintAmount, 0, walletCommunityMintAddress)
+        }
     }
     function handleWithdrawCouncilMax(){
         withdrawVotesToGovernance(walletCouncilMintAmount, 0, walletCouncilMintAddress)
@@ -1006,9 +1453,13 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
   const selectedMintAddress = props?.mintAddress;
   const selectedMintAvailableAmount = props?.mintAvailableAmount;
   const selectedMintDepositedAmount = props?.mintVotingPower;
+  const isVsrMode = !!props?.isVsr;
+  const vsrVotingPower = toNumberSafe(props?.vsrVotingPower);
+  const vsrWithdrawableAmount = toNumberSafe(props?.vsrWithdrawableAmount);
+  const vsrDeposits = Array.isArray(props?.vsrDeposits) ? props.vsrDeposits : [];
   const unrelinquishedVotesCount = toNumberSafe(props?.unrelinquishedVotesCount);
   const isCouncil = props?.isCouncil;
-  const decimals = isCouncil ? 0 : (props?.decimals || mintDecimals);
+  const decimals = isCouncil ? 0 : (props?.decimals ?? mintDecimals ?? 0);
 
   const [delegatedStr, setDelegatedStr] = React.useState<string | null>(null);
   const [open, setOpen] = React.useState(false);
@@ -1074,6 +1525,8 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
 
   const deposited = fmtInt(selectedMintDepositedAmount, decimals);
   const inWallet = fmt(selectedMintAvailableAmount, decimals);
+  const voterWeightDisplay = fmtInt(vsrVotingPower, decimals);
+  const withdrawableDisplay = fmtInt(vsrWithdrawableAmount, decimals);
 
   const afterDeposit = React.useMemo(() => {
     const base = Number(selectedMintDepositedAmount || 0) / Math.pow(10, decimals);
@@ -1174,26 +1627,38 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
             <Grid item xs={12} md={5}>
               <Box sx={panelSX}>
                 <Box sx={{ mb: 1 }}>
-                  <Typography sx={{ fontSize: 13, fontWeight: 700, opacity: 0.9 }}>
-                    Voting power
+                    <Typography sx={{ fontSize: 13, fontWeight: 700, opacity: 0.9 }}>
+                    {isVsrMode ? "VSR position" : "Voting power"}
                   </Typography>
                 </Box>
 
                 {hasAvailable && (
                   <Box sx={metricRowSX}>
-                    <Typography sx={metricLabelSX}>After deposit</Typography>
+                    <Typography sx={metricLabelSX}>
+                      {isVsrMode ? "After stake" : "After deposit"}
+                    </Typography>
                     <Typography sx={{ ...metricValueSX, fontSize: 16 }}>{afterDeposit}</Typography>
                   </Box>
                 )}
 
+                {isVsrMode && (
+                  <Box sx={metricRowSX}>
+                    <Typography sx={metricLabelSX}>Current voter weight</Typography>
+                    <Typography sx={metricValueSX}>{voterWeightDisplay}</Typography>
+                  </Box>
+                )}
+
                 <Box sx={metricRowSX}>
-                  <Typography sx={metricLabelSX}>Deposited</Typography>
+                  <Typography sx={metricLabelSX}>
+                    {isVsrMode ? "Staked" : "Deposited"}
+                  </Typography>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <Typography sx={metricValueSX}>{deposited}</Typography>
-                    <Tooltip title="Withdraw max">
+                    <Tooltip title={isVsrMode ? "Withdraw unlocked" : "Withdraw max"}>
                       <IconButton
                         size="small"
                         onClick={isCouncil ? handleWithdrawCouncilMax : handleWithdrawCommunityMax}
+                        disabled={isVsrMode && vsrWithdrawableAmount <= 0}
                         sx={{
                           border: "1px solid rgba(255,255,255,0.10)",
                           borderRadius: 10,
@@ -1205,6 +1670,20 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                     </Tooltip>
                   </Box>
                 </Box>
+
+                {isVsrMode && (
+                  <Box sx={metricRowSX}>
+                    <Typography sx={metricLabelSX}>Withdrawable now</Typography>
+                    <Typography sx={metricValueSX}>{withdrawableDisplay}</Typography>
+                  </Box>
+                )}
+
+                {isVsrMode && (
+                  <Box sx={metricRowSX}>
+                    <Typography sx={metricLabelSX}>Open deposits</Typography>
+                    <Typography sx={metricValueSX}>{vsrDeposits.length.toLocaleString()}</Typography>
+                  </Box>
+                )}
 
                 <Box sx={metricRowSX}>
                   <Typography sx={metricLabelSX}>Unrelinquished votes</Typography>
@@ -1498,8 +1977,36 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                       alignSelf: "flex-end",
                     }}
                   >
-                    <LoginIcon sx={{ mr: 1 }} /> Deposit
+                    <LoginIcon sx={{ mr: 1 }} /> {isVsrMode ? 'Stake' : 'Deposit'}
                   </Button>
+                </Box>
+              </Grid>
+            )}
+
+            {isVsrMode && vsrDeposits.length > 0 && (
+              <Grid item xs={12}>
+                <Box sx={panelSX}>
+                  <Typography sx={{ fontSize: 13, fontWeight: 800, mb: 1 }}>
+                    Active VSR deposits
+                  </Typography>
+
+                  {vsrDeposits.map((deposit: any) => (
+                    <Box key={`vsr-${deposit.index}`} sx={metricRowSX}>
+                      <Box sx={{ minWidth: 0, pr: 1 }}>
+                        <Typography sx={{ fontSize: 12, fontWeight: 700 }}>
+                          #{deposit.index} • {deposit.lockupKind}
+                        </Typography>
+                        <Typography sx={{ fontSize: 11, opacity: 0.7 }}>
+                          {deposit.withdrawableAmount > 0
+                            ? 'Unlocked'
+                            : `Locked until ${deposit.unlockLabel}`}
+                        </Typography>
+                      </Box>
+                      <Typography sx={metricValueSX}>
+                        {fmtInt(deposit.amountDepositedNative, decimals)}
+                      </Typography>
+                    </Box>
+                  ))}
                 </Box>
               </Grid>
             )}
@@ -1510,16 +2017,23 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
   );
 }
 
+    const displayedCommunityMintAmount = isVsrPlugin
+        ? (toNumberSafe(vsrState?.stakedAmount) || toNumberSafe(depositedCommunityMint))
+        : toNumberSafe(depositedCommunityMint);
+    const hasGovernancePowerCard = !!publicKey && (
+        toNumberSafe(walletCommunityMintAmount) > 0 ||
+        toNumberSafe(walletCouncilMintAmount) > 0 ||
+        displayedCommunityMintAmount > 0 ||
+        toNumberSafe(depositedCouncilMint) > 0
+    );
+
     return(
         <Grid xs={12}>
         {(!publicKey && loading) ?
             <>loading...</>
         :
             <>
-                {(publicKey &&
-                (((walletCommunityMintAmount && walletCommunityMintAmount > 0)) ||
-                (walletCouncilMintAmount && walletCouncilMintAmount > 0)) ||
-                (depositedCommunityMint || depositedCouncilMint)) ?
+                {hasGovernancePowerCard ?
                 <Box
                     m={1}
                     display="flex"
@@ -1550,7 +2064,7 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                                         textTransform:'none',
                                     }}
                                 >
-                                    <DownloadIcon sx={{fontSize:'14px',mr:1}}/> Deposit&nbsp;
+                                    <DownloadIcon sx={{fontSize:'14px',mr:1}}/> {isVsrPlugin ? 'Stake' : 'Deposit'}&nbsp;
                                     <strong>
                                     {(mintDecimals) ? 
                                     <>
@@ -1569,12 +2083,16 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                                     }
                                 </Button>
                                 <AdvancedCommunityVoteDepositPrompt 
-                                    mintVotingPower={depositedCommunityMint} 
+                                    mintVotingPower={displayedCommunityMintAmount} 
                                     unrelinquishedVotesCount={communityUnrelinquishedVotesCount}
                                     mintAvailableAmount={walletCommunityMintAmount} 
                                     mintAddress={walletCommunityMintAddress} 
                                     mintName={mintName} 
-                                    decimals={mintDecimals} />
+                                    decimals={mintDecimals}
+                                    isVsr={isVsrPlugin}
+                                    vsrVotingPower={vsrState?.voterWeight}
+                                    vsrWithdrawableAmount={vsrState?.withdrawableAmount}
+                                    vsrDeposits={vsrState?.deposits} />
                             </ButtonGroup>
                         }
 
@@ -1626,16 +2144,16 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                               mb: ((walletCouncilMintAmount && walletCouncilMintAmount > 0) || (walletCommunityMintAmount && walletCommunityMintAmount > 0)) ? 0 : 1
                         }}>
                             <Typography sx={{fontSize:'12px'}}>
-                                {depositedCommunityMint &&
+                                {displayedCommunityMintAmount > 0 &&
                                     <>
 
                                         {(mintDecimals) ? 
                                         <>
-                                            {(+(depositedCommunityMint/10**mintDecimals).toFixed(0)).toLocaleString()}
+                                            {(+(displayedCommunityMintAmount/10**mintDecimals).toFixed(0)).toLocaleString()}
                                         </>
                                         :
                                         <>
-                                            {depositedCommunityMint}
+                                            {displayedCommunityMintAmount}
                                         </>
                                         }
                                         {mintName ?
@@ -1643,19 +2161,26 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                                             :<>&nbsp;Community</>
 
                                         }
+                                        {isVsrPlugin && vsrState?.voterWeight > 0 && (
+                                            <>&nbsp;•&nbsp;VP {(+(toNumberSafe(vsrState.voterWeight)/10**(mintDecimals ?? 0)).toFixed(0)).toLocaleString()}</>
+                                        )}
                                     
                                         <AdvancedCommunityVoteDepositPrompt 
                                             inlineAdvanced={true} 
-                                            mintVotingPower={depositedCommunityMint} 
+                                            mintVotingPower={displayedCommunityMintAmount} 
                                             unrelinquishedVotesCount={communityUnrelinquishedVotesCount}
                                             mintAvailableAmount={walletCommunityMintAmount} 
                                             mintAddress={walletCommunityMintAddress} 
                                             mintName={mintName} 
-                                            decimals={mintDecimals} />
+                                            decimals={mintDecimals}
+                                            isVsr={isVsrPlugin}
+                                            vsrVotingPower={vsrState?.voterWeight}
+                                            vsrWithdrawableAmount={vsrState?.withdrawableAmount}
+                                            vsrDeposits={vsrState?.deposits} />
                                     
                                     </>
                                 }
-                            {(depositedCommunityMint && depositedCouncilMint) && ` & `}
+                            {(displayedCommunityMintAmount > 0 && depositedCouncilMint) && ` & `}
                             {depositedCouncilMint &&
                                 <>
                                 {(depositedCouncilMint).toLocaleString()} Council
@@ -1674,8 +2199,7 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                         </Grid>
                     </Grid>
                 </Box>  
-                :<></>
-                }
+                :<></>}
             </>
             }
         </Grid>
