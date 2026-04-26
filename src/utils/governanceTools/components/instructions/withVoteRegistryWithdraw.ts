@@ -1,16 +1,16 @@
 import { Connection, PublicKey, TransactionInstruction } from '@solana/web3.js'
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
-  Token,
   TOKEN_PROGRAM_ID,
-} from '@solana/spl-token'
+  createAssociatedTokenAccountInstruction,
+  getAssociatedTokenAddress,
+} from '@solana/spl-token-v2'
 import { BN } from '@coral-xyz/anchor'
 import {
   getRegistrarPDA,
   getVoterPDA,
   getVoterWeightPDA,
-} from 'VoteStakeRegistry/sdk/accounts'
-import { tryGetTokenAccount } from '@utils/tokens'
+} from './account'
 import { VsrClient } from './client'
 import { withCreateTokenOwnerRecord } from '@solana/spl-governance'
 
@@ -61,31 +61,19 @@ export const withVoteRegistryWithdraw = async ({
     clientProgramId
   )
 
-  const voterATAPk = await Token.getAssociatedTokenAddress(
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-    TOKEN_PROGRAM_ID,
-    mintPk,
-    voter,
-    true
-  )
+  const voterATAPk = await getAssociatedTokenAddress(mintPk, voter, true)
 
-  const ataPk = await Token.getAssociatedTokenAddress(
-    ASSOCIATED_TOKEN_PROGRAM_ID, // always ASSOCIATED_TOKEN_PROGRAM_ID
-    TOKEN_PROGRAM_ID, // always TOKEN_PROGRAM_ID
-    mintPk, // mint
-    walletPk, // owner
-    true
-  )
-  const isExistingAta = await tryGetTokenAccount(connection, ataPk)
+  const ataPk = await getAssociatedTokenAddress(mintPk, walletPk, true)
+  const isExistingAta = await connection.getAccountInfo(ataPk)
   if (!isExistingAta) {
     instructions.push(
-      Token.createAssociatedTokenAccountInstruction(
-        ASSOCIATED_TOKEN_PROGRAM_ID, // always ASSOCIATED_TOKEN_PROGRAM_ID
-        TOKEN_PROGRAM_ID, // always TOKEN_PROGRAM_ID
-        mintPk, // mint
-        ataPk, // ata
-        walletPk, // owner of token account
-        walletPk // fee payer
+      createAssociatedTokenAccountInstruction(
+        walletPk,
+        ataPk,
+        walletPk,
+        mintPk,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
       )
     )
   }

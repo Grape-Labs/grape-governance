@@ -8,17 +8,16 @@ import {
   import { withCreateTokenOwnerRecord } from '@solana/spl-governance'
   import {
     ASSOCIATED_TOKEN_PROGRAM_ID,
-    Token,
     TOKEN_PROGRAM_ID,
-  } from '@solana/spl-token'
+    getAssociatedTokenAddress,
+  } from '@solana/spl-token-v2'
   import {
     getRegistrarPDA,
     getVoterPDA,
     getVoterWeightPDA,
     LockupType,
   } from './accounts'
-  import { getMintCfgIdx, tryGetVoter } from './api'
-  import { getPeriod } from 'VoteStakeRegistry/tools/deposits'
+  import { getMintCfgIdx, getPeriod, tryGetVoter } from './api'
   import { VsrClient } from './client'
   
   export const withCreateNewDeposit = async ({
@@ -72,13 +71,7 @@ import {
     )
     const existingVoter = await tryGetVoter(voter, client)
   
-    const voterATAPk = await Token.getAssociatedTokenAddress(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
-      mintPk,
-      voter,
-      true
-    )
+    const voterATAPk = await getAssociatedTokenAddress(mintPk, voter, true)
   
     //spl governance tokenownerrecord pubkey
     if (!tokenOwnerRecordPubKey) {

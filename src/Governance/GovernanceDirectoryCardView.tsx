@@ -39,6 +39,12 @@ function getOgSrc(metadata: any) {
   return toRealmsV2Image(og.startsWith("http") ? og : `https://realms.today${og}`);
 }
 
+function getBannerSrc(metadata: any) {
+  const banner = metadata?.bannerImage;
+  if (!banner || typeof banner !== "string" || banner.endsWith("/")) return null;
+  return toRealmsV2Image(banner.startsWith("http") ? banner : banner);
+}
+
 const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardView(props: any) {
   const { item, metadata } = props;
   const navigate = useNavigate();
@@ -46,6 +52,7 @@ const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardV
   const name = metadata?.displayName || item?.governanceName || "Governance";
   const desc = metadata?.shortDescription || "";
   const ogSrc = getOgSrc(metadata);
+  const bannerSrc = getBannerSrc(metadata);
 
   const votingCount = Number(item?.totalProposalsVoting || 0);
   const votingList: any[] = Array.isArray(item?.votingProposals) ? item.votingProposals : [];
@@ -90,8 +97,22 @@ const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardV
         },
       }}
     >
+      {bannerSrc && (
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            opacity: 0.12,
+            backgroundImage: `url(${bannerSrc})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'blur(1px) brightness(0.82) saturate(0.82)',
+            zIndex: 0,
+          }}
+        />
+      )}
       {/* top accent line */}
-      <Box sx={{ height: 3, width: "100%", background: `linear-gradient(90deg, ${tint}, rgba(255,255,255,0.05))` }} />
+      <Box sx={{ position: 'relative', zIndex: 1, height: 3, width: "100%", background: `linear-gradient(90deg, ${tint}, rgba(255,255,255,0.05))` }} />
 
       <CardContent sx={{ flexGrow: 1, p: 2 }}>
         {/* Header */}

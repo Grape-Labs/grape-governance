@@ -5,6 +5,7 @@ import React, { useCallback } from 'react';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { styled, useTheme } from '@mui/material/styles';
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
+import { toRealmsV2Image } from '../utils/grapeTools/utils';
 import grapeTheme from  '../utils/config/theme';
 import { ThemeProvider } from '@mui/material/styles';
 
@@ -1561,6 +1562,12 @@ export function GovernanceCachedView(props: any) {
         ? `https://governance.so/proposal/${governanceAddress}/${sharedProposalPk}`
         : `https://governance.so/dao/${governanceAddress}`;
 
+    const governanceShareImage = gsplMetadata?.metadata?.bannerImage
+        ? toRealmsV2Image(gsplMetadata.metadata.bannerImage)
+        : gsplMetadata?.metadata?.ogImage
+        ? toRealmsV2Image(gsplMetadata.metadata.ogImage)
+        : 'https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplashv2.png';
+
     const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
     function VotingPower(props: any){
@@ -2376,13 +2383,13 @@ export function GovernanceCachedView(props: any) {
                                 <meta property="og:type" content="website"/>
                                 <meta property="og:title" content={governanceShareTitle}/>
                                 <meta property="og:description" content={governanceShareDescription}/>
-                                <meta property="og:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplashv2.png"/>
+                                <meta property="og:image" content={governanceShareImage}/>
 
                                 <meta name="twitter:card" content="summary_large_image"/>
                                 <meta name="twitter:title" content={governanceShareTitle}/>
                                 <meta name="twitter:site" content="@grapeprotocol"/>
                                 <meta name="twitter:description" content={governanceShareDescription}/>
-                                <meta name="twitter:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplashv2.png"/>
+                                <meta name="twitter:image" content={governanceShareImage}/>
                                 <meta name="twitter:image:alt" content={governanceShareTitle}/>
                             </Helmet>
 
