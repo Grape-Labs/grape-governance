@@ -187,6 +187,7 @@ export function VoteForProposal(props:any){
     const getVotingParticipants = props.getVotingParticipants;
     const hasVotedVotes = props.hasVotedVotes;
     const hasVoted = props.hasVoted;
+    const hasVotedSide = props.hasVotedSide || null;
     const propVoteType = props?.propVoteType;
     const thisitem = props.thisitem;
     const realm = props?.realm;
@@ -236,6 +237,9 @@ export function VoteForProposal(props:any){
     });
     const hasAnyDelegatedVotes = delegatedVoteOptions.length > 0;
     const canCastCombinedVote = !hasVoted || hasPendingDelegatedVotes;
+    const voteMagnitude = Math.abs(Number(hasVotedVotes || 0));
+    const voteDirectionLabel = hasVotedSide === 'yes' ? 'for' : hasVotedSide === 'no' ? 'against' : null;
+    const votedForThisOption = (hasVotedSide === 'yes' && type === 0) || (hasVotedSide === 'no' && type === 1);
 
     const StyledMenu = styled(Menu)(({ theme }) => ({
     "& .MuiPaper-root": {
@@ -1125,10 +1129,8 @@ export function VoteForProposal(props:any){
               <>
                 <Tooltip
                   title={
-                    Number(hasVotedVotes || 0) > 0
-                      ? `You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes for this proposal`
-                      : Number(hasVotedVotes || 0) < 0
-                      ? `You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes against this proposal`
+                    voteDirectionLabel
+                      ? `You casted ${getFormattedNumberToLocale(voteMagnitude)} votes ${voteDirectionLabel} this proposal`
                       : ``
                   }
                 >
@@ -1136,7 +1138,7 @@ export function VoteForProposal(props:any){
                     variant="outlined"
                     onClick={() =>
                       state === 2 &&
-                      (Number(hasVotedVotes || 0) > 0 || Number(hasVotedVotes || 0) < 0) &&
+                      !!voteDirectionLabel &&
                       handleClickOpen()
                     }
                     color={type === 0 ? "success" : "error"}
@@ -1162,8 +1164,7 @@ export function VoteForProposal(props:any){
                           <Typography sx={{ fontSize: "10px" }}>
                             <>
                               {subtitle}{" "}
-                              {((Number(hasVotedVotes || 0) > 0 && type === 0) ||
-                              (Number(hasVotedVotes || 0) < 0 && type === 1)) ? (
+                              {votedForThisOption ? (
                                 <CheckCircleIcon fontSize="inherit" />
                               ) : (
                                 <></>
@@ -1212,13 +1213,13 @@ export function VoteForProposal(props:any){
                                   Voted
                                 </Typography>
                               </Grid>
-                              <Grid item>{Number(hasVotedVotes || 0).toLocaleString()}</Grid>
+                              <Grid item>{voteMagnitude.toLocaleString()}</Grid>
                             </Grid>
                             <Typography color="text.secondary" variant="body2">
                               Voting direction:{" "}
-                              {Number(hasVotedVotes || 0) > 0
+                              {hasVotedSide === 'yes'
                                 ? "For"
-                                : Number(hasVotedVotes || 0) < 0
+                                : hasVotedSide === 'no'
                                 ? "Against"
                                 : "—"}
                             </Typography>
@@ -1241,11 +1242,11 @@ export function VoteForProposal(props:any){
               </>
             ) : (
               <>
-                {Number(hasVotedVotes || 0) > 0 && type === 0 ? (
+                {hasVotedSide === 'yes' && type === 0 ? (
                   <Tooltip
                     title={
-                      Number(hasVotedVotes || 0) > 0 &&
-                      `You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes for this proposal`
+                      voteDirectionLabel &&
+                      `You casted ${getFormattedNumberToLocale(voteMagnitude)} votes ${voteDirectionLabel} this proposal`
                     }
                   >
                     <Button
@@ -1258,11 +1259,11 @@ export function VoteForProposal(props:any){
                   </Tooltip>
                 ) : (
                   <>
-                    {Number(hasVotedVotes || 0) < 0 && (
+                    {hasVotedSide === 'no' && (
                       <Tooltip
                         title={
-                          Number(hasVotedVotes || 0) < 0 &&
-                          `You casted ${getFormattedNumberToLocale(hasVotedVotes * -1)} votes against this proposal`
+                          voteDirectionLabel &&
+                          `You casted ${getFormattedNumberToLocale(voteMagnitude)} votes ${voteDirectionLabel} this proposal`
                         }
                       >
                         <Button

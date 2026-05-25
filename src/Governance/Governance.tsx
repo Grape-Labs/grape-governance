@@ -764,10 +764,9 @@ function RenderGovernanceTable(props:any) {
     function GetProposalStatus(props: any){
         const thisitem = props.item;
         const [thisGovernance, setThisGovernance] = React.useState(props.cachedGovernnace);
-        const [hasVotedForProp, setHasVotedForProp] = React.useState(false);
+        const [voteSideForProp, setVoteSideForProp] = React.useState<'yes' | 'no' | 'unknown' | null>(null);
 
-        const findProposalVote = (proposalId: string, voterPublicKey: string, voteRecords: any) => {
-            // Find the record matching the proposal and voter, and check if voterWeight > 0
+        const findProposalVote = (proposalId: string, voterPublicKey: string, voteRecords: any): 'yes' | 'no' | 'unknown' | null => {
             if (voteRecords && voteRecords.length > 0){
                 const record = voteRecords.find(
                     item =>
@@ -778,18 +777,20 @@ function RenderGovernanceTable(props:any) {
             
                 if (record) {
                     console.log("User has voted on the proposal ("+proposalId+"):", record);
-                    return true;
+                    return getVoteSideFromRecord(record) || 'unknown';
                 } else {
                     console.log("User has not voted on this proposal ("+proposalId+" - "+voterPublicKey+").");
-                    return false;
+                    return null;
                 }
             }
-            //return false;
+            return null;
         };
 
         React.useEffect(() => { 
             if (publicKey && thisitem?.pubkey && votesForWallet){
-                setHasVotedForProp(findProposalVote(thisitem?.pubkey?.toBase58(), publicKey?.toBase58(), votesForWallet));
+                setVoteSideForProp(findProposalVote(thisitem?.pubkey?.toBase58(), publicKey?.toBase58(), votesForWallet));
+            } else {
+                setVoteSideForProp(null);
             }
         }, [publicKey, thisitem, votesForWallet]);
 
@@ -838,8 +839,14 @@ function RenderGovernanceTable(props:any) {
                                 }
                                     {publicKey &&
                                     <> 
-                                    {hasVotedForProp ?
-                                        <><br/>You voted</>
+                                    {voteSideForProp === 'yes' ?
+                                        <><br/>You voted for this proposal</>
+                                    :
+                                    voteSideForProp === 'no' ?
+                                        <><br/>You voted against this proposal</>
+                                    :
+                                    voteSideForProp === 'unknown' ?
+                                        <><br/>You voted on this proposal</>
                                     :
                                         <><br/>You have not voted for this proposal</>
                                     }
@@ -853,7 +860,23 @@ function RenderGovernanceTable(props:any) {
                                 {GOVERNANCE_STATE[thisitem.account?.state]}
                                     <>
 
-                                    {(publicKey && hasVotedForProp) ?
+                                    {(publicKey && voteSideForProp === 'yes') ?
+                                            <>
+                                                <ThumbUpIcon sx={{ fontSize:"small", color:"green",ml:1}} />
+                                                <Typography component="span" sx={{ ml: 0.5, color: 'success.main', fontSize: '0.8rem', fontWeight: 600 }}>
+                                                    For
+                                                </Typography>
+                                            </>
+                                        :
+                                        (publicKey && voteSideForProp === 'no') ?
+                                            <>
+                                                <ThumbDownIcon sx={{ fontSize:"small", color:"error.main",ml:1}} />
+                                                <Typography component="span" sx={{ ml: 0.5, color: 'error.main', fontSize: '0.8rem', fontWeight: 600 }}>
+                                                    Against
+                                                </Typography>
+                                            </>
+                                        :
+                                        (publicKey && voteSideForProp === 'unknown') ?
                                             <CheckCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} />
                                         :
                                             <>

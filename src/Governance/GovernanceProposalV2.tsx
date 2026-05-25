@@ -233,6 +233,43 @@ const formatCompactNumber = (value: any): string => {
     return compact.replace(/K/g, 'k').replace(/M/g, 'm').replace(/B/g, 'b').replace(/T/g, 't');
 };
 
+const getVoteSideFromRecord = (record: any): 'yes' | 'no' | 'unknown' | null => {
+    const vote =
+        record?.account?.vote ??
+        record?.vote?.vote ??
+        record?.quorumWeight?.vote;
+    if (vote && vote?.voteType !== undefined && vote?.voteType !== null) {
+        const voteType = Number(vote.voteType);
+        if (voteType === 0) return 'yes';
+        if (voteType === 1) return 'no';
+        return 'unknown';
+    }
+
+    const legacyYes = parseRawVoteWeight(
+        record?.account?.voteWeight?.yes ??
+        record?.vote?.legacyYes ??
+        record?.vote?.voteWeight?.yes ??
+        record?.quorumWeight?.legacyYes
+    );
+    const legacyNo = parseRawVoteWeight(
+        record?.account?.voteWeight?.no ??
+        record?.vote?.legacyNo ??
+        record?.vote?.voteWeight?.no ??
+        record?.quorumWeight?.legacyNo
+    );
+    if (legacyYes > 0n) return 'yes';
+    if (legacyNo > 0n) return 'no';
+
+    const voterWeight = parseRawVoteWeight(
+        record?.account?.voterWeight ??
+        record?.vote?.voterWeight ??
+        record?.quorumWeight?.voterWeight
+    );
+    if (voterWeight > 0n) return 'unknown';
+
+    return null;
+};
+
 const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
     height: 15,
     borderRadius: '17px',
@@ -333,6 +370,7 @@ export function GovernanceProposalV2View(props: any){
     const [multiVoteSentiment, setMultiVoteSentiment] = React.useState(null);
     const [hasVoted, setHasVoted] = React.useState(false);
     const [hasVotedVotes, setHasVotedVotes] = React.useState(null);
+    const [hasVotedSide, setHasVotedSide] = React.useState<'yes' | 'no' | 'unknown' | null>(null);
     const [cachedTokenMeta, setCachedTokenMeta] = React.useState([{mint: "A6GComqUgUZ7mTqZcDrgnigPEdYDcw5yCumbHaaQxVKK", logo: "https://arweave.net/4-3-xg9otuhR3BZ72MVk6-QB0tqBZAniXfsvAawEdHI", name: "VINE"}]);
     //const cachedTokenMeta = new Array();
     const [castedYesVotes, setCastedYesVotes] = React.useState(null);
@@ -2478,6 +2516,7 @@ export function GovernanceProposalV2View(props: any){
                     if (publicKey){
                         if (publicKey.toBase58() === item.account.governingTokenOwner.toBase58()){
                             setHasVoted(true);
+                            setHasVotedSide(getVoteSideFromRecord(item) || 'unknown');
                             voterVotes = +(voterVotes / 10 ** ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td)).toFixed(0);
                             setHasVotedVotes(voterVotes);
                         }
@@ -3165,15 +3204,28 @@ export function GovernanceProposalV2View(props: any){
     React.useEffect(() => { 
         // check again if this voter has voted:
         if (publicKey && solanaVotingResultRows){
+            let matchedVote = false;
             if (solanaVotingResultRows){
                 for (let result of solanaVotingResultRows){
                     if (result.governingTokenOwner === publicKey.toBase58()){
+                        matchedVote = true;
                         setHasVoted(true);
+                        setHasVotedSide(getVoteSideFromRecord(result) || 'unknown');
                         const voterVotes = +(result.quorumWeight.voterWeight / 10 ** ((realm.account.config?.councilMint) === result.governingTokenMint?.toBase58() ? 0 : result.quorumWeight.decimals)).toFixed(0);
                         setHasVotedVotes(voterVotes);
+                        break;
                     }
                 }
             }
+            if (!matchedVote){
+                setHasVoted(false);
+                setHasVotedSide(null);
+                setHasVotedVotes(null);
+            }
+        } else {
+            setHasVoted(false);
+            setHasVotedSide(null);
+            setHasVotedVotes(null);
         }
     }, [publicKey, solanaVotingResultRows]);
 
@@ -3567,6 +3619,48 @@ export function GovernanceProposalV2View(props: any){
                             bgcolor: 'rgba(255,255,255,0.05)',
                           }}
                         />
+                        {hasVoted && (
+                          <Chip
+                            size="small"
+                            icon={
+                              hasVotedSide === 'yes' ? (
+                                <ThumbUpIcon sx={{ fontSize: '0.95rem !important' }} />
+                              ) : hasVotedSide === 'no' ? (
+                                <ThumbDownIcon sx={{ fontSize: '0.95rem !important' }} />
+                              ) : (
+                                <CheckCircleIcon sx={{ fontSize: '0.95rem !important' }} />
+                              )
+                            }
+                            label={
+                              hasVotedSide === 'yes'
+                                ? 'You voted: For'
+                                : hasVotedSide === 'no'
+                                ? 'You voted: Against'
+                                : 'You voted'
+                            }
+                            sx={{
+                              ...metaChipSx,
+                              bgcolor:
+                                hasVotedSide === 'yes'
+                                  ? 'rgba(82,190,128,0.18)'
+                                  : hasVotedSide === 'no'
+                                  ? 'rgba(236,112,99,0.18)'
+                                  : 'rgba(255,255,255,0.06)',
+                              color:
+                                hasVotedSide === 'yes'
+                                  ? '#86efac'
+                                  : hasVotedSide === 'no'
+                                  ? '#fca5a5'
+                                  : 'rgba(255,255,255,0.95)',
+                              border:
+                                hasVotedSide === 'yes'
+                                  ? '1px solid rgba(82,190,128,0.38)'
+                                  : hasVotedSide === 'no'
+                                  ? '1px solid rgba(236,112,99,0.38)'
+                                  : '1px solid rgba(255,255,255,0.1)',
+                            }}
+                          />
+                        )}
                       </Stack>
 	                </Stack>
                 
@@ -3656,18 +3750,6 @@ export function GovernanceProposalV2View(props: any){
                           />
 	                    </Tooltip>
                   </Stack>
-
-                      <Box sx={{ mt: 0.85, display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
-                        <Chip
-                          size="small"
-                          label={`Type: ${proposalTargetLabel} Proposal`}
-                          sx={{
-                            bgcolor: 'rgba(255,255,255,0.04)',
-                            color: 'rgba(255,255,255,0.95)',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                          }}
-                        />
-                      </Box>
 	                </Grid>
 
                 <Grid item xs={12} md={6} sx={{ display: "flex", justifyContent: { xs: "center", md: "flex-end" } }}>
@@ -3705,6 +3787,7 @@ export function GovernanceProposalV2View(props: any){
                                 getVotingParticipants={getVotingParticipants}
                                 hasVotedVotes={hasVotedVotes}
                                 hasVoted={hasVoted}
+                                hasVotedSide={hasVotedSide}
                                 realm={realm}
                                 governanceAddress={governanceAddress}
                                 thisitem={thisitem}
@@ -3748,6 +3831,7 @@ export function GovernanceProposalV2View(props: any){
                                 getVotingParticipants={getVotingParticipants}
                                 hasVotedVotes={hasVotedVotes}
                                 hasVoted={hasVoted}
+                                hasVotedSide={hasVotedSide}
                                 realm={realm}
                                 governanceAddress={governanceAddress}
                                 thisitem={thisitem}
@@ -4798,6 +4882,7 @@ export function GovernanceProposalV2View(props: any){
                                                                     getVotingParticipants={getVotingParticipants} 
                                                                     hasVotedVotes={hasVotedVotes} 
                                                                     hasVoted={hasVoted} 
+                                                                    hasVotedSide={hasVotedSide}
                                                                     propVoteType={propVoteType} 
                                                                     realm={realm} 
                                                                     governanceAddress={governanceAddress}
