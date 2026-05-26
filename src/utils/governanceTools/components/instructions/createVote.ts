@@ -43,7 +43,7 @@ import {
 } from "./account";
 // end plugin stuff
 
-import { getVotingPlugin } from './getVotePlugin';
+import { getVotingPluginWithUpdate } from './getVotePlugin';
 
 const connection = RPC_CONNECTION;
 
@@ -142,7 +142,7 @@ export const createCastVoteTransaction = async (
       if (hasVoterWeight || realmConfig?.account?.communityTokenConfig?.voterWeightAddin){
         console.log("vwa: "+realmConfig.account.communityTokenConfig.voterWeightAddin.toBase58())
         //if (selectedRealm.pubkey === "DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE") {
-          votePlugin = await getVotingPlugin(
+          votePlugin = await getVotingPluginWithUpdate(
             selectedRealm,
             proposal.governingTokenMint,
             walletPublicKey,
@@ -152,17 +152,7 @@ export const createCastVoteTransaction = async (
           //console.log("Vote Plugin: "+JSON.stringify(votePlugin))
 
           if (votePlugin){
-            const updateVoterWeightRecordIx = await votePlugin.client.program.methods
-              .updateVoterWeightRecord()
-              .accounts({
-                registrar: votePlugin.registrar,
-                voter: votePlugin.voter,
-                voterWeightRecord: votePlugin.voterWeightPk,
-                systemProgram: SYSTEM_PROGRAM_ID,
-              })
-              .instruction()
-
-              instructions.push(updateVoterWeightRecordIx);
+            instructions.push(...(votePlugin.instructions || []));
           }else{
             return null;
           }

@@ -48,9 +48,11 @@ function getOgSrc(metadata: any) {
 
 export function GovernanceHeaderView(props: any) {
     const { governanceName, governanceAddress, gsplMetadata } = props;
+    const metadata = gsplMetadata?.metadata || null;
+    const isVerified = !!gsplMetadata?.gspl;
     const shareImage =
-        gsplMetadata?.metadata?.ogImage
-            ? getOgSrc(gsplMetadata.metadata)
+        metadata?.ogImage
+            ? getOgSrc(metadata)
             : GRAPE_LOGO;
     
     return (
@@ -81,22 +83,22 @@ export function GovernanceHeaderView(props: any) {
             <Grid item sm={6} container justifyContent="flex-start">
                 <Grid container>
                     <Grid item xs={12}>
-                        {gsplMetadata ?
+                        {metadata ?
                             <Grid container alignItems="center" spacing={1}>
                                 {/* Governance Image as a Small Circular Icon */}
-                                {gsplMetadata?.metadata?.ogImage && !gsplMetadata.metadata.ogImage.endsWith("/") && (
+                                {metadata?.ogImage && !metadata.ogImage.endsWith("/") && (
                                     <Grid item>
                                         <Avatar 
                                             src={
-                                                gsplMetadata.metadata?.ogImage === "/realms/Grape/img/grape.png"
+                                                metadata?.ogImage === "/realms/Grape/img/grape.png"
                                                 ? GRAPE_LOGO
                                                 : toRealmsV2Image(
-                                                    gsplMetadata.metadata?.ogImage?.startsWith("http")
-                                                        ? gsplMetadata.metadata.ogImage
-                                                        : `https://realms.today${gsplMetadata.metadata?.ogImage}`
+                                                    metadata?.ogImage?.startsWith("http")
+                                                        ? metadata.ogImage
+                                                        : `https://realms.today${metadata?.ogImage}`
                                                     )
                                             }
-                                            alt={gsplMetadata.metadata?.displayName || governanceName}
+                                            alt={metadata?.displayName || governanceName}
                                             sx={{
                                                 width: 40,
                                                 height: 40,
@@ -110,12 +112,12 @@ export function GovernanceHeaderView(props: any) {
                                 <Grid item sx={{ display: "flex", alignItems: "center" }}>
                                     
                                     <Typography variant="h5">
-                                        {gsplMetadata?.metadata?.displayName || governanceName}
+                                        {metadata?.displayName || governanceName}
                                     </Typography>
                                 
                                 
                                     {/* Verified Checkmark (if item is verified) */}
-                                    
+                                    {isVerified && (
                                         <Tooltip
                                                 title={
 
@@ -124,7 +126,7 @@ export function GovernanceHeaderView(props: any) {
                                                             Verified Governance 
                                                         </Typography>
                                                         <Typography variant="subtitle2">
-                                                            {gsplMetadata.metadata?.displayName || governanceName} GSPL Metadata
+                                                            {metadata?.displayName || governanceName} GSPL Metadata
                                                         </Typography>
                                                         <pre style={{ margin: 0, fontSize: '0.65rem', lineHeight: '1', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
                                                             {JSON.stringify(gsplMetadata, null, 2)}
@@ -142,7 +144,7 @@ export function GovernanceHeaderView(props: any) {
                                                 }} 
                                             />
                                         </Tooltip>
-                                    
+                                    )}
                                 </Grid>
                             </Grid>
                             
@@ -180,12 +182,12 @@ export function GovernanceHeaderView(props: any) {
                                 </Button>
                             </Tooltip>
 
-                            {gsplMetadata?.metadata?.discord && (
+                            {metadata?.discord && (
                                 <Button
                                     aria-label="discord"
                                     variant="outlined"
                                     color="inherit"
-                                    href={gsplMetadata.metadata.discord}
+                                    href={metadata.discord}
                                     target="_blank"
                                     sx={{
                                         borderRadius: '17px',
@@ -197,12 +199,12 @@ export function GovernanceHeaderView(props: any) {
                                 </Button>
                             )}
 
-                            {gsplMetadata?.metadata?.twitter && (
+                            {metadata?.twitter && (
                                 <Button
                                     aria-label="twitter"
                                     variant="outlined"
                                     color="inherit"
-                                    href={`https://x.com/${gsplMetadata.metadata.twitter}`}
+                                    href={`https://x.com/${metadata.twitter}`}
                                     target="_blank"
                                     sx={{
                                         borderRadius: '17px',
@@ -214,12 +216,12 @@ export function GovernanceHeaderView(props: any) {
                                 </Button>
                             )}
 
-                            {gsplMetadata?.metadata?.website && (
+                            {metadata?.website && (
                                 <Button
                                     aria-label="website"
                                     variant="outlined"
                                     color="inherit"
-                                    href={gsplMetadata.metadata.website}
+                                    href={metadata.website}
                                     target="_blank"
                                     sx={{
                                         borderRadius: '17px',

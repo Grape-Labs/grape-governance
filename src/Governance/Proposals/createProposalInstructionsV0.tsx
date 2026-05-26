@@ -11,6 +11,7 @@ import {
   Governance,
   ProgramAccount,
   VoteType,
+  tryGetRealmConfig,
   withCreateProposal,
   withAddSignatory,
   withInsertTransaction,
@@ -32,12 +33,15 @@ import {
   getProposalIndexed,
   getAllGovernancesIndexed,
   getAllTokenOwnerRecordsIndexed,
+  getRealmIndexed,
 } from '../api/queries'
 
 import { chunks } from '../../utils/governanceTools/helpers'
 import { UiInstruction } from '../../utils/governanceTools/proposalCreationTypes'
 import { WalletSigner } from '../../utils/governanceTools/sendTransactions'
 import { sendSignAndConfirmTransactions } from '../../utils/governanceTools/v0_tools/modifiedMangolana'
+import { RPC_CONNECTION } from '../../utils/grapeTools/constants'
+import { getVotingPluginWithUpdate } from '../../utils/governanceTools/components/instructions/getVotePlugin'
 
 /* -------------------------------------------------- */
 /* Helpers                                            */
@@ -154,6 +158,7 @@ export async function createProposalInstructionsV0(
   /* -------------------------------------------- */
 
   const baseInstructions: TransactionInstruction[] = []
+  let votePlugin: any = null;
 
   const requestedOptions = Array.isArray(proposalConfig?.options)
     ? proposalConfig.options
@@ -203,6 +208,32 @@ export async function createProposalInstructionsV0(
   let proposalAddress: PublicKey
 
   if (!editAddress) {
+    try {
+      const selectedRealmIndexed = await getRealmIndexed(realmPk.toBase58())
+      const realmConfig = selectedRealmIndexed
+        ? await tryGetRealmConfig(
+            RPC_CONNECTION,
+            new PublicKey(selectedRealmIndexed.owner),
+            new PublicKey(selectedRealmIndexed.pubkey)
+          )
+        : null
+
+      if (selectedRealmIndexed && realmConfig?.account?.communityTokenConfig?.voterWeightAddin) {
+        votePlugin = await getVotingPluginWithUpdate(
+          selectedRealmIndexed,
+          governingTokenMint,
+          walletPk,
+          realmConfig.account.communityTokenConfig.voterWeightAddin
+        )
+
+        if (votePlugin?.instructions?.length) {
+          baseInstructions.push(...votePlugin.instructions)
+        }
+      }
+    } catch (error) {
+      console.log('ERR(prepare voter weight proposal instructions): ' + error)
+    }
+
     proposalAddress = await withCreateProposal(
       baseInstructions,
       programId,
@@ -218,7 +249,8 @@ export async function createProposalInstructionsV0(
       voteType,
       options,
       useDenyOption,
-      payer
+      payer,
+      votePlugin?.voterWeightPk
     )
 
     await withAddSignatory(

@@ -36,6 +36,7 @@ import {
 
 import { getNativeTreasuryAddress } from '@solana/spl-governance';
 import { initGrapeGovernanceDirectory } from './api/gspl_queries';
+import { resolveRealmMetadata } from './api/realmMetadata';
 
 import {
   RPC_CONNECTION,
@@ -169,31 +170,14 @@ export function GovernanceTreasuryView(props: any) {
     // GSPL directory + optional metadata json
     try {
       const fetchedgspl = await initGrapeGovernanceDirectory();
-      let gsplMeta: any = null;
+      const resolvedMetadata = rlm
+        ? await resolveRealmMetadata(rlm, fetchedgspl).catch((error) => {
+            console.log('ERR(resolveRealmMetadata): ' + error);
+            return null;
+          })
+        : null;
 
-      if (fetchedgspl && rlm) {
-        for (const diritem of fetchedgspl) {
-          if (rlm.account?.name === diritem.name) {
-            if (diritem.metadataUri) {
-              try {
-                const response = await fetch(diritem.metadataUri);
-                if (response.ok) {
-                  const metadata = await response.json();
-                  gsplMeta = { gspl: diritem, metadata };
-                } else {
-                  console.error("Failed to fetch metadata:", diritem.metadataUri);
-                }
-              } catch (error) {
-                console.error("Error fetching metadata:", error);
-              }
-            }
-            if (!gsplMeta) gsplMeta = { gspl: diritem };
-            break;
-          }
-        }
-      }
-
-      setGSPLMetadata(gsplMeta);
+      setGSPLMetadata(resolvedMetadata);
     } catch (e) {
       console.log("ERR(fetchGovernances gspl): " + e);
     }
