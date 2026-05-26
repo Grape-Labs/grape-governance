@@ -1,9 +1,10 @@
-import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
+import { PublicKey, TokenAmount, Connection, Transaction } from '@solana/web3.js';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import axios from "axios";
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
 import { initGrapeGovernanceDirectory } from './api/gspl_queries';
+import { resolveRealmMetadata } from './api/realmMetadata';
 import { 
     tryGetName,
 } from '@cardinal/namespaces';
@@ -12,6 +13,7 @@ import { CardinalTwitterIdentityResolver } from '@dialectlabs/identity-cardinal'
 import React, { useCallback } from 'react';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import BN from 'bn.js';
+import { AnchorProvider } from '@coral-xyz/anchor';
 import { styled, useTheme } from '@mui/material/styles';
 import {
   Typography,
@@ -36,8 +38,9 @@ import {
 
 import { GovernanceHeaderView } from './GovernanceHeaderView';
 import GovernanceNavigation from './GovernanceNavigation'; 
+import GovernancePower from './GovernancePower';
 
-import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers';
+import { formatAmount, getFormattedNumberToLocale, VSR_PLUGIN_PKS } from '../utils/grapeTools/helpers';
 import ExplorerView from '../utils/grapeTools/Explorer';
 import { getProfilePicture } from '@solflare-wallet/pfp';
 import { findDisplayName } from '../utils/name-service';
@@ -68,7 +71,10 @@ import {
 
 import PropTypes from 'prop-types';
 import { 
-    RPC_CONNECTION } from '../utils/grapeTools/constants';
+    RPC_CONNECTION,
+    TX_RPC_ENDPOINT } from '../utils/grapeTools/constants';
+import { VsrClient } from '../utils/governanceTools/components/instructions/client';
+import { getRegistrarPDA, getVoterPDA } from '../utils/governanceTools/components/instructions/account';
 
 const GOVERNANNCE_STATE = {
     0:'Draft',
@@ -81,6 +87,222 @@ const GOVERNANNCE_STATE = {
     7:'Defeated',
     8:'Executing with Errors!',
 }
+
+const READONLY_WALLET_PK = new PublicKey('11111111111111111111111111111111');
+
+const createReadonlyWalletAdapter = () => ({
+    publicKey: READONLY_WALLET_PK,
+    signTransaction: async (tx: any) => tx,
+    signAllTransactions: async (txs: any) => txs,
+});
+
+const toNumberSafe = (value: any): number => {
+    if (value === null || value === undefined) return 0;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+    if (typeof value === 'bigint') return Number(value);
+
+    if (typeof value === 'string') {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    if (typeof value?.toNumber === 'function') {
+        try {
+            return value.toNumber();
+        } catch (_e) {
+            return 0;
+        }
+    }
+
+    if (typeof value?.toString === 'function') {
+        const parsed = Number(value.toString());
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    return 0;
+};
+
+const VSR_FACTOR_DENOMINATOR = 1_000_000_000n;
+
+const toBigIntSafe = (value: any): bigint => {
+    if (value === null || value === undefined) return 0n;
+    if (typeof value === 'bigint') return value;
+    if (typeof value === 'number') {
+        if (!Number.isFinite(value)) return 0n;
+        return BigInt(Math.trunc(value));
+    }
+    if (typeof value === 'string') {
+        if (!value.length) return 0n;
+        try {
+            return BigInt(value);
+        } catch (_e) {
+            return 0n;
+        }
+    }
+    if (typeof value?.toString === 'function') {
+        try {
+            return BigInt(value.toString());
+        } catch (_e) {
+            return 0n;
+        }
+    }
+
+    return 0n;
+};
+
+const bigintMax = (a: bigint, b: bigint): bigint => (a > b ? a : b);
+const bigintMin = (a: bigint, b: bigint): bigint => (a < b ? a : b);
+
+const pow10BigInt = (power: number): bigint => {
+    if (power <= 0) return 1n;
+    return 10n ** BigInt(power);
+};
+
+const applyDigitShiftBigInt = (amount: bigint, digitShift: number): bigint => {
+    if (digitShift === 0) return amount;
+    if (digitShift > 0) {
+        return amount * pow10BigInt(digitShift);
+    }
+
+    return amount / pow10BigInt(Math.abs(digitShift));
+};
+
+const applyScaledFactorBigInt = (amount: bigint, scaledFactor: bigint): bigint => {
+    if (amount <= 0n || scaledFactor <= 0n) return 0n;
+    return (amount * scaledFactor) / VSR_FACTOR_DENOMINATOR;
+};
+
+const getMultipleAccountsInfoBatched = async (
+    connection: Connection,
+    publicKeys: PublicKey[],
+    batchSize = 100
+) => {
+    const results: Awaited<ReturnType<Connection['getMultipleAccountsInfo']>> = [];
+
+    for (let start = 0; start < publicKeys.length; start += batchSize) {
+        const batch = publicKeys.slice(start, start + batchSize);
+        const batchInfos = await connection.getMultipleAccountsInfo(batch);
+        results.push(...batchInfos);
+    }
+
+    return results;
+};
+
+const getLockupKindName = (kind: any): string => {
+    if (!kind || typeof kind !== 'object') return 'unknown';
+    const key = Object.keys(kind)[0];
+    return key || 'unknown';
+};
+
+const getVsrWithdrawableAmountNative = (deposit: any, nowTs: number): number => {
+    const depositedNative = toNumberSafe(deposit?.amountDepositedNative);
+    if (depositedNative <= 0) return 0;
+
+    const lockupKind = getLockupKindName(deposit?.lockup?.kind);
+    const endTs = toNumberSafe(deposit?.lockup?.endTs);
+
+    if (lockupKind === 'none') {
+        return depositedNative;
+    }
+
+    if (endTs > 0 && endTs <= nowTs) {
+        return depositedNative;
+    }
+
+    return 0;
+};
+
+const getVsrLockupTimeRemainingSecs = (deposit: any, nowTs: number): bigint => {
+    const startTs = BigInt(toNumberSafe(deposit?.lockup?.startTs));
+    const endTs = BigInt(toNumberSafe(deposit?.lockup?.endTs));
+    const currentTs = BigInt(nowTs);
+    const lockupKind = getLockupKindName(deposit?.lockup?.kind);
+
+    if (lockupKind === 'none') {
+        return 0n;
+    }
+
+    if (lockupKind === 'constant') {
+        return bigintMax(0n, endTs - startTs);
+    }
+
+    return bigintMax(0n, endTs - currentTs);
+};
+
+const getApproximateVsrVotingPowerNative = (
+    deposits: any[],
+    registrarState: any,
+    nowTs: number
+): bigint => {
+    if (!registrarState?.votingMints?.length || !deposits?.length) {
+        return 0n;
+    }
+
+    return deposits.reduce((sum: bigint, deposit: any) => {
+        const configIndex = Number(deposit?.votingMintConfigIdx ?? 0);
+        const votingMintConfig = registrarState.votingMints?.[configIndex];
+        if (!votingMintConfig) {
+            return sum;
+        }
+
+        const depositedNative = toBigIntSafe(deposit?.amountDepositedNative);
+        const initiallyLockedNative = toBigIntSafe(deposit?.amountInitiallyLockedNative);
+        const baselineFactor = toBigIntSafe(
+            votingMintConfig?.baselineVoteWeightScaledFactor
+        );
+        const maxExtraFactor = toBigIntSafe(
+            votingMintConfig?.maxExtraLockupVoteWeightScaledFactor
+        );
+        const saturationSecs = toBigIntSafe(votingMintConfig?.lockupSaturationSecs);
+        const digitShift = Number(votingMintConfig?.digitShift || 0);
+        const lockupTimeRemainingSecs = getVsrLockupTimeRemainingSecs(deposit, nowTs);
+
+        const shiftedDepositedNative = applyDigitShiftBigInt(
+            depositedNative,
+            digitShift
+        );
+        const shiftedInitiallyLockedNative = applyDigitShiftBigInt(
+            initiallyLockedNative,
+            digitShift
+        );
+
+        const baselineVoteWeight = applyScaledFactorBigInt(
+            shiftedDepositedNative,
+            baselineFactor
+        );
+        const maxExtraVoteWeight = applyScaledFactorBigInt(
+            shiftedInitiallyLockedNative,
+            maxExtraFactor
+        );
+
+        let extraVoteWeight = 0n;
+        if (maxExtraVoteWeight > 0n && lockupTimeRemainingSecs > 0n) {
+            if (saturationSecs > 0n) {
+                const effectiveRemainingSecs = bigintMin(
+                    lockupTimeRemainingSecs,
+                    saturationSecs
+                );
+                extraVoteWeight =
+                    (maxExtraVoteWeight * effectiveRemainingSecs) / saturationSecs;
+            } else {
+                extraVoteWeight = maxExtraVoteWeight;
+            }
+        }
+
+        return sum + baselineVoteWeight + extraVoteWeight;
+    }, 0n);
+};
+
+const toBase58Safe = (value: any): string | null => {
+    try {
+        if (!value) return null;
+        if (typeof value === 'string') return new PublicKey(value).toBase58();
+        if (typeof value?.toBase58 === 'function') return value.toBase58();
+        return new PublicKey(value).toBase58();
+    } catch (_e) {
+        return null;
+    }
+};
 
 TablePaginationActions.propTypes = {
     count: PropTypes.number.isRequired,
@@ -160,6 +382,7 @@ function RenderGovernanceMembersTable(props:any) {
     const members = props.members;
     const circulatingSupply = props.circulatingSupply;
     const totalDepositedVotes = props.totalDepositedVotes;
+    const pluginDao = !!props.pluginDao;
     const [memberVotingResults, setMemberVotingResults] = React.useState(null);
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
@@ -188,21 +411,108 @@ function RenderGovernanceMembersTable(props:any) {
                 )
             }
         },
-        { field: 'staked', headerName: 'Votes Staked', minWidth: 170, flex: 1, headerAlign: 'center', align: 'right',
+        { field: 'staked', headerName: pluginDao ? 'Deposited' : 'Votes Staked', minWidth: 170, flex: 1, headerAlign: 'center', align: 'right',
             sortable: true, // Enable sorting on this column
             sortComparator: (v1, v2, cellParams1, cellParams2) => {
-                // Custom sorting logic based on governanceRewards field
-                const param1 = cellParams1.value.governingTokenDepositAmount || 0;
-                const param2 = cellParams2.value.governingTokenDepositAmount || 0;
+                const param1 = cellParams1.value.depositedAmount || 0;
+                const param2 = cellParams2.value.depositedAmount || 0;
                 return param1 - param2;
             },   
             renderCell: (params) => {
                 return(
-                    <Typography variant="h6">
-                        {getFormattedNumberToLocale(params.value.governingTokenDepositAmount)}
-                    </Typography>
+                    <Box sx={{ textAlign: 'right', width: '100%' }}>
+                        <Typography variant="h6">
+                            {getFormattedNumberToLocale(params.value.depositedAmount)}
+                        </Typography>
+                        {pluginDao && params.value.depositCount > 0 && (
+                            <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                                {params.value.depositCount} VSR deposit{params.value.depositCount === 1 ? '' : 's'}
+                            </Typography>
+                        )}
+                    </Box>
                 )
             }
+        },
+        { field: 'legacyDeposit', headerName: 'Legacy Deposit', minWidth: 170, flex: 1, headerAlign: 'center', align: 'right',
+            hide: !pluginDao,
+            sortable: true,
+            sortComparator: (v1, v2, cellParams1, cellParams2) => {
+                const param1 = cellParams1.value?.legacyDepositAmount || 0;
+                const param2 = cellParams2.value?.legacyDepositAmount || 0;
+                return param1 - param2;
+            },
+            renderCell: (params) => (
+                <Box sx={{ textAlign: 'right', width: '100%' }}>
+                    <Typography variant="h6">
+                        {getFormattedNumberToLocale(params.value?.legacyDepositAmount || 0)}
+                    </Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                        SPL governance
+                    </Typography>
+                </Box>
+            )
+        },
+        { field: 'votingPower', headerName: 'Voting Power', minWidth: 170, flex: 1, headerAlign: 'center', align: 'right',
+            sortable: true,
+            sortComparator: (v1, v2, cellParams1, cellParams2) => {
+                const param1 = cellParams1.value?.votingPower ?? -1;
+                const param2 = cellParams2.value?.votingPower ?? -1;
+                return param1 - param2;
+            },
+            renderCell: (params) => (
+                <Box sx={{ textAlign: 'right', width: '100%' }}>
+                    <Typography variant="h6">
+                        {params.value?.votingPower !== null && params.value?.votingPower !== undefined
+                            ? getFormattedNumberToLocale(params.value.votingPower)
+                            : '--'}
+                    </Typography>
+                    {pluginDao && params.value?.votingPowerSource === 'simulated' ? (
+                        <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                            plugin weight
+                        </Typography>
+                    ) : pluginDao && params.value?.votingPowerSource === 'computed' ? (
+                        <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                            computed
+                        </Typography>
+                    ) : pluginDao && params.value?.votingPowerRecord ? (
+                        <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                            resolved
+                        </Typography>
+                    ) : pluginDao ? (
+                        <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                            unresolved
+                        </Typography>
+                    ) : null}
+                </Box>
+            )
+        },
+        { field: 'locked', headerName: 'Locked', minWidth: 150, flex: 1, headerAlign: 'center', align: 'right',
+            hide: !pluginDao,
+            sortable: true,
+            sortComparator: (v1, v2, cellParams1, cellParams2) => {
+                const param1 = cellParams1.value?.lockedAmount || 0;
+                const param2 = cellParams2.value?.lockedAmount || 0;
+                return param1 - param2;
+            },
+            renderCell: (params) => (
+                <Typography variant="h6">
+                    {getFormattedNumberToLocale(params.value?.lockedAmount || 0)}
+                </Typography>
+            )
+        },
+        { field: 'withdrawable', headerName: 'Withdrawable', minWidth: 170, flex: 1, headerAlign: 'center', align: 'right',
+            hide: !pluginDao,
+            sortable: true,
+            sortComparator: (v1, v2, cellParams1, cellParams2) => {
+                const param1 = cellParams1.value?.withdrawableAmount || 0;
+                const param2 = cellParams2.value?.withdrawableAmount || 0;
+                return param1 - param2;
+            },
+            renderCell: (params) => (
+                <Typography variant="h6">
+                    {getFormattedNumberToLocale(params.value?.withdrawableAmount || 0)}
+                </Typography>
+            )
         },
         { field: 'unstaked', headerName: 'Not Staked', minWidth: 170, headerAlign: 'center', align: 'right', hide: true,
             renderCell: (params) => {
@@ -257,6 +567,23 @@ function RenderGovernanceMembersTable(props:any) {
         let x = 0;
         const circulatingAmount = Number(circulatingSupply?.value?.amount || 0);
         for (const member of members){
+            const legacyDepositedVotesRaw = Number(member?.governingTokenDepositAmount ?? 0);
+            const depositedVotesRaw = pluginDao
+                ? Number(member?.vsrDepositedAmount ?? 0)
+                : legacyDepositedVotesRaw;
+            const lockedVotesRaw = Number(member?.vsrLockedAmount ?? 0);
+            const withdrawableVotesRaw = Number(member?.vsrWithdrawableAmount ?? 0);
+            const hasResolvedVsrVotingPower = !!member?.vsrVotingPowerRecord;
+            const votingPowerSource = member?.vsrVotingPowerApproximate
+                ? 'computed'
+                : hasResolvedVsrVotingPower && member?.vsrDepositCount > 0
+                ? 'simulated'
+                : hasResolvedVsrVotingPower
+                ? 'resolved'
+                : null;
+            const votingPowerRaw = pluginDao
+                ? (hasResolvedVsrVotingPower ? Number(member?.vsrVotingPower ?? 0) : null)
+                : Number(member?.governingTokenDepositAmount ?? 0);
             mmbr.push({
                 id:x+1,
                 address: member.governingTokenOwner.toBase58(),
@@ -268,14 +595,37 @@ function RenderGovernanceMembersTable(props:any) {
                     },
                 staked:
                     {
-                        governingTokenDepositAmount:(+((Number(member.governingTokenDepositAmount))/Math.pow(10, governingTokenDecimals || 0)).toFixed(0)),
+                        depositedAmount:(+((depositedVotesRaw)/Math.pow(10, governingTokenDecimals || 0)).toFixed(0)),
+                        lockedAmount:(+((lockedVotesRaw)/Math.pow(10, governingTokenDecimals || 0)).toFixed(0)),
+                        withdrawableAmount:(+((withdrawableVotesRaw)/Math.pow(10, governingTokenDecimals || 0)).toFixed(0)),
+                        depositCount:Number(member?.vsrDepositCount || 0),
                         governingCouncilDepositAmount:((Number(member.governingCouncilDepositAmount) > 0) ? Number(member.governingCouncilDepositAmount) : 0),
                     },
+                legacyDeposit:
+                    {
+                        legacyDepositAmount:(+((legacyDepositedVotesRaw)/Math.pow(10, governingTokenDecimals || 0)).toFixed(0)),
+                    },
+                votingPower:
+                    {
+                        votingPower:(votingPowerRaw !== null
+                            ? (+((votingPowerRaw)/Math.pow(10, governingTokenDecimals || 0)).toFixed(0))
+                            : null),
+                        votingPowerRecord: pluginDao ? hasResolvedVsrVotingPower : true,
+                        votingPowerSource,
+                    },
+                locked:
+                    {
+                        lockedAmount:(+((lockedVotesRaw)/Math.pow(10, governingTokenDecimals || 0)).toFixed(0)),
+                    },
+                withdrawable:
+                    {
+                        withdrawableAmount:(+((withdrawableVotesRaw)/Math.pow(10, governingTokenDecimals || 0)).toFixed(0)),
+                    },
                 unstaked:Number(member.walletBalanceAmount),
-                percentDepositedGovernance:Number(member.governingTokenDepositAmount) > 0 ? ((+Number(member.governingTokenDepositAmount)/totalDepositedVotes)*100).toFixed(2) : 0,
+                percentDepositedGovernance:depositedVotesRaw > 0 && Number(totalDepositedVotes || 0) > 0 ? ((depositedVotesRaw/Number(totalDepositedVotes))*100).toFixed(2) : 0,
                 percentSupply:
-                    Number(member.governingTokenDepositAmount) > 0 && circulatingAmount > 0
-                        ? ((Number(member.governingTokenDepositAmount)/circulatingAmount)*100).toFixed(2)
+                    depositedVotesRaw > 0 && circulatingAmount > 0
+                        ? ((depositedVotesRaw/circulatingAmount)*100).toFixed(2)
                         : 0,
             })
             x++;
@@ -286,10 +636,12 @@ function RenderGovernanceMembersTable(props:any) {
     }
 
     React.useEffect(() => {
-        if (members && !memberVotingResults){
+        if (members){
             createMemberTableRows();
+        } else {
+            setMemberVotingResults(null);
         }
-    }, [members]);
+    }, [members, pluginDao, totalDepositedVotes, governingTokenDecimals, circulatingSupply]);
 
     if(loading){
         return (
@@ -337,6 +689,7 @@ export function GovernanceMembersView(props: any) {
     const {handlekey} = useParams<{ handlekey: string }>();
     const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
     const governanceAddress = urlParams;
+    const debugVsr = searchParams.get('debugVsr') === '1';
     const [startTime, setStartTime] = React.useState(null);
     const [endTime, setEndTime] = React.useState(null);
     
@@ -366,8 +719,270 @@ export function GovernanceMembersView(props: any) {
     const [csvGenerated, setCSVGenerated] = React.useState(null);
     const [recordCount, setRecordCount] = React.useState(null);
     const [pluginDao, setPluginDao] = React.useState(null);
+    const [pluginProgramId, setPluginProgramId] = React.useState<string | null>(null);
     const [gspl, setGSPL] = React.useState(null);
     const [gsplMetadata, setGSPLMetadata] = React.useState(null);
+    const [membersDebug, setMembersDebug] = React.useState<any>(null);
+    const [vsrSummary, setVsrSummary] = React.useState<any>({
+        totalDepositedNative: 0,
+        totalLockedNative: 0,
+        totalWithdrawableNative: 0,
+        activeParticipants: 0,
+    });
+
+    const fetchVsrMemberStats = React.useCallback(async (
+        realmPk: PublicKey,
+        communityMintPk: PublicKey,
+        voterWeightAddinPk: PublicKey,
+        participantArray: any[]
+    ) => {
+        const pluginPkString = voterWeightAddinPk.toBase58();
+        if (!VSR_PLUGIN_PKS.includes(pluginPkString)) {
+            return null;
+        }
+
+        const walletAdapter = createReadonlyWalletAdapter();
+        const provider = new AnchorProvider(
+            RPC_CONNECTION,
+            walletAdapter as any,
+            AnchorProvider.defaultOptions()
+        );
+        const client = await VsrClient.connect(provider, voterWeightAddinPk, false);
+        const { registrar } = await getRegistrarPDA(
+            realmPk,
+            communityMintPk,
+            client.program.programId
+        );
+
+        const voterAccounts = await Promise.all(
+            participantArray.map(async (participant: any) => {
+                const ownerAddress = toBase58Safe(participant.governingTokenOwner);
+                if (!ownerAddress) {
+                    throw new Error('Invalid governing token owner while loading VSR member stats');
+                }
+                const ownerPk = new PublicKey(ownerAddress);
+                const { voter } = await getVoterPDA(
+                    registrar,
+                    ownerPk,
+                    client.program.programId
+                );
+                return {
+                    ownerPk,
+                    owner: ownerPk.toBase58(),
+                    voter,
+                };
+            })
+        );
+
+        const registrarAccountInfo = await RPC_CONNECTION.getAccountInfo(registrar);
+        const voterAccountInfos = await getMultipleAccountsInfoBatched(
+            RPC_CONNECTION,
+            voterAccounts.map((item) => item.voter)
+        );
+
+        const coderAccounts = client.program.account.voter as any;
+        const voterStates = voterAccountInfos.map((accountInfo) => {
+            if (!accountInfo?.data) return null;
+            try {
+                return coderAccounts.coder.accounts.decode('voter', accountInfo.data);
+            } catch (_e) {
+                return null;
+            }
+        });
+        let registrarState: any = null;
+        try {
+            if (registrarAccountInfo?.data) {
+                registrarState = client.program.coder.accounts.decode(
+                    'registrar',
+                    registrarAccountInfo.data
+                );
+            }
+        } catch (_e) {
+            registrarState = null;
+        }
+
+        const votingPowerByOwner: Record<string, number> = {};
+        const votingPowerResolvedByOwner: Record<string, boolean> = {};
+        const simulationConnections = [RPC_CONNECTION];
+        if (
+            TX_RPC_ENDPOINT &&
+            TX_RPC_ENDPOINT !== RPC_CONNECTION.rpcEndpoint
+        ) {
+            simulationConnections.push(new Connection(TX_RPC_ENDPOINT, 'confirmed'));
+        }
+
+        const decodeVoterInfoFromLogs = (logs: string[] | null | undefined): number | null => {
+            for (const logLine of logs || []) {
+                if (!logLine.startsWith('Program data: ')) {
+                    continue;
+                }
+
+                try {
+                    const event = client.program.coder.events.decode(
+                        logLine.slice('Program data: '.length)
+                    );
+                    if (event?.name === 'VoterInfo') {
+                        return toNumberSafe(event?.data?.votingPower);
+                    }
+                } catch (_decodeError) {
+                    continue;
+                }
+            }
+
+            return null;
+        };
+
+        const simulateVoterInfo = async (
+            voter: PublicKey,
+            ownerPk: PublicKey
+        ): Promise<number | null> => {
+            for (const connection of simulationConnections) {
+                for (let attempt = 0; attempt < 2; attempt++) {
+                    try {
+                        const instruction = await client.program.methods
+                            .logVoterInfo(0, 64)
+                            .accounts({
+                                registrar,
+                                voter,
+                            })
+                            .instruction();
+
+                        const transaction = new Transaction();
+                        transaction.feePayer = ownerPk;
+                        transaction.recentBlockhash = (
+                            await connection.getLatestBlockhash('confirmed')
+                        ).blockhash;
+                        transaction.add(instruction);
+
+                        const simulation = await connection.simulateTransaction(transaction);
+                        if (simulation.value.err) {
+                            console.log('VSR logVoterInfo simulation error: ', simulation.value.err);
+                            continue;
+                        }
+
+                        const votingPower = decodeVoterInfoFromLogs(simulation.value.logs);
+                        if (votingPower !== null) {
+                            return votingPower;
+                        }
+                    } catch (simulationError) {
+                        console.log('Failed to simulate VSR voter info: ', simulationError);
+                    }
+                }
+            }
+
+            return null;
+        };
+
+        const simulationCandidates = voterAccounts.filter((_item, index) => {
+            const voterState = voterStates?.[index];
+            const hasVoterAccount = !!voterAccountInfos?.[index];
+            const hasDeposits = (voterState?.deposits || []).some(
+                (deposit: any) =>
+                    !!deposit?.isUsed &&
+                    toNumberSafe(deposit?.amountDepositedNative) > 0
+            );
+
+            return hasVoterAccount && hasDeposits;
+        });
+
+        const simulationBatchSize = 3;
+        for (let start = 0; start < simulationCandidates.length; start += simulationBatchSize) {
+            const batch = simulationCandidates.slice(start, start + simulationBatchSize);
+            const batchResults = await Promise.all(
+                batch.map(async (item) => ({
+                    owner: item.owner,
+                    votingPower: await simulateVoterInfo(item.voter, item.ownerPk),
+                }))
+            );
+
+            for (const result of batchResults) {
+                if (result.votingPower !== null) {
+                    votingPowerByOwner[result.owner] = result.votingPower;
+                    votingPowerResolvedByOwner[result.owner] = true;
+                }
+            }
+        }
+
+        const nowTs = Math.floor(Date.now() / 1000);
+        const memberStats: Record<string, any> = {};
+        const totals = {
+            totalDepositedNative: 0,
+            totalLockedNative: 0,
+            totalWithdrawableNative: 0,
+            activeParticipants: 0,
+            totalVotingPowerNative: 0,
+        };
+
+        for (let i = 0; i < voterAccounts.length; i++) {
+            const owner = voterAccounts[i].owner;
+            const voterState = voterStates?.[i];
+            const hasVoterAccount = !!voterAccountInfos?.[i];
+            const deposits = (voterState?.deposits || [])
+                .map((deposit: any, index: number) => {
+                    const amountDepositedNative = toNumberSafe(deposit?.amountDepositedNative);
+                    const withdrawableAmount = getVsrWithdrawableAmountNative(deposit, nowTs);
+                    return {
+                        ...deposit,
+                        index,
+                        isUsed: !!deposit?.isUsed,
+                        amountDepositedNative,
+                        withdrawableAmount,
+                    };
+                })
+                .filter((deposit: any) => deposit.isUsed && deposit.amountDepositedNative > 0);
+
+            const depositedNative = deposits.reduce(
+                (sum: number, deposit: any) => sum + toNumberSafe(deposit.amountDepositedNative),
+                0
+            );
+            const withdrawableNative = deposits.reduce(
+                (sum: number, deposit: any) => sum + toNumberSafe(deposit.withdrawableAmount),
+                0
+            );
+            const lockedNative = Math.max(0, depositedNative - withdrawableNative);
+            const approximateVotingPowerNative = Number(
+                getApproximateVsrVotingPowerNative(deposits, registrarState, nowTs)
+            );
+            const voterWeightNative = Object.prototype.hasOwnProperty.call(
+                votingPowerByOwner,
+                owner
+            )
+                ? Number(votingPowerByOwner[owner] || 0)
+                : approximateVotingPowerNative;
+            const isZeroPowerMember = !hasVoterAccount || deposits.length === 0;
+
+            memberStats[owner] = {
+                depositedNative,
+                lockedNative,
+                withdrawableNative,
+                depositCount: deposits.length,
+                voterWeightNative,
+                voterWeightApproximate:
+                    !Object.prototype.hasOwnProperty.call(votingPowerByOwner, owner) &&
+                    approximateVotingPowerNative > 0,
+                voterWeightRecordFound:
+                    isZeroPowerMember ||
+                    approximateVotingPowerNative > 0 ||
+                    Object.prototype.hasOwnProperty.call(
+                        votingPowerResolvedByOwner,
+                        owner
+                    ),
+            };
+
+            totals.totalDepositedNative += depositedNative;
+            totals.totalLockedNative += lockedNative;
+            totals.totalWithdrawableNative += withdrawableNative;
+            totals.totalVotingPowerNative += voterWeightNative;
+            if (depositedNative > 0) {
+                totals.activeParticipants += 1;
+            }
+        }
+
+        return {
+            memberStats,
+            totals,
+        };
+    }, []);
 
     const getTokens = async () => {
         const tarray:any[] = [];
@@ -394,24 +1009,65 @@ export function GovernanceMembersView(props: any) {
         if (!loading){
             setLoading(true);
             let grealm = null;
+            const debugInfo: any = {
+                requestedGovernanceAddress: governanceAddress,
+                realmSource: null,
+                memberSource: null,
+                indexedRecordCount: null,
+                rpcRecordCount: null,
+                pluginProgramId: null,
+            };
             try{  
                 const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
                 
                 console.log("SPL Governnace: "+governanceAddress);
                 
-                grealm = await getRealmIndexed(governanceAddress, undefined, true);
+                try {
+                    grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress));
+                    debugInfo.realmSource = 'rpc';
+                } catch (_rpcRealmError) {
+                    grealm = await getRealmIndexed(governanceAddress, undefined);
+                    debugInfo.realmSource = 'index';
+                }
                 if (!grealm) {
-                    throw new Error('Unable to load realm from indexed queries');
+                    throw new Error('Unable to load realm from rpc or indexed queries');
                 }
                 const realmPk = new PublicKey(grealm.pubkey);
+                debugInfo.resolvedRealm = realmPk.toBase58();
+                debugInfo.realmName = grealm.account?.name || null;
+                debugInfo.realmOwner = grealm.owner?.toBase58?.() || `${grealm.owner || ''}`;
+                debugInfo.communityMint =
+                    grealm.account?.communityMint?.toBase58?.() || `${grealm.account?.communityMint || ''}`;
                 setRealm(grealm);
                 setRealmName(grealm.account.name);
                 
                 //const config = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(grealm.owner), new PublicKey(grealm.pubkey));
-                const config = await getRealmConfigIndexed(null, grealm.owner, realmPk, true);
+                const config = await getRealmConfigIndexed(null, grealm.owner, realmPk);
+                const voterWeightAddin = toBase58Safe(
+                    config?.account?.communityTokenConfig?.voterWeightAddin
+                );
+                debugInfo.pluginProgramId = voterWeightAddin;
 
-                if (config?.account?.communityTokenConfig?.voterWeightAddin){
+                if (voterWeightAddin){
                     setPluginDao(true);
+                    setPluginProgramId(voterWeightAddin);
+                    if (!VSR_PLUGIN_PKS.includes(voterWeightAddin)) {
+                        setVsrSummary({
+                            totalDepositedNative: 0,
+                            totalLockedNative: 0,
+                            totalWithdrawableNative: 0,
+                            activeParticipants: 0,
+                        });
+                    }
+                } else {
+                    setPluginDao(false);
+                    setPluginProgramId(null);
+                    setVsrSummary({
+                        totalDepositedNative: 0,
+                        totalLockedNative: 0,
+                        totalWithdrawableNative: 0,
+                        activeParticipants: 0,
+                    });
                 }
 
                 //console.log("realm: "+JSON.stringify(grealm))
@@ -429,16 +1085,72 @@ export function GovernanceMembersView(props: any) {
                 setGoverningTokenDecimals(thisTokenDecimals);
                 
                 let trecords = null;
+                let indexedTokenOwnerRecords: any[] = [];
+                let rpcTokenOwnerRecords: any[] = [];
 
-                const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(
-                    realmPk.toBase58(),
-                    grealm?.owner?.toBase58 ? grealm.owner.toBase58() : `${grealm?.owner || ''}`,
-                    undefined,
-                    undefined,
-                    true
-                )
-                //rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
-                trecords = Array.isArray(indexedTokenOwnerRecords) ? indexedTokenOwnerRecords : [];
+                const realmOwnerString = grealm?.owner?.toBase58 ? grealm.owner.toBase58() : `${grealm?.owner || ''}`;
+                const isVsrPluginRealm = !!voterWeightAddin && VSR_PLUGIN_PKS.includes(voterWeightAddin);
+
+                if (isVsrPluginRealm) {
+                    try {
+                        rpcTokenOwnerRecords = await getAllTokenOwnerRecords(
+                            RPC_CONNECTION,
+                            new PublicKey(realmOwnerString),
+                            realmPk
+                        );
+                    } catch (rpcTokenOwnerRecordsError) {
+                        console.log('ERR(getAllTokenOwnerRecords rpc): ', rpcTokenOwnerRecordsError);
+                    }
+
+                    try {
+                        const indexedResults = await getAllTokenOwnerRecordsIndexed(
+                            realmPk.toBase58(),
+                            realmOwnerString,
+                            undefined,
+                            undefined,
+                            true
+                        );
+                        indexedTokenOwnerRecords = Array.isArray(indexedResults) ? indexedResults : [];
+                    } catch (indexedTokenOwnerRecordsError) {
+                        console.log('ERR(getAllTokenOwnerRecords indexed): ', indexedTokenOwnerRecordsError);
+                    }
+
+                    trecords = rpcTokenOwnerRecords.length > 0 ? rpcTokenOwnerRecords : indexedTokenOwnerRecords;
+                    debugInfo.memberSource = rpcTokenOwnerRecords.length > 0 ? 'rpc' : 'index';
+                } else {
+                    try {
+                        const indexedResults = await getAllTokenOwnerRecordsIndexed(
+                            realmPk.toBase58(),
+                            realmOwnerString,
+                            undefined,
+                            undefined,
+                            true
+                        );
+                        indexedTokenOwnerRecords = Array.isArray(indexedResults) ? indexedResults : [];
+                    } catch (indexedTokenOwnerRecordsError) {
+                        console.log('ERR(getAllTokenOwnerRecords indexed): ', indexedTokenOwnerRecordsError);
+                    }
+
+                    if (indexedTokenOwnerRecords.length > 0) {
+                        trecords = indexedTokenOwnerRecords;
+                        debugInfo.memberSource = 'index';
+                    } else {
+                        try {
+                            rpcTokenOwnerRecords = await getAllTokenOwnerRecords(
+                                RPC_CONNECTION,
+                                new PublicKey(realmOwnerString),
+                                realmPk
+                            );
+                        } catch (rpcTokenOwnerRecordsError) {
+                            console.log('ERR(getAllTokenOwnerRecords rpc): ', rpcTokenOwnerRecordsError);
+                        }
+                        trecords = rpcTokenOwnerRecords;
+                        debugInfo.memberSource = 'rpc';
+                    }
+                }
+
+                debugInfo.indexedRecordCount = indexedTokenOwnerRecords.length;
+                debugInfo.rpcRecordCount = rpcTokenOwnerRecords.length;
                 
                 //console.log("indexTokenOwnerRecords: ("+indexedTokenOwnerRecords.length+") "+JSON.stringify(indexedTokenOwnerRecords));
                 //console.log("grealm: "+JSON.stringify(grealm))
@@ -574,16 +1286,69 @@ export function GovernanceMembersView(props: any) {
                         }
                         cntr++;
                     }
+                    let enrichedParticipants = participantArray;
+                    let effectiveDepositedVotes = tVotes;
+                    let effectiveActiveParticipants = lParticipants;
+
+                    if (
+                        voterWeightAddin &&
+                        VSR_PLUGIN_PKS.includes(voterWeightAddin) &&
+                        participantArray.length > 0
+                    ) {
+                        try {
+                            const vsrData = await fetchVsrMemberStats(
+                                realmPk,
+                                new PublicKey(grealm.account.communityMint),
+                                new PublicKey(voterWeightAddin),
+                                participantArray
+                            );
+
+                            if (vsrData) {
+                                enrichedParticipants = participantArray.map((participant: any) => {
+                                    const owner = participant.governingTokenOwner.toBase58();
+                                    const stats = vsrData.memberStats?.[owner];
+
+                                    return {
+                                        ...participant,
+                                        vsrDepositedAmount: Number(stats?.depositedNative || 0),
+                                        vsrLockedAmount: Number(stats?.lockedNative || 0),
+                                        vsrWithdrawableAmount: Number(stats?.withdrawableNative || 0),
+                                        vsrDepositCount: Number(stats?.depositCount || 0),
+                                        vsrVotingPower: Number(stats?.voterWeightNative || 0),
+                                        vsrVotingPowerApproximate: !!stats?.voterWeightApproximate,
+                                        vsrVotingPowerRecord: !!stats?.voterWeightRecordFound,
+                                    };
+                                });
+                                effectiveDepositedVotes = Number(vsrData.totals?.totalDepositedNative || 0);
+                                effectiveActiveParticipants = Number(vsrData.totals?.activeParticipants || 0);
+                                setVsrSummary(vsrData.totals);
+                            }
+                        } catch (vsrError) {
+                            console.log("Failed to load VSR member stats: ", vsrError);
+                            setVsrSummary({
+                                totalDepositedNative: 0,
+                                totalLockedNative: 0,
+                                totalWithdrawableNative: 0,
+                                activeParticipants: 0,
+                            });
+                        }
+                    }
+
                     let pcount = 0;
-                    for (let singleParticipant of participantArray){
+                    for (let singleParticipant of enrichedParticipants){
                             if (pcount > 0)
                                 csvFile += '\r\n';
                             else
-                                csvFile = 'Member,VotesDeposited,TokenDecimals,RawVotesDeposited,CouncilVotesDeposited\r\n';
+                                csvFile = 'Member,VotesDeposited,LegacyVotesDeposited,TokenDecimals,RawVotesDeposited,RawLegacyVotesDeposited,CouncilVotesDeposited,VsrLockedRaw,VsrWithdrawableRaw\r\n';
                             
-                            let formattedDepositedAmount = (+(((singleParticipant.governingTokenDepositAmount))/Math.pow(10, thisTokenDecimals || 0)).toFixed(0));
+                            const rawDepositedAmount = pluginDao
+                                ? Number(singleParticipant?.vsrDepositedAmount ?? 0)
+                                : Number(singleParticipant?.governingTokenDepositAmount ?? 0);
+                            const rawLegacyDepositedAmount = Number(singleParticipant?.governingTokenDepositAmount ?? 0);
+                            let formattedDepositedAmount = (+((rawDepositedAmount)/Math.pow(10, thisTokenDecimals || 0)).toFixed(0));
+                            let formattedLegacyDepositedAmount = (+((rawLegacyDepositedAmount)/Math.pow(10, thisTokenDecimals || 0)).toFixed(0));
                             //csvFile += record.account.governingTokenOwner.toBase58()+','+record.account.governingTokenDepositAmount.toNumber();
-                            csvFile += singleParticipant.governingTokenOwner.toBase58()+','+formattedDepositedAmount+','+thisTokenDecimals+','+Number(singleParticipant?.governingTokenDepositAmount ?? 0)+','+Number(singleParticipant?.governingCouncilDepositAmount ?? 0);
+                            csvFile += singleParticipant.governingTokenOwner.toBase58()+','+formattedDepositedAmount+','+formattedLegacyDepositedAmount+','+thisTokenDecimals+','+rawDepositedAmount+','+rawLegacyDepositedAmount+','+Number(singleParticipant?.governingCouncilDepositAmount ?? 0)+','+Number(singleParticipant?.vsrLockedAmount ?? 0)+','+Number(singleParticipant?.vsrWithdrawableAmount ?? 0);
                         
                             pcount++;
                     }
@@ -594,17 +1359,21 @@ export function GovernanceMembersView(props: any) {
                     setCSVGenerated(jsonCSVString);
                     setRecordCount(null);
                     setTotalUnstakedVotes(tUnstakedVotes > 0 ? tUnstakedVotes : null);
-                    setTotalDepositedVotes(tVotes > 0 ? tVotes : null);
+                    setTotalDepositedVotes(effectiveDepositedVotes > 0 ? effectiveDepositedVotes : null);
                     setTotalVotesCasted(tVotesCasted > 0 ? tVotesCasted : null);
                     setTotalCouncilVotes(tCouncilVotes > 0 ? tCouncilVotes : null);
                     setDepositedTotalCouncilVotes(tDepositedCouncilVotesCasted > 0 ? tDepositedCouncilVotesCasted : null);
                     setTotalParticipants(tParticipants > 0 ? tParticipants : null);
-                    setActiveParticipants(lParticipants > 0 ? lParticipants : null);
+                    setActiveParticipants(effectiveActiveParticipants > 0 ? effectiveActiveParticipants : null);
                     setVotingParticipants(aParticipants > 0 ? aParticipants : null);
 
                     //console.log("participantArray: "+JSON.stringify(participantArray));
-                    const presortedResults = participantArray.sort((a,b) => (a.totalVotesCount > b.totalVotesCount) ? 1 : -1);
-                    const sortedResults = presortedResults.sort((a,b) => (Number(a?.governingTokenDepositAmount ?? 0) < Number(b?.governingTokenDepositAmount ?? 0)) ? 1 : -1);
+                    const getDepositedAmount = (member: any) =>
+                        pluginDao
+                            ? Number(member?.vsrDepositedAmount ?? 0)
+                            : Number(member?.governingTokenDepositAmount ?? 0);
+                    const presortedResults = enrichedParticipants.sort((a,b) => (a.totalVotesCount > b.totalVotesCount) ? 1 : -1);
+                    const sortedResults = presortedResults.sort((a,b) => (getDepositedAmount(a) < getDepositedAmount(b)) ? 1 : -1);
 
                     let top10 = null;
                     let count = 0;
@@ -615,10 +1384,13 @@ export function GovernanceMembersView(props: any) {
                     const supplyAmount = Number(circulatingSupply?.value?.amount || 0);
                     for (var member of sortedResults){
                         if (count < 10){
-                            totalTopVotes += Number(member?.governingTokenDepositAmount ?? 0)/Math.pow(10, thisTokenDecimals || 0);
+                            const memberDepositedAmount = getDepositedAmount(member);
+                            totalTopVotes += memberDepositedAmount/Math.pow(10, thisTokenDecimals || 0);
                             if (supplyAmount > 0){
-                                totalTopCirculatingSupply += (Number(member?.governingTokenDepositAmount ?? 0)/supplyAmount)*100
-                                totalTopGovernanceSupply += (Number(member?.governingTokenDepositAmount ?? 0)/tVotes)*100
+                                totalTopCirculatingSupply += (memberDepositedAmount/supplyAmount)*100
+                                totalTopGovernanceSupply += effectiveDepositedVotes > 0
+                                    ? (memberDepositedAmount/effectiveDepositedVotes)*100
+                                    : 0;
                             }
                         }
                         count++
@@ -633,46 +1405,24 @@ export function GovernanceMembersView(props: any) {
                     if (top10)
                         setTop10Participants(top10);
                     setMembers(sortedResults);
+                    debugInfo.finalMemberCount = sortedResults.length;
                 }
             
-            }catch(e){console.log("ERR: "+e)}
+            }catch(e){console.log("ERR: "+e); debugInfo.error = `${e}`;}
         
             const fetchedgspl = await initGrapeGovernanceDirectory();
             setGSPL(fetchedgspl);
             console.log("fetchedgspl: "+JSON.stringify(fetchedgspl));
-            let gsplMeta = null;
-            if (fetchedgspl && grealm){
-                for (var diritem of fetchedgspl){
-                    if (grealm.account.name === diritem.name){ // also make sure that diritem.governanceProgram ===item.parent?
-                        // check if there is also metadata and fetch it 
-                        if (diritem.metadataUri) {
-                            try {
-                                const response = await fetch(diritem.metadataUri);
-                                if (response.ok) {
-                                    const metadata = await response.json();
-                                    gsplMeta = {
-                                        gspl:diritem,
-                                        metadata: metadata
-                                    }
-                                } else {
-                                    console.error("Failed to fetch metadata:", diritem.metadataUri);
-                                }
-                            } catch (error) {
-                                console.error("Error fetching metadata:", error);
-                            }
-                        }
-
-                        if (!gsplMeta){
-                            gsplMeta = {
-                                gspl:diritem,
-                            }
-                        }
-
-                        setGSPLMetadata(gsplMeta);
-                        console.log("GSPL Entry found for "+diritem.name);
-                    }
+            if (grealm){
+                const resolvedMetadata = await resolveRealmMetadata(grealm, fetchedgspl).catch((error) => {
+                    console.log('ERR(resolveRealmMetadata): ' + error);
+                    return null;
+                });
+                if (resolvedMetadata){
+                    setGSPLMetadata(resolvedMetadata);
                 }
             }
+            setMembersDebug(debugInfo);
         }
         setLoading(false);
         endTimer();
@@ -706,10 +1456,13 @@ export function GovernanceMembersView(props: any) {
     const participatingVotersCount = Number(votingParticipants || 0);
     const activeVoterRate = allVotersCount > 0 ? (activeVotersCount / allVotersCount) * 100 : 0;
     const participatingVoterRate = allVotersCount > 0 ? (participatingVotersCount / allVotersCount) * 100 : 0;
+    const isVsrRealm = !!pluginProgramId && VSR_PLUGIN_PKS.includes(pluginProgramId);
     const communityVotesDepositedUi = totalDepositedVotes
         ? +((totalDepositedVotes) / Math.pow(10, governingTokenDecimals || 0)).toFixed(0)
         : 0;
     const councilVotesDepositedUi = Number(totalDepositedCouncilVotes || 0);
+    const vsrLockedUi = +((Number(vsrSummary?.totalLockedNative || 0)) / Math.pow(10, governingTokenDecimals || 0)).toFixed(0);
+    const vsrWithdrawableUi = +((Number(vsrSummary?.totalWithdrawableNative || 0)) / Math.pow(10, governingTokenDecimals || 0)).toFixed(0);
     const top10Votes = Number(top10Participants?.votes || 0);
     const top10GovernanceShare = Number(top10Participants?.percentageOfGovernanceSupply || 0);
     const top10SupplyShare = Number(top10Participants?.percentageOfSupply || 0);
@@ -779,15 +1532,52 @@ export function GovernanceMembersView(props: any) {
                                 </Grid>
                             </>
                         }
+                        {realm && (
+                            <Box sx={{ px: 1, pt: 0.5 }}>
+                                <GovernancePower governanceAddress={governanceAddress} realm={realm} />
+                            </Box>
+                        )}
                         {pluginDao ?
-                            <>
-                                <Box sx={{ p:1, textAlign:'center'}}>
-                                    <Typography variant="h5">This DAO is using a Voter Plugin additional voter stake weight information coming soon...</Typography>
-                                </Box>
-                            </>
+                            <Box
+                                sx={{
+                                    mx: 1,
+                                    mt: 0.5,
+                                    mb: 1,
+                                    p: 1.25,
+                                    borderRadius: '16px',
+                                    border: '1px solid rgba(255,255,255,0.08)',
+                                    background: 'linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02))',
+                                }}
+                            >
+                                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.88)' }}>
+                                    {isVsrRealm
+                                        ? 'VoteStakeRegistry deposits are shown here as deposited, locked, and withdrawable balances. Legacy SPL governance deposits remain visible in a separate column so members can still track balances that may need to be withdrawn through the standard governance flow. Connected wallets can manage and withdraw unlocked VSR deposits from the governance power card above.'
+                                        : 'This DAO uses a governance voter plugin. Member balances may include plugin-specific voting power in addition to standard SPL governance deposits.'}
+                                </Typography>
+                            </Box>
                         :
                             <></>
                         }
+                        {debugVsr && membersDebug && (
+                            <Box
+                                sx={{
+                                    mx: 1,
+                                    mt: 0.5,
+                                    mb: 1,
+                                    p: 1.25,
+                                    borderRadius: '16px',
+                                    border: '1px solid rgba(255,255,255,0.12)',
+                                    background: 'rgba(255,255,255,0.04)',
+                                }}
+                            >
+                                <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.72)', mb: 0.5 }}>
+                                    VSR Debug
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', color: 'rgba(255,255,255,0.9)' }}>
+                                    {JSON.stringify(membersDebug, null, 2)}
+                                </Typography>
+                            </Box>
+                        )}
                             {(totalDepositedVotes || totalCouncilVotes) &&
                                 <Box sx={{ p:1}}>
                                     <Grid container spacing={1}>
@@ -948,7 +1738,11 @@ export function GovernanceMembersView(props: any) {
                                                         {councilVotesDepositedUi > 0 ? ` / ${getFormattedNumberToLocale(councilVotesDepositedUi)}` : ''}
                                                     </Typography>
                                                     <Typography variant="caption" sx={{ display: 'block', mt: 0.55, color: 'rgba(255,255,255,0.66)' }}>
-                                                        {totalUnstakedVotes ? `${getFormattedNumberToLocale(totalUnstakedVotes)} unstaked in wallets` : 'No unstaked amount found'}
+                                                        {isVsrRealm
+                                                            ? `${getFormattedNumberToLocale(vsrLockedUi)} locked • ${getFormattedNumberToLocale(vsrWithdrawableUi)} withdrawable`
+                                                            : totalUnstakedVotes
+                                                            ? `${getFormattedNumberToLocale(totalUnstakedVotes)} unstaked in wallets`
+                                                            : 'No unstaked amount found'}
                                                     </Typography>
                                                     <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.66)' }}>
                                                         {depositedCirculatingShare !== null
@@ -1021,7 +1815,7 @@ export function GovernanceMembersView(props: any) {
                                 </Box>
                             }
 
-                        <RenderGovernanceMembersTable members={members} memberMap={null} participating={participating} tokenMap={tokenMap} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />
+                        <RenderGovernanceMembersTable members={members} memberMap={null} participating={participating} tokenMap={tokenMap} pluginDao={isVsrRealm} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />
                     
                         {endTime &&
                             <Typography 

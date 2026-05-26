@@ -1,5 +1,13 @@
 import { Program, Provider, web3 } from '@coral-xyz/anchor'
+import {
+  PublicKey,
+  SYSVAR_INSTRUCTIONS_PUBKEY,
+  SYSVAR_RENT_PUBKEY,
+  TransactionInstruction,
+} from '@solana/web3.js'
+import { SYSTEM_PROGRAM_ID } from '@solana/spl-governance'
 import { IDL, VoterStakeRegistry } from './voter_stake_registry'
+import { getRegistrarPDA, getVoterPDA, getVoterWeightPDA } from './account'
 
 
 export const VSR_PLUGIN_PKS: string[] = [
@@ -26,6 +34,66 @@ export class VsrClient {
     public program: Program<VoterStakeRegistry>,
     public devnet?: boolean
   ) {}
+
+  getRegistrarPDA(realm: PublicKey, mint: PublicKey) {
+    return getRegistrarPDA(realm, mint, this.program.programId)
+  }
+
+  getVoterPDA(registrar: PublicKey, walletPk: PublicKey) {
+    return getVoterPDA(registrar, walletPk, this.program.programId)
+  }
+
+  getVoterWeightRecordPDA(registrar: PublicKey, walletPk: PublicKey) {
+    return getVoterWeightPDA(registrar, walletPk, this.program.programId)
+  }
+
+  async createVoterWeightRecord(
+    voter: PublicKey,
+    realm: PublicKey,
+    mint: PublicKey
+  ): Promise<TransactionInstruction> {
+    const { registrar } = await this.getRegistrarPDA(realm, mint)
+    const { voter: voterPda, voterBump } = await this.getVoterPDA(registrar, voter)
+    const { voterWeightPk, voterWeightBump } = await this.getVoterWeightRecordPDA(
+      registrar,
+      voter
+    )
+
+    return this.program.methods
+      .createVoter(voterBump, voterWeightBump)
+      .accounts({
+        registrar,
+        voter: voterPda,
+        voterAuthority: voter,
+        voterWeightRecord: voterWeightPk,
+        payer: voter,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+        instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+      })
+      .instruction()
+  }
+
+  async updateVoterWeightRecord(
+    voter: PublicKey,
+    realm: PublicKey,
+    mint: PublicKey
+  ): Promise<{ pre: TransactionInstruction[] }> {
+    const { registrar } = await this.getRegistrarPDA(realm, mint)
+    const { voter: voterPda } = await this.getVoterPDA(registrar, voter)
+    const { voterWeightPk } = await this.getVoterWeightRecordPDA(registrar, voter)
+    const instruction = await this.program.methods
+      .updateVoterWeightRecord()
+      .accounts({
+        registrar,
+        voter: voterPda,
+        voterWeightRecord: voterWeightPk,
+        systemProgram: SYSTEM_PROGRAM_ID,
+      })
+      .instruction()
+
+    return { pre: [instruction] }
+  }
 
   static async connect(
     provider: Provider,

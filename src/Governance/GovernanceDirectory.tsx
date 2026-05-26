@@ -39,9 +39,11 @@ import GovernanceDirectoryCardView from './GovernanceDirectoryCardView';
 import CreateSplGovernanceDaoButton from './CreateNewDAO/CreateSplGovernanceDaoButton';
 
 import { initGrapeGovernanceDirectory } from './api/gspl_queries';
+import { fetchMythicRealmMetadata, mergeDaoMetadata } from './api/realmMetadata';
 import {
   buildDirectoryFromGraphQL,
   getAllGovernancesFromAllPrograms,
+  getRealmIndexed,
   getRealmsIndexed,
   govOwners,
   getTokenOwnerRecordsByOwnerAcrossProgramsIndexed,
@@ -175,6 +177,7 @@ function ScrollTop(props: Props) {
 export function GovernanceDirectoryView(props: Props) {
   const { publicKey } = useWallet();
   const [metadataMap, setMetadataMap] = React.useState<{ [key: string]: any }>({});
+  const [mythicMetadataMap, setMythicMetadataMap] = React.useState<{ [key: string]: any }>({});
   const [governanceLookup, setGovernanceLookup] = React.useState<GovernanceLookupItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -196,6 +199,7 @@ export function GovernanceDirectoryView(props: Props) {
   const [favoriteRealmVoteTotals, setFavoriteRealmVoteTotals] = React.useState<Record<string, number>>({});
   const [walletFavoritesLoading, setWalletFavoritesLoading] = React.useState(false);
   const metadataInFlight = React.useRef<Set<string>>(new Set());
+  const mythicMetadataInFlight = React.useRef<Set<string>>(new Set());
   const walletAddress = publicKey?.toBase58?.() || '';
 
   const buildMergedDirectory = React.useCallback(
@@ -759,7 +763,10 @@ export function GovernanceDirectoryView(props: Props) {
 
       if (!query) return true;
 
-      const metadata = item?.gspl?.metadataUri ? metadataMap[item.gspl.metadataUri] : null;
+      const gsplMetadata = item?.gspl?.metadataUri ? metadataMap[item.gspl.metadataUri] : null;
+      const realmAddress = governanceRealmKey(item);
+      const mythicMetadata = realmAddress ? mythicMetadataMap[realmAddress] : null;
+      const metadata = mergeDaoMetadata(gsplMetadata, mythicMetadata);
       const searchFields = [
         metadata?.displayName,
         metadata?.shortDescription,
@@ -799,6 +806,7 @@ export function GovernanceDirectoryView(props: Props) {
     filterActiveVoting,
     filterOver100Proposals,
     metadataMap,
+    mythicMetadataMap,
   ]);
 
   const favoriteGovernances = React.useMemo(() => {
@@ -898,6 +906,61 @@ export function GovernanceDirectoryView(props: Props) {
       cancelled = true;
     };
   }, [favoriteGovernances, nonFavoriteGovernances, visibleCount, metadataMap]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const fetchMythicMetadata = async () => {
+      const lookahead = Math.max(visibleCount + 24, 84);
+      const realmAddresses = Array.from(
+        new Set(
+          [...favoriteGovernances, ...nonFavoriteGovernances.slice(0, lookahead)]
+            .map((item) => governanceRealmKey(item))
+            .filter((realmAddress) => typeof realmAddress === 'string' && realmAddress.length > 0)
+        )
+      ).filter(
+        (realmAddress) =>
+          !Object.prototype.hasOwnProperty.call(mythicMetadataMap, realmAddress) &&
+          !mythicMetadataInFlight.current.has(realmAddress)
+      );
+
+      if (!realmAddresses.length) return;
+
+      const batch = realmAddresses.slice(0, 8);
+      for (const realmAddress of batch) mythicMetadataInFlight.current.add(realmAddress);
+
+      const fetchedEntries = await Promise.all(
+        batch.map(async (realmAddress) => {
+          try {
+            const realm = await getRealmIndexed(realmAddress);
+            if (!realm) return null;
+            const metadata = await fetchMythicRealmMetadata(realm);
+            return [realmAddress, metadata] as const;
+          } catch (_e) {
+            return [realmAddress, null] as const;
+          } finally {
+            mythicMetadataInFlight.current.delete(realmAddress);
+          }
+        })
+      );
+
+      if (cancelled) return;
+
+      setMythicMetadataMap((currentMap) => {
+        const nextMap = { ...currentMap };
+        for (const entry of fetchedEntries) {
+          if (entry) nextMap[entry[0]] = entry[1];
+        }
+        return nextMap;
+      });
+    };
+
+    fetchMythicMetadata();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [favoriteGovernances, nonFavoriteGovernances, visibleCount, mythicMetadataMap]);
 
   const displayedGovernances = React.useMemo(
     () => nonFavoriteGovernances.slice(0, visibleCount),
@@ -1341,7 +1404,10 @@ export function GovernanceDirectoryView(props: Props) {
           ) : favoriteGovernances.length > 0 ? (
             <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
               {favoriteGovernances.map((item: GovernanceLookupItem, key: number) => {
-                const metadata = item?.gspl?.metadataUri ? metadataMap[item.gspl.metadataUri] : {};
+                const metadata = mergeDaoMetadata(
+                  item?.gspl?.metadataUri ? metadataMap[item.gspl.metadataUri] : null,
+                  mythicMetadataMap[governanceRealmKey(item)] || null
+                ) || {};
 
                 return (
                   <Grid
@@ -1395,7 +1461,10 @@ export function GovernanceDirectoryView(props: Props) {
       {nonFavoriteGovernances.length > 0 ? (
         <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }} sx={{ mt: 0.5 }}>
           {displayedGovernances.map((item: GovernanceLookupItem, key: number) => {
-            const metadata = item?.gspl?.metadataUri ? metadataMap[item.gspl.metadataUri] : {};
+            const metadata = mergeDaoMetadata(
+              item?.gspl?.metadataUri ? metadataMap[item.gspl.metadataUri] : null,
+              mythicMetadataMap[governanceRealmKey(item)] || null
+            ) || {};
 
             return (
               <Grid

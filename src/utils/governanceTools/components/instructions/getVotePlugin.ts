@@ -119,3 +119,57 @@ export const getVotingPlugin = async (
     */
     return { voterWeightPk, maxVoterWeightRecord, client, registrar, voter };
 }
+
+export const getVotingPluginWithUpdate = async (
+    selectedRealm: any,
+    communityMint: any,
+    walletPubkey: PublicKey,
+    voterWeightAddin: any,
+) => {
+    const votePlugin = await getVotingPlugin(
+        selectedRealm,
+        communityMint,
+        walletPubkey,
+        voterWeightAddin
+    );
+
+    if (!votePlugin) {
+        return null;
+    }
+
+    const instructions: TransactionInstruction[] = [];
+
+    try {
+        const [voterAccountInfo, voterWeightAccountInfo] = await RPC_CONNECTION.getMultipleAccountsInfo([
+            votePlugin.voter,
+            votePlugin.voterWeightPk,
+        ]);
+
+        if (!voterAccountInfo || !voterWeightAccountInfo) {
+            const createVoterIx = await votePlugin.client.createVoterWeightRecord(
+                walletPubkey,
+                new PublicKey(selectedRealm.pubkey),
+                new PublicKey(communityMint)
+            );
+            instructions.push(createVoterIx);
+        }
+    } catch (error) {
+        console.log('ERR(create voter weight record): ' + error);
+    }
+
+    try {
+        const updateVoterWeightIx = await votePlugin.client.updateVoterWeightRecord(
+            walletPubkey,
+            new PublicKey(selectedRealm.pubkey),
+            new PublicKey(communityMint)
+        );
+        instructions.push(...(updateVoterWeightIx?.pre || []));
+    } catch (error) {
+        console.log('ERR(update voter weight record): ' + error);
+    }
+
+    return {
+        ...votePlugin,
+        instructions,
+    };
+}

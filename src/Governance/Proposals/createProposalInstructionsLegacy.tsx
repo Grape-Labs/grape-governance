@@ -45,7 +45,7 @@ import {
   getSignatoryRecordsIndexed,
 } from '../api/queries';
 
-import { getVotingPlugin } from '../../utils/governanceTools/components/instructions/getVotePlugin';
+import { getVotingPluginWithUpdate } from '../../utils/governanceTools/components/instructions/getVotePlugin';
 import { 
   RPC_CONNECTION,
   BLACKLIST_WALLETS } from '../../utils/grapeTools/constants';  
@@ -331,7 +331,7 @@ export async function createProposalInstructionsLegacy(
             if (hasVoterWeight || realmConfig?.account?.communityTokenConfig?.voterWeightAddin){
               console.log("vwa: "+realmConfig.account.communityTokenConfig.voterWeightAddin.toBase58())
               
-              votePlugin = await getVotingPlugin(
+              votePlugin = await getVotingPluginWithUpdate(
                   selectedRealmIndexed,
                   governingTokenMint,
                   walletPk,
@@ -341,6 +341,7 @@ export async function createProposalInstructionsLegacy(
               //console.log("Vote Plugin: "+JSON.stringify(votePlugin))
               
               if (votePlugin){
+                instructions.push(...(votePlugin.instructions || []));
                 console.log("Using Voter Plugin");
               } else {
                 console.log("No Voter Plugin");

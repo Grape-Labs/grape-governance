@@ -7,6 +7,7 @@ import moment from 'moment';
 import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
 import {getRealms, RequestStatus} from "gspl-directory";
 import {publicKey as UmiPK} from "@metaplex-foundation/umi";
+import { resolveRealmMetadata } from './api/realmMetadata';
 
 import { GovernanceStatsSummaryView } from './GovernanceStatsSummary';
 
@@ -925,37 +926,13 @@ export function GovernanceStatsView(props: any) {
             const fetchedgspl = await initGrapeGovernanceDirectory();
             setGSPL(fetchedgspl);
             console.log("fetchedgspl: "+JSON.stringify(fetchedgspl));
-            let gsplMeta = null;
-            if (fetchedgspl && grealm){
-                for (var diritem of fetchedgspl){
-                    if (grealm.account.name === diritem.name){ // also make sure that diritem.governanceProgram ===item.parent?
-                        // check if there is also metadata and fetch it 
-                        if (diritem.metadataUri) {
-                            try {
-                                const response = await fetch(diritem.metadataUri);
-                                if (response.ok) {
-                                    const metadata = await response.json();
-                                    gsplMeta = {
-                                        gspl:diritem,
-                                        metadata: metadata
-                                    }
-                                } else {
-                                    console.error("Failed to fetch metadata:", diritem.metadataUri);
-                                }
-                            } catch (error) {
-                                console.error("Error fetching metadata:", error);
-                            }
-                        }
-
-                        if (!gsplMeta){
-                            gsplMeta = {
-                                gspl:diritem,
-                            }
-                        }
-
-                        setGSPLMetadata(gsplMeta);
-                        console.log("GSPL Entry found for "+diritem.name);
-                    }
+            if (grealm){
+                const resolvedMetadata = await resolveRealmMetadata(grealm, fetchedgspl).catch((error) => {
+                    console.log('ERR(resolveRealmMetadata): ' + error);
+                    return null;
+                });
+                if (resolvedMetadata){
+                    setGSPLMetadata(resolvedMetadata);
                 }
             }
         }
