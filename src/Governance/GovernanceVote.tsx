@@ -780,6 +780,76 @@ export function VoteForProposal(props:any){
         }
     }, [publicKey]);
 
+    const voteTone = type === 0
+        ? {
+            main: "#2fb36d",
+            dark: "#1f7a49",
+            soft: "rgba(47,179,109,0.18)",
+            border: "rgba(92,219,146,0.42)",
+          }
+        : {
+            main: "#d45757",
+            dark: "#8f3030",
+            soft: "rgba(212,87,87,0.18)",
+            border: "rgba(238,121,121,0.42)",
+          };
+
+    const splitVoteGroupSx = {
+        borderRadius: "20px",
+        overflow: "hidden",
+        width: { xs: "100%", sm: "auto" },
+        maxWidth: "100%",
+        boxShadow: `0 14px 34px ${voteTone.soft}`,
+        border: `1px solid ${voteTone.border}`,
+        background: `linear-gradient(180deg, ${voteTone.soft}, rgba(15,18,24,0.9))`,
+        "& .MuiButton-root": {
+            textTransform: "none",
+            borderColor: voteTone.border,
+            color: "#fff",
+        },
+        "& .MuiButtonGroup-grouped:not(:last-of-type)": {
+            borderColor: voteTone.border,
+        },
+    };
+
+    const splitVoteMainButtonSx = {
+        borderRadius: 0,
+        px: { xs: 1.5, sm: 2.4 },
+        py: 1.25,
+        minHeight: 70,
+        minWidth: { xs: 0, sm: 224 },
+        width: { xs: "100%", sm: "auto" },
+        maxWidth: "100%",
+        background: `linear-gradient(180deg, ${voteTone.main}, ${voteTone.dark})`,
+        fontWeight: 700,
+        letterSpacing: 0.2,
+        "&:hover": {
+            background: `linear-gradient(180deg, ${voteTone.main}, ${voteTone.dark})`,
+            filter: "brightness(1.06)",
+        },
+    };
+
+    const splitVoteCaretButtonSx = {
+        borderRadius: 0,
+        px: 1.15,
+        minWidth: 48,
+        background: "rgba(6,10,16,0.34)",
+        "&:hover": {
+            background: "rgba(6,10,16,0.5)",
+        },
+    };
+
+    const inactiveVoteButtonSx = {
+        borderRadius: "20px",
+        textTransform: "none",
+        px: 2,
+        py: 1.1,
+        minHeight: 68,
+        borderColor: voteTone.border,
+        color: "#fff",
+        background: "rgba(255,255,255,0.03)",
+    };
+
     return (
   <>
     {!publicKey || thisitem.account?.state !== 2 ? (
@@ -789,7 +859,7 @@ export function VoteForProposal(props:any){
             variant="outlined"
             color="success"
             disabled
-            sx={{ borderRadius: "17px", textTransform: "none" }}
+            sx={inactiveVoteButtonSx}
           >
             {title && subtitle && showIcon && (
               <Grid container direction="column" alignItems="center">
@@ -820,7 +890,7 @@ export function VoteForProposal(props:any){
             variant="outlined"
             color="error"
             disabled
-            sx={{ borderRadius: "17px", textTransform: "none" }}
+            sx={inactiveVoteButtonSx}
           >
             {title && subtitle && showIcon && (
               <Grid container direction="column" alignItems="center">
@@ -859,24 +929,11 @@ export function VoteForProposal(props:any){
                   <ButtonGroup
                     variant="outlined"
                     color="success"
-                    sx={{
-                      borderRadius: "18px",
-                      overflow: "hidden",
-                      width: { xs: "100%", sm: "auto" },
-                      maxWidth: "100%",
-                      "& .MuiButton-root": { textTransform: "none" },
-                    }}
+                    sx={splitVoteGroupSx}
                   >
                     <Button
                       onClick={handleVoteYes}
-                      sx={{
-                        borderRadius: 0,
-                        px: { xs: 1.25, sm: 2 },
-                        py: 1,
-                        minWidth: { xs: 0, sm: 210 },
-                        width: { xs: "100%", sm: "auto" },
-                        maxWidth: "100%",
-                      }}
+                      sx={splitVoteMainButtonSx}
                     >
                       {title && subtitle && showIcon ? (
                         <Grid container direction="column" alignItems="center">
@@ -908,7 +965,7 @@ export function VoteForProposal(props:any){
                         aria-haspopup="true"
                         aria-expanded={openDelegateYes ? "true" : undefined}
                         onClick={handleDelegateOpenYesToggle}
-                        sx={{ borderRadius: 0, px: 1.1, minWidth: 44 }}
+                        sx={splitVoteCaretButtonSx}
                       >
                         <ArrowDropDownIcon />
                       </Button>
@@ -925,9 +982,9 @@ export function VoteForProposal(props:any){
                       aria-expanded={openDelegateYes ? "true" : undefined}
                       onClick={handleDelegateOpenYesToggle}
                       sx={{
-                        borderRadius: "18px",
-                        textTransform: "none",
-                        minWidth: 44,
+                        ...inactiveVoteButtonSx,
+                        minWidth: 48,
+                        px: 1.15,
                       }}
                     >
                       <ArrowDropDownIcon />
@@ -995,24 +1052,11 @@ export function VoteForProposal(props:any){
                   <ButtonGroup
                     variant="outlined"
                     color="error"
-                    sx={{
-                      borderRadius: "18px",
-                      overflow: "hidden",
-                      width: { xs: "100%", sm: "auto" },
-                      maxWidth: "100%",
-                      "& .MuiButton-root": { textTransform: "none" },
-                    }}
+                    sx={splitVoteGroupSx}
                   >
                     <Button
                       onClick={handleVoteNo}
-                      sx={{
-                        borderRadius: 0,
-                        px: { xs: 1.25, sm: 2 },
-                        py: 1,
-                        minWidth: { xs: 0, sm: 210 },
-                        width: { xs: "100%", sm: "auto" },
-                        maxWidth: "100%",
-                      }}
+                      sx={splitVoteMainButtonSx}
                     >
                       {title && subtitle && showIcon ? (
                         <Grid container direction="column" alignItems="center">
@@ -1043,7 +1087,7 @@ export function VoteForProposal(props:any){
                         aria-haspopup="true"
                         aria-expanded={openDelegateNo ? "true" : undefined}
                         onClick={handleDelegateOpenNoToggle}
-                        sx={{ borderRadius: 0, px: 1.1, minWidth: 44 }}
+                        sx={splitVoteCaretButtonSx}
                       >
                         <ArrowDropDownIcon />
                       </Button>
@@ -1058,7 +1102,11 @@ export function VoteForProposal(props:any){
                       aria-haspopup="true"
                       aria-expanded={openDelegateNo ? "true" : undefined}
                       onClick={handleDelegateOpenNoToggle}
-                      sx={{ borderRadius: "17px", textTransform: "none" }}
+                      sx={{
+                        ...inactiveVoteButtonSx,
+                        minWidth: 48,
+                        px: 1.15,
+                      }}
                     >
                       <ArrowDropDownIcon />
                     </Button>
@@ -1142,7 +1190,7 @@ export function VoteForProposal(props:any){
                       handleClickOpen()
                     }
                     color={type === 0 ? "success" : "error"}
-                    sx={{ borderRadius: "17px", textTransform: "none" }}
+                    sx={inactiveVoteButtonSx}
                   >
                     <Grid container direction="column" alignItems="center">
                       <Grid item>
@@ -1249,11 +1297,11 @@ export function VoteForProposal(props:any){
                       `You casted ${getFormattedNumberToLocale(voteMagnitude)} votes ${voteDirectionLabel} this proposal`
                     }
                   >
-                    <Button
-                      variant="outlined"
-                      color="success"
-                      sx={{ borderRadius: "17px", textTransform: "none" }}
-                    >
+                        <Button
+                          variant="outlined"
+                          color="success"
+                          sx={inactiveVoteButtonSx}
+                        >
                       <CheckCircleIcon />
                     </Button>
                   </Tooltip>
@@ -1269,7 +1317,7 @@ export function VoteForProposal(props:any){
                         <Button
                           variant="outlined"
                           color="error"
-                          sx={{ borderRadius: "17px", textTransform: "none" }}
+                          sx={inactiveVoteButtonSx}
                         >
                           <CheckCircleIcon />
                         </Button>

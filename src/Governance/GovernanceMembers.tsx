@@ -1073,6 +1073,21 @@ export function GovernanceMembersView(props: any) {
                 //console.log("realm: "+JSON.stringify(grealm))
 
                 setGoverningTokenMint(new PublicKey(grealm.account.communityMint).toBase58());
+                let resolvedCirculatingSupply = null;
+                try {
+                    resolvedCirculatingSupply = await connection.getTokenSupply(
+                        new PublicKey(grealm.account.communityMint)
+                    );
+                    setCirculatingSupply(resolvedCirculatingSupply);
+                    debugInfo.circulatingSupplyAmount =
+                        resolvedCirculatingSupply?.value?.amount || null;
+                    debugInfo.circulatingSupplyDecimals =
+                        resolvedCirculatingSupply?.value?.decimals ?? null;
+                } catch (tokenSupplyError) {
+                    console.log('ERR(getTokenSupply): ', tokenSupplyError);
+                    setCirculatingSupply(null);
+                    debugInfo.circulatingSupplyError = `${tokenSupplyError}`;
+                }
                 // with realm check if this is a backed token
                 let thisTokenDecimals = 0;
 
@@ -1381,7 +1396,7 @@ export function GovernanceMembersView(props: any) {
                     let totalTopSupply = 0;
                     let totalTopCirculatingSupply = 0;
                     let totalTopGovernanceSupply = 0;
-                    const supplyAmount = Number(circulatingSupply?.value?.amount || 0);
+                    const supplyAmount = Number(resolvedCirculatingSupply?.value?.amount || 0);
                     for (var member of sortedResults){
                         if (count < 10){
                             const memberDepositedAmount = getDepositedAmount(member);
