@@ -418,16 +418,52 @@ function RenderGovernanceMembersTable(props:any) {
         { field: 'address', headerName: 'Address', minWidth: 70, hide: true},
         { field: 'record', headerName: 'Record', minWidth: 70, hide: true},
         { field: 'delegate', headerName: 'Delegate', minWidth: 200, hide: true},
-        { field: 'member', headerName: 'Member', minWidth: 200, flex: 1,
+        { field: 'member', headerName: 'Member', minWidth: pluginDao ? 260 : 200, flex: 1,
             renderCell: (params) => {
                 return(
-                    <>
-                    <ExplorerView showSolanaProfile={true} memberMap={memberMap} grapeArtProfile={true} address={params.value.address} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='18px' />
-                    {Number(params.value.governingCouncilDepositAmount) > 0 &&
-                        <Grid item>
-                            <Tooltip title={`Council Member - Votes: ${Number(params.value.governingCouncilDepositAmount)}`}><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><AssuredWorkloadIcon /></Button></Tooltip>
-                        </Grid>
-                    }</>
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 1,
+                            width: '100%',
+                            minWidth: 0,
+                        }}
+                    >
+                        <Box sx={{ minWidth: 0, overflow: 'hidden' }}>
+                            <ExplorerView
+                                showSolanaProfile={!pluginDao}
+                                memberMap={memberMap}
+                                grapeArtProfile={!pluginDao}
+                                address={params.value.address}
+                                type='address'
+                                shorten={pluginDao ? 6 : 8}
+                                hideTitle={false}
+                                hideIcon={pluginDao}
+                                style='text'
+                                color='white'
+                                fontSize={pluginDao ? '16px' : '18px'}
+                            />
+                        </Box>
+                        {Number(params.value.governingCouncilDepositAmount) > 0 &&
+                            <Tooltip title={`Council Member - Votes: ${Number(params.value.governingCouncilDepositAmount)}`}>
+                                <Button
+                                    color='inherit'
+                                    sx={{
+                                        minWidth: 36,
+                                        px: 0.75,
+                                        borderRadius: '12px',
+                                        border: '1px solid rgba(255,255,255,0.12)',
+                                        background: 'rgba(255,255,255,0.04)',
+                                        flexShrink: 0,
+                                    }}
+                                >
+                                    <AssuredWorkloadIcon fontSize='small' />
+                                </Button>
+                            </Tooltip>
+                        }
+                    </Box>
                 )
             }
         },
@@ -699,6 +735,11 @@ function RenderGovernanceMembersTable(props:any) {
                                     //rows={mapMemberObject(memberVotingResults)}
                                     rows={memberVotingResults}
                                     columns={memberresultscolumns}
+                                    initialState={{
+                                        sorting: {
+                                            sortModel: [{ field: 'staked', sort: 'desc' }],
+                                        },
+                                    }}
                                     //disableColumnFilter
                                     pageSize={25}
                                     rowsPerPageOptions={[]}
@@ -1540,7 +1581,7 @@ export function GovernanceMembersView(props: any) {
 
                     //console.log("participantArray: "+JSON.stringify(participantArray));
                     const getDepositedAmount = (member: any) =>
-                        pluginDao
+                        isVsrPluginRealm
                             ? Number(member?.vsrDepositedAmount ?? 0)
                             : Number(member?.governingTokenDepositAmount ?? 0);
                     const presortedResults = enrichedParticipants.sort((a,b) => (a.totalVotesCount > b.totalVotesCount) ? 1 : -1);
