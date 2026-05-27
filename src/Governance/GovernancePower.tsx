@@ -177,6 +177,13 @@ function toNumberSafe(value: any): number {
     return 0;
 }
 
+function getVsrVotingPowerDisplayDecimals(
+    tokenDecimals: number,
+    digitShift: number
+): number {
+    return Math.max(0, tokenDecimals + digitShift);
+}
+
 function getLockupKindName(kind: any): string {
     if (!kind || typeof kind !== 'object') return 'unknown';
 
@@ -284,6 +291,8 @@ export default function GovernancePower(props: any){
         withdrawableAmount: 0,
         voterWeight: 0,
         deposits: [],
+        depositDecimals: null,
+        votingPowerDecimals: null,
     });
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
@@ -296,6 +305,8 @@ export default function GovernancePower(props: any){
             withdrawableAmount: 0,
             voterWeight: 0,
             deposits: [],
+            depositDecimals: null,
+            votingPowerDecimals: null,
         });
     }, []);
 
@@ -406,6 +417,10 @@ export default function GovernancePower(props: any){
                 publicKey,
                 clientProgramId
             );
+            const registrarAccount =
+                typeof (client.program.account.registrar as any)?.fetchNullable === 'function'
+                    ? await (client.program.account.registrar as any).fetchNullable(registrar)
+                    : await client.program.account.registrar.fetch(registrar).catch(() => null);
 
             const voterAccount =
                 typeof (client.program.account.voter as any)?.fetchNullable === 'function'
@@ -444,6 +459,42 @@ export default function GovernancePower(props: any){
                     };
                 })
                 .filter((deposit: any) => deposit?.isUsed);
+            const depositsByConfig: Record<number, number> = {};
+            for (const deposit of deposits) {
+                const configIndex = Number(deposit?.votingMintConfigIdx ?? 0);
+                depositsByConfig[configIndex] =
+                    Number(depositsByConfig[configIndex] || 0) +
+                    toNumberSafe(deposit?.amountDepositedNative);
+            }
+            const primaryConfigIndex = Object.keys(depositsByConfig)
+                .map((index) => Number(index))
+                .sort(
+                    (a, b) =>
+                        Number(depositsByConfig[b] || 0) - Number(depositsByConfig[a] || 0)
+                )[0];
+            const fallbackConfigIndex = (registrarAccount?.votingMints || []).findIndex(
+                (config: any) => toBase58Safe(config?.mint) === communityMintPk.toBase58()
+            );
+            const resolvedConfigIndex = Number.isFinite(primaryConfigIndex)
+                ? primaryConfigIndex
+                : fallbackConfigIndex >= 0
+                ? fallbackConfigIndex
+                : 0;
+            const votingMintConfig = registrarAccount?.votingMints?.[resolvedConfigIndex];
+            const depositDecimals = votingMintConfig?.mint
+                ? Number(
+                    (
+                        await getMint(
+                            RPC_CONNECTION,
+                            new PublicKey(votingMintConfig.mint)
+                        ).catch(() => ({ decimals: mintDecimals ?? 0 }))
+                    )?.decimals ?? mintDecimals ?? 0
+                )
+                : Number(mintDecimals ?? 0);
+            const votingPowerDecimals = getVsrVotingPowerDisplayDecimals(
+                depositDecimals,
+                Number(votingMintConfig?.digitShift || 0)
+            );
 
             let voterWeight = 0;
             try {
@@ -472,6 +523,8 @@ export default function GovernancePower(props: any){
                 ),
                 voterWeight,
                 deposits,
+                depositDecimals,
+                votingPowerDecimals,
             });
         } catch (e) {
             console.log('Failed to load VSR state', e);
@@ -482,9 +535,11 @@ export default function GovernancePower(props: any){
                 withdrawableAmount: 0,
                 voterWeight: 0,
                 deposits: [],
+                depositDecimals: mintDecimals ?? null,
+                votingPowerDecimals: mintDecimals ?? null,
             });
         }
-    }, [getVsrClient, publicKey, resetVsrState]);
+    }, [getVsrClient, mintDecimals, publicKey, resetVsrState]);
 
 
     const getTokenMintInfo = async(mintAddress:string) => {
@@ -1459,15 +1514,21 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
   const vsrDeposits = Array.isArray(props?.vsrDeposits) ? props.vsrDeposits : [];
   const unrelinquishedVotesCount = toNumberSafe(props?.unrelinquishedVotesCount);
   const isCouncil = props?.isCouncil;
-  const decimals = isCouncil ? 0 : (props?.decimals ?? mintDecimals ?? 0);
+  const walletDecimals = isCouncil ? 0 : (props?.decimals ?? mintDecimals ?? 0);
+  const positionDecimals = isCouncil
+    ? 0
+    : (isVsrMode ? (props?.vsrDepositDecimals ?? walletDecimals) : walletDecimals);
+  const votingPowerDecimals = isCouncil
+    ? 0
+    : (isVsrMode ? (props?.vsrVotingPowerDecimals ?? positionDecimals) : positionDecimals);
 
   const [delegatedStr, setDelegatedStr] = React.useState<string | null>(null);
   const [open, setOpen] = React.useState(false);
 
   const maxHuman = React.useMemo(() => {
-    const v = Number(selectedMintAvailableAmount || 0) / Math.pow(10, decimals);
+    const v = Number(selectedMintAvailableAmount || 0) / Math.pow(10, walletDecimals);
     return Number.isFinite(v) ? v : 0;
-  }, [selectedMintAvailableAmount, decimals]);
+  }, [selectedMintAvailableAmount, walletDecimals]);
 
   const [newDepositAmount, setNewDepositAmount] = React.useState<number>(
     Number(selectedMintAvailableAmount) > 0 ? maxHuman : 0
@@ -1516,26 +1577,26 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
   function handleAdvancedDepositVotesToGovernance() {
     const amt = Number(newDepositAmount || 0);
     if (amt > 0 && amt <= maxHuman) {
-      depositVotesToGovernance(amt, decimals, selectedMintAddress);
+      depositVotesToGovernance(amt, walletDecimals, selectedMintAddress);
     } else {
-      depositVotesToGovernance(maxHuman, decimals, selectedMintAddress);
+      depositVotesToGovernance(maxHuman, walletDecimals, selectedMintAddress);
     }
     setOpen(false);
   }
 
-  const deposited = fmtInt(selectedMintDepositedAmount, decimals);
-  const inWallet = fmt(selectedMintAvailableAmount, decimals);
-  const voterWeightDisplay = fmtInt(vsrVotingPower, decimals);
-  const withdrawableDisplay = fmtInt(vsrWithdrawableAmount, decimals);
+  const deposited = fmtInt(selectedMintDepositedAmount, positionDecimals);
+  const inWallet = fmt(selectedMintAvailableAmount, walletDecimals);
+  const voterWeightDisplay = fmtInt(vsrVotingPower, votingPowerDecimals);
+  const withdrawableDisplay = fmtInt(vsrWithdrawableAmount, positionDecimals);
 
   const afterDeposit = React.useMemo(() => {
-    const base = Number(selectedMintDepositedAmount || 0) / Math.pow(10, decimals);
+    const base = Number(selectedMintDepositedAmount || 0) / Math.pow(10, positionDecimals);
     const add = Number(newDepositAmount || 0) || maxHuman;
     const total = base + add;
 
-    const maxFrac = decimals === 0 ? 0 : 2;
+    const maxFrac = positionDecimals === 0 ? 0 : 2;
     return total.toLocaleString(undefined, { maximumFractionDigits: maxFrac });
-  }, [selectedMintDepositedAmount, decimals, newDepositAmount, maxHuman]);
+  }, [selectedMintDepositedAmount, positionDecimals, newDepositAmount, maxHuman]);
 
   const hasAvailable = Number(selectedMintAvailableAmount || 0) > 0;
 
@@ -1875,7 +1936,7 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                   <AccordionDetails>
                     <ExplorerView
                       address={currentCommunityDelegateFrom}
-                      title={`${fmt(currentCommunityDelegateFromAmount, decimals)} — from: ${currentCommunityDelegateFrom.slice(0, 4)}...${currentCommunityDelegateFrom.slice(-4)}`}
+                      title={`${fmt(currentCommunityDelegateFromAmount, walletDecimals)} — from: ${currentCommunityDelegateFrom.slice(0, 4)}...${currentCommunityDelegateFrom.slice(-4)}`}
                       type="address"
                       shorten={4}
                       style="text"
@@ -1907,7 +1968,7 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                   <AccordionDetails>
                     <ExplorerView
                       address={currentCouncilDelegateFrom}
-                      title={`${fmt(currentCouncilDelegateFromAmount, decimals)} — from: ${currentCouncilDelegateFrom.slice(0, 4)}...${currentCouncilDelegateFrom.slice(-4)}`}
+                      title={`${fmt(currentCouncilDelegateFromAmount, walletDecimals)} — from: ${currentCouncilDelegateFrom.slice(0, 4)}...${currentCouncilDelegateFrom.slice(-4)}`}
                       type="address"
                       shorten={4}
                       style="text"
@@ -1949,7 +2010,7 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                       helperText={
                         <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                           <Typography sx={{ fontSize: 12, opacity: 0.7 }}>
-                            Max: {maxHuman.toLocaleString(undefined, { maximumFractionDigits: decimals === 0 ? 0 : 2 })}
+                            Max: {maxHuman.toLocaleString(undefined, { maximumFractionDigits: walletDecimals === 0 ? 0 : 2 })}
                           </Typography>
                           <Button
                             variant="text"
@@ -2003,7 +2064,7 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                         </Typography>
                       </Box>
                       <Typography sx={metricValueSX}>
-                        {fmtInt(deposit.amountDepositedNative, decimals)}
+                        {fmtInt(deposit.amountDepositedNative, positionDecimals)}
                       </Typography>
                     </Box>
                   ))}
@@ -2020,6 +2081,12 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
     const displayedCommunityMintAmount = isVsrPlugin
         ? (toNumberSafe(vsrState?.stakedAmount) || toNumberSafe(depositedCommunityMint))
         : toNumberSafe(depositedCommunityMint);
+    const displayedCommunityMintDecimals = isVsrPlugin
+        ? Number(vsrState?.depositDecimals ?? mintDecimals ?? 0)
+        : Number(mintDecimals ?? 0);
+    const displayedVsrVotingPowerDecimals = isVsrPlugin
+        ? Number(vsrState?.votingPowerDecimals ?? vsrState?.depositDecimals ?? mintDecimals ?? 0)
+        : Number(mintDecimals ?? 0);
     const hasGovernancePowerCard = !!publicKey && (
         toNumberSafe(walletCommunityMintAmount) > 0 ||
         toNumberSafe(walletCouncilMintAmount) > 0 ||
@@ -2090,6 +2157,8 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                                     mintName={mintName} 
                                     decimals={mintDecimals}
                                     isVsr={isVsrPlugin}
+                                    vsrDepositDecimals={vsrState?.depositDecimals}
+                                    vsrVotingPowerDecimals={vsrState?.votingPowerDecimals}
                                     vsrVotingPower={vsrState?.voterWeight}
                                     vsrWithdrawableAmount={vsrState?.withdrawableAmount}
                                     vsrDeposits={vsrState?.deposits} />
@@ -2147,9 +2216,9 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                                 {displayedCommunityMintAmount > 0 &&
                                     <>
 
-                                        {(mintDecimals) ? 
+                                        {(displayedCommunityMintDecimals || displayedCommunityMintDecimals === 0) ? 
                                         <>
-                                            {(+(displayedCommunityMintAmount/10**mintDecimals).toFixed(0)).toLocaleString()}
+                                            {(+(displayedCommunityMintAmount/10**displayedCommunityMintDecimals).toFixed(0)).toLocaleString()}
                                         </>
                                         :
                                         <>
@@ -2162,7 +2231,7 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
 
                                         }
                                         {isVsrPlugin && vsrState?.voterWeight > 0 && (
-                                            <>&nbsp;•&nbsp;VP {(+(toNumberSafe(vsrState.voterWeight)/10**(mintDecimals ?? 0)).toFixed(0)).toLocaleString()}</>
+                                            <>&nbsp;•&nbsp;VP {(+(toNumberSafe(vsrState.voterWeight)/10**displayedVsrVotingPowerDecimals).toFixed(0)).toLocaleString()}</>
                                         )}
                                     
                                         <AdvancedCommunityVoteDepositPrompt 
@@ -2174,6 +2243,8 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                                             mintName={mintName} 
                                             decimals={mintDecimals}
                                             isVsr={isVsrPlugin}
+                                            vsrDepositDecimals={vsrState?.depositDecimals}
+                                            vsrVotingPowerDecimals={vsrState?.votingPowerDecimals}
                                             vsrVotingPower={vsrState?.voterWeight}
                                             vsrWithdrawableAmount={vsrState?.withdrawableAmount}
                                             vsrDeposits={vsrState?.deposits} />
