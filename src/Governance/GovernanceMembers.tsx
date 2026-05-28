@@ -90,6 +90,9 @@ const GOVERNANNCE_STATE = {
 }
 
 const READONLY_WALLET_PK = new PublicKey('11111111111111111111111111111111');
+const LARGE_REALM_PROGRESS_INTERVAL = 100;
+const VSR_SIMULATION_MEMBER_THRESHOLD = 250;
+const VSR_SIMULATION_TOP_DEPOSITORS_LIMIT = 150;
 
 const createReadonlyWalletAdapter = () => ({
     publicKey: READONLY_WALLET_PK,
@@ -205,6 +208,15 @@ const getMultipleAccountsInfoBatched = async (
 
     return results;
 };
+
+const getWalletBalanceAmountUi = (record: any): string | null =>
+    record?.walletBalance?.tokenAmount?.amount
+        ? (+(
+              +record.walletBalance.tokenAmount.amount /
+              Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)
+          ).toFixed(0))
+              .toString()
+        : null;
 
 const getLockupKindName = (kind: any): string => {
     if (!kind || typeof kind !== 'object') return 'unknown';
@@ -618,7 +630,7 @@ function RenderGovernanceMembersTable(props:any) {
         setLoading(false);
     }*/
 
-    const createMemberTableRows = async() => {
+    const createMemberTableRows = () => {
         const mmbr = new Array();
         let x = 0;
         const circulatingAmount = Number(circulatingSupply?.value?.amount || 0);
@@ -702,8 +714,6 @@ function RenderGovernanceMembersTable(props:any) {
             })
             x++;
         }
-
-        console.log("mmbr: "+JSON.stringify(mmbr))
         setMemberVotingResults(mmbr);
     }
 
@@ -1018,21 +1028,75 @@ export function GovernanceMembersView(props: any) {
             return null;
         };
 
-        const simulationCandidates = voterAccounts.filter((_item, index) => {
+        const nowTs = Math.floor(Date.now() / 1000);
+        const normalizedVoters = voterAccounts.map((item, index) => {
             const voterState = voterStates?.[index];
             const hasVoterAccount = !!voterAccountInfos?.[index];
-            const hasDeposits = (voterState?.deposits || []).some(
-                (deposit: any) =>
-                    !!deposit?.isUsed &&
-                    toNumberSafe(deposit?.amountDepositedNative) > 0
-            );
+            const deposits = (voterState?.deposits || [])
+                .map((deposit: any, depositIndex: number) => {
+                    const amountDepositedNative = toNumberSafe(
+                        deposit?.amountDepositedNative
+                    );
+                    const withdrawableAmount = getVsrWithdrawableAmountNative(
+                        deposit,
+                        nowTs
+                    );
+                    return {
+                        ...deposit,
+                        index: depositIndex,
+                        isUsed: !!deposit?.isUsed,
+                        amountDepositedNative,
+                        withdrawableAmount,
+                    };
+                })
+                .filter((deposit: any) => deposit.isUsed && deposit.amountDepositedNative > 0);
 
-            return hasVoterAccount && hasDeposits;
+            const depositedNative = deposits.reduce(
+                (sum: number, deposit: any) => sum + toNumberSafe(deposit.amountDepositedNative),
+                0
+            );
+            const withdrawableNative = deposits.reduce(
+                (sum: number, deposit: any) => sum + toNumberSafe(deposit.withdrawableAmount),
+                0
+            );
+            const lockedNative = Math.max(0, depositedNative - withdrawableNative);
+            const depositsByConfig: Record<number, number> = {};
+            for (const deposit of deposits) {
+                const configIndex = Number(deposit?.votingMintConfigIdx ?? 0);
+                depositsByConfig[configIndex] =
+                    Number(depositsByConfig[configIndex] || 0) +
+                    toNumberSafe(deposit?.amountDepositedNative);
+            }
+            const primaryConfigIndex = Object.keys(depositsByConfig)
+                .map((configIndex) => Number(configIndex))
+                .sort(
+                    (a, b) =>
+                        Number(depositsByConfig[b] || 0) - Number(depositsByConfig[a] || 0)
+                )[0];
+
+            return {
+                ...item,
+                hasVoterAccount,
+                voterState,
+                deposits,
+                depositedNative,
+                withdrawableNative,
+                lockedNative,
+                primaryConfigIndex,
+            };
         });
 
+        const simulationCandidates = normalizedVoters
+            .filter((item) => item.hasVoterAccount && item.deposits.length > 0)
+            .sort((a, b) => b.depositedNative - a.depositedNative);
+        const membersToSimulate =
+            simulationCandidates.length > VSR_SIMULATION_MEMBER_THRESHOLD
+                ? simulationCandidates.slice(0, VSR_SIMULATION_TOP_DEPOSITORS_LIMIT)
+                : simulationCandidates;
+
         const simulationBatchSize = 3;
-        for (let start = 0; start < simulationCandidates.length; start += simulationBatchSize) {
-            const batch = simulationCandidates.slice(start, start + simulationBatchSize);
+        for (let start = 0; start < membersToSimulate.length; start += simulationBatchSize) {
+            const batch = membersToSimulate.slice(start, start + simulationBatchSize);
             const batchResults = await Promise.all(
                 batch.map(async (item) => ({
                     owner: item.owner,
@@ -1048,7 +1112,6 @@ export function GovernanceMembersView(props: any) {
             }
         }
 
-        const nowTs = Math.floor(Date.now() / 1000);
         const memberStats: Record<string, any> = {};
         const totals = {
             totalDepositedNative: 0,
@@ -1058,51 +1121,19 @@ export function GovernanceMembersView(props: any) {
             totalVotingPowerNative: 0,
         };
 
-        for (let i = 0; i < voterAccounts.length; i++) {
-            const owner = voterAccounts[i].owner;
-            const voterState = voterStates?.[i];
-            const hasVoterAccount = !!voterAccountInfos?.[i];
-            const deposits = (voterState?.deposits || [])
-                .map((deposit: any, index: number) => {
-                    const amountDepositedNative = toNumberSafe(deposit?.amountDepositedNative);
-                    const withdrawableAmount = getVsrWithdrawableAmountNative(deposit, nowTs);
-                    return {
-                        ...deposit,
-                        index,
-                        isUsed: !!deposit?.isUsed,
-                        amountDepositedNative,
-                        withdrawableAmount,
-                    };
-                })
-                .filter((deposit: any) => deposit.isUsed && deposit.amountDepositedNative > 0);
-            const depositsByConfig: Record<number, number> = {};
-            for (const deposit of deposits) {
-                const configIndex = Number(deposit?.votingMintConfigIdx ?? 0);
-                depositsByConfig[configIndex] =
-                    Number(depositsByConfig[configIndex] || 0) +
-                    toNumberSafe(deposit?.amountDepositedNative);
-            }
-            const primaryConfigIndex = Object.keys(depositsByConfig)
-                .map((index) => Number(index))
-                .sort(
-                    (a, b) =>
-                        Number(depositsByConfig[b] || 0) - Number(depositsByConfig[a] || 0)
-                )[0];
+        for (const normalizedVoter of normalizedVoters) {
+            const owner = normalizedVoter.owner;
+            const hasVoterAccount = normalizedVoter.hasVoterAccount;
+            const deposits = normalizedVoter.deposits;
+            const primaryConfigIndex = normalizedVoter.primaryConfigIndex;
             const displayConfig =
                 (Number.isFinite(primaryConfigIndex)
                     ? configDisplayMeta?.[primaryConfigIndex]
                     : null) ||
                 summaryDisplayConfig;
-
-            const depositedNative = deposits.reduce(
-                (sum: number, deposit: any) => sum + toNumberSafe(deposit.amountDepositedNative),
-                0
-            );
-            const withdrawableNative = deposits.reduce(
-                (sum: number, deposit: any) => sum + toNumberSafe(deposit.withdrawableAmount),
-                0
-            );
-            const lockedNative = Math.max(0, depositedNative - withdrawableNative);
+            const depositedNative = normalizedVoter.depositedNative;
+            const withdrawableNative = normalizedVoter.withdrawableNative;
+            const lockedNative = normalizedVoter.lockedNative;
             const approximateVotingPowerNative = Number(
                 getApproximateVsrVotingPowerNative(deposits, registrarState, nowTs)
             );
@@ -1356,124 +1387,105 @@ export function GovernanceMembersView(props: any) {
                 
                 {
                     // generate a super array with merged information
-                    let participantArray = new Array();
-                    let tUnstakedVotes = 0;
+                    const participantMap = new Map<string, any>();
                     let tVotes = 0;
                     let tCouncilVotes = 0;
                     let tVotesCasted = 0;
                     let tDepositedCouncilVotesCasted = 0;
-                    let tParticipants = 0;
-                    let aParticipants = 0;
-                    let lParticipants = 0;
+                    const activeParticipantOwners = new Set<string>();
+                    const depositedParticipantOwners = new Set<string>();
                     let csvFile = '';
-                    let cntr = 0;
+                    const councilMintString = grealm.account.config?.councilMint
+                        ? new PublicKey(grealm.account.config.councilMint).toBase58()
+                        : null;
 
-                    for (let record of trecords){
-                        //console.log("record ("+(cntr+1)+"): "+JSON.stringify(record));
-                        setRecordCount(cntr+1 + " of " + trecords.length);
-                        let foundParticipant = false;
-                        if (trecords.length < 3000){
-                            for (let participant of participantArray){
-                                try{
-                                    if (new PublicKey(participant.governingTokenOwner).toBase58() === new PublicKey(record.account.governingTokenOwner).toBase58()) {
-                                        foundParticipant = true;
+                    for (let cntr = 0; cntr < trecords.length; cntr++) {
+                        const record = trecords[cntr];
+                        if (
+                            cntr % LARGE_REALM_PROGRESS_INTERVAL === 0 ||
+                            cntr === trecords.length - 1
+                        ) {
+                            setRecordCount(`${cntr + 1} of ${trecords.length}`);
+                        }
 
-                                        participant.governanceDelegate = record.account?.governanceDelegate
-                                            ? new PublicKey(record.account.governanceDelegate)
-                                            : null;
+                        const ownerPk = new PublicKey(record.account.governingTokenOwner);
+                        const owner = ownerPk.toBase58();
+                        const governingTokenMintPk = new PublicKey(record.account.governingTokenMint);
+                        const governingTokenMintString = governingTokenMintPk.toBase58();
+                        const isCouncilToken = !!councilMintString && governingTokenMintString === councilMintString;
+                        const walletBalanceAmount = getWalletBalanceAmountUi(record);
+                        const totalVotesCount = Number(record.account?.totalVotesCount ?? 0);
+                        const governingTokenDepositAmount = Number(
+                            record.account?.governingTokenDepositAmount ?? 0
+                        );
 
-                                        const isCouncilToken = new PublicKey(record.account.governingTokenMint).toBase58() === new PublicKey(grealm.account.config?.councilMint).toBase58();
+                        const existingParticipant = participantMap.get(owner);
+                        if (!existingParticipant) {
+                            participantMap.set(owner, {
+                                pubkey: new PublicKey(record.pubkey),
+                                governanceDelegate: record.account?.governanceDelegate
+                                    ? new PublicKey(record.account.governanceDelegate)
+                                    : null,
+                                governingTokenMint: isCouncilToken ? null : governingTokenMintPk,
+                                governingTokenOwner: ownerPk,
+                                totalVotesCount: isCouncilToken ? 0 : totalVotesCount,
+                                councilVotesCount: isCouncilToken ? totalVotesCount : 0,
+                                governingTokenDepositAmount: isCouncilToken
+                                    ? new BN(0)
+                                    : governingTokenDepositAmount,
+                                governingCouncilDepositAmount: isCouncilToken
+                                    ? governingTokenDepositAmount
+                                    : new BN(0),
+                                walletBalanceAmount,
+                            });
+                        } else {
+                            existingParticipant.governanceDelegate = record.account?.governanceDelegate
+                                ? new PublicKey(record.account.governanceDelegate)
+                                : existingParticipant.governanceDelegate;
 
-                                        participant.governingTokenMint = !isCouncilToken
-                                            ? new PublicKey(record.account.governingTokenMint)
-                                            : participant.governingTokenMint;
+                            if (!isCouncilToken) {
+                                existingParticipant.governingTokenMint = governingTokenMintPk;
+                                existingParticipant.totalVotesCount = totalVotesCount;
+                                existingParticipant.governingTokenDepositAmount =
+                                    governingTokenDepositAmount;
+                            } else {
+                                existingParticipant.councilVotesCount = totalVotesCount;
+                                existingParticipant.governingCouncilDepositAmount =
+                                    governingTokenDepositAmount;
+                            }
 
-                                        participant.totalVotesCount = !isCouncilToken
-                                            ? Number(record.account.totalVotesCount ?? 0)
-                                            : participant.totalVotesCount;
-
-                                        participant.councilVotesCount = isCouncilToken
-                                            ? Number(record.account.totalVotesCount ?? 0)
-                                            : participant.councilVotesCount;
-
-                                        participant.governingTokenDepositAmount = !isCouncilToken
-                                            ? Number(record.account?.governingTokenDepositAmount ?? 0)
-                                            : participant.governingTokenDepositAmount;
-
-                                        participant.governingCouncilDepositAmount = isCouncilToken
-                                            ? Number(record.account?.governingTokenDepositAmount ?? 0)
-                                            : participant.governingCouncilDepositAmount;
-
-                                        if (record.account.governingTokenMint === record.walletBalance?.mint) {
-                                            participant.walletBalanceAmount = record.walletBalance?.tokenAmount?.amount
-                                                ? (+record.walletBalance.tokenAmount.amount / Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0)
-                                                : null;
-                                        }
-
-                                        if (!isCouncilToken) {
-                                            tVotes += Number(record.account?.governingTokenDepositAmount ?? 0);
-                                            tVotesCasted += Number(record.account?.totalVotesCount ?? 0);
-                                        } else {
-                                            tCouncilVotes += Number(record.account?.totalVotesCount ?? 0);
-                                            tDepositedCouncilVotesCasted += Number(record.account?.governingTokenDepositAmount ?? 0);
-                                        }
-                                    }
-                                } catch(err){
-                                    console.log("Error while processing participant:", err);
-                                    console.log("Offending record.account = ", JSON.stringify(record?.account, null, 2));
-                                    console.log("participant = ", JSON.stringify(participant, null, 2));
-                                    foundParticipant = false;
-                                }
+                            if (
+                                record.account.governingTokenMint === record.walletBalance?.mint ||
+                                (!existingParticipant.walletBalanceAmount && walletBalanceAmount)
+                            ) {
+                                existingParticipant.walletBalanceAmount = walletBalanceAmount;
                             }
                         }
-                        if (!foundParticipant){
-                                if (grealm.account.config?.councilMint) {
-                                    participantArray.push({
-                                        pubkey:new PublicKey(record.pubkey),
-                                        governanceDelegate:record.account?.governanceDelegate ? new PublicKey(record.account.governanceDelegate) : null,
-                                        governingTokenMint:(new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? new PublicKey(record.account.governingTokenMint) : null,
-                                        governingTokenOwner:new PublicKey(record.account.governingTokenOwner),
-                                        totalVotesCount:(new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number(record.account.totalVotesCount) : 0,
-                                        councilVotesCount:(new PublicKey(record.account.governingTokenMint).toBase58() === new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number(record.account.totalVotesCount) : 0,
-                                        governingTokenDepositAmount:(new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account?.config.councilMint).toBase58()) ? Number(record.account.governingTokenDepositAmount) : new BN(0),
-                                        governingCouncilDepositAmount:(new PublicKey(record.account.governingTokenMint).toBase58() === new PublicKey(grealm.account?.config.councilMint).toBase58()) ? Number(record.account.governingTokenDepositAmount) : new BN(0),
-                                        walletBalanceAmount: (record.walletBalance?.tokenAmount?.amount ? (+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : null)
-                                    });
-                                    tUnstakedVotes += (record.walletBalance?.tokenAmount?.amount ? +(+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : 0);
-                                    
-                                    if (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account?.config.councilMint).toBase58()){
-                                        tVotes += Number(record.account?.governingTokenDepositAmount ?? 0);
-                                        tVotesCasted += Number(record.account?.totalVotesCount ?? 0);
-                                    } else{
-                                        tCouncilVotes += Number(record.account?.totalVotesCount ?? 0);
-                                        tDepositedCouncilVotesCasted += Number(record.account?.governingTokenDepositAmount ?? 0);
-                                    }
-                                } else{
 
-                                    participantArray.push({
-                                        pubkey:new PublicKey(record.pubkey),
-                                        governanceDelegate:record.account?.governanceDelegate ? new PublicKey(record.account.governanceDelegate) : null,
-                                        governingTokenMint:new PublicKey(record.account.governingTokenMint),
-                                        governingTokenOwner:new PublicKey(record.account.governingTokenOwner),
-                                        totalVotesCount:Number(record.account?.totalVotesCount ?? 0),
-                                        councilVotesCount:0,
-                                        governingTokenDepositAmount:Number(record.account?.governingTokenDepositAmount ?? 0),
-                                        governingCouncilDepositAmount:new BN(0),
-                                        walletBalanceAmount: (record.walletBalance?.tokenAmount?.amount ? (+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : null)
-                                    });
-                                    
-                                    tUnstakedVotes += (record.walletBalance?.tokenAmount?.amount ? +(+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : 0);
-                                    tVotes += Number(record.account?.governingTokenDepositAmount ?? 0);
-                                    tVotesCasted += record.account.totalVotesCount;
-                                }
-                                if (record.account.totalVotesCount > 0)
-                                    aParticipants++;
-                                if ((Number(record.account?.governingTokenDepositAmount ?? 0) > 0) || (Number(record.account?.governingTokenDepositAmount ?? 0) > 0))
-                                    lParticipants++;
-                                tParticipants++; // all time
+                        if (totalVotesCount > 0) {
+                            activeParticipantOwners.add(owner);
                         }
-                        cntr++;
+                        if (governingTokenDepositAmount > 0) {
+                            depositedParticipantOwners.add(owner);
+                        }
+
+                        if (!isCouncilToken) {
+                            tVotes += governingTokenDepositAmount;
+                            tVotesCasted += totalVotesCount;
+                        } else {
+                            tCouncilVotes += totalVotesCount;
+                            tDepositedCouncilVotesCasted += governingTokenDepositAmount;
+                        }
                     }
+                    let participantArray = Array.from(participantMap.values());
+                    const tParticipants = participantArray.length;
+                    const aParticipants = activeParticipantOwners.size;
+                    const lParticipants = depositedParticipantOwners.size;
+                    const tUnstakedVotes = participantArray.reduce(
+                        (sum: number, participant: any) =>
+                            sum + Number(participant?.walletBalanceAmount || 0),
+                        0
+                    );
                     let enrichedParticipants = participantArray;
                     let effectiveDepositedVotes = tVotes;
                     let effectiveActiveParticipants = lParticipants;
