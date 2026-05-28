@@ -1597,6 +1597,10 @@ export function GovernanceCachedView(props: any) {
     function VotingPower(props: any){
         const tArray = props.tokenArray;
         const pRealm = props.participatingRealm;
+        const isCommunityVsrRealm = !!(
+            realm?.account?.config?.useCommunityVoterWeightAddin ||
+            realm?.account?.communityTokenConfig?.voterWeightAddin
+        );
         //const [thisToken, setThisToken] = React.useState(null);
 
         React.useEffect(() => { 
@@ -1611,7 +1615,9 @@ export function GovernanceCachedView(props: any) {
 
         return (
             <>
-            {thisToken && 
+            {isCommunityVsrRealm ? (
+                <>VSR voting power enabled</>
+            ) : thisToken && 
                 <>
                     {getFormattedNumberToLocale(formatAmount(parseInt(participatingRealm?.account?.governingTokenDepositAmount)/Math.pow(10, +thisToken?.decimals)))} votes
                 </>
