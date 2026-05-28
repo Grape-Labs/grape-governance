@@ -32,6 +32,7 @@ import GovernanceNavigation from './GovernanceNavigation';
 import {
   getRealmIndexed,
   getAllGovernancesIndexed,
+  getRealmConfigIndexed,
 } from '../Governance/api/queries';
 
 import { getNativeTreasuryAddress } from '@solana/spl-governance';
@@ -42,6 +43,7 @@ import {
   RPC_CONNECTION,
   GGAPI_STORAGE_POOL
 } from '../utils/grapeTools/constants';
+import { VSR_PLUGIN_PKS } from '../utils/grapeTools/helpers';
 
 function toBase58OrEmpty(value: any): string {
   try {
@@ -78,6 +80,7 @@ export function GovernanceTreasuryView(props: any) {
   const [communityMintDecimals, setCommunityMintDecimals] = React.useState(0);
 
   const [governanceWallets, setGovernanceWallets] = React.useState<any[] | null>(null);
+  const [vsrInfo, setVsrInfo] = React.useState<any>(null);
 
   const [gsplMetadata, setGSPLMetadata] = React.useState<any>(null);
 
@@ -121,6 +124,29 @@ export function GovernanceTreasuryView(props: any) {
       }
     } catch (e) {
       console.log("ERR(fetchRealm mint): " + e);
+    }
+
+    try {
+      const realmConfig = await getRealmConfigIndexed(
+        null,
+        toBase58OrEmpty(rlm?.owner),
+        toBase58OrEmpty(rlm?.pubkey)
+      );
+      const communityVoterWeightAddin = toBase58OrEmpty(
+        realmConfig?.account?.communityTokenConfig?.voterWeightAddin
+      );
+      const communityVsrEnabled =
+        !!communityVoterWeightAddin && VSR_PLUGIN_PKS.includes(communityVoterWeightAddin);
+
+      setVsrInfo({
+        enabled: communityVsrEnabled,
+        community: communityVsrEnabled
+          ? { enabled: true, programId: communityVoterWeightAddin }
+          : null,
+      });
+    } catch (e) {
+      console.log("ERR(fetchRealm realmConfig): " + e);
+      setVsrInfo(null);
     }
 
     setRealm(rlm);
@@ -194,6 +220,7 @@ export function GovernanceTreasuryView(props: any) {
     setRealmName(null);
     setGovernanceWallets(null);
     setGovernanceValue([]);
+    setVsrInfo(null);
     setGSPLMetadata(null);
     setStartTime(null);
     setEndTime(null);
@@ -534,6 +561,7 @@ export function GovernanceTreasuryView(props: any) {
                       setGovernanceValue={setGovernanceValue}
                       governanceValue={governanceValue}
                       communityMintDecimals={communityMintDecimals}
+                      vsrInfo={vsrInfo}
                       tokenMap={tokenMap}
                       onWalletValueUpdated={() => setWalletSortTick((x) => x + 1)}
                       walletAddress={new PublicKey(item.nativeTreasuryAddress).toBase58()}

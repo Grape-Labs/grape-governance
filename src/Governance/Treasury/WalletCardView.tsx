@@ -231,6 +231,7 @@ export default function WalletCardView(props:any) {
     const governanceValue = props?.governanceValue;
     const setGovernanceValue = props?.setGovernanceValue;
     const governanceWallets = props?.governanceWallets;
+    const vsrInfo = props?.vsrInfo || null;
 
     // optional: parent can pass this to resort wallets when value changes
     const onWalletValueUpdated = props?.onWalletValueUpdated as undefined | ((walletValue: number) => void);
@@ -240,6 +241,8 @@ export default function WalletCardView(props:any) {
     
     const shortWalletAddress = shortenString(walletAddress,5,5);
     const shortRulesWalletAddress = shortenString(rulesWalletAddress,5,5);
+    const hasRealmVsr = !!vsrInfo?.enabled;
+    const vsrChipLabel = hasRealmVsr ? `Community VSR enabled` : null;
     const [nativeSol, setNativeSol] = React.useState(null);
     const [rulesSol, setRulesSol] = React.useState(null);
     const [nativeTokens, setNativeTokens] = React.useState(null);
@@ -4048,8 +4051,38 @@ const StakeAccountsView = () => {
                 </CopyToClipboard>
             }
             subheader={
-                <>
-                </>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, pt: 0.5 }}>
+                    <Tooltip title={`Rules wallet ${rulesWalletAddress}`}>
+                        <Chip
+                            size="small"
+                            variant="outlined"
+                            label={`Rules ${shortRulesWalletAddress}`}
+                        />
+                    </Tooltip>
+                    {hasRealmVsr && (
+                        <Tooltip
+                            title={
+                                <>
+                                    <Typography variant="caption" sx={{ display: 'block' }}>
+                                        Realm-level VoteStakeRegistry plugin
+                                    </Typography>
+                                    {vsrInfo?.community?.enabled && (
+                                        <Typography variant="caption" sx={{ display: 'block' }}>
+                                            Community: {vsrInfo.community.programId}
+                                        </Typography>
+                                    )}
+                                </>
+                            }
+                        >
+                            <Chip
+                                size="small"
+                                color="info"
+                                icon={<InfoIcon sx={{ fontSize: '14px !important' }} />}
+                                label={vsrChipLabel}
+                            />
+                        </Tooltip>
+                    )}
+                </Box>
 
             }
         />
