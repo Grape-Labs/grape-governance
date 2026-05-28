@@ -32,7 +32,21 @@ import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import {
     AccountLayout,
     getMint, 
-    TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token-v2";
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+    getAssociatedTokenAddress,
+    decodeInstruction as decodeSplTokenInstruction,
+    TokenInstruction as SplTokenInstruction,
+    AuthorityType,
+} from "@solana/spl-token-v2";
+import {
+    getCreateMetadataAccountV3InstructionDataSerializer,
+    getUpdateMetadataAccountV2InstructionDataSerializer,
+    getCreateMasterEditionV3InstructionDataSerializer,
+    getVerifyCollectionInstructionDataSerializer,
+    getSetAndVerifyCollectionInstructionDataSerializer,
+    getSetAndVerifySizedCollectionItemInstructionDataSerializer,
+} from "@metaplex-foundation/mpl-token-metadata";
 import { PublicKey, TokenAmount, Connection, TransactionInstruction, Transaction, SystemInstruction } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
@@ -1379,14 +1393,15 @@ export function GovernanceProposalV2View(props: any){
                             }
                         }
 
-                        // Step 2: Batch fetch all accounts using getMultipleAccountsInfo
+                        // Step 2: Batch fetch all accounts using parsed account data so
+                        // downstream token decoding can read mint/decimals consistently.
                         const pubkeyList = [...uniquePubkeys].map(key => new PublicKey(key));
                         const allResults = new Map();
                         const chunkSize = 100;
 
                         for (let i = 0; i < pubkeyList.length; i += chunkSize) {
                             const chunk = pubkeyList.slice(i, i + chunkSize);
-                            const infos = await connection.getMultipleAccountsInfo(chunk);
+                            const { value: infos } = await connection.getMultipleParsedAccounts(chunk);
                             chunk.forEach((key, idx) => {
                                 allResults.set(key.toBase58(), infos[idx]);
                             });
@@ -1449,6 +1464,547 @@ export function GovernanceProposalV2View(props: any){
                                     return `${pk.slice(0, 4)}…${pk.slice(-4)}`;
                                 };
 
+                                const TOKEN_2022_PROGRAM_ID = "TokenzQdBNbLqP5VEh84bYQNJ9Y7fA1aC33mW7zk1g";
+                                const SPL_TOKEN_PROGRAM_ID = TOKEN_PROGRAM_ID.toBase58();
+                                const TOKEN_PROGRAM_IDS = new Set([
+                                    SPL_TOKEN_PROGRAM_ID,
+                                    TOKEN_2022_PROGRAM_ID,
+                                ]);
+                                const tokenAuthorityLabels: Record<number, string> = {
+                                    [AuthorityType.MintTokens]: "mint authority",
+                                    [AuthorityType.FreezeAccount]: "freeze authority",
+                                    [AuthorityType.AccountOwner]: "account owner",
+                                    [AuthorityType.CloseAccount]: "close authority",
+                                };
+                                const resolvePubkeyString = (pk?: any): string | null => {
+                                    try {
+                                        if (!pk) return null;
+                                        if (typeof pk?.toBase58 === "function") return pk.toBase58();
+                                        return new PublicKey(pk).toBase58();
+                                    } catch {
+                                        return typeof pk === "string" ? pk : null;
+                                    }
+                                };
+                                const buildTxInstruction = (programPk: PublicKey, ixLike: any) =>
+                                    new TransactionInstruction({
+                                        programId: programPk,
+                                        keys: (ixLike?.accounts || []).map((key: any) => ({
+                                            pubkey: new PublicKey(key.pubkey),
+                                            isSigner: !!key.isSigner,
+                                            isWritable: !!key.isWritable,
+                                        })),
+                                        data: Buffer.from(ixLike?.data || []),
+                                    });
+                                const getAccountInfoFromCache = (pk?: any) => {
+                                    const address = resolvePubkeyString(pk);
+                                    return address ? allResults.get(address) : null;
+                                };
+                                const getTokenAccountMint = (pk?: any): string | null =>
+                                    getAccountInfoFromCache(pk)?.data?.parsed?.info?.mint || null;
+                                const getTokenAccountDecimals = (pk?: any): number =>
+                                    Number(
+                                        getAccountInfoFromCache(pk)?.data?.parsed?.info?.tokenAmount?.decimals || 0
+                                    );
+                                const getTokenPresentation = (mint?: string | null) => {
+                                    let symbol = mint ? `${mint.slice(0, 3)}...${mint.slice(-3)}` : null;
+                                    let name = symbol;
+                                    let logoURI = null;
+
+                                    if (mint && tokenMap) {
+                                        const tmap = tokenMap.get(mint);
+                                        if (tmap) {
+                                            symbol = tmap.symbol || symbol;
+                                            name = tmap.name || symbol;
+                                            logoURI = tmap.logoURI || null;
+                                        }
+                                    }
+
+                                    return { symbol, name, logoURI };
+                                };
+                                const createTokenAmountUi = (amountRaw: bigint | number | string, decimals: number) => {
+                                    const amountBn = new BN(amountRaw.toString());
+                                    const amountDecimal = toDecimalAmount(amountBn, decimals);
+                                    const amountUi = amountDecimal.includes(".")
+                                        ? formatAmount(amountDecimal)
+                                        : Number(amountDecimal).toLocaleString();
+                                    return {
+                                        amountDecimal,
+                                        amountUi,
+                                        amountValue: parseFloat(amountUi.replace(/,/g, "")),
+                                    };
+                                };
+                                const governanceVoteLabel = (vote: any) => {
+                                    if (!vote || typeof vote !== "object") return "vote";
+                                    if ("approve" in vote) return "approve";
+                                    if ("deny" in vote) return "deny";
+                                    if ("veto" in vote) return "veto";
+                                    if ("abstain" in vote) return "abstain";
+                                    return Object.keys(vote)[0] || "vote";
+                                };
+                                const compactJson = (value: any) => {
+                                    try {
+                                        return JSON.stringify(value);
+                                    } catch {
+                                        return String(value);
+                                    }
+                                };
+                                const describeVoteThreshold = (value: any) => {
+                                    if (!value || typeof value !== "object") return null;
+                                    if ("yesVotePercentage" in value) {
+                                        return `yes ${value.yesVotePercentage}%`;
+                                    }
+                                    if ("quorumPercentage" in value) {
+                                        return `quorum ${value.quorumPercentage}%`;
+                                    }
+                                    if ("disabled" in value) {
+                                        return "disabled";
+                                    }
+                                    return compactJson(value);
+                                };
+                                const describeVoteTipping = (value: any) => {
+                                    if (!value || typeof value !== "object") return null;
+                                    if ("strict" in value) return "strict";
+                                    if ("early" in value) return "early";
+                                    if ("disabled" in value) return "disabled";
+                                    return compactJson(value);
+                                };
+                                const describeMintMaxVoterWeightSource = (value: any) => {
+                                    if (!value || typeof value !== "object") return null;
+                                    if ("supplyFraction" in value) {
+                                        return `supply fraction ${value.supplyFraction}`;
+                                    }
+                                    if ("absolute" in value) {
+                                        return `absolute ${value.absolute}`;
+                                    }
+                                    return compactJson(value);
+                                };
+                                const describeTokenConfigArgs = (value: any) => {
+                                    if (!value || typeof value !== "object") return null;
+                                    const parts = [];
+                                    if (value.useVoterWeightAddin) parts.push("voter-weight addin");
+                                    if (value.useMaxVoterWeightAddin) parts.push("max-voter-weight addin");
+                                    if (value.tokenType) parts.push(`token type ${compactJson(value.tokenType)}`);
+                                    return parts.join(", ");
+                                };
+                                const summarizeGovernanceConfig = (config: any) => {
+                                    if (!config || typeof config !== "object") return null;
+                                    const parts = [];
+                                    const communityThreshold = describeVoteThreshold(
+                                        config.communityVoteThreshold
+                                    );
+                                    const councilThreshold = describeVoteThreshold(
+                                        config.councilVoteThreshold
+                                    );
+                                    const communityTipping = describeVoteTipping(
+                                        config.communityVoteTipping
+                                    );
+                                    const councilTipping = describeVoteTipping(
+                                        config.councilVoteTipping
+                                    );
+                                    if (communityThreshold) {
+                                        parts.push(`community threshold ${communityThreshold}`);
+                                    }
+                                    if (councilThreshold) {
+                                        parts.push(`council threshold ${councilThreshold}`);
+                                    }
+                                    if (config.minCommunityWeightToCreateProposal !== undefined) {
+                                        parts.push(
+                                            `min community proposal weight ${config.minCommunityWeightToCreateProposal}`
+                                        );
+                                    }
+                                    if (config.minCouncilWeightToCreateProposal !== undefined) {
+                                        parts.push(
+                                            `min council proposal weight ${config.minCouncilWeightToCreateProposal}`
+                                        );
+                                    }
+                                    if (config.minTransactionHoldUpTime !== undefined) {
+                                        parts.push(`hold up ${config.minTransactionHoldUpTime}s`);
+                                    }
+                                    if (config.votingBaseTime !== undefined) {
+                                        parts.push(`base voting ${config.votingBaseTime}s`);
+                                    }
+                                    if (config.votingCoolOffTime !== undefined) {
+                                        parts.push(`cool off ${config.votingCoolOffTime}s`);
+                                    }
+                                    if (communityTipping) {
+                                        parts.push(`community tipping ${communityTipping}`);
+                                    }
+                                    if (councilTipping) {
+                                        parts.push(`council tipping ${councilTipping}`);
+                                    }
+                                    if (config.depositExemptProposalCount !== undefined) {
+                                        parts.push(
+                                            `deposit exempt proposals ${config.depositExemptProposalCount}`
+                                        );
+                                    }
+                                    return parts.join(", ");
+                                };
+                                const summarizeRealmConfigArgs = (configArgs: any) => {
+                                    if (!configArgs || typeof configArgs !== "object") return null;
+                                    const parts = [];
+                                    parts.push(
+                                        configArgs.useCouncilMint ? "council mint enabled" : "council mint disabled"
+                                    );
+                                    if (configArgs.minCommunityWeightToCreateGovernance !== undefined) {
+                                        parts.push(
+                                            `min community governance weight ${configArgs.minCommunityWeightToCreateGovernance}`
+                                        );
+                                    }
+                                    const maxWeightSource = describeMintMaxVoterWeightSource(
+                                        configArgs.communityMintMaxVoterWeightSource
+                                    );
+                                    if (maxWeightSource) {
+                                        parts.push(`community max voter weight ${maxWeightSource}`);
+                                    }
+                                    const communityTokenConfig = describeTokenConfigArgs(
+                                        configArgs.communityTokenConfigArgs
+                                    );
+                                    if (communityTokenConfig) {
+                                        parts.push(`community token config ${communityTokenConfig}`);
+                                    }
+                                    const councilTokenConfig = describeTokenConfigArgs(
+                                        configArgs.councilTokenConfigArgs
+                                    );
+                                    if (councilTokenConfig) {
+                                        parts.push(`council token config ${councilTokenConfig}`);
+                                    }
+                                    return parts.join(", ");
+                                };
+                                const describeGovernanceInstruction = (decodedIx: any, ixLike: any) => {
+                                    const name = decodedIx?.name || "governance";
+                                    const data = decodedIx?.data || {};
+                                    switch (name) {
+                                        case "createGovernance":
+                                            return `Create account governance for ${shortPk(resolvePubkeyString(ixLike?.accounts?.[2]?.pubkey))}${summarizeGovernanceConfig(data?.config) ? ` with ${summarizeGovernanceConfig(data?.config)}` : ""}`;
+                                        case "createProgramGovernance":
+                                            return `Create program governance for ${shortPk(resolvePubkeyString(ixLike?.accounts?.[2]?.pubkey))}${data?.transferUpgradeAuthority ? " and transfer upgrade authority" : ""}${summarizeGovernanceConfig(data?.config) ? ` with ${summarizeGovernanceConfig(data?.config)}` : ""}`;
+                                        case "createMintGovernance":
+                                            return `Create mint governance for ${shortPk(resolvePubkeyString(ixLike?.accounts?.[2]?.pubkey))}${data?.transferMintAuthorities ? " and transfer mint authorities" : ""}${summarizeGovernanceConfig(data?.config) ? ` with ${summarizeGovernanceConfig(data?.config)}` : ""}`;
+                                        case "createTokenGovernance":
+                                            return `Create token governance for ${shortPk(resolvePubkeyString(ixLike?.accounts?.[2]?.pubkey))}${data?.transferAccountAuthorities ? " and transfer account authorities" : ""}${summarizeGovernanceConfig(data?.config) ? ` with ${summarizeGovernanceConfig(data?.config)}` : ""}`;
+                                        case "createNativeTreasury":
+                                            return `Create native treasury for governance ${shortPk(resolvePubkeyString(ixLike?.accounts?.[0]?.pubkey))}`;
+                                        case "createProposal":
+                                            return `Create proposal ${data?.name ? `"${data.name}"` : ""}${Array.isArray(data?.options) && data.options.length ? ` with ${data.options.length} option${data.options.length > 1 ? "s" : ""}` : ""}`.trim();
+                                        case "addSignatory":
+                                            return `Add signatory ${shortPk(resolvePubkeyString(ixLike?.accounts?.[3]?.pubkey))}`;
+                                        case "signOffProposal":
+                                            return `Sign off proposal ${shortPk(resolvePubkeyString(ixLike?.accounts?.[1]?.pubkey))}`;
+                                        case "insertTransaction":
+                                            return `Insert transaction at option ${Number(data?.optionIndex ?? 0)} index ${Number(data?.index ?? 0)}`;
+                                        case "removeTransaction":
+                                            return `Remove proposal transaction ${shortPk(resolvePubkeyString(ixLike?.accounts?.[2]?.pubkey))}`;
+                                        case "castVote":
+                                            return `Cast ${governanceVoteLabel(data?.vote)} vote`;
+                                        case "finalizeVote":
+                                            return `Finalize vote for proposal ${shortPk(resolvePubkeyString(ixLike?.accounts?.[1]?.pubkey))}`;
+                                        case "relinquishVote":
+                                            return `Relinquish vote`;
+                                        case "executeTransaction":
+                                            return `Execute proposal transaction ${shortPk(resolvePubkeyString(ixLike?.accounts?.[2]?.pubkey))}`;
+                                        case "setGovernanceConfig":
+                                            return `Update governance config${summarizeGovernanceConfig(data?.config) ? `: ${summarizeGovernanceConfig(data?.config)}` : ""}`;
+                                        case "setRealmConfig":
+                                            return `Update realm config${summarizeRealmConfigArgs(data?.configArgs) ? `: ${summarizeRealmConfigArgs(data?.configArgs)}` : ""}`;
+                                        case "addRequiredSignatory":
+                                            return `Add required signatory ${shortPk(resolvePubkeyString(data?.signatory || ixLike?.accounts?.[1]?.pubkey || ixLike?.accounts?.[2]?.pubkey))}`;
+                                        case "removeRequiredSignatory":
+                                            return `Remove required signatory ${shortPk(resolvePubkeyString(ixLike?.accounts?.[1]?.pubkey))}`;
+                                        default:
+                                            return name;
+                                    }
+                                };
+                                const describeMetaplexInstruction = (ixLike: any) => {
+                                    const data = Uint8Array.from(ixLike?.data || []);
+                                    const accounts = ixLike?.accounts || [];
+                                    const metadataAcc = resolvePubkeyString(accounts?.[0]?.pubkey);
+                                    const mint = resolvePubkeyString(accounts?.[1]?.pubkey);
+                                    const updateAuthority = resolvePubkeyString(accounts?.[4]?.pubkey || accounts?.[1]?.pubkey);
+                                    const serializers = [
+                                        {
+                                            name: "CreateMetadataAccountV3",
+                                            serializer: getCreateMetadataAccountV3InstructionDataSerializer(),
+                                            description: `Create metadata for mint ${shortPk(mint)}`
+                                        },
+                                        {
+                                            name: "UpdateMetadataAccountV2",
+                                            serializer: getUpdateMetadataAccountV2InstructionDataSerializer(),
+                                            description: `Update metadata ${shortPk(metadataAcc)}`
+                                        },
+                                        {
+                                            name: "CreateMasterEditionV3",
+                                            serializer: getCreateMasterEditionV3InstructionDataSerializer(),
+                                            description: `Create master edition for mint ${shortPk(mint)}`
+                                        },
+                                        {
+                                            name: "VerifyCollection",
+                                            serializer: getVerifyCollectionInstructionDataSerializer(),
+                                            description: `Verify collection for metadata ${shortPk(metadataAcc)}`
+                                        },
+                                        {
+                                            name: "SetAndVerifyCollection",
+                                            serializer: getSetAndVerifyCollectionInstructionDataSerializer(),
+                                            description: `Set and verify collection for metadata ${shortPk(metadataAcc)}`
+                                        },
+                                        {
+                                            name: "SetAndVerifySizedCollectionItem",
+                                            serializer: getSetAndVerifySizedCollectionItemInstructionDataSerializer(),
+                                            description: `Set and verify sized collection item ${shortPk(metadataAcc)}`
+                                        },
+                                    ];
+
+                                    for (const candidate of serializers) {
+                                        try {
+                                            candidate.serializer.deserialize(data);
+                                            return {
+                                                type: "MetaplexTokenMetadata",
+                                                op: candidate.name,
+                                                metadata: metadataAcc,
+                                                mint,
+                                                authority: updateAuthority,
+                                                description: candidate.description,
+                                                data: ixLike?.data,
+                                            };
+                                        } catch (_e) {
+                                            continue;
+                                        }
+                                    }
+
+                                    return {
+                                        type: "MetaplexTokenMetadata",
+                                        metadata: metadataAcc,
+                                        mint,
+                                        authority: updateAuthority,
+                                        description: `Token metadata op on mint ${shortPk(mint)} (metadata ${shortPk(metadataAcc)})`,
+                                        data: ixLike?.data,
+                                    };
+                                };
+                                const decodeSupportedTokenInstruction = (programIdString: string, ixLike: any) => {
+                                    if (!TOKEN_PROGRAM_IDS.has(programIdString)) return null;
+                                    try {
+                                        const programPk = new PublicKey(programIdString);
+                                        const decoded = decodeSplTokenInstruction(
+                                            buildTxInstruction(programPk, ixLike),
+                                            programPk
+                                        ) as any;
+                                        const instructionEnum = decoded?.data?.instruction;
+                                        const isChecked =
+                                            instructionEnum === SplTokenInstruction.TransferChecked ||
+                                            instructionEnum === SplTokenInstruction.ApproveChecked ||
+                                            instructionEnum === SplTokenInstruction.MintToChecked ||
+                                            instructionEnum === SplTokenInstruction.BurnChecked;
+                                        const tokenProgramLabel =
+                                            programIdString === TOKEN_2022_PROGRAM_ID ? "Token2022" : "Token";
+
+                                        if (
+                                            instructionEnum === SplTokenInstruction.Transfer ||
+                                            instructionEnum === SplTokenInstruction.TransferChecked
+                                        ) {
+                                            const source = resolvePubkeyString(decoded?.keys?.source?.pubkey || decoded?.keys?.source || decoded?.keys?.account?.pubkey || decoded?.keys?.account);
+                                            const destination = resolvePubkeyString(decoded?.keys?.destination?.pubkey || decoded?.keys?.destination);
+                                            const mint =
+                                                resolvePubkeyString(decoded?.keys?.mint?.pubkey || decoded?.keys?.mint) ||
+                                                getTokenAccountMint(source);
+                                            const decimals = Number(
+                                                decoded?.data?.decimals ?? getTokenAccountDecimals(source)
+                                            );
+                                            const amount = createTokenAmountUi(decoded?.data?.amount || 0, decimals);
+                                            const meta = getTokenPresentation(mint);
+                                            return {
+                                                type:
+                                                    programIdString === TOKEN_2022_PROGRAM_ID
+                                                        ? "Token2022Transfer"
+                                                        : isChecked
+                                                        ? "TokenTransferChecked"
+                                                        : "TokenTransfer",
+                                                ix: instructionItem.pubkey,
+                                                pubkey: source,
+                                                mint,
+                                                name: meta.name,
+                                                logoURI: meta.logoURI,
+                                                amount: amount.amountValue,
+                                                data: ixLike?.data,
+                                                destinationAta: destination,
+                                                description: `${amount.amountUi} ${meta.symbol} from ${shortPk(source)} to ${shortPk(destination)}`,
+                                            };
+                                        }
+
+                                        if (
+                                            instructionEnum === SplTokenInstruction.MintTo ||
+                                            instructionEnum === SplTokenInstruction.MintToChecked
+                                        ) {
+                                            const mint = resolvePubkeyString(decoded?.keys?.mint?.pubkey || decoded?.keys?.mint);
+                                            const destination = resolvePubkeyString(decoded?.keys?.destination?.pubkey || decoded?.keys?.destination);
+                                            const decimals = Number(
+                                                decoded?.data?.decimals ?? getTokenAccountDecimals(destination)
+                                            );
+                                            const amount = createTokenAmountUi(decoded?.data?.amount || 0, decimals);
+                                            const meta = getTokenPresentation(mint);
+                                            return {
+                                                type: `${tokenProgramLabel}MintTo`,
+                                                ix: instructionItem.pubkey,
+                                                pubkey: mint,
+                                                mint,
+                                                name: meta.name,
+                                                logoURI: meta.logoURI,
+                                                amount: amount.amountValue,
+                                                data: ixLike?.data,
+                                                destinationAta: destination,
+                                                description: `Mint ${amount.amountUi} ${meta.symbol} to ${shortPk(destination)}`,
+                                            };
+                                        }
+
+                                        if (
+                                            instructionEnum === SplTokenInstruction.Burn ||
+                                            instructionEnum === SplTokenInstruction.BurnChecked
+                                        ) {
+                                            const account = resolvePubkeyString(decoded?.keys?.account?.pubkey || decoded?.keys?.account);
+                                            const mint = resolvePubkeyString(decoded?.keys?.mint?.pubkey || decoded?.keys?.mint) || getTokenAccountMint(account);
+                                            const decimals = Number(
+                                                decoded?.data?.decimals ?? getTokenAccountDecimals(account)
+                                            );
+                                            const amount = createTokenAmountUi(decoded?.data?.amount || 0, decimals);
+                                            const meta = getTokenPresentation(mint);
+                                            return {
+                                                type: `${tokenProgramLabel}Burn`,
+                                                ix: instructionItem.pubkey,
+                                                pubkey: account,
+                                                mint,
+                                                name: meta.name,
+                                                logoURI: meta.logoURI,
+                                                amount: amount.amountValue,
+                                                data: ixLike?.data,
+                                                description: `Burn ${amount.amountUi} ${meta.symbol} from ${shortPk(account)}`,
+                                            };
+                                        }
+
+                                        if (
+                                            instructionEnum === SplTokenInstruction.Approve ||
+                                            instructionEnum === SplTokenInstruction.ApproveChecked
+                                        ) {
+                                            const account = resolvePubkeyString(decoded?.keys?.account?.pubkey || decoded?.keys?.account);
+                                            const delegate = resolvePubkeyString(decoded?.keys?.delegate?.pubkey || decoded?.keys?.delegate);
+                                            const mint =
+                                                resolvePubkeyString(decoded?.keys?.mint?.pubkey || decoded?.keys?.mint) ||
+                                                getTokenAccountMint(account);
+                                            const decimals = Number(
+                                                decoded?.data?.decimals ?? getTokenAccountDecimals(account)
+                                            );
+                                            const amount = createTokenAmountUi(decoded?.data?.amount || 0, decimals);
+                                            const meta = getTokenPresentation(mint);
+                                            return {
+                                                type: `${tokenProgramLabel}Approve`,
+                                                ix: instructionItem.pubkey,
+                                                pubkey: account,
+                                                mint,
+                                                name: meta.name,
+                                                logoURI: meta.logoURI,
+                                                amount: amount.amountValue,
+                                                data: ixLike?.data,
+                                                description: `Approve ${shortPk(delegate)} to spend up to ${amount.amountUi} ${meta.symbol} from ${shortPk(account)}`,
+                                            };
+                                        }
+
+                                        if (instructionEnum === SplTokenInstruction.Revoke) {
+                                            const account = resolvePubkeyString(decoded?.keys?.account?.pubkey || decoded?.keys?.account);
+                                            const mint = getTokenAccountMint(account);
+                                            const meta = getTokenPresentation(mint);
+                                            return {
+                                                type: `${tokenProgramLabel}Revoke`,
+                                                ix: instructionItem.pubkey,
+                                                pubkey: account,
+                                                mint,
+                                                name: meta.name,
+                                                logoURI: meta.logoURI,
+                                                data: ixLike?.data,
+                                                description: `Revoke delegate on ${shortPk(account)}`,
+                                            };
+                                        }
+
+                                        if (instructionEnum === SplTokenInstruction.SetAuthority) {
+                                            const account = resolvePubkeyString(decoded?.keys?.account?.pubkey || decoded?.keys?.account);
+                                            const authorityType = Number(decoded?.data?.authorityType ?? -1);
+                                            const newAuthority = resolvePubkeyString(decoded?.data?.newAuthority);
+                                            const authorityLabel =
+                                                tokenAuthorityLabels[authorityType] || "authority";
+                                            return {
+                                                type: `${tokenProgramLabel}SetAuthority`,
+                                                ix: instructionItem.pubkey,
+                                                pubkey: account,
+                                                data: ixLike?.data,
+                                                description: `Set ${authorityLabel} on ${shortPk(account)} to ${newAuthority ? shortPk(newAuthority) : "none"}`,
+                                            };
+                                        }
+
+                                        if (instructionEnum === SplTokenInstruction.CloseAccount) {
+                                            const account = resolvePubkeyString(decoded?.keys?.account?.pubkey || decoded?.keys?.account);
+                                            const destination = resolvePubkeyString(decoded?.keys?.destination?.pubkey || decoded?.keys?.destination);
+                                            const mint = getTokenAccountMint(account);
+                                            const meta = getTokenPresentation(mint);
+                                            return {
+                                                type: `${tokenProgramLabel}CloseAccount`,
+                                                ix: instructionItem.pubkey,
+                                                pubkey: account,
+                                                mint,
+                                                name: meta.name,
+                                                logoURI: meta.logoURI,
+                                                data: ixLike?.data,
+                                                destinationAta: destination,
+                                                description: `Close token account ${shortPk(account)} and send rent to ${shortPk(destination)}`,
+                                            };
+                                        }
+
+                                        if (instructionEnum === SplTokenInstruction.FreezeAccount) {
+                                            const account = resolvePubkeyString(decoded?.keys?.account?.pubkey || decoded?.keys?.account);
+                                            const mint = resolvePubkeyString(decoded?.keys?.mint?.pubkey || decoded?.keys?.mint) || getTokenAccountMint(account);
+                                            const meta = getTokenPresentation(mint);
+                                            return {
+                                                type: `${tokenProgramLabel}FreezeAccount`,
+                                                ix: instructionItem.pubkey,
+                                                pubkey: account,
+                                                mint,
+                                                name: meta.name,
+                                                logoURI: meta.logoURI,
+                                                data: ixLike?.data,
+                                                description: `Freeze token account ${shortPk(account)} for ${meta.symbol}`,
+                                            };
+                                        }
+
+                                        if (instructionEnum === SplTokenInstruction.ThawAccount) {
+                                            const account = resolvePubkeyString(decoded?.keys?.account?.pubkey || decoded?.keys?.account);
+                                            const mint = resolvePubkeyString(decoded?.keys?.mint?.pubkey || decoded?.keys?.mint) || getTokenAccountMint(account);
+                                            const meta = getTokenPresentation(mint);
+                                            return {
+                                                type: `${tokenProgramLabel}ThawAccount`,
+                                                ix: instructionItem.pubkey,
+                                                pubkey: account,
+                                                mint,
+                                                name: meta.name,
+                                                logoURI: meta.logoURI,
+                                                data: ixLike?.data,
+                                                description: `Thaw token account ${shortPk(account)} for ${meta.symbol}`,
+                                            };
+                                        }
+
+                                        if (instructionEnum === SplTokenInstruction.SyncNative) {
+                                            const account = resolvePubkeyString(decoded?.keys?.account?.pubkey || decoded?.keys?.account);
+                                            return {
+                                                type: `${tokenProgramLabel}SyncNative`,
+                                                ix: instructionItem.pubkey,
+                                                pubkey: account,
+                                                mint: "So11111111111111111111111111111111111111112",
+                                                name: "Wrapped SOL",
+                                                data: ixLike?.data,
+                                                description: `Sync wrapped SOL account ${shortPk(account)}`,
+                                            };
+                                        }
+                                    } catch (tokenDecodeError) {
+                                        console.log("Token decode error:", tokenDecodeError);
+                                    }
+
+                                    return null;
+                                };
+
                                 for (var accountInstruction of instructionItem.account.instructions){
                                     //if (instructionItem?.account?.instructions[0].data && instructionItem.account.instructions[0].data.length > 0){
                                         const typeOfInstruction = accountInstruction.data[0];
@@ -1486,121 +2042,17 @@ export function GovernanceProposalV2View(props: any){
                                             });
                                         };
                                         
-                                        if (programId === "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"){//(instructionInfo?.name === "Token Transfer"){
-
-                                            // check if we have this in gai
-                                            let gai = null;
-                                            if (mintResults && mintResults.length > 0){
-                                                gai = mintResults[cnt];
-                                            } 
-
-                                            if (!gai){
-                                                //gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
-                                            
-                                                // === Inside your main loop, REPLACE this ===
-                                                // gai = await getParsedAccountInfoCached(new PublicKey(accountInstruction.accounts[0].pubkey));
-
-                                                // === WITH this ===
-                                                const pubkey = new PublicKey(accountInstruction.accounts[0].pubkey);
-                                                gai = allResults.get(pubkey.toBase58());
-
-                                                // === Also replace: ===
-                                                // let tai = await getParsedAccountInfoCached(tokenMintAccount);
-                                                // === WITH ===
-                                                //const tai = allResults.get(tokenMintAccount.toBase58());
-
-                                                // If tokenMintAccount is not guaranteed to be in the original set, you can fallback to:
-                                                // const tai = allResults.get(tokenMintAccount.toBase58()) || await connection.getParsedAccountInfo(tokenMintAccount);
-
-                                                // === Notes ===
-                                                // Ensure all `accountInstruction.accounts[0].pubkey` and `tokenMintAccount` values you expect are added to `uniquePubkeys` before batch fetch.
-                                                // You can extend this to cover other accounts too (e.g. accounts[2], accounts[3]) as needed.
-                                            }
-
-                                            if (gai){
-                                                // get token metadata
-                                                //console.log("gai: "+JSON.stringify(gai))
-                                                //console.log("accountInstruction: "+JSON.stringify(accountInstruction));
-                                                /*
-                                                const uri = `https://api.shyft.to/sol/v1/nft/read?network=mainnet-beta&token_record=true&refresh=false&token_address=${gai?.data?.parsed?.info?.mint}`;
-                                                
-                                                const meta = axios.get(uri, {
-                                                    headers: {
-                                                        'x-api-key': SHYFT_KEY
-                                                    }
-                                                    })
-                                                    .then(response => {
-                                                        if (response.data?.result){
-                                                            return response.data.result;
-                                                        }
-                                                        //return null
-                                                    })
-                                                    .catch(error => 
-                                                    {   
-                                                        // revert to RPC
-                                                        console.error(error);
-                                                        //return null;
-                                                    });
-                                                */
-
-                                                //setInstructionRecord(gai.value);
-                                                let newObject = null;
-                                                try{
-                                                    const amountBN = new BN(accountInstruction?.data?.slice(1), 'le');
-                                                    const decimals = gai?.data.parsed.info.tokenAmount?.decimals || 0;
-                                                    const divisor = new BN(10).pow(new BN(decimals));
-
-                                                    // To handle decimals, use .toNumber() for both the amount and divisor
-                                                    let adjustedAmount = amountBN.toNumber() / divisor.toNumber(); 
-
-                                                    // Now adjustedAmount will properly reflect decimal values
-                                                    console.log("Adjusted Amount:", adjustedAmount);
-                                                   // Detect if decimals should be displayed (more than 0)
-                                                    let amount = (adjustedAmount % 1 === 0)
-                                                        ? adjustedAmount.toLocaleString() // No decimals, just format as integer
-                                                        : adjustedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
-
-                                                    let symbol = null;//`${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
-                                                    let tname = null;
-                                                    let logo = null;    
-                                                    
-                                                    if (tokenMap){
-                                                        const tmap = tokenMap.get(new PublicKey(gai?.data.parsed.info.mint).toBase58());
-                                                        if (tmap){
-                                                            console.log("tmap: "+JSON.stringify(tmap))
-                                                            if (!tname)
-                                                                tname = tmap?.name;
-                                                            if (!symbol)
-                                                                symbol = tmap?.symbol;
-                                                            if (!logo)
-                                                                logo = tmap?.logoURI;
-                                                        }
-                                                    }
-
-                                                    if (!symbol)
-                                                        symbol = `${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
-
-                                                    newObject = {
-                                                        type:"TokenTransfer",
-                                                        ix: instructionItem.pubkey,
-                                                        pubkey: accountInstruction.accounts[0].pubkey,
-                                                        mint: gai?.data.parsed.info.mint,
-                                                        name: tname,
-                                                        logoURI: logo,
-                                                        amount: parseFloat(amount.replace(/,/g, '')), //amount,
-                                                        data: accountInstruction.data,
-                                                        destinationAta:accountInstruction.accounts[1].pubkey,
-                                                        description:amount+' '+symbol+' to '+accountInstruction.accounts[1].pubkey,
-                                                    };
-                                                    
-                                                    //console.log("newObject "+JSON.stringify(newObject))
-                                                    accountInstruction.info = newObject;
-                                                } catch(e){
-                                                    console.log("ERR: "+e);
+                                        if (programId === SPL_TOKEN_PROGRAM_ID){
+                                            const tokenInstructionInfo = decodeSupportedTokenInstruction(
+                                                programId,
+                                                accountInstruction
+                                            );
+                                            if (tokenInstructionInfo) {
+                                                accountInstruction.info = tokenInstructionInfo;
+                                                if (tokenInstructionInfo.destinationAta && tokenInstructionInfo.amount > 0) {
+                                                    appendInstructionTransferDetail(tokenInstructionInfo);
                                                 }
-                                                accountInstruction.gai = gai;
-                                                
-                                                appendInstructionTransferDetail(newObject);
+                                                continue;
                                             }
                                         } else if (programId === "TbpjRtCg2Z2n2Xx7pFm5HVwsjx9GPJ5MsrfBvCoQRNL"){//(instructionInfo?.name === "Batch Token Transfer"){
 
@@ -1891,16 +2343,17 @@ export function GovernanceProposalV2View(props: any){
                                                                 
                                                                 //let tai = await connection.getParsedAccountInfo(tokenMintAccount);
                                                                 let tai = allResults.get(tokenMintAccount.toBase58()) || await connection.getParsedAccountInfo(tokenMintAccount);
+                                                                const taiInfo = (tai as any)?.value || tai;
 
                                                                 let tdecimals = 0;
                                                                 
-                                                                if (tai && tai?.value.data?.parsed?.info?.tokenAmount?.decimals){
+                                                                if (taiInfo?.data?.parsed?.info?.tokenAmount?.decimals){
                                                                     //console.log("tai "+JSON.stringify(tai?.value.data?.parsed?.info?.mint));
-                                                                    thisMint = tai?.value.data?.parsed?.info?.mint;
+                                                                    thisMint = taiInfo?.data?.parsed?.info?.mint;
                                                                     mint = thisMint;
                                                                     //console.log("l v t " + lastMint + " v "+ thisMint);
-                                                                    if ((tai?.value.data?.parsed?.info?.mint) && (lastMint !== thisMint)){
-                                                                        tname = await fetchTokenName(tai?.value.data?.parsed?.info?.mint);
+                                                                    if ((taiInfo?.data?.parsed?.info?.mint) && (lastMint !== thisMint)){
+                                                                        tname = await fetchTokenName(taiInfo?.data?.parsed?.info?.mint);
                                                                         thisMintName = tname;
                                                                         symbol = tname;
                                                                     } else {
@@ -1909,7 +2362,7 @@ export function GovernanceProposalV2View(props: any){
                                                                         symbol = tname;
                                                                     }
                                                                     
-                                                                    tdecimals = tai?.value.data?.parsed?.info?.tokenAmount?.decimals || 0;
+                                                                    tdecimals = taiInfo?.data?.parsed?.info?.tokenAmount?.decimals || 0;
                                                                     thisMintDecimals = tdecimals;
                                                                     if (tdecimals > 0){
                                                                         let tdivisor = new BN(10).pow(new BN(tdecimals));
@@ -1973,6 +2426,13 @@ export function GovernanceProposalV2View(props: any){
                                                     description = buffer.toString("utf-8");
                                                 }
 
+                                                if (decodedIx?.name) {
+                                                    description = describeGovernanceInstruction(
+                                                        decodedIx,
+                                                        accountInstruction
+                                                    );
+                                                }
+
                                                 const newObject = {
                                                     type:"SPL Governance Program by Solana",
                                                     ix: instructionItem.pubkey,
@@ -2002,73 +2462,47 @@ export function GovernanceProposalV2View(props: any){
                                                 };
                                                 accountInstruction.info = newObject;
                                             }
-                                        } else if (programId === "TokenzQdBNbLqP5VEh84bYQNJ9Y7fA1aC33mW7zk1g") {
-                                            // Token-2022 Transfer / TransferChecked (basic support like SPL Token)
-                                            let gai = null;
-                                            if (mintResults?.length) gai = mintResults[cnt];
-                                            if (!gai) {
-                                                const pubkey = new PublicKey(accountInstruction.accounts[0].pubkey);
-                                                gai = allResults.get(pubkey.toBase58());
-                                            }
-                                            if (gai) {
-                                                try {
-                                                // same layout assumption as Token: first byte = ix enum, then amount u64
-                                                const amountBN = U64(accountInstruction.data, 1);
-                                                const decimals = gai?.data?.parsed?.info?.tokenAmount?.decimals || 0;
-
-                                                const decimalStr = toDecimalAmount(amountBN, decimals);
-                                                const amount = decimalStr.includes(".")
-                                                    ? formatAmount(decimalStr)
-                                                    : Number(decimalStr).toLocaleString();
-
-                                                let symbol: string | null = null;
-                                                let tname: string | null = null;
-                                                let logo: string | null = null;
-                                                const mint = gai?.data?.parsed?.info?.mint;
-
-                                                if (tokenMap && mint) {
-                                                    const tmap = tokenMap.get(new PublicKey(mint).toBase58());
-                                                    if (tmap) {
-                                                    tname ??= tmap.name;
-                                                    symbol ??= tmap.symbol;
-                                                    logo ??= tmap.logoURI;
-                                                    }
+                                        } else if (programId === TOKEN_2022_PROGRAM_ID) {
+                                            const tokenInstructionInfo = decodeSupportedTokenInstruction(
+                                                programId,
+                                                accountInstruction
+                                            );
+                                            if (tokenInstructionInfo) {
+                                                accountInstruction.info = tokenInstructionInfo;
+                                                if (tokenInstructionInfo.destinationAta && tokenInstructionInfo.amount > 0) {
+                                                    appendInstructionTransferDetail(tokenInstructionInfo);
                                                 }
-                                                symbol ??= `${mint.slice(0, 3)}...${mint.slice(-3)}`;
-
-                                                const newObject = {
-                                                    type: "Token2022Transfer",
-                                                    ix: instructionItem.pubkey,
-                                                    pubkey: accountInstruction.accounts[0].pubkey,
-                                                    mint,
-                                                    name: tname,
-                                                    logoURI: logo,
-                                                    amount: parseFloat(amount.replace(/,/g, "")),
-                                                    data: accountInstruction.data,
-                                                    destinationAta: accountInstruction.accounts[1]?.pubkey,
-                                                    description: `${amount} ${symbol} to ${accountInstruction.accounts[1]?.pubkey}`,
-                                                };
-                                                accountInstruction.info = newObject;
-
-                                                appendInstructionTransferDetail(newObject);
-                                                } catch (e) {
-                                                console.log("Token-2022 ERR:", e);
-                                                }
+                                                continue;
                                             }
                                         } else if (programId === "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL") {
-                                            // Create Associated Token Account
+                                            const ataTag = accountInstruction.data?.length
+                                                ? Number(accountInstruction.data[0])
+                                                : 0;
                                             const payer = accountInstruction.accounts[0]?.pubkey;
                                             const ata   = accountInstruction.accounts[1]?.pubkey;
                                             const owner = accountInstruction.accounts[2]?.pubkey;
                                             const mint  = accountInstruction.accounts[3]?.pubkey;
+                                            let description = `Create ATA ${shortPk(ata)} for owner ${shortPk(owner)} / mint ${shortPk(mint)} (payer ${shortPk(payer)})`;
+                                            let type = "CreateAssociatedTokenAccount";
+
+                                            if (ataTag === 1) {
+                                                type = "CreateAssociatedTokenAccountIdempotent";
+                                                description = `Create ATA idempotent ${shortPk(ata)} for owner ${shortPk(owner)} / mint ${shortPk(mint)} (payer ${shortPk(payer)})`;
+                                            } else if (ataTag === 2) {
+                                                const ownerAta = accountInstruction.accounts[3]?.pubkey;
+                                                const nestedMint = accountInstruction.accounts[4]?.pubkey;
+                                                const destinationOwnerAta = accountInstruction.accounts[5]?.pubkey;
+                                                type = "RecoverNestedAssociatedTokenAccount";
+                                                description = `Recover nested ATA ${shortPk(ata)} to ${shortPk(destinationOwnerAta)} for owner ${shortPk(owner)} / owner ATA ${shortPk(ownerAta)} / nested mint ${shortPk(nestedMint)}`;
+                                            }
 
                                             accountInstruction.info = {
-                                                type: "CreateAssociatedTokenAccount",
+                                                type,
                                                 payer,
                                                 ata,
                                                 owner,
                                                 mint,
-                                                description: `Create ATA ${shortPk(ata)} for owner ${shortPk(owner)} / mint ${shortPk(mint)} (payer ${shortPk(payer)})`,
+                                                description,
                                                 data: accountInstruction.data,
                                             };
                                         } else if (programId === "ComputeBudget111111111111111111111111111111") {
@@ -2330,6 +2764,84 @@ export function GovernanceProposalV2View(props: any){
                                                     description: `TransferWithSeed ${formatAmount(solStr)} SOL from ${shortPk(from)} to ${shortPk(to)}`,
                                                     data,
                                                     };
+                                                } else if (tag === 4 /* AdvanceNonceAccount */) {
+                                                    const nonceAccount = accountInstruction.accounts[0]?.pubkey;
+                                                    const nonceAuthority = accountInstruction.accounts[2]?.pubkey;
+                                                    accountInstruction.info = {
+                                                        type: "SystemProgram",
+                                                        op: "AdvanceNonceAccount",
+                                                        nonceAccount,
+                                                        nonceAuthority,
+                                                        description: `Advance nonce account ${shortPk(nonceAccount)} by ${shortPk(nonceAuthority)}`,
+                                                        data,
+                                                    };
+                                                } else if (tag === 5 /* WithdrawNonceAccount */) {
+                                                    const nonceAccount = accountInstruction.accounts[0]?.pubkey;
+                                                    const destination = accountInstruction.accounts[1]?.pubkey;
+                                                    const lamports = U64(data, 4);
+                                                    const solStr = toDecimalAmount(lamports, 9);
+                                                    accountInstruction.info = {
+                                                        type: "SystemProgram",
+                                                        op: "WithdrawNonceAccount",
+                                                        nonceAccount,
+                                                        destination,
+                                                        lamports: Number(solStr),
+                                                        description: `Withdraw ${formatAmount(solStr)} SOL from nonce account ${shortPk(nonceAccount)} to ${shortPk(destination)}`,
+                                                        data,
+                                                    };
+                                                } else if (tag === 6 /* InitializeNonceAccount */) {
+                                                    const nonceAccount = accountInstruction.accounts[0]?.pubkey;
+                                                    const nonceAuthority = accountInstruction.accounts[2]?.pubkey;
+                                                    accountInstruction.info = {
+                                                        type: "SystemProgram",
+                                                        op: "InitializeNonceAccount",
+                                                        nonceAccount,
+                                                        nonceAuthority,
+                                                        description: `Initialize nonce account ${shortPk(nonceAccount)} with authority ${shortPk(nonceAuthority)}`,
+                                                        data,
+                                                    };
+                                                } else if (tag === 7 /* AuthorizeNonceAccount */) {
+                                                    const nonceAccount = accountInstruction.accounts[0]?.pubkey;
+                                                    const nonceAuthority = accountInstruction.accounts[1]?.pubkey;
+                                                    const newAuthority = accountInstruction.accounts[2]?.pubkey;
+                                                    accountInstruction.info = {
+                                                        type: "SystemProgram",
+                                                        op: "AuthorizeNonceAccount",
+                                                        nonceAccount,
+                                                        nonceAuthority,
+                                                        newAuthority,
+                                                        description: `Authorize nonce account ${shortPk(nonceAccount)} to ${shortPk(newAuthority)}`,
+                                                        data,
+                                                    };
+                                                } else if (tag === 8 /* Allocate */) {
+                                                    const account = accountInstruction.accounts[0]?.pubkey;
+                                                    const space = U64(data, 4);
+                                                    accountInstruction.info = {
+                                                        type: "SystemProgram",
+                                                        op: "Allocate",
+                                                        account,
+                                                        space: space.toString(),
+                                                        description: `Allocate ${space.toString()} bytes for ${shortPk(account)}`,
+                                                        data,
+                                                    };
+                                                } else if (tag === 9 /* AllocateWithSeed */) {
+                                                    const account = accountInstruction.accounts[1]?.pubkey;
+                                                    accountInstruction.info = {
+                                                        type: "SystemProgram",
+                                                        op: "AllocateWithSeed",
+                                                        account,
+                                                        description: `AllocateWithSeed for ${shortPk(account)}`,
+                                                        data,
+                                                    };
+                                                } else if (tag === 10 /* AssignWithSeed */) {
+                                                    const account = accountInstruction.accounts[0]?.pubkey;
+                                                    accountInstruction.info = {
+                                                        type: "SystemProgram",
+                                                        op: "AssignWithSeed",
+                                                        account,
+                                                        description: `AssignWithSeed for ${shortPk(account)}`,
+                                                        data,
+                                                    };
                                                 }
                                                 // else fall back to your existing SOL Transfer branch above (already handled)
                                                 } catch (e) {
@@ -2337,19 +2849,9 @@ export function GovernanceProposalV2View(props: any){
                                                 }
                                             }   
                                         } else if (programId === "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s") {
-                                            // High-level only (full decode requires IDL + variant tables)
-                                            const metadataAcc = accountInstruction.accounts[0]?.pubkey;
-                                            const mint        = accountInstruction.accounts[1]?.pubkey;
-                                            const authority   = accountInstruction.accounts[2]?.pubkey;
-
-                                            accountInstruction.info = {
-                                                type: "MetaplexTokenMetadata",
-                                                metadata: metadataAcc,
-                                                mint,
-                                                authority,
-                                                description: `Token Metadata op on mint ${shortPk(mint)} (metadata ${shortPk(metadataAcc)})`,
-                                                data: accountInstruction.data, // keep raw for advanced view
-                                            };     
+                                            accountInstruction.info = describeMetaplexInstruction(
+                                                accountInstruction
+                                            );
                                         } else {
                                             if (accountInstruction?.data) {
                                                 const buf = Buffer.from(accountInstruction.data);

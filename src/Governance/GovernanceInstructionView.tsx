@@ -475,8 +475,25 @@ export function InstructionView(props: any) {
             //const pubkey = props.pubkey;
             const [instructionRecord, setInstructionRecord] = React.useState(null);
             const [iLoading, setILoading] = React.useState(false);
+            const transferInfo = instructionDetails?.info;
+            const transferMint =
+                transferInfo?.mint ||
+                instruction.account.instructions[0]?.gai?.value?.data?.parsed?.info?.mint ||
+                instructionRecord?.data?.parsed?.info?.mint;
+            const transferLogo =
+                transferInfo?.logoURI ||
+                getObjectByMint(transferMint)?.logo ||
+                (transferMint && tokenMap ? tokenMap.get(transferMint)?.logoURI : null);
+            const transferName =
+                transferInfo?.name ||
+                getObjectByMint(transferMint)?.name ||
+                (transferMint && tokenMap ? tokenMap.get(transferMint)?.symbol : null) ||
+                (transferMint ? trimAddress(transferMint) : 'Explore');
 
             const fetchTokenMetadata = async() => {
+                if (transferInfo?.mint) {
+                    return;
+                }
                 setILoading(true);
                 let destinationAta = null;
                 if (instruction.account.instructions[0].accounts.length > 0){
@@ -579,17 +596,14 @@ export function InstructionView(props: any) {
 
             return (
                 <>
-                {instructionRecord && 
+                {(transferMint && (transferInfo || instructionRecord)) && 
                     <ExplorerView 
                         showSolanaProfile={false}
-                        address={instructionRecord.data.parsed.info.mint}
+                        address={transferMint}
                         type='address'
-                        useLogo={getObjectByMint(instruction.account.instructions[0]?.gai.value.data.parsed.info.mint)?.logo || tokenMap.get(instructionRecord.data.parsed.info.mint)?.logoURI}
-                        title={`${new BN(instructionDetails?.data?.slice(1), 'le')
-                            .div(new BN(10).pow(new BN(instructionRecord.data.parsed.info.tokenAmount?.decimals || 0)))
-                            .toString()
-                            .toLocaleString()} 
-                            ${getObjectByMint(instruction.account.instructions[0]?.gai.value.data.parsed.info.mint)?.name || tokenMap.get(instructionRecord.data.parsed.info.mint)?.symbol || (instructionRecord.data.parsed.info.mint && trimAddress(instructionRecord.data.parsed.info.mint)) || 'Explore'}
+                        useLogo={transferLogo}
+                        title={`${transferInfo?.amount?.toLocaleString?.() || transferInfo?.amount || ''}
+                            ${transferName}
                         `}
                         hideTitle={false}
                         style='text'
@@ -631,9 +645,17 @@ export function InstructionView(props: any) {
                                 {/*<ExplorerView address={new PublicKey(instruction.pubkey).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>*/}
                             </Typography>
                             <Typography>
-                                {instructionInfo?.name || <ExplorerView address={new PublicKey(instructionDetails.programId).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px'/>}
+                                {instructionDetails?.info?.op ||
+                                 instructionDetails?.info?.decodedIx?.name ||
+                                 instructionInfo?.name ||
+                                 <ExplorerView address={new PublicKey(instructionDetails.programId).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px'/>}
                                 
-                                {instructionInfo?.name === 'Token Transfer' &&
+                                {((instructionDetails?.info?.mint && instructionDetails?.info?.amount !== undefined) ||
+                                  instructionInfo?.name === 'Token Transfer' ||
+                                  instructionInfo?.name === 'Token Transfer Checked' ||
+                                  instructionDetails?.info?.type === 'TokenTransfer' ||
+                                  instructionDetails?.info?.type === 'TokenTransferChecked' ||
+                                  instructionDetails?.info?.type === 'Token2022Transfer') &&
                                     <> 
                                     <br/>
                                         <InstructionTransferRecord />
