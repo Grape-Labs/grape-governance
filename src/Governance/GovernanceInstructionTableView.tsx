@@ -157,6 +157,64 @@ const calculatePriorityFee = (computeUnits: number, baseMicroLamportsPerUnit: nu
     return computeUnits * baseMicroLamportsPerUnit;
 };
 
+function escapeCsvValue(value: any) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+    const stringValue = String(value);
+    if (/[",\n\r]/.test(stringValue)) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+    }
+    return stringValue;
+}
+
+function getInstructionStatusLabel(status: any) {
+    return Number(status) === 0 ? 'Pending' : 'Executed';
+}
+
+function buildInstructionCsv(rows: any[], proposal: any) {
+    if (!Array.isArray(rows) || rows.length === 0) {
+        return '';
+    }
+
+    const sortedRows = [...rows].sort(
+        (a: any, b: any) => Number(a?.index ?? 0) - Number(b?.index ?? 0)
+    );
+
+    const proposalName = proposal?.account?.name || '';
+    const proposalAddress =
+        proposal?.pubkey?.toBase58?.() ||
+        (proposal?.pubkey ? `${proposal.pubkey}` : '');
+
+    const csvRows = [];
+
+    if (proposalName) {
+        csvRows.push(`Proposal,${escapeCsvValue(proposalName)}`);
+    }
+    if (proposalAddress) {
+        csvRows.push(`Proposal Address,${escapeCsvValue(proposalAddress)}`);
+    }
+    if (csvRows.length > 0) {
+        csvRows.push('');
+    }
+
+    csvRows.push('Index,Transaction,Description,Program,Status,Accounts,Signers');
+
+    sortedRows.forEach((row: any) => {
+        csvRows.push([
+            escapeCsvValue(row?.index ?? ''),
+            escapeCsvValue(row?.ix ?? ''),
+            escapeCsvValue(row?.description ?? ''),
+            escapeCsvValue(row?.program ?? ''),
+            escapeCsvValue(getInstructionStatusLabel(row?.status)),
+            escapeCsvValue(row?.accounts ?? ''),
+            escapeCsvValue(row?.signers ?? ''),
+        ].join(','));
+    });
+
+    return csvRows.join('\r\n');
+}
+
 export function InstructionTableView(props: any) {
     
     const proposalIx = props.proposalInstructions;
@@ -1199,8 +1257,8 @@ export function InstructionTableView(props: any) {
                 id:index,
                 index:Number(item?.account?.instructionIndex ?? index),
                 ix:itemPubkey,
-                accounts: JSON.stringify(accounts),
-                signers: signers.join('<br/> '),
+                accounts: accounts.join(' | '),
+                signers: signers.join(' | '),
                 data:itemInstructions?.[0]?.data ?? null,
                 description:description,
                 program: program,
@@ -1224,6 +1282,14 @@ export function InstructionTableView(props: any) {
         }
     }, [proposalIx]);
 
+    const instructionCsv = ixRows ? buildInstructionCsv(ixRows, sentProp) : '';
+    const instructionCsvHref = instructionCsv
+        ? `data:text/csv;charset=utf-8,${encodeURIComponent(instructionCsv)}`
+        : null;
+    const instructionCsvFilename = `${
+        sentProp?.pubkey?.toBase58?.() || 'proposal'
+    }_instructions.csv`;
+
     return (
         <>
             {(publicKey && (state === 3 || state === 4 || state === 8) && instructionSet && instructionSet.length > 0) ?
@@ -1238,7 +1304,38 @@ export function InstructionTableView(props: any) {
                 </Tooltip>
             :<></>}
             {ixRows &&
-                <div style={{ height: 600, width: '100%' }}>
+                <div style={{ width: '100%', position: 'relative' }}>
+                    {instructionCsvHref && (
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                top: 8,
+                                right: 8,
+                                zIndex: 2,
+                            }}
+                        >
+                            <Tooltip title="Download the instruction table as CSV">
+                                <Button
+                                    size="small"
+                                    color='inherit'
+                                    variant="text"
+                                    sx={{
+                                        borderRadius:'17px',
+                                        textTransform: 'none',
+                                        minWidth: 'auto',
+                                        backgroundColor: 'rgba(14,24,40,0.72)',
+                                        backdropFilter: 'blur(6px)',
+                                    }}
+                                    download={instructionCsvFilename}
+                                    href={instructionCsvHref}
+                                >
+                                    <DownloadIcon fontSize='small' sx={{ mr: 0.75 }} />
+                                    CSV
+                                </Button>
+                            </Tooltip>
+                        </Box>
+                    )}
+                    <div style={{ height: 600, width: '100%' }}>
                     <div style={{ display: 'flex', height: '100%' }}>
                         <div style={{ flexGrow: 1 }}>
                                 <DataGrid
@@ -1260,6 +1357,7 @@ export function InstructionTableView(props: any) {
                                     }}
                                 />
                         </div>
+                    </div>
                     </div>
                 </div>
             }
