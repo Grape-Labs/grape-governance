@@ -7,6 +7,8 @@ import {
     TransactionInstruction,
     SystemProgram,
     SystemInstruction,
+    StakeProgram,
+    LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
 import { Buffer } from 'buffer';
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
@@ -1169,27 +1171,149 @@ export default function WalletCardView(props:any) {
     }
 
     const getWalletStakeAccounts = async(tokenOwnerRecord: PublicKey) => {
-        
-        const uri = `https://api.shyft.to/sol/v1/wallet/stake_accounts?network=mainnet-beta&wallet_address=${tokenOwnerRecord.toBase58()}`;
-        
-        return axios.get(uri, {
+        const wallet = tokenOwnerRecord.toBase58();
+        const uri = `https://api.shyft.to/sol/v1/wallet/stake_accounts?network=mainnet-beta&wallet_address=${wallet}`;
+        const U64_MAX = "18446744073709551615";
+        const STAKE_RENT_EXEMPT_LAMPORTS = 2282880;
+
+        const normalizeShyftStakeAccounts = (raw: any): any[] => {
+            const arr =
+                Array.isArray(raw) ? raw :
+                Array.isArray(raw?.stake_accounts) ? raw.stake_accounts :
+                Array.isArray(raw?.accounts) ? raw.accounts :
+                Array.isArray(raw?.data) ? raw.data :
+                [];
+
+            return arr.map((a: any) => {
+                const pubkey = a?.pubkey || a?.address || a?.stake_account_address;
+                if (!pubkey) return null;
+
+                const delegation = a?.stake?.delegation;
+                const deactivationEpoch =
+                    delegation?.deactivation_epoch ?? delegation?.deactivationEpoch ?? "N/A";
+
+                let derivedState = "inactive";
+                if (delegation && String(deactivationEpoch) === U64_MAX) derivedState = "active";
+                else if (delegation && String(deactivationEpoch) !== "N/A") derivedState = "deactivating";
+                else if (a?.type === "initialized") derivedState = "initialized";
+
+                const totalSol = Number(a?.total_amount ?? 0);
+                const rentSol = Number(a?.rent ?? 0);
+                const delegatedSol = a?.delegated_amount != null ? Number(a.delegated_amount) : null;
+                const activeSolRaw = a?.active_amount != null ? Number(a.active_amount) : null;
+                const activeStakeSol =
+                    delegatedSol != null && Number.isFinite(delegatedSol) && delegatedSol <= totalSol + 0.01
+                        ? delegatedSol
+                        : activeSolRaw != null && Number.isFinite(activeSolRaw) && activeSolRaw <= totalSol + 0.01
+                        ? activeSolRaw
+                        : 0;
+                const inactiveSol = Math.max(0, totalSol - activeStakeSol - rentSol);
+
+                return {
+                    ...a,
+                    pubkey,
+                    stake_account_address: a?.stake_account_address ?? pubkey,
+                    total_amount: totalSol,
+                    active_amount: activeStakeSol,
+                    active_stake_amount: activeStakeSol,
+                    delegated_amount: delegatedSol ?? activeStakeSol,
+                    rent: rentSol,
+                    inactive_amount: inactiveSol,
+                    lamports: Math.round(totalSol * LAMPORTS_PER_SOL),
+                    activeStakeLamports: Math.round(activeStakeSol * LAMPORTS_PER_SOL),
+                    rentLamports: Math.round(rentSol * LAMPORTS_PER_SOL),
+                    inactiveLamports: Math.round(inactiveSol * LAMPORTS_PER_SOL),
+                    vote_account_address: a?.vote_account_address ?? delegation?.voter ?? "N/A",
+                    status: a?.status ?? a?.state ?? "unknown",
+                    state: a?.state ?? derivedState,
+                };
+            }).filter(Boolean);
+        };
+
+        const normalizeRpcStakeAccounts = (accounts: any[]): any[] => {
+            return accounts.map((acc: any) => {
+                const info = acc?.account?.data?.parsed?.info;
+                const delegation = info?.stake?.delegation;
+                const deactivationEpoch = delegation?.deactivationEpoch ?? "N/A";
+
+                let state = info?.type ?? "unknown";
+                if (info?.type === "delegated" && String(deactivationEpoch) === U64_MAX) state = "active";
+                else if (info?.type === "delegated") state = "deactivating";
+                else if (info?.type === "initialized") state = "initialized";
+
+                const totalLamports = Number(acc?.account?.lamports || 0);
+                const rentLamports =
+                    info?.meta?.rentExemptReserve != null
+                        ? Number(info.meta.rentExemptReserve)
+                        : STAKE_RENT_EXEMPT_LAMPORTS;
+                const activeStakeLamports = delegation?.stake != null ? Number(delegation.stake) : 0;
+                const inactiveLamports = Math.max(0, totalLamports - activeStakeLamports - rentLamports);
+
+                const totalSol = totalLamports / LAMPORTS_PER_SOL;
+                const rentSol = rentLamports / LAMPORTS_PER_SOL;
+                const activeStakeSol = activeStakeLamports / LAMPORTS_PER_SOL;
+                const inactiveSol = inactiveLamports / LAMPORTS_PER_SOL;
+                const pubkey = acc.pubkey.toBase58();
+
+                return {
+                    pubkey,
+                    stake_account_address: pubkey,
+                    vote_account_address: delegation?.voter ?? "N/A",
+                    status: info?.type ?? "unknown",
+                    state,
+                    total_amount: totalSol,
+                    active_amount: activeStakeSol,
+                    active_stake_amount: activeStakeSol,
+                    delegated_amount: activeStakeSol,
+                    rent: rentSol,
+                    inactive_amount: inactiveSol,
+                    lamports: totalLamports,
+                    activeStakeLamports,
+                    rentLamports,
+                    inactiveLamports,
+                };
+            });
+        };
+
+        try {
+            const response = await axios.get(uri, {
                 headers: {
                     'x-api-key': SHYFT_KEY,
                     'Accept-Encoding': 'gzip, deflate, br'
                 }
-                })
-            .then(response => {
-                if (response.data?.result?.data){
-                    return response.data.result.data;
-                }
-                return null
-            })
-            .catch(error => 
-                {   
-                    // revert to RPC
-                    console.error(error);
-                    return null;
-                });
+            });
+
+            const normalized = normalizeShyftStakeAccounts(response?.data?.result);
+            if (normalized.length > 0) {
+                return normalized;
+            }
+        } catch (error) {
+            console.warn("Shyft stake account lookup failed, falling back to RPC", error);
+        }
+
+        try {
+            const [stakerAccounts, withdrawerAccounts] = await Promise.all([
+                RPC_CONNECTION.getParsedProgramAccounts(StakeProgram.programId, {
+                    filters: [{ memcmp: { offset: 12, bytes: wallet } }],
+                }),
+                RPC_CONNECTION.getParsedProgramAccounts(StakeProgram.programId, {
+                    filters: [{ memcmp: { offset: 44, bytes: wallet } }],
+                }),
+            ]);
+
+            const seen = new Set<string>();
+            const deduped = [...stakerAccounts, ...withdrawerAccounts].filter((acc: any) => {
+                const key = acc.pubkey.toBase58();
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+
+            return normalizeRpcStakeAccounts(deduped);
+        } catch (error) {
+            console.error(error);
+            return null;
+        }
     }
 
     const getWalletDomains = async(tokenOwnerRecord: PublicKey): Promise<{ domains: Array<{ name: string; isPrimary: boolean }>; debug: any }> => {

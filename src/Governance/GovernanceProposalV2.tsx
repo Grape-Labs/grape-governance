@@ -1818,14 +1818,15 @@ export function GovernanceProposalV2View(props: any){
                                                         ? "TokenTransferChecked"
                                                         : "TokenTransfer",
                                                 ix: instructionItem.pubkey,
-                                                pubkey: source,
+                                                pubkey: destination,
+                                                sourcePubkey: source,
                                                 mint,
                                                 name: meta.name,
                                                 logoURI: meta.logoURI,
                                                 amount: amount.amountValue,
                                                 data: ixLike?.data,
                                                 destinationAta: destination,
-                                                description: `${amount.amountUi} ${meta.symbol} from ${shortPk(source)} to ${shortPk(destination)}`,
+                                                description: `${amount.amountUi} ${meta.symbol} to ${shortPk(destination)}`,
                                             };
                                         }
 
@@ -2111,7 +2112,8 @@ export function GovernanceProposalV2View(props: any){
                                                     newObject = {
                                                         type:"BatchTokenTransfer",
                                                         ix: instructionItem.pubkey,
-                                                        pubkey: accountInstruction.accounts[0].pubkey,
+                                                        pubkey: accountInstruction.accounts[1].pubkey,
+                                                        sourcePubkey: accountInstruction.accounts[0].pubkey,
                                                         mint: gai?.data.parsed.info.mint,
                                                         name: tname,
                                                         logoURI: logo,
@@ -2175,7 +2177,8 @@ export function GovernanceProposalV2View(props: any){
                                                     newObject = {
                                                         type:"SOL Transfer",
                                                         ix: instructionItem.pubkey,
-                                                        pubkey: accountInstruction.accounts[0].pubkey,
+                                                        pubkey: accountInstruction.accounts[1].pubkey,
+                                                        sourcePubkey: accountInstruction.accounts[0].pubkey,
                                                         mint: "So11111111111111111111111111111111111111112",//"SOL",//gai?.data.parsed.info.mint,
                                                         name: symbol,
                                                         logoURI: "https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/So11111111111111111111111111111111111111112.png",//tokenMap.get(gai?.data.parsed.info.mint)?.logoURI,
