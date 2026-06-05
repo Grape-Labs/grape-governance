@@ -551,7 +551,9 @@ export function InstructionView(props: any) {
                 const amount = amountBN.div(divisor).toString(); 
                 
                 const newObject = {
-                    pubkey: instruction.account.instructions[0].accounts[0].pubkey,
+                    ix: instruction.pubkey,
+                    pubkey: destinationAta || instruction.account.instructions[0].accounts[0].pubkey,
+                    sourcePubkey: instruction.account.instructions[0].accounts[0].pubkey,
                     mint: instruction.account.instructions[0]?.gai.value.data.parsed.info.mint,
                     name: name,
                     logoURI: logo,
@@ -559,7 +561,11 @@ export function InstructionView(props: any) {
                     destinationAta: destinationAta
                 };
 
-                const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instruction.account.instructions[0].accounts[0].pubkey);
+                const hasInstruction = instructionTransferDetails.some((obj: any) =>
+                    obj?.ix === instruction.pubkey &&
+                    obj?.mint === newObject.mint &&
+                    `${obj?.destinationAta ?? ''}` === `${newObject.destinationAta ?? ''}`
+                );
 
                 if (!hasInstruction)
                     setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
