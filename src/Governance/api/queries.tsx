@@ -614,9 +614,13 @@ function GET_QUERY_MEMBERS(realm:string, realmOwner:string, pointer:number, toke
                 ${programId}_TokenOwnerRecordV2(offset:"${pointer}", 
                 where: {
                     _and: [
-                        { realm: {_eq: "${realm}"} }, 
-                        { governingTokenOwner: { _eq: "${tokenOwner}" } },
-                        { governanceDelegate: { _eq: "${tokenOwner}" } }
+                        { realm: {_eq: "${realm}"} },
+                        {
+                            _or: [
+                                { governingTokenOwner: { _eq: "${tokenOwner}" } },
+                                { governanceDelegate: { _eq: "${tokenOwner}" } }
+                            ]
+                        }
                     ]
                 }) {
                     governanceDelegate
@@ -634,9 +638,13 @@ function GET_QUERY_MEMBERS(realm:string, realmOwner:string, pointer:number, toke
                 ${programId}_TokenOwnerRecordV1(offset:"${pointer}",
                 where: {
                     _and: [
-                        { realm: {_eq: "${realm}"} }, 
-                        { governingTokenOwner: { _eq: "${tokenOwner}" } },
-                        { governanceDelegate: { _eq: "${tokenOwner}" } }
+                        { realm: {_eq: "${realm}"} },
+                        {
+                            _or: [
+                                { governingTokenOwner: { _eq: "${tokenOwner}" } },
+                                { governanceDelegate: { _eq: "${tokenOwner}" } }
+                            ]
+                        }
                     ]
                 }) {
                     governanceDelegate
