@@ -274,6 +274,43 @@ export function VoteForProposal(props:any){
     const handleClose = () => {
         setOpen(false);
     };
+
+    const toBase58Safe = React.useCallback((value: any): string => {
+        if (!value) return "";
+        if (typeof value === "string") return value;
+        return value?.toBase58?.() || "";
+    }, []);
+
+    const communityMint58 = React.useMemo(
+        () => toBase58Safe(realm?.account?.communityMint || realm?.communityMint),
+        [realm?.account?.communityMint, realm?.communityMint, toBase58Safe]
+    );
+
+    const findMemberRecordForMint = React.useCallback(
+        (records: any[] = [], owner58?: string | null, mint58?: string | null) => {
+            if (!owner58 || !mint58) return null;
+            return (
+                records.find(
+                    (item: any) =>
+                        toBase58Safe(item?.account?.governingTokenOwner) === owner58 &&
+                        toBase58Safe(item?.account?.governingTokenMint) === mint58
+                ) || null
+            );
+        },
+        [toBase58Safe]
+    );
+
+    const findDelegatedRecordsForMint = React.useCallback(
+        (records: any[] = [], delegate58?: string | null, mint58?: string | null) => {
+            if (!delegate58 || !mint58) return [];
+            return records.filter(
+                (item: any) =>
+                    toBase58Safe(item?.account?.governanceDelegate) === delegate58 &&
+                    toBase58Safe(item?.account?.governingTokenMint) === mint58
+            );
+        },
+        [toBase58Safe]
+    );
     /*
     console.log("memberMap: "+JSON.stringify(memberMap));
     const memberMapReduced = memberMap.reduce((map: any, item: any) => {
@@ -291,7 +328,7 @@ export function VoteForProposal(props:any){
     console.log("memberMap Item: "+JSON.stringify(item));
     */
     
-    const isCommunityVote = realm?.communityMint === thisitem?.account.governingTokenMint ? true : false; // realm.account.config?.councilMint?.toBase58() === thisitem?.account.governingTokenMint ? false : true;// realm?.communityMint === thisitem?.account.governingTokenMint;
+    const isCommunityVote = communityMint58 !== "" && communityMint58 === proposalMint58;
     //console.log("**  isCommunityVote: "+JSON.stringify(isCommunityVote));
     //console.log(">>>  realm.account.config?.councilMint?.toBase58(): "+JSON.stringify(realm.account.config?.councilMint?.toBase58()));
     //console.log(">>>  thisitem?.account.governingTokenMint: "+JSON.stringify(thisitem?.account.governingTokenMint));
@@ -328,16 +365,20 @@ export function VoteForProposal(props:any){
         //console.log("rawTokenOwnerRecords: "+JSON.stringify(rawTokenOwnerRecords))
         // 6R78nYux2yVDtNBd8CBXojRtgkSmRvECvQsAtZMkcDWM
         
-        let memberItem = voterRecord || rawTokenOwnerRecords.find(item => 
-            (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
-            item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
+        let memberItem = findMemberRecordForMint(
+            rawTokenOwnerRecords,
+            publicKey.toBase58(),
+            proposalMint58
+        );
 
         
         console.log("memberItem: "+JSON.stringify(memberItem));
         
-        let delegatedItems = delegatedVoterRecord || rawTokenOwnerRecords.filter(item => 
-            (item.account?.governanceDelegate?.toBase58() === publicKey.toBase58() && 
-            item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
+        let delegatedItems = findDelegatedRecordsForMint(
+            rawTokenOwnerRecords,
+            publicKey.toBase58(),
+            proposalMint58
+        );
         
         console.log("delegatedItems: "+JSON.stringify(delegatedItems))
         
@@ -513,21 +554,9 @@ export function VoteForProposal(props:any){
         const myPk58 = publicKey.toBase58();
         const proposalMint58 = thisitem?.account?.governingTokenMint?.toBase58?.() ?? "";
 
-        const memberItem =
-        voterRecord ||
-        rawTokenOwnerRecords.find(
-            (item: any) =>
-            item?.account?.governingTokenOwner?.toBase58?.() === myPk58 &&
-            item?.account?.governingTokenMint?.toBase58?.() === proposalMint58
-        );
+        const memberItem = findMemberRecordForMint(rawTokenOwnerRecords, myPk58, proposalMint58);
 
-        const delegatedItems =
-        delegatedVoterRecord ||
-        rawTokenOwnerRecords.filter(
-            (item: any) =>
-            item?.account?.governanceDelegate?.toBase58?.() === myPk58 &&
-            item?.account?.governingTokenMint?.toBase58?.() === proposalMint58
-        );
+        const delegatedItems = findDelegatedRecordsForMint(rawTokenOwnerRecords, myPk58, proposalMint58);
 
         console.log("delegatedItems:", delegatedItems);
 
@@ -721,20 +750,25 @@ export function VoteForProposal(props:any){
 
     
     const loadMemberMap = async() => {
+        if (!publicKey || !realm?.pubkey) return;
         
         const rawTokenOwnerRecords = await getTokenOwnerRecordsByRealmIndexed(new PublicKey(realm.pubkey).toBase58(), realm.owner ? new PublicKey(realm.owner).toBase58() : null, publicKey.toBase58());
         setMemberMap(rawTokenOwnerRecords);
 
-        let memberItem = rawTokenOwnerRecords.find(item => 
-            (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
-            item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
+        let memberItem = findMemberRecordForMint(
+            rawTokenOwnerRecords,
+            publicKey.toBase58(),
+            proposalMint58
+        );
         
         setVoterRecord(memberItem);
         //console.log("memberItem: "+JSON.stringify(memberItem));
         
-        let delegatedItems = rawTokenOwnerRecords.filter(item => 
-            (item.account?.governanceDelegate?.toBase58() === publicKey.toBase58() && 
-            item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
+        let delegatedItems = findDelegatedRecordsForMint(
+            rawTokenOwnerRecords,
+            publicKey.toBase58(),
+            proposalMint58
+        );
         
         setDelegatedVoterRecord(delegatedItems);
         //console.log("delegatedItems: "+JSON.stringify(delegatedItems));
@@ -746,15 +780,20 @@ export function VoteForProposal(props:any){
             // this is a community proposal so now lets check
                 //rawTokenOwnerRecords
             console.log("community proposal, checking council members...");
-            let councilMemberItem = rawTokenOwnerRecords.find(item => 
-                (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
-                 item.account.governingTokenMint.toBase58() === realm.account.config.councilMint.toBase58()));
+            let councilMemberItem = findMemberRecordForMint(
+                rawTokenOwnerRecords,
+                publicKey.toBase58(),
+                realm.account.config.councilMint.toBase58()
+            );
                 console.log("councilMemberItem: "+JSON.stringify(councilMemberItem));
             setCouncilVoterRecord(councilMemberItem);
             
-            let councilDelegateMemberItem = rawTokenOwnerRecords.find(item => 
-                (item.account.governanceDelegate.toBase58() === publicKey.toBase58() && 
-                 item.account.governingTokenMint.toBase58() === realm.account.config.councilMint.toBase58()));
+            let councilDelegateMemberItem =
+                findDelegatedRecordsForMint(
+                    rawTokenOwnerRecords,
+                    publicKey.toBase58(),
+                    realm.account.config.councilMint.toBase58()
+                )?.[0] || null;
                 console.log("delegateCouncilMemberItem: "+JSON.stringify(councilMemberItem));
             setCouncilDelegateVoterRecord(councilDelegateMemberItem);
         }
@@ -774,11 +813,11 @@ export function VoteForProposal(props:any){
     };
 
     React.useEffect(() => { 
-        if (!memberMap && publicKey){
+        if (publicKey && realm?.pubkey && proposalMint58){
             console.log("Step 1.")
             loadMemberMap();
         }
-    }, [publicKey]);
+    }, [publicKey, realm?.pubkey, proposalMint58]);
 
     const voteTone = type === 0
         ? {
