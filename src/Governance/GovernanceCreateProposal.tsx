@@ -12,6 +12,7 @@ import Confetti from 'react-dom-confetti';
 import { useSnackbar } from 'notistack';
 import { createProposalInstructionsLegacy } from './Proposals/createProposalInstructionsLegacy';
 import { createProposalInstructionsV0, InstructionDataWithHoldUpTime } from './Proposals/createProposalInstructionsV0';
+import { getRecordDepositAmount, resolveProposalAuthorRecord, toBase58Safe } from './Proposals/proposalAuthority';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import axios from 'axios';
 import ExplorerView from '../utils/grapeTools/Explorer';
@@ -110,7 +111,6 @@ import {
   getGovernanceIndexed,
   getAllGovernancesIndexed,
   getAllTokenOwnerRecordsIndexed,
-  getTokenOwnerRecordsByRealmIndexed,
   getProposalInstructionsIndexed
 } from './api/queries';
 
@@ -251,6 +251,7 @@ export default function GovernanceCreateProposalView(props: any){
     const [verified, setVerified] = React.useState(false);
     const [isProposer, setIsProposer] = React.useState(false);
     const [isCopied, setIsCopied] = React.useState(false);
+    const [proposalAuthorRecord, setProposalAuthorRecord] = React.useState<any>(null);
 
     const anchorWallet = useAnchorWallet();
     
@@ -350,6 +351,47 @@ export default function GovernanceCreateProposalView(props: any){
      function getTimestampFromDays(days: number) {
        return days * SECONDS_PER_DAY
      }
+
+    const getSelectedGoverningTokenMint = React.useCallback(() => {
+      if (!cachedRealm?.account?.communityMint) return null;
+
+      let governingTokenMint = new PublicKey(cachedRealm.account.communityMint);
+      let councilVote = isCouncilVote;
+
+      if (sentGoverningTokenMint && cachedRealm.account?.config?.councilMint){
+        if (new PublicKey(cachedRealm.account.config.councilMint).toBase58() === new PublicKey(sentGoverningTokenMint).toBase58()){
+          councilVote = true;
+        } else{
+          councilVote = false;
+        }
+      }
+
+      if (councilVote && cachedRealm.account?.config?.councilMint){
+        governingTokenMint = new PublicKey(cachedRealm.account.config.councilMint);
+      }
+
+      return governingTokenMint;
+    }, [cachedRealm, isCouncilVote, sentGoverningTokenMint]);
+
+    const resolveCurrentProposalAuthor = React.useCallback(async (governingTokenMint?: PublicKey | null) => {
+      if (!cachedRealm?.pubkey || !cachedRealm?.owner || !publicKey){
+        return null;
+      }
+
+      const selectedMint = governingTokenMint || getSelectedGoverningTokenMint();
+      if (!selectedMint){
+        return null;
+      }
+
+      const authorResolution = await resolveProposalAuthorRecord(
+        new PublicKey(cachedRealm.pubkey),
+        new PublicKey(cachedRealm.owner),
+        publicKey,
+        selectedMint
+      );
+
+      return authorResolution?.bestRecord || null;
+    }, [cachedRealm, publicKey, getSelectedGoverningTokenMint]);
     
 
     const calculateProposalFee = async() => {
@@ -373,23 +415,20 @@ export default function GovernanceCreateProposalView(props: any){
       const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
       const programId = new PublicKey(cachedRealm?.owner || GOVERNANCE_PROGRAM_ID);
-      let governingTokenMint = new PublicKey(cachedRealm.account?.communityMint);
-      
-      let councilVote = isCouncilVote;
-
-      if (sentGoverningTokenMint){
-        if (new PublicKey(cachedRealm.account?.councilMint).toBase58() === new PublicKey(sentGoverningTokenMint).toBase58()){
-          councilVote = true;
-        } else{
-          councilVote = false;
-        }
-      }
-
-      if (councilVote){
-        governingTokenMint = new PublicKey(cachedRealm.account?.config?.councilMint);
-      }
+      const governingTokenMint = getSelectedGoverningTokenMint();
 
       if (publicKey){
+        if (!governingTokenMint){
+          setProposalSimulationErr("No governing token mint available for this proposal.");
+          return;
+        }
+
+        const resolvedProposalAuthor = await resolveCurrentProposalAuthor(governingTokenMint);
+        if (!resolvedProposalAuthor?.pubkey){
+          setProposalSimulationErr("No direct or delegated token owner record found for the selected governing mint.");
+          return;
+        }
+
         let propSimulation = null;
         
         if (instructionsDataWithHoldUpTime){
@@ -411,6 +450,13 @@ export default function GovernanceCreateProposalView(props: any){
             true,
             null,
             editProposalAddress,
+            undefined,
+            undefined,
+            {
+              tokenOwnerRecordPk: resolvedProposalAuthor.pubkey,
+              governanceAuthority: publicKey,
+              signatory: publicKey,
+            }
           );
         } else{
           console.log("Creating Proposal using legacy tx")
@@ -436,6 +482,12 @@ export default function GovernanceCreateProposalView(props: any){
             null,
             null,
             null, // delegate
+            undefined,
+            {
+              tokenOwnerRecordPk: resolvedProposalAuthor.pubkey,
+              governanceAuthority: publicKey,
+              signatory: publicKey,
+            }
           );
         }
         //console.log("Simulation: ",propSimulation);
@@ -491,23 +543,22 @@ export default function GovernanceCreateProposalView(props: any){
       console.log("governanceWallet: "+JSON.stringify(governanceWallet));
       console.log("governanceRulesWallet: "+JSON.stringify(governanceRulesWallet));
       */
-      let governingTokenMint = new PublicKey(cachedRealm.account?.communityMint);
-      
-      let councilVote = isCouncilVote;
-
-      if (sentGoverningTokenMint){
-        if (governingTokenMint.toBase58() === new PublicKey(sentGoverningTokenMint).toBase58()){
-          councilVote = false;
-        } else{
-          councilVote = true;
-        }
-      }
-
-      if (councilVote){
-        governingTokenMint = new PublicKey(cachedRealm.account?.config?.councilMint);
-      }
+      const governingTokenMint = getSelectedGoverningTokenMint();
       
       if (publicKey){
+        if (!governingTokenMint){
+          enqueueSnackbar(`No governing token mint available for this proposal`,{ variant: 'error' });
+          setCreateDisabled(false);
+          return;
+        }
+
+        const resolvedProposalAuthor = await resolveCurrentProposalAuthor(governingTokenMint);
+        if (!resolvedProposalAuthor?.pubkey){
+          enqueueSnackbar(`No direct or delegated token owner record found for the selected governing mint`,{ variant: 'error' });
+          setCreateDisabled(false);
+          return;
+        }
+
         // check if !whitelisted otherwise add a memo:
         const memoText = "Created on Governance by Grape - Building a new DAO Experience on Solana";
         const whitelisted = false;
@@ -548,7 +599,14 @@ export default function GovernanceCreateProposalView(props: any){
             isDraft,
             returnTx,
             intraDAO ? new PublicKey(sentGovernanceWallet || publicKey) : publicKey,
-            editProposalAddress
+            editProposalAddress,
+            undefined,
+            undefined,
+            {
+              tokenOwnerRecordPk: resolvedProposalAuthor.pubkey,
+              governanceAuthority: publicKey,
+              signatory: publicKey,
+            }
           );
         } else{
           console.log("in legacy")
@@ -574,6 +632,12 @@ export default function GovernanceCreateProposalView(props: any){
             startIndex,
             null,
             null,
+            undefined,
+            {
+              tokenOwnerRecordPk: resolvedProposalAuthor.pubkey,
+              governanceAuthority: publicKey,
+              signatory: publicKey,
+            }
           );
         }
         
@@ -1547,14 +1611,16 @@ export default function GovernanceCreateProposalView(props: any){
     }
 
     const checkMemberStatus = async() => {
-      //console.log("cachedRealm: "+JSON.stringify(cachedRealm))
-      //console.log("checking: "+publicKey.toBase58())
-      //const canParticipate = await findObjectByGoverningTokenOwner(null, publicKey.toBase58(), true, 0, cachedRealm);
-      const canParticipate = getTokenOwnerRecordsByRealmIndexed(governanceAddress, null, publicKey.toBase58());
-      //console.log("canParticipate: "+JSON.stringify(canParticipate));
-      //const canParticipate = false;
-      if (canParticipate) 
-        setIsProposer(true); 
+      if (!publicKey || !cachedRealm?.pubkey || !cachedRealm?.owner){
+        setProposalAuthorRecord(null);
+        setIsProposer(false);
+        setLoading(false);
+        return;
+      }
+
+      const resolvedProposalAuthor = await resolveCurrentProposalAuthor();
+      setProposalAuthorRecord(resolvedProposalAuthor);
+      setIsProposer(!!resolvedProposalAuthor);
       setLoading(false);
     }
 
@@ -1648,7 +1714,7 @@ export default function GovernanceCreateProposalView(props: any){
         getCommunityTokenInfo();
         checkMemberStatus();
       }
-    }, [cachedRealm, publicKey])
+    }, [cachedRealm, publicKey, isCouncilVote, sentGoverningTokenMint])
 
     React.useEffect(() => {
       if (governanceWallets){
@@ -2286,6 +2352,19 @@ export default function GovernanceCreateProposalView(props: any){
                                   } 
                                   label="Council Vote" />
                             </FormControl>
+
+                            {proposalAuthorRecord &&
+                              <Box sx={{mb:2, p:1.5, borderRadius:'12px', background:'rgba(255,255,255,0.04)'}}>
+                                <Typography variant="caption" sx={{display:'block'}}>
+                                  Proposal authority: {toBase58Safe(proposalAuthorRecord?.account?.governingTokenOwner) === publicKey?.toBase58()
+                                    ? 'your own voting record'
+                                    : `delegated voting power from ${shortenString(toBase58Safe(proposalAuthorRecord?.account?.governingTokenOwner), 4, 4)}`}
+                                </Typography>
+                                <Typography variant="caption" sx={{display:'block', opacity:0.75}}>
+                                  Deposit: {getRecordDepositAmount(proposalAuthorRecord).toLocaleString()} tokens
+                                </Typography>
+                              </Box>
+                            }
                             </>
                           :<></>}
                           

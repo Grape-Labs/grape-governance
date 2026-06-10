@@ -57,6 +57,7 @@ import { sendTransactionsV3,
   txBatchesToInstructionSetWithSigners,
  } from '../../utils/governanceTools/sendTransactionsV3';
 import { sendVersionedTransactions } from '../../utils/governanceTools/sendVersionedTransactions';
+import { resolveProposalAuthorRecord } from './proposalAuthority';
 
 import { AnyMxRecord } from 'dns';
 import { Keypair } from '@solana/web3.js';
@@ -128,6 +129,11 @@ export async function createProposalInstructionsLegacy(
         ix?: TransactionInstruction[]
       }>
     },
+    proposalAuthority?: {
+      tokenOwnerRecordPk?: PublicKey | null
+      governanceAuthority?: PublicKey | null
+      signatory?: PublicKey | null
+    },
   ): Promise<any>{//Promise<Transaction> {
 
 
@@ -161,7 +167,9 @@ export async function createProposalInstructionsLegacy(
       const realmAuthority = new PublicKey('8zhQAf4KmJKBPH1hUT8QCQJEcXF78DdoKHoNqxX3dJDj');
       //const realm = await getRealm(connection, realmPk);
 
-      const signatory = walletPk;
+      const governanceAuthority =
+        proposalAuthority?.governanceAuthority || delegate || walletPk;
+      const signatory = proposalAuthority?.signatory || governanceAuthority;
       console.log("1");
       //extra
       //const solTreasury = new PublicKey(COLLABORATION_SOL_TREASURY);
@@ -220,7 +228,9 @@ export async function createProposalInstructionsLegacy(
       
       let tokenOwnerRecordPk = null;
       
-      if (editAddress){
+      if (proposalAuthority?.tokenOwnerRecordPk){
+        tokenOwnerRecordPk = proposalAuthority.tokenOwnerRecordPk;
+      } else if (editAddress){
         const governanceRulesIndexed = await getAllGovernancesIndexed(realmPk.toBase58(), programId.toBase58());
         const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
         const gp = await getProposalIndexed(governanceRulesStrArr, null, realmPk.toBase58(), editAddress.toBase58());
@@ -228,31 +238,35 @@ export async function createProposalInstructionsLegacy(
       }
 
       if (!tokenOwnerRecordPk){
-        tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
+        const authorResolution = await resolveProposalAuthorRecord(
+          realmPk,
+          programId,
+          walletPk,
+          governingTokenMint
+        );
+        if (authorResolution?.bestRecord?.pubkey){
+          tokenOwnerRecordPk = new PublicKey(authorResolution.bestRecord.pubkey);
+          console.log("Using resolved proposal author record: "+tokenOwnerRecordPk.toBase58());
+        }
+      }
+
+      if (!tokenOwnerRecordPk){
+        const derivedTokenOwnerRecordPk = await getTokenOwnerRecordAddress(
           programId,
           realmPk,
           governingTokenMint,
           walletPk,
         );
-        if (tokenOwnerRecordPk)
-          console.log("Using getTokenOwnerRecordAddress: "+tokenOwnerRecordPk.toBase58());
-      }
-
-      if (!tokenOwnerRecordPk){
-        console.log("no token owner record pk... fetching proposal");
-
-        const memberMap = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), null, walletPk.toBase58());
-        for (let member of memberMap){
-            if (new PublicKey(member.account.governingTokenOwner).toBase58() === walletPk.toBase58() &&
-                new PublicKey(member.account.governingTokenMint).toBase58() === governingTokenMint.toBase58()){
-              // check if same token owner also
-              //console.log("member found: "+JSON.stringify(member));
-              tokenOwnerRecordPk = new PublicKey(member.pubkey);
-            }
+        const tokenOwnerRecordAccount = await connection.getAccountInfo(derivedTokenOwnerRecordPk);
+        if (tokenOwnerRecordAccount){
+          tokenOwnerRecordPk = derivedTokenOwnerRecordPk;
         }
       }
 
-      const governanceAuthority = delegate || walletPk;
+      if (!tokenOwnerRecordPk){
+        throw new Error('TokenOwnerRecord not found');
+      }
+
       console.log("programId: "+programId.toBase58());
       console.log("programVersion: "+programVersion);
       console.log("realmPk: "+realmPk.toBase58());
@@ -334,7 +348,7 @@ export async function createProposalInstructionsLegacy(
               votePlugin = await getVotingPluginWithUpdate(
                   selectedRealmIndexed,
                   governingTokenMint,
-                  walletPk,
+                  governanceAuthority,
                   realmConfig.account.communityTokenConfig.voterWeightAddin
               )
               
@@ -510,7 +524,7 @@ export async function createProposalInstructionsLegacy(
             governancePk,
             proposalAddress,
             tokenOwnerRecordPk,
-            walletPk,
+            governanceAuthority,
             ixCount+j-startTxIndex,
             0,
             minInstructionHoldUpTime,
@@ -549,7 +563,7 @@ export async function createProposalInstructionsLegacy(
             governancePk,
             proposalAddress,
             tokenOwnerRecordPk,
-            walletPk,
+            governanceAuthority,
             nextIndex,
             optionIndex,
             Number.isFinite(set?.holdUpTime as number) ? (set?.holdUpTime as number) : minInstructionHoldUpTime,

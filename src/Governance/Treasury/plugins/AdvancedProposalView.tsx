@@ -34,8 +34,7 @@ import {
     getRealmIndexed,
     getAllProposalsIndexed,
     getAllGovernancesIndexed,
-    getAllTokenOwnerRecordsIndexed,
-    getVoteRecordsByVoterIndexed,
+    getTokenOwnerRecordsByRealmIndexed,
 } from '../../api/queries';
 
 import CreateGistWithOAuth from '../../CreateGist';
@@ -115,20 +114,18 @@ export default function AdvanvedProposalView(props: any){
                 for (const item of gprops) {
                     if (item?.account?.state === 0) { // Check if proposal is in draft state
                         try {
-                            const voter = await getAllTokenOwnerRecordsIndexed(
+                            const voter = await getTokenOwnerRecordsByRealmIndexed(
                                 governanceAddressBase58,
                                 grealm.owner.toBase58(),
-                                publicKey.toBase58(),
-                                item.account.governingTokenMint.toBase58()
+                                publicKey.toBase58()
                             );
-                            //console.log("post voter:"+ JSON.stringify(voter));
-                            //console.log("proposal author:", item.account.tokenOwnerRecord.toBase58());
-                            //console.log("governance rules:", item.account.governance.toBase58());
-                            
-                            // You can add additional logic here based on the voter record if needed
-                            if (voter && voter.length > 0){
-                                if (voter[0].pubkey.toBase58() === item.account.tokenOwnerRecord.toBase58())
-                                    processedDraftProposals.push(item);
+                            const matchingVoter = voter?.find?.((record: any) =>
+                                record?.pubkey?.toBase58?.() === item.account.tokenOwnerRecord.toBase58() &&
+                                record?.account?.governingTokenMint?.toBase58?.() === item.account.governingTokenMint.toBase58()
+                            );
+
+                            if (matchingVoter){
+                                processedDraftProposals.push(item);
                             }
                         } catch (voterError) {
                             console.error("Error fetching voter record:", voterError);

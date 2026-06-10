@@ -32,8 +32,8 @@ import {
 import {
   getProposalIndexed,
   getAllGovernancesIndexed,
-  getAllTokenOwnerRecordsIndexed,
   getRealmIndexed,
+  getGovernanceIndexed,
 } from '../api/queries'
 
 import { chunks } from '../../utils/governanceTools/helpers'
@@ -42,6 +42,7 @@ import { WalletSigner } from '../../utils/governanceTools/sendTransactions'
 import { sendSignAndConfirmTransactions } from '../../utils/governanceTools/v0_tools/modifiedMangolana'
 import { RPC_CONNECTION } from '../../utils/grapeTools/constants'
 import { getVotingPluginWithUpdate } from '../../utils/governanceTools/components/instructions/getVotePlugin'
+import { resolveProposalAuthorRecord } from './proposalAuthority'
 
 /* -------------------------------------------------- */
 /* Helpers                                            */
@@ -94,10 +95,17 @@ export async function createProposalInstructionsV0(
       holdUpTime?: number
       ix?: TransactionInstruction[]
     }>
+  },
+  proposalAuthority?: {
+    tokenOwnerRecordPk?: PublicKey | null
+    governanceAuthority?: PublicKey | null
+    signatory?: PublicKey | null
   }
 ): Promise<{ address: PublicKey; transactionSuccess: boolean }> {
   const programId = new PublicKey(token_realm_program_id)
-  const signatory = walletPk
+  const governanceAuthority =
+    proposalAuthority?.governanceAuthority || walletPk
+  const signatory = proposalAuthority?.signatory || governanceAuthority
 
   /* -------------------------------------------- */
   /* Program / Governance setup                   */
@@ -111,7 +119,9 @@ export async function createProposalInstructionsV0(
 
   let tokenOwnerRecordPk: PublicKey | null = null
 
-  if (editAddress) {
+  if (proposalAuthority?.tokenOwnerRecordPk) {
+    tokenOwnerRecordPk = proposalAuthority.tokenOwnerRecordPk
+  } else if (editAddress) {
     const governances = await getAllGovernancesIndexed(
       realmPk.toBase58(),
       programId.toBase58()
@@ -126,32 +136,40 @@ export async function createProposalInstructionsV0(
   }
 
   if (!tokenOwnerRecordPk) {
-    tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
+    const authorResolution = await resolveProposalAuthorRecord(
+      realmPk,
+      programId,
+      walletPk,
+      governingTokenMint
+    )
+    if (authorResolution?.bestRecord?.pubkey) {
+      tokenOwnerRecordPk = new PublicKey(authorResolution.bestRecord.pubkey)
+    }
+  }
+
+  if (!tokenOwnerRecordPk) {
+    const derivedTokenOwnerRecordPk = await getTokenOwnerRecordAddress(
       programId,
       realmPk,
       governingTokenMint,
       walletPk
     )
+    const tokenOwnerRecordAccount = await connection.getAccountInfo(
+      derivedTokenOwnerRecordPk
+    )
+    if (tokenOwnerRecordAccount) {
+      tokenOwnerRecordPk = derivedTokenOwnerRecordPk
+    }
   }
 
-  if (!tokenOwnerRecordPk) {
-    const records = await getAllTokenOwnerRecordsIndexed(
-      realmPk.toBase58(),
-      null,
-      walletPk.toBase58()
-    )
-    const match = records.find(
-      (r) =>
-        r.account.governingTokenOwner === walletPk.toBase58() &&
-        r.account.governingTokenMint === governingTokenMint.toBase58()
-    )
-    if (!match) throw new Error('TokenOwnerRecord not found')
-    tokenOwnerRecordPk = new PublicKey(match.pubkey)
-  }
+  if (!tokenOwnerRecordPk) throw new Error('TokenOwnerRecord not found')
 
-  const governance = await connection.getAccountInfo(governancePk)
-  const proposalIndex =
-    (governance as any)?.account?.proposalCount ?? new BN(0)
+  const governance = await getGovernanceIndexed(
+    realmPk.toBase58(),
+    programId.toBase58(),
+    governancePk.toBase58()
+  )
+  const proposalIndex = governance?.account?.proposalCount ?? new BN(0)
 
   /* -------------------------------------------- */
   /* Proposal creation                            */
@@ -222,7 +240,7 @@ export async function createProposalInstructionsV0(
         votePlugin = await getVotingPluginWithUpdate(
           selectedRealmIndexed,
           governingTokenMint,
-          walletPk,
+          governanceAuthority,
           realmConfig.account.communityTokenConfig.voterWeightAddin
         )
 
@@ -244,7 +262,7 @@ export async function createProposalInstructionsV0(
       name,
       description,
       governingTokenMint,
-      walletPk,
+      governanceAuthority,
       proposalIndex,
       voteType,
       options,
@@ -259,7 +277,7 @@ export async function createProposalInstructionsV0(
       programVersion,
       proposalAddress,
       tokenOwnerRecordPk,
-      walletPk,
+      governanceAuthority,
       signatory,
       payer
     )
@@ -317,7 +335,7 @@ export async function createProposalInstructionsV0(
       governancePk,
       proposalAddress,
       tokenOwnerRecordPk,
-      walletPk,
+      governanceAuthority,
       idx,
       0,
       grouped.holdUpTime,
@@ -349,7 +367,7 @@ export async function createProposalInstructionsV0(
         governancePk,
         proposalAddress,
         tokenOwnerRecordPk,
-        walletPk,
+        governanceAuthority,
         nextIndex,
         optionIndex,
         Number.isFinite(set?.holdUpTime as number) ? (set?.holdUpTime as number) : 0,
