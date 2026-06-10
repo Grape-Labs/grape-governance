@@ -22,6 +22,7 @@ import {
 import BN from 'bn.js'
 import { BorshCoder } from "@coral-xyz/anchor";
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
+import { getUnrelinquishedVoteRecords } from '../utils/governanceTools/models/api';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token-v2";
 import { 
@@ -57,6 +58,7 @@ import {
   IconButton,
   ButtonGroup,
   CircularProgress,
+  Stack,
   Accordion,
   AccordionDetails,
   AccordionSummary,
@@ -219,27 +221,6 @@ export function VoteForProposal(props:any){
         () => (Array.isArray(delegatedVoterRecord) ? delegatedVoterRecord : []),
         [delegatedVoterRecord]
     );
-    const votedOwners = React.useMemo(() => {
-        const owners = new Set<string>();
-        if (!Array.isArray(votingParticipants)) return owners;
-
-        for (const participant of votingParticipants) {
-            if (participant?.governingTokenOwner) {
-                owners.add(participant.governingTokenOwner);
-            }
-        }
-
-        return owners;
-    }, [votingParticipants]);
-    const hasPendingDelegatedVotes = delegatedVoteOptions.some((option: any) => {
-        const owner58 = option?.account?.governingTokenOwner?.toBase58?.() || "";
-        return !!owner58 && !votedOwners.has(owner58);
-    });
-    const hasAnyDelegatedVotes = delegatedVoteOptions.length > 0;
-    const canCastCombinedVote = !hasVoted || hasPendingDelegatedVotes;
-    const voteMagnitude = Math.abs(Number(hasVotedVotes || 0));
-    const voteDirectionLabel = hasVotedSide === 'yes' ? 'for' : hasVotedSide === 'no' ? 'against' : null;
-    const votedForThisOption = (hasVotedSide === 'yes' && type === 0) || (hasVotedSide === 'no' && type === 1);
 
     const StyledMenu = styled(Menu)(({ theme }) => ({
     "& .MuiPaper-root": {
@@ -311,6 +292,160 @@ export function VoteForProposal(props:any){
         },
         [toBase58Safe]
     );
+
+    const getVoteSideFromLocalRecord = React.useCallback((record: any): 'yes' | 'no' | 'unknown' | null => {
+        const vote =
+            record?.account?.vote ??
+            record?.vote?.vote ??
+            record?.quorumWeight?.vote;
+        if (vote && vote?.voteType !== undefined && vote?.voteType !== null) {
+            const voteType = Number(vote.voteType);
+            if (voteType === 0) return 'yes';
+            if (voteType === 1) return 'no';
+            return 'unknown';
+        }
+
+        const legacyYes = Number(
+            record?.account?.voteWeight?.yes ??
+            record?.vote?.legacyYes ??
+            record?.vote?.voteWeight?.yes ??
+            record?.quorumWeight?.legacyYes ??
+            0
+        );
+        const legacyNo = Number(
+            record?.account?.voteWeight?.no ??
+            record?.vote?.legacyNo ??
+            record?.vote?.voteWeight?.no ??
+            record?.quorumWeight?.legacyNo ??
+            0
+        );
+        if (legacyYes > 0) return 'yes';
+        if (legacyNo > 0) return 'no';
+
+        const voterWeight = Number(
+            record?.account?.voterWeight ??
+            record?.vote?.voterWeight ??
+            record?.quorumWeight?.voterWeight ??
+            0
+        );
+        if (voterWeight > 0) return 'unknown';
+
+        return null;
+    }, []);
+
+    const getVoteMagnitudeFromLocalRecord = React.useCallback((record: any): number => {
+        const rawWeight = Number(
+            record?.account?.voterWeight ??
+            record?.vote?.voterWeight ??
+            record?.quorumWeight?.voterWeight ??
+            record?.account?.voteWeight?.yes ??
+            record?.account?.voteWeight?.no ??
+            record?.vote?.legacyYes ??
+            record?.vote?.legacyNo ??
+            record?.vote?.voteWeight?.yes ??
+            record?.vote?.voteWeight?.no ??
+            record?.quorumWeight?.legacyYes ??
+            record?.quorumWeight?.legacyNo ??
+            0
+        );
+        const decimals = Number(record?.quorumWeight?.decimals ?? record?.vote?.decimals ?? 0);
+        const voteMint = toBase58Safe(
+            record?.quorumWeight?.governingTokenMint ??
+            record?.vote?.governingTokenMint ??
+            record?.account?.governingTokenMint
+        );
+        const councilMint = toBase58Safe(
+            record?.quorumWeight?.councilMint ??
+            record?.vote?.councilMint
+        );
+        const scale = councilMint && voteMint && councilMint === voteMint ? 0 : decimals;
+        return +(rawWeight / Math.pow(10, scale)).toFixed(0);
+    }, [toBase58Safe]);
+    const votedOwners = React.useMemo(() => {
+        const owners = new Set<string>();
+        if (!Array.isArray(votingParticipants)) return owners;
+
+        for (const participant of votingParticipants) {
+            if (participant?.governingTokenOwner) {
+                owners.add(participant.governingTokenOwner);
+            }
+        }
+
+        return owners;
+    }, [votingParticipants]);
+    const ownOwner58 = publicKey?.toBase58?.() || "";
+    const ownRecordedVote = React.useMemo(
+        () =>
+            (Array.isArray(votingParticipants) ? votingParticipants : []).find(
+                (participant: any) => participant?.governingTokenOwner === ownOwner58
+            ) || null,
+        [votingParticipants, ownOwner58]
+    );
+    const delegatedCastedVotes = React.useMemo(() => {
+        const participants = Array.isArray(votingParticipants) ? votingParticipants : [];
+        return delegatedVoteOptions
+            .map((option: any) => {
+                const owner58 = option?.account?.governingTokenOwner?.toBase58?.() || "";
+                if (!owner58) return null;
+                const voteRecord =
+                    participants.find((participant: any) => participant?.governingTokenOwner === owner58) || null;
+                if (!voteRecord) return null;
+                return {
+                    owner58,
+                    memberItem: option,
+                    voteRecord,
+                    side: getVoteSideFromLocalRecord(voteRecord),
+                    magnitude: getVoteMagnitudeFromLocalRecord(voteRecord),
+                };
+            })
+            .filter(Boolean);
+    }, [delegatedVoteOptions, votingParticipants, getVoteMagnitudeFromLocalRecord, getVoteSideFromLocalRecord]);
+    const ownCastedVote = React.useMemo(() => {
+        if (!ownRecordedVote) return null;
+        return {
+            owner58: ownOwner58,
+            memberItem: voterRecord,
+            voteRecord: ownRecordedVote,
+            side: getVoteSideFromLocalRecord(ownRecordedVote),
+            magnitude: getVoteMagnitudeFromLocalRecord(ownRecordedVote),
+        };
+    }, [ownRecordedVote, ownOwner58, voterRecord, getVoteMagnitudeFromLocalRecord, getVoteSideFromLocalRecord]);
+    const castedVoteRows = React.useMemo(() => {
+        const rows = [];
+        if (ownCastedVote) {
+            rows.push({
+                ...ownCastedVote,
+                label: "Your voting power",
+                isOwn: true,
+            });
+        }
+        for (const row of delegatedCastedVotes as any[]) {
+            rows.push({
+                ...row,
+                label: `Delegated from ${trimAddress(row.owner58, 3)}`,
+                isOwn: false,
+            });
+        }
+        return rows;
+    }, [ownCastedVote, delegatedCastedVotes]);
+    const hasAnyCastedVotes = castedVoteRows.length > 0;
+    const totalCastedVoteWeight = React.useMemo(
+        () => castedVoteRows.reduce((sum: number, row: any) => sum + Number(row?.magnitude || 0), 0),
+        [castedVoteRows]
+    );
+    const hasPendingDelegatedVotes = delegatedVoteOptions.some((option: any) => {
+        const owner58 = option?.account?.governingTokenOwner?.toBase58?.() || "";
+        return !!owner58 && !votedOwners.has(owner58);
+    });
+    const hasAnyDelegatedVotes = delegatedVoteOptions.length > 0;
+    const canCastCombinedVote = !hasVoted || hasPendingDelegatedVotes;
+    const currentOptionVoteSide = type === 0 ? 'yes' : 'no';
+    const hasCastedVotesForCurrentOption = castedVoteRows.some(
+        (row: any) => (row?.side || 'unknown') === currentOptionVoteSide
+    );
+    const voteMagnitude = Math.abs(Number(hasVotedVotes || 0));
+    const voteDirectionLabel = hasVotedSide === 'yes' ? 'for' : hasVotedSide === 'no' ? 'against' : null;
+    const votedForThisOption = (hasVotedSide === 'yes' && type === 0) || (hasVotedSide === 'no' && type === 1);
     /*
     console.log("memberMap: "+JSON.stringify(memberMap));
     const memberMapReduced = memberMap.reduce((map: any, item: any) => {
@@ -409,110 +544,187 @@ export function VoteForProposal(props:any){
 
         //console.log("memberMapReduced: "+JSON.stringify(memberMapReduced));
 
-        // check if voter can participate
         console.log("publicKey: "+publicKey.toBase58())
-        if (publicKey && memberItem) {
-            const voteTx = new Transaction();
-            const beneficiary = publicKey;
-            const governanceAuthority = publicKey;
+        if (!publicKey) return;
 
-            const realmPk = new PublicKey(realm.pubkey);
-            const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, new PublicKey(realm.owner), new PublicKey(realm.pubkey));
-
-            const tokenOwnerRecord = new PublicKey(memberItem.pubkey);
-            const instructions: TransactionInstruction[] = [];
-            //const prop = await getProposal(RPC_CONNECTION, transactionData.proposal);
-
-            if (wOwner){ // vote for your own if delegate is not set and value of delegate is not = 1
-                
-                const hasVotedRecord = votingParticipants?.some(item => item.governingTokenOwner === publicKey.toBase58());
-                const hasVotedItem = votingParticipants?.find(item => item.governingTokenOwner === publicKey.toBase58());
-                /*
-                console.log("programId: "+programId.toBase58())
-                console.log("programVersion: "+programVersion)
-                console.log("realm: "+JSON.stringify(realm))
-                console.log("governance: "+new PublicKey(proposal.governanceId).toBase58())
-                console.log("proposal: "+new PublicKey(proposal.proposalId).toBase58())
-                console.log("governingTokenMint: "+new PublicKey(proposal.governingTokenMint).toBase58())
-                console.log("voteRecord: "+new PublicKey(hasVotedItem.voteAddress).toBase58())
-                console.log("governanceAuthority: "+governanceAuthority.toBase58())
-                console.log("beneficiary: "+beneficiary.toBase58())
-                */
-                if (hasVotedRecord){
-                    await withRelinquishVote(
-                        instructions,
-                        programId,
-                        programVersion,
-                        realm?.pubkey ? new PublicKey(realm.pubkey) : new PublicKey(governanceAddress),
-                        new PublicKey(proposal.governanceId),
-                        new PublicKey(proposal.proposalId),
-                        new PublicKey(tokenOwnerRecord),//new PublicKey(proposal.tokenOwnerRecord),
-                        new PublicKey(proposal.governingTokenMint),
-                        new PublicKey(hasVotedItem.voteAddress),//voteRecord,
-                        governanceAuthority,
-                        beneficiary
-                    )
-                    const recentBlock = await RPC_CONNECTION.getLatestBlockhash();
-                    //const transaction = new Transaction({ feePayer: walletPubkey });
-                    const transaction = new Transaction();
-                    transaction.feePayer = publicKey;
-                    transaction.recentBlockhash = recentBlock.blockhash;
-
-                    console.log("transaction: " + JSON.stringify(transaction));
-                    if (instructions && instructions.length > 0)
-                        voteTx.add(...instructions);
+        const beneficiary = publicKey;
+        const governanceAuthority = publicKey;
+        const programVersion = await getGrapeGovernanceProgramVersion(
+            RPC_CONNECTION,
+            new PublicKey(realm.owner),
+            new PublicKey(realm.pubkey)
+        );
+        const allVotingParticipants = Array.isArray(votingParticipants) ? votingParticipants : [];
+        const findCastedVoteRecord = (owner58: string) =>
+            allVotingParticipants.find((item: any) => item.governingTokenOwner === owner58) || null;
+        const findUnrelinquishedVoteRecordForTor = async (tokenOwnerRecordPk: PublicKey) => {
+            try {
+                const voteRecords = await getUnrelinquishedVoteRecords(
+                    RPC_CONNECTION,
+                    programId,
+                    tokenOwnerRecordPk
+                );
+                const matchingVoteRecord = (Array.isArray(voteRecords) ? voteRecords : []).find(
+                    (item: any) =>
+                        toBase58Safe(item?.account?.proposal) === toBase58Safe(proposal.proposalId)
+                );
+                if (matchingVoteRecord?.pubkey) {
+                    return new PublicKey(toBase58Safe(matchingVoteRecord.pubkey));
                 }
+            } catch (error) {
+                console.log("RPC unrelinquished vote lookup failed", error);
             }
-            
-            if (voteTx){
-                console.log("Removing vote as: "+publicKey.toBase58());
-            }
-            if (voteTx){
 
-                //console.log("voteTx: " + JSON.stringify(voteTx));
-                try{
-                    enqueueSnackbar(`Preparing to withdraw vote`,{ variant: 'info' });
+            return null;
+        };
+
+        const relinquishTargets: Array<{
+            label: string;
+            memberItem: any;
+            castedVoteRecord: any;
+        }> = [];
+
+        if (wOwner && memberItem) {
+            const ownVoteRecord = findCastedVoteRecord(publicKey.toBase58());
+            if (ownVoteRecord) {
+                relinquishTargets.push({
+                    label: "your voting power",
+                    memberItem,
+                    castedVoteRecord: ownVoteRecord,
+                });
+            }
+        }
+
+        if (delegatedItems && delegatedItems.length && (delegate || wAllDelegates)) {
+            for (const delegateItem of delegatedItems) {
+                const owner58 = delegateItem?.account?.governingTokenOwner?.toBase58?.();
+                if (!owner58) continue;
+                if (!wAllDelegates && delegate !== owner58) continue;
+
+                const castedVoteRecord = findCastedVoteRecord(owner58);
+                if (!castedVoteRecord) continue;
+
+                relinquishTargets.push({
+                    label: `delegated power from ${trimAddress(owner58, 3)}`,
+                    memberItem: delegateItem,
+                    castedVoteRecord,
+                });
+
+                if (delegate === owner58) break;
+            }
+        }
+
+        if (!relinquishTargets.length) {
+            enqueueSnackbar("No casted votes found to withdraw.", { variant: 'warning' });
+            return;
+        }
+
+        try{
+            enqueueSnackbar(
+                relinquishTargets.length > 1 ? `Preparing ${relinquishTargets.length} vote withdrawals…` : `Preparing to withdraw vote`,
+                { variant: 'info' }
+            );
+            const signatures: string[] = [];
+            const snackprogress = (key:any) => (
+                <CircularProgress sx={{padding:'10px'}} />
+            );
+
+            for (let index = 0; index < relinquishTargets.length; index++) {
+                const target = relinquishTargets[index];
+                const instructions: TransactionInstruction[] = [];
+                const tokenOwnerRecordPk58 = toBase58Safe(target.memberItem?.pubkey);
+                if (!tokenOwnerRecordPk58) {
+                    enqueueSnackbar(`Could not find a token owner record for ${target.label}`, {
+                        variant: 'warning',
+                    });
+                    continue;
+                }
+                const tokenOwnerRecordPk = new PublicKey(tokenOwnerRecordPk58);
+                const voteRecordPk =
+                    await findUnrelinquishedVoteRecordForTor(tokenOwnerRecordPk) ||
+                    (target?.castedVoteRecord?.voteAddress
+                        ? new PublicKey(toBase58Safe(target.castedVoteRecord.voteAddress))
+                        : null);
+
+                if (!voteRecordPk) {
+                    enqueueSnackbar(`Could not find an unrelinquished vote record for ${target.label}`, {
+                        variant: 'warning',
+                    });
+                    continue;
+                }
+
+                await withRelinquishVote(
+                    instructions,
+                    programId,
+                    programVersion,
+                    realm?.pubkey ? new PublicKey(realm.pubkey) : new PublicKey(governanceAddress),
+                    new PublicKey(proposal.governanceId),
+                    new PublicKey(proposal.proposalId),
+                    tokenOwnerRecordPk,
+                    new PublicKey(proposal.governingTokenMint),
+                    voteRecordPk,
+                    governanceAuthority,
+                    beneficiary
+                );
+
+                if (!instructions.length) continue;
+
+                const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
+                const voteTx = new Transaction();
+                voteTx.feePayer = publicKey;
+                voteTx.recentBlockhash = latestBlockHash.blockhash;
+                voteTx.add(...instructions);
+
+                let cnfrmkey = null;
+                try {
+                    cnfrmkey = enqueueSnackbar(
+                        relinquishTargets.length > 1
+                            ? `Confirming withdrawal ${index + 1}/${relinquishTargets.length}`
+                            : `Confirming transaction`,
+                        { variant: 'info', action:snackprogress, persist: true }
+                    );
+
                     const signature = await sendTransaction(voteTx, RPC_CONNECTION, {
-                        skipPreflight: true,
+                        skipPreflight: false,
                         preflightCommitment: "confirmed",
                     });
-                    const snackprogress = (key:any) => (
-                        <CircularProgress sx={{padding:'10px'}} />
-                    );
-                    const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
-                    //await connection.confirmTransaction(signature, 'processed');
-                    const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
+
                     await RPC_CONNECTION.confirmTransaction({
                         blockhash: latestBlockHash.blockhash,
                         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-                        signature: signature}, 
+                        signature: signature},
                         'confirmed'
                     );
 
-                    closeSnackbar(cnfrmkey);
-                    const action = (key:any) => (
-                            <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
-                                Signature: {shortenString(signature,5,5)}
-                            </Button>
-                    );
-                    
-                    enqueueSnackbar(`You have removed your partipation from this proposal`,{ variant: 'success', action });
-
-                    // trigger a refresh here...
-                    
-                    const redirectTimer = setTimeout(() => {
-                        setOpen(false);
-                        getVotingParticipants();
-                    }, 5000); // 5 seconds*/
-                    //getVotingParticipants();
-                }catch(e:any){
-                    enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
-                } 
-            } else{
-                alert("No voter record!")
+                    signatures.push(signature);
+                } finally {
+                    if (cnfrmkey) closeSnackbar(cnfrmkey);
+                }
             }
-            
-        }
+
+            const latestSignature = signatures[signatures.length - 1];
+            const action = latestSignature
+                ? (key:any) => (
+                    <Button href={`https://explorer.solana.com/tx/${latestSignature}`} target='_blank' sx={{color:'white'}}>
+                        Signature: {shortenString(latestSignature,5,5)}
+                    </Button>
+                )
+                : undefined;
+
+            enqueueSnackbar(
+                signatures.length > 1
+                    ? `Removed ${signatures.length} casted votes from this proposal`
+                    : `You have removed your participation from this proposal`,
+                { variant: 'success', action }
+            );
+
+            setTimeout(() => {
+                setOpen(false);
+                getVotingParticipants();
+            }, 3000);
+        }catch(e:any){
+            enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
+        } 
     }
 
     const handleVote = async (
@@ -889,6 +1101,58 @@ export function VoteForProposal(props:any){
         background: "rgba(255,255,255,0.03)",
     };
 
+    const castedVoteSummarySx = {
+        borderRadius: "20px",
+        textTransform: "none",
+        px: 2,
+        py: 1.15,
+        minHeight: 68,
+        borderColor: voteTone.border,
+        color: "#fff",
+        background: `linear-gradient(180deg, ${voteTone.soft}, rgba(255,255,255,0.04))`,
+        boxShadow: `0 10px 28px ${voteTone.soft}`,
+    };
+
+    const renderManageVoteMenuItems = (side: 'yes' | 'no') => {
+        if (!hasAnyCastedVotes) return null;
+        const matchingDelegatedVotes = castedVoteRows.filter(
+            (row: any) => !row.isOwn && (row.side || 'unknown') === side
+        );
+        const ownMatchesSide = ownCastedVote && (ownCastedVote.side || 'unknown') === side;
+
+        return (
+            <>
+                <Divider />
+                <MenuItem onClick={handleClickOpen}>
+                    Manage casted votes
+                </MenuItem>
+                {ownMatchesSide && (
+                    <MenuItem onClick={() => handleRelinquishVotes(null, true)}>
+                        Withdraw my casted vote
+                    </MenuItem>
+                )}
+                {matchingDelegatedVotes.map((row: any) => (
+                    <MenuItem
+                        key={`withdraw-${side}-${row.owner58}`}
+                        onClick={() => handleRelinquishVotes(row.owner58)}
+                    >
+                        Withdraw delegated vote from {trimAddress(row.owner58, 3)}
+                    </MenuItem>
+                ))}
+                {matchingDelegatedVotes.length > 1 && (
+                    <MenuItem onClick={() => handleRelinquishVotes(null, false, true)}>
+                        Withdraw all delegated casted votes
+                    </MenuItem>
+                )}
+                {castedVoteRows.length > 1 && (
+                    <MenuItem onClick={() => handleRelinquishVotes(null, true, true)}>
+                        Withdraw all casted votes
+                    </MenuItem>
+                )}
+            </>
+        );
+    };
+
     return (
   <>
     {!publicKey || thisitem.account?.state !== 2 ? (
@@ -1080,6 +1344,7 @@ export function VoteForProposal(props:any){
                       <MenuItem disabled>
                         Cast delegated votes one at a time
                       </MenuItem>
+                      {renderManageVoteMenuItems('yes')}
                     </MenuList>
                   </ClickAwayListener>
                 </StyledMenu>
@@ -1202,6 +1467,7 @@ export function VoteForProposal(props:any){
                       <MenuItem disabled>
                         Cast delegated votes one at a time
                       </MenuItem>
+                      {renderManageVoteMenuItems('no')}
                     </MenuList>
                   </ClickAwayListener>
                 </StyledMenu>
@@ -1210,14 +1476,14 @@ export function VoteForProposal(props:any){
           </>
         )}
 
-        {(hasVoted && publicKey && !canCastCombinedVote) && (
+        {(hasAnyCastedVotes && publicKey && !canCastCombinedVote) && (
           <>
             {title && subtitle && showIcon ? (
               <>
                 <Tooltip
                   title={
-                    voteDirectionLabel
-                      ? `You casted ${getFormattedNumberToLocale(voteMagnitude)} votes ${voteDirectionLabel} this proposal`
+                    hasAnyCastedVotes
+                      ? `${castedVoteRows.length} casted vote${castedVoteRows.length > 1 ? 's' : ''} ready to manage`
                       : ``
                   }
                 >
@@ -1225,11 +1491,11 @@ export function VoteForProposal(props:any){
                     variant="outlined"
                     onClick={() =>
                       state === 2 &&
-                      !!voteDirectionLabel &&
+                      hasAnyCastedVotes &&
                       handleClickOpen()
                     }
                     color={type === 0 ? "success" : "error"}
-                    sx={inactiveVoteButtonSx}
+                    sx={castedVoteSummarySx}
                   >
                     <Grid container direction="column" alignItems="center">
                       <Grid item>
@@ -1249,14 +1515,12 @@ export function VoteForProposal(props:any){
                         <Divider />
                         <Grid sx={{ mt: 0.5 }}>
                           <Typography sx={{ fontSize: "10px" }}>
-                            <>
-                              {subtitle}{" "}
-                              {votedForThisOption ? (
-                                <CheckCircleIcon fontSize="inherit" />
-                              ) : (
-                                <></>
-                              )}
-                            </>
+                            {hasCastedVotesForCurrentOption
+                              ? `${castedVoteRows.length} casted vote${castedVoteRows.length > 1 ? 's' : ''} to manage`
+                              : subtitle}
+                            {hasCastedVotesForCurrentOption ? (
+                              <CheckCircleIcon fontSize="inherit" sx={{ ml: 0.5 }} />
+                            ) : null}
                           </Typography>
                         </Grid>
                       </Grid>
@@ -1277,7 +1541,7 @@ export function VoteForProposal(props:any){
                   }}
                 >
                   <BootstrapDialogTitle id="create-storage-pool" onClose={handleClose}>
-                    Vote
+                    Manage Casted Votes
                   </BootstrapDialogTitle>
 
                   <DialogContent>
@@ -1293,70 +1557,168 @@ export function VoteForProposal(props:any){
                             minWidth: "360px",
                           }}
                         >
-                          <Box sx={{ my: 3, mx: 2 }}>
-                            <Grid container alignItems="center">
+                          <Box sx={{ my: 2.25, mx: 2 }}>
+                            <Grid container alignItems="center" spacing={1}>
                               <Grid item xs>
-                                <Typography gutterBottom variant="h5" component="div">
-                                  Voted
+                                <Typography gutterBottom variant="h5" component="div" sx={{ mb: 0.5 }}>
+                                  Votes Casted
+                                </Typography>
+                                <Typography color="text.secondary" variant="body2">
+                                  Withdraw your own vote or any delegated votes you cast from this proposal.
                                 </Typography>
                               </Grid>
-                              <Grid item>{voteMagnitude.toLocaleString()}</Grid>
+                              <Grid item>
+                                <Chip
+                                  size="small"
+                                  label={`${castedVoteRows.length} vote${castedVoteRows.length > 1 ? 's' : ''}`}
+                                  sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.18)' }}
+                                  variant="outlined"
+                                />
+                              </Grid>
                             </Grid>
-                            <Typography color="text.secondary" variant="body2">
-                              Voting direction:{" "}
-                              {hasVotedSide === 'yes'
-                                ? "For"
-                                : hasVotedSide === 'no'
-                                ? "Against"
-                                : "—"}
-                            </Typography>
+                            <Stack direction="row" spacing={1} sx={{ mt: 1.25, flexWrap: 'wrap' }}>
+                              <Chip
+                                size="small"
+                                label={`Total weight ${getFormattedNumberToLocale(totalCastedVoteWeight)}`}
+                                sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.18)' }}
+                                variant="outlined"
+                              />
+                              {hasPendingDelegatedVotes ? (
+                                <Chip
+                                  size="small"
+                                  label="Pending delegated votes remain"
+                                  sx={{ color: '#f8d58b', borderColor: 'rgba(248,213,139,0.35)' }}
+                                  variant="outlined"
+                                />
+                              ) : (
+                                <Chip
+                                  size="small"
+                                  label="All available delegated votes are casted"
+                                  sx={{ color: '#8ee0ab', borderColor: 'rgba(142,224,171,0.35)' }}
+                                  variant="outlined"
+                                />
+                              )}
+                            </Stack>
                           </Box>
+                        </Box>
+                        <Box sx={{ px: 2, width: '100%' }}>
+                          <List dense sx={{ py: 0 }}>
+                            {castedVoteRows.map((row: any) => {
+                              const sideLabel =
+                                row?.side === 'yes'
+                                  ? 'For'
+                                  : row?.side === 'no'
+                                  ? 'Against'
+                                  : 'Cast';
+                              const sideColor =
+                                row?.side === 'yes'
+                                  ? '#2fb36d'
+                                  : row?.side === 'no'
+                                  ? '#d45757'
+                                  : '#9aa4b2';
+                              return (
+                                <React.Fragment key={`casted-${row.owner58}`}>
+                                  <ListItem
+                                    secondaryAction={
+                                      <Button
+                                        size="small"
+                                        color="inherit"
+                                        variant="outlined"
+                                        sx={{ borderRadius: '14px', borderColor: 'rgba(255,255,255,0.12)' }}
+                                        onClick={() =>
+                                          row.isOwn
+                                            ? handleRelinquishVotes(null, true)
+                                            : handleRelinquishVotes(row.owner58)
+                                        }
+                                      >
+                                        Withdraw
+                                      </Button>
+                                    }
+                                  >
+                                    <ListItemText
+                                      primary={
+                                        <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+                                          <Typography variant="body2" sx={{ color: '#fff' }}>
+                                            {row.label}
+                                          </Typography>
+                                          <Chip
+                                            size="small"
+                                            label={sideLabel}
+                                            variant="outlined"
+                                            sx={{ color: sideColor, borderColor: sideColor, height: 22 }}
+                                          />
+                                        </Stack>
+                                      }
+                                      secondary={
+                                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.58)' }}>
+                                          {getFormattedNumberToLocale(row.magnitude)} vote{Number(row.magnitude) === 1 ? '' : 's'}
+                                        </Typography>
+                                      }
+                                    />
+                                  </ListItem>
+                                  <Divider component="li" light />
+                                </React.Fragment>
+                              );
+                            })}
+                          </List>
                         </Box>
                       </Grid>
                     </DialogContentText>
                   </DialogContent>
 
                   <DialogActions>
-                    <Button
-                      color="success"
-                      onClick={() => handleRelinquishVotes(null, true)}
-                      sx={{ borderRadius: "17px" }}
-                    >
-                      <DownloadIcon fontSize="inherit" sx={{ mr: 1 }} /> Withdraw Vote
-                    </Button>
+                    {castedVoteRows.length > 1 ? (
+                      <Button
+                        color="success"
+                        onClick={() => handleRelinquishVotes(null, true, true)}
+                        sx={{ borderRadius: "17px" }}
+                      >
+                        <DownloadIcon fontSize="inherit" sx={{ mr: 1 }} /> Withdraw All Casted Votes
+                      </Button>
+                    ) : (
+                      <Button
+                        color="success"
+                        onClick={() => handleRelinquishVotes(null, true)}
+                        sx={{ borderRadius: "17px" }}
+                      >
+                        <DownloadIcon fontSize="inherit" sx={{ mr: 1 }} /> Withdraw Vote
+                      </Button>
+                    )}
                   </DialogActions>
                 </Dialog>
               </>
             ) : (
               <>
-                {hasVotedSide === 'yes' && type === 0 ? (
+                {hasCastedVotesForCurrentOption && type === 0 ? (
                   <Tooltip
                     title={
-                      voteDirectionLabel &&
-                      `You casted ${getFormattedNumberToLocale(voteMagnitude)} votes ${voteDirectionLabel} this proposal`
+                      hasAnyCastedVotes &&
+                      `${castedVoteRows.length} casted vote${castedVoteRows.length > 1 ? 's' : ''} ready to manage`
                     }
                   >
                         <Button
                           variant="outlined"
                           color="success"
-                          sx={inactiveVoteButtonSx}
+                          sx={castedVoteSummarySx}
+                          onClick={() => hasAnyCastedVotes && handleClickOpen()}
                         >
                       <CheckCircleIcon />
                     </Button>
                   </Tooltip>
                 ) : (
                   <>
-                    {hasVotedSide === 'no' && (
+                    {hasCastedVotesForCurrentOption && (
                       <Tooltip
                         title={
-                          voteDirectionLabel &&
-                          `You casted ${getFormattedNumberToLocale(voteMagnitude)} votes ${voteDirectionLabel} this proposal`
+                          hasAnyCastedVotes &&
+                          `${castedVoteRows.length} casted vote${castedVoteRows.length > 1 ? 's' : ''} ready to manage`
                         }
                       >
                         <Button
                           variant="outlined"
                           color="error"
-                          sx={inactiveVoteButtonSx}
+                          sx={castedVoteSummarySx}
+                          onClick={() => hasAnyCastedVotes && handleClickOpen()}
                         >
                           <CheckCircleIcon />
                         </Button>

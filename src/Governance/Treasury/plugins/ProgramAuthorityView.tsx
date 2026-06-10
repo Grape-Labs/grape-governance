@@ -735,6 +735,7 @@ export default function ProgramAuthorityView(props: any) {
           {(tabValue === 0 || tabValue === 1 || tabValue === 2) && openAdvanced ? (
             <AdvancedProposalView
               governanceAddress={governanceAddress}
+              rulesWallet={rulesWallet}
               proposalTitle={proposalTitle}
               setProposalTitle={setProposalTitle}
               proposalDescription={proposalDescription}

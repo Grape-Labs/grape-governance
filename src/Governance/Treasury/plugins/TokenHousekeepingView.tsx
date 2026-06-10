@@ -801,6 +801,7 @@ export default function TokenHousekeepingView(props: any) {
           {openAdvanced ? (
             <AdvancedProposalView
               governanceAddress={governanceAddress}
+              rulesWallet={rulesWallet}
               proposalTitle={proposalTitle}
               setProposalTitle={setProposalTitle}
               proposalDescription={proposalDescription}

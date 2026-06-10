@@ -28,6 +28,12 @@ const JUPITER_JITO_DONT_FRONT_PUBKEY_STR = 'jitodontfront1111111111111111JustUse
 
 import { createProposalInstructionsLegacy } from '../Proposals/createProposalInstructionsLegacy';
 import { createProposalInstructionsV0 } from '../Proposals/createProposalInstructionsV0';
+import {
+    getProposalAuthorEligibility,
+    getProposalAuthorSelectionStorageKey,
+    resolveProposalAuthorRecord,
+    toBase58Safe,
+} from '../Proposals/proposalAuthority';
 
 import { 
     RPC_CONNECTION,
@@ -3112,6 +3118,69 @@ const StakeAccountsView = () => {
                     typeof instructions?.useVersionedTransactions === "boolean"
                         ? instructions.useVersionedTransactions
                         : isPollPayload;
+                let selectedProposalAuthorRecord = null;
+
+                try {
+                    const governingMintPk = new PublicKey(useGoverningMint);
+                    const authorResolution = await resolveProposalAuthorRecord(
+                        new PublicKey(governanceAddress),
+                        new PublicKey(programId),
+                        publicKey,
+                        governingMintPk
+                    );
+                    const candidates = Array.isArray(authorResolution?.allCandidates)
+                        ? authorResolution.allCandidates
+                        : [];
+                    let storedAuthorPk = '';
+                    try {
+                        if (typeof window !== 'undefined') {
+                            storedAuthorPk =
+                                window.localStorage.getItem(
+                                    getProposalAuthorSelectionStorageKey(governanceAddress, governingMintPk.toBase58())
+                                ) || '';
+                        }
+                    } catch (storageError) {
+                        console.log("Could not read proposal author selection", storageError);
+                    }
+
+                    selectedProposalAuthorRecord =
+                        candidates.find((item: any) => toBase58Safe(item?.pubkey) === storedAuthorPk) ||
+                        authorResolution?.bestRecord ||
+                        null;
+
+                    const authorEligibility = getProposalAuthorEligibility(
+                        selectedProposalAuthorRecord,
+                        matchedGovernanceWallet?.account?.config,
+                        governingMintPk.toBase58(),
+                        realm?.account?.config?.councilMint?.toBase58?.() || ''
+                    );
+
+                    if (!authorEligibility.eligible) {
+                        setSimulationSummary({
+                            status: 'creation_failed',
+                            message: authorEligibility.reason || 'Selected wallet does not meet the proposal threshold.',
+                        });
+                        setLoadingText("Proposal Error");
+                        setProposalCreated(false);
+                        setLoadingPropCreation(false);
+                        setLoaderCreationComplete(true);
+                        return;
+                    }
+                } catch (authorError) {
+                    console.log("Failed to resolve proposal author selection", authorError);
+                }
+
+                if (!selectedProposalAuthorRecord?.pubkey) {
+                    setSimulationSummary({
+                        status: 'creation_failed',
+                        message: 'No direct or delegated token owner record found for the selected governing mint.',
+                    });
+                    setLoadingText("Proposal Error");
+                    setProposalCreated(false);
+                    setLoadingPropCreation(false);
+                    setLoaderCreationComplete(true);
+                    return;
+                }
                 let propResponse = null;
 
                 try {
@@ -3148,7 +3217,12 @@ const StakeAccountsView = () => {
                                 ? new PublicKey(instructions.editProposalAddress)
                                 : undefined,
                             undefined,
-                            proposalConfig
+                            proposalConfig,
+                            {
+                                tokenOwnerRecordPk: new PublicKey(toBase58Safe(selectedProposalAuthorRecord.pubkey)),
+                                governanceAuthority: publicKey,
+                                signatory: publicKey,
+                            }
                         );
                     } else {
                         propResponse = await createProposalInstructionsLegacy(
@@ -3173,7 +3247,12 @@ const StakeAccountsView = () => {
                             null,
                             instructions?.signers,
                             null, // delegate
-                            proposalConfig
+                            proposalConfig,
+                            {
+                                tokenOwnerRecordPk: new PublicKey(toBase58Safe(selectedProposalAuthorRecord.pubkey)),
+                                governanceAuthority: publicKey,
+                                signatory: publicKey,
+                            }
                         );
                     }
                 } catch (e: any) {

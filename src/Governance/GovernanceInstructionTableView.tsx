@@ -68,6 +68,7 @@ import { useSnackbar } from 'notistack';
  
 import { createAndSendV0Tx } from './Proposals/proposalHelperInstructions'
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
+import { sendTransactions, SequenceType } from '../utils/governanceTools/sendTransactions';
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
@@ -222,6 +223,7 @@ export function InstructionTableView(props: any) {
     //const index = props.index;
     const sentProp = props.proposal;
     const proposalAuthor = props?.proposalAuthor;
+    const hasProposalAuthority = props?.hasProposalAuthority;
     const state = props.state; 
     const realm = props.realm;
     const setReload= props.setReload;
@@ -239,8 +241,10 @@ export function InstructionTableView(props: any) {
     const verifiedDAODestinationWalletArray = props?.verifiedDAODestinationWalletArray;
     
     const [instructionSet, setInstructionSet] = React.useState(null);
-    const { publicKey, sendTransaction, signTransaction } = useWallet();
+    const { publicKey, sendTransaction, signTransaction, signAllTransactions } = useWallet();
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+    const EXECUTE_ALL_MAX_BATCH_SIZE = 1100;
+    const EXECUTE_ALL_MAX_BATCH_INSTRUCTIONS = 4;
     
     const findPubkey = (address:string) => {
         try{
@@ -483,7 +487,11 @@ export function InstructionTableView(props: any) {
             return null;
         }
 
-        const signatures: string[] = [];
+        const latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('confirmed');
+        const executeInstructionBatches: TransactionInstruction[][] = [];
+        const executeBatchIndexes: number[][] = [];
+        let currentBatch: TransactionInstruction[] = [];
+        let currentBatchIndexes: number[] = [];
 
         for (let i = 0; i < orderedInstructionSets.length; i++) {
             const instruction = orderedInstructionSets[i];
@@ -517,39 +525,113 @@ export function InstructionTableView(props: any) {
                     `Execution halted: no execute instruction built for tx index ${instructionIndex}`,
                     { variant: 'error' }
                 );
-                break;
+                return null;
             }
 
+            const nextBatch = [...currentBatch, ...executeIxs];
+            const exceedsInstructionCount =
+                currentBatchIndexes.length >= EXECUTE_ALL_MAX_BATCH_INSTRUCTIONS;
+            const exceedsTxSize =
+                currentBatch.length > 0 &&
+                estimateVersionedTransactionSize(nextBatch, latestBlockhash.blockhash) > EXECUTE_ALL_MAX_BATCH_SIZE;
+
+            if (currentBatch.length > 0 && (exceedsInstructionCount || exceedsTxSize)) {
+                executeInstructionBatches.push(currentBatch);
+                executeBatchIndexes.push(currentBatchIndexes);
+                currentBatch = [...executeIxs];
+                currentBatchIndexes = [instructionIndex];
+            } else {
+                currentBatch = nextBatch;
+                currentBatchIndexes = [...currentBatchIndexes, instructionIndex];
+            }
+        }
+
+        if (currentBatch.length > 0) {
+            executeInstructionBatches.push(currentBatch);
+            executeBatchIndexes.push(currentBatchIndexes);
+        }
+
+        if (!executeInstructionBatches.length) {
+            enqueueSnackbar(`No executable instruction batches were built`, { variant: 'warning' });
+            return null;
+        }
+
+        const describeBatch = (indexes: number[]) =>
+            indexes.length > 1
+                ? `indexes ${indexes[0]}-${indexes[indexes.length - 1]}`
+                : `index ${indexes[0]}`;
+
+        if (typeof signAllTransactions === 'function') {
             try {
-                const signature = await createAndSendV0TxInline(executeIxs);
-                signatures.push(signature);
-                enqueueSnackbar(
-                    `Executed ${i + 1}/${orderedInstructionSets.length} (index ${instructionIndex})`,
-                    { variant: 'success' }
+                await sendTransactions(
+                    RPC_CONNECTION,
+                    {
+                        publicKey,
+                        signTransaction,
+                        signAllTransactions,
+                    },
+                    executeInstructionBatches,
+                    executeInstructionBatches.map(() => []),
+                    SequenceType.StopOnFailure,
+                    'confirmed',
+                    (_txid: string, batchIndex: number, totalBatches: number) => {
+                        enqueueSnackbar(
+                            `Executed batch ${batchIndex + 1}/${totalBatches} (${describeBatch(executeBatchIndexes[batchIndex] || [])})`,
+                            { variant: 'success' }
+                        );
+                    },
+                    (reason: string, batchIndex: number, totalBatches: number) => {
+                        enqueueSnackbar(
+                            `Execution halted at batch ${batchIndex + 1}/${totalBatches} (${describeBatch(executeBatchIndexes[batchIndex] || [])}): ${reason}`,
+                            { variant: 'error' }
+                        );
+                        return true;
+                    }
                 );
             } catch (e: any) {
                 const errMessage = e?.message || `${e}`;
-                console.error("Execute-all halted on failure", {
-                    instructionIndex,
-                    proposalTransaction: proposalTransaction.toBase58(),
-                    error: errMessage,
-                });
-                enqueueSnackbar(
-                    `Execution halted at index ${instructionIndex}: ${errMessage}`,
-                    { variant: 'error' }
-                );
+                console.error("Execute-all batched signing failed", errMessage);
+                enqueueSnackbar(`Execution halted: ${errMessage}`, { variant: 'error' });
                 if (setReload) setReload(true);
+                return null;
+            }
+        } else {
+            const signatures: string[] = [];
+            for (let batchIndex = 0; batchIndex < executeInstructionBatches.length; batchIndex++) {
+                const batchInstructions = executeInstructionBatches[batchIndex];
+                try {
+                    const signature = await createAndSendV0TxInline(batchInstructions);
+                    signatures.push(signature);
+                    enqueueSnackbar(
+                        `Executed batch ${batchIndex + 1}/${executeInstructionBatches.length} (${describeBatch(executeBatchIndexes[batchIndex] || [])})`,
+                        { variant: 'success' }
+                    );
+                } catch (e: any) {
+                    const errMessage = e?.message || `${e}`;
+                    console.error("Execute-all fallback batching failed", {
+                        batchIndex,
+                        error: errMessage,
+                    });
+                    enqueueSnackbar(
+                        `Execution halted at batch ${batchIndex + 1}/${executeInstructionBatches.length} (${describeBatch(executeBatchIndexes[batchIndex] || [])}): ${errMessage}`,
+                        { variant: 'error' }
+                    );
+                    if (setReload) setReload(true);
+                    return null;
+                }
+            }
+
+            if (!signatures.length) {
+                enqueueSnackbar(`No proposal transactions were executed`, { variant: 'warning' });
                 return null;
             }
         }
 
-        if (signatures.length > 0) {
-            enqueueSnackbar(
-                `Executed ${signatures.length} proposal transaction${signatures.length > 1 ? 's' : ''}`,
-                { variant: 'success' }
-            );
-            if (setReload) setReload(true);
-        }
+        enqueueSnackbar(
+            `Executed ${orderedInstructionSets.length} proposal transaction${orderedInstructionSets.length > 1 ? 's' : ''} in ${executeInstructionBatches.length} wallet approval${executeInstructionBatches.length > 1 ? 's' : ''}`,
+            { variant: 'success' }
+        );
+        if (setReload) setReload(true);
         return null;
     }
 
@@ -653,6 +735,24 @@ export function InstructionTableView(props: any) {
             return null;
         }
     };
+
+    const estimateVersionedTransactionSize = React.useCallback(
+        (instructions: TransactionInstruction[], recentBlockhash: string) => {
+            if (!publicKey) return Number.MAX_SAFE_INTEGER;
+            try {
+                const message = new TransactionMessage({
+                    payerKey: publicKey,
+                    recentBlockhash,
+                    instructions,
+                }).compileToV0Message();
+                return new VersionedTransaction(message).serialize().length;
+            } catch (e) {
+                console.warn('Failed to estimate execute transaction size', e);
+                return Number.MAX_SAFE_INTEGER;
+            }
+        },
+        [publicKey]
+    );
 
     const toInstructionDataBuffer = (value: any): Buffer => {
         try {
@@ -1083,7 +1183,7 @@ export function InstructionTableView(props: any) {
             
             renderCell: (params) => {
                 return(// if this is still in draft state
-                    (publicKey && proposalAuthor === publicKey.toBase58() && state === 0) ?
+                    ((typeof hasProposalAuthority === 'boolean' ? hasProposalAuthority : (publicKey && proposalAuthor === publicKey.toBase58())) && state === 0) ?
                         <>
                             <Tooltip title="Remove Transaction &amp; Claim Rent Back">
                                 <IconButton 

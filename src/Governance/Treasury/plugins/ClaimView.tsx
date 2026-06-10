@@ -421,6 +421,7 @@ export default function ClaimExtensionView(props: any){
                         <>
                             <AdvancedProposalView 
                                 governanceAddress={governanceAddress}
+                                rulesWallet={rulesWallet}
                                 proposalTitle={proposalTitle}
                                 setProposalTitle={setProposalTitle}
                                 proposalDescription={proposalDescription}

@@ -34,9 +34,16 @@ import {
     getRealmIndexed,
     getAllProposalsIndexed,
     getAllGovernancesIndexed,
-    getAllTokenOwnerRecordsIndexed,
-    getVoteRecordsByVoterIndexed,
+    getTokenOwnerRecordsByRealmIndexed,
 } from '../../api/queries';
+import {
+    annotateProposalAuthorCandidates,
+    formatGovernanceTokenAmount,
+    getProposalAuthorSelectionStorageKey,
+    getRecordDepositAmount,
+    resolveProposalAuthorRecord,
+    toBase58Safe,
+} from '../../Proposals/proposalAuthority';
 
 import CreateGistWithOAuth from '../../CreateGist';
 
@@ -53,6 +60,7 @@ export default function AdvanvedProposalView(props: any){
     const isGoverningMintSelectable = props?.isGoverningMintSelectable;
     const isDraft = props?.isDraft;
     const setIsDraft = props?.setIsDraft;
+    const rulesWallet = props?.rulesWallet;
     const skipSimulationProp = props?.skipSimulation;
     const setSkipSimulationProp = props?.setSkipSimulation;
 
@@ -67,6 +75,11 @@ export default function AdvanvedProposalView(props: any){
     const [loading, setLoading] = React.useState(false);
     const [draftProposals, setDraftProposals] = React.useState(null);
     const [skipSimulationLocal, setSkipSimulationLocal] = React.useState(false);
+    const [cachedRealm, setCachedRealm] = React.useState<any>(null);
+    const [governingMintDecimals, setGoverningMintDecimals] = React.useState<number>(0);
+    const [proposalAuthorOptions, setProposalAuthorOptions] = React.useState<any[]>([]);
+    const [selectedProposalAuthorPk, setSelectedProposalAuthorPk] = React.useState<string>('');
+    const [proposalAuthorRecord, setProposalAuthorRecord] = React.useState<any>(null);
 
     const skipSimulation =
         typeof skipSimulationProp === 'boolean'
@@ -92,7 +105,114 @@ export default function AdvanvedProposalView(props: any){
         persistSkipSimulation(value);
     };
 
-    // let's check here if the user is a delegate to give the option to choose who to create the proposal from
+    const getSelectedGoverningMint = React.useCallback((realmItem?: any) => {
+        const selectedRealm = realmItem || cachedRealm;
+        if (!selectedRealm?.account?.communityMint) return null;
+        if (isGoverningMintCouncilSelected && selectedRealm?.account?.config?.councilMint) {
+            return new PublicKey(selectedRealm.account.config.councilMint);
+        }
+        return new PublicKey(selectedRealm.account.communityMint);
+    }, [cachedRealm, isGoverningMintCouncilSelected]);
+
+    const updateSelectedGoverningMintDecimals = React.useCallback(async (realmItem?: any) => {
+        const selectedRealm = realmItem || cachedRealm;
+        const governingMint = getSelectedGoverningMint(selectedRealm);
+        const councilMint58 = toBase58Safe(selectedRealm?.account?.config?.councilMint) || '';
+        const selectedMint58 = governingMint?.toBase58?.() || '';
+        if (!governingMint || !selectedMint58) {
+            setGoverningMintDecimals(0);
+            return;
+        }
+        if (councilMint58 && selectedMint58 === councilMint58) {
+            setGoverningMintDecimals(0);
+            return;
+        }
+        try {
+            const mintInfo = await RPC_CONNECTION.getParsedAccountInfo(governingMint);
+            setGoverningMintDecimals(Number(mintInfo?.value?.data?.parsed?.info?.decimals ?? 0));
+        } catch (e) {
+            console.log('Unable to fetch governing mint decimals', e);
+            setGoverningMintDecimals(0);
+        }
+    }, [cachedRealm, getSelectedGoverningMint]);
+
+    const persistProposalAuthorSelection = React.useCallback((mint58?: string | null, recordPk?: string | null) => {
+        try {
+            if (typeof window === 'undefined') return;
+            const storageKey = getProposalAuthorSelectionStorageKey(governanceAddress, mint58);
+            if (recordPk) {
+                window.localStorage.setItem(storageKey, recordPk);
+            } else {
+                window.localStorage.removeItem(storageKey);
+            }
+        } catch (e) {
+            console.log('Unable to persist proposal author selection', e);
+        }
+    }, [governanceAddress]);
+
+    const loadProposalAuthorOptions = React.useCallback(async (realmItem?: any) => {
+        const selectedRealm = realmItem || cachedRealm;
+        if (!selectedRealm || !publicKey) {
+            setProposalAuthorOptions([]);
+            setSelectedProposalAuthorPk('');
+            setProposalAuthorRecord(null);
+            return;
+        }
+
+        const governingMint = getSelectedGoverningMint(selectedRealm);
+        if (!governingMint) {
+            setProposalAuthorOptions([]);
+            setSelectedProposalAuthorPk('');
+            setProposalAuthorRecord(null);
+            return;
+        }
+
+        const authorResolution = await resolveProposalAuthorRecord(
+            new PublicKey(selectedRealm.pubkey),
+            new PublicKey(selectedRealm.owner),
+            publicKey,
+            governingMint
+        );
+
+        const candidates = annotateProposalAuthorCandidates(
+            Array.isArray(authorResolution?.allCandidates)
+                ? authorResolution.allCandidates
+                : [],
+            rulesWallet?.account?.config,
+            governingMint.toBase58(),
+            toBase58Safe(selectedRealm?.account?.config?.councilMint)
+        );
+        const eligibleCandidates = candidates.filter(
+            (item: any) => item?.proposalAuthorEligibility?.eligible !== false
+        );
+        let storedRecordPk = '';
+        try {
+            if (typeof window !== 'undefined') {
+                storedRecordPk =
+                    window.localStorage.getItem(
+                        getProposalAuthorSelectionStorageKey(governanceAddress, governingMint.toBase58())
+                    ) || '';
+            }
+        } catch (e) {
+            console.log('Unable to read proposal author selection', e);
+        }
+
+        const selectedRecord =
+            eligibleCandidates.find((item: any) => toBase58Safe(item?.pubkey) === storedRecordPk) ||
+            candidates.find(
+                (item: any) =>
+                    toBase58Safe(item?.pubkey) === storedRecordPk &&
+                    item?.proposalAuthorEligibility?.eligible !== false
+            ) ||
+            eligibleCandidates[0] ||
+            null;
+        const selectedPk = toBase58Safe(selectedRecord?.pubkey) || '';
+
+        setProposalAuthorOptions(candidates);
+        setSelectedProposalAuthorPk(selectedPk);
+        setProposalAuthorRecord(selectedRecord);
+        persistProposalAuthorSelection(governingMint.toBase58(), selectedPk);
+    }, [cachedRealm, publicKey, getSelectedGoverningMint, governanceAddress, persistProposalAuthorSelection]);
 
     const getGovernanceProposals = async () => {
         console.log("get governance proposals...");
@@ -101,6 +221,7 @@ export default function AdvanvedProposalView(props: any){
             try {
                 const governanceAddressBase58 = new PublicKey(governanceAddress).toBase58();
                 const grealm = await getRealmIndexed(governanceAddressBase58);
+                setCachedRealm(grealm);
                 const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddressBase58, grealm?.owner);
                 const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
                 
@@ -115,20 +236,18 @@ export default function AdvanvedProposalView(props: any){
                 for (const item of gprops) {
                     if (item?.account?.state === 0) { // Check if proposal is in draft state
                         try {
-                            const voter = await getAllTokenOwnerRecordsIndexed(
+                            const voter = await getTokenOwnerRecordsByRealmIndexed(
                                 governanceAddressBase58,
                                 grealm.owner.toBase58(),
-                                publicKey.toBase58(),
-                                item.account.governingTokenMint.toBase58()
+                                publicKey.toBase58()
                             );
-                            //console.log("post voter:"+ JSON.stringify(voter));
-                            //console.log("proposal author:", item.account.tokenOwnerRecord.toBase58());
-                            //console.log("governance rules:", item.account.governance.toBase58());
-                            
-                            // You can add additional logic here based on the voter record if needed
-                            if (voter && voter.length > 0){
-                                if (voter[0].pubkey.toBase58() === item.account.tokenOwnerRecord.toBase58())
-                                    processedDraftProposals.push(item);
+                            const matchingVoter = voter?.find?.((record: any) =>
+                                record?.pubkey?.toBase58?.() === item.account.tokenOwnerRecord.toBase58() &&
+                                record?.account?.governingTokenMint?.toBase58?.() === item.account.governingTokenMint.toBase58()
+                            );
+
+                            if (matchingVoter){
+                                processedDraftProposals.push(item);
                             }
                         } catch (voterError) {
                             console.error("Error fetching voter record:", voterError);
@@ -138,6 +257,8 @@ export default function AdvanvedProposalView(props: any){
                 }
                 
                 setDraftProposals(processedDraftProposals);
+                await updateSelectedGoverningMintDecimals(grealm);
+                await loadProposalAuthorOptions(grealm);
             } catch (e) {
                 console.error("Error in getGovernanceProposals:", e);
             } finally {
@@ -151,12 +272,32 @@ export default function AdvanvedProposalView(props: any){
         setEditProposalAddress(tata);
     }
 
+    const handleProposalAuthorChange = (event: any) => {
+        const selectedPk = event.target.value || '';
+        const selectedRecord =
+            proposalAuthorOptions.find((item: any) => toBase58Safe(item?.pubkey) === selectedPk) || null;
+        if (selectedRecord?.proposalAuthorEligibility?.eligible === false) {
+            return;
+        }
+        setSelectedProposalAuthorPk(selectedPk);
+        setProposalAuthorRecord(selectedRecord);
+        const governingMint = getSelectedGoverningMint();
+        persistProposalAuthorSelection(governingMint?.toBase58?.() || null, selectedPk || null);
+    }
+
 
     React.useEffect(() => { 
         if (governanceAddress){
             getGovernanceProposals();
         }
     }, [governanceAddress]);
+
+    React.useEffect(() => {
+        if (cachedRealm && publicKey) {
+            updateSelectedGoverningMintDecimals(cachedRealm);
+            loadProposalAuthorOptions(cachedRealm);
+        }
+    }, [cachedRealm, publicKey, isGoverningMintCouncilSelected, loadProposalAuthorOptions, updateSelectedGoverningMintDecimals]);
     
     React.useEffect(() => { 
         if (editProposalAddress){
@@ -325,6 +466,56 @@ export default function AdvanvedProposalView(props: any){
                     } 
                     label="Council" />
                 </FormControl>
+
+                <FormControl fullWidth sx={{mt:1, mb:2}}>
+                    <InputLabel id="proposal-author-select-label">Create Proposal As</InputLabel>
+                    <Select
+                        labelId="proposal-author-select-label"
+                        id="proposal-author-select"
+                        size='small'
+                        label="Create Proposal As"
+                        value={selectedProposalAuthorPk || ''}
+                        onChange={handleProposalAuthorChange}
+                        disabled={!proposalAuthorOptions.length}
+                    >
+                        {proposalAuthorOptions.map((item: any) => {
+                            const recordPk = toBase58Safe(item?.pubkey) || '';
+                            const owner58 = toBase58Safe(item?.account?.governingTokenOwner) || '';
+                            const isOwnRecord = owner58 === publicKey?.toBase58();
+                            const isEligible = item?.proposalAuthorEligibility?.eligible !== false;
+                            const reason = item?.proposalAuthorEligibility?.reason;
+                            return (
+                                <MenuItem value={recordPk} key={recordPk} disabled={!isEligible}>
+                                    {isOwnRecord
+                                        ? `Your voting power • ${owner58.slice(0, 4)}...${owner58.slice(-4)} • ${formatGovernanceTokenAmount(item?.account?.governingTokenDepositAmount, governingMintDecimals)}`
+                                        : `Delegated from ${owner58.slice(0, 4)}...${owner58.slice(-4)} • ${formatGovernanceTokenAmount(item?.account?.governingTokenDepositAmount, governingMintDecimals)}`}
+                                    {!isEligible && reason ? ` • ${reason}` : ''}
+                                </MenuItem>
+                            );
+                        })}
+                    </Select>
+                </FormControl>
+
+                <Box sx={{ mb: 2, p: 1.25, borderRadius: '12px', background: 'rgba(255,255,255,0.04)' }}>
+                    {proposalAuthorRecord ? (
+                        <>
+                            <Typography variant="caption" sx={{ display: 'block' }}>
+                                {toBase58Safe(proposalAuthorRecord?.account?.governingTokenOwner) === publicKey?.toBase58()
+                                    ? 'Using your own voting record'
+                                    : `Using delegated voting power from ${toBase58Safe(proposalAuthorRecord?.account?.governingTokenOwner)?.slice(0, 4)}...${toBase58Safe(proposalAuthorRecord?.account?.governingTokenOwner)?.slice(-4)}`}
+                            </Typography>
+                            <Typography variant="caption" sx={{ display: 'block', opacity: 0.75 }}>
+                                Token owner record: {toBase58Safe(proposalAuthorRecord?.pubkey)?.slice(0, 5)}...{toBase58Safe(proposalAuthorRecord?.pubkey)?.slice(-5)}
+                            </Typography>
+                        </>
+                    ) : (
+                        <Typography variant="caption" sx={{ display: 'block' }}>
+                            {proposalAuthorOptions.length > 0
+                                ? 'Available wallets do not meet the minimum proposal threshold for this governance.'
+                                : 'No direct or delegated voting record is available for the selected governing mint.'}
+                        </Typography>
+                    )}
+                </Box>
 
                 <FormControl fullWidth >
                     <FormControlLabel 

@@ -1257,6 +1257,7 @@ export default function JupDcaExtensionView(props: any){
                         <>
                             <AdvancedProposalView 
                                 governanceAddress={governanceAddress}
+                                rulesWallet={rulesWallet}
                                 proposalTitle={proposalTitle}
                                 setProposalTitle={setProposalTitle}
                                 proposalDescription={proposalDescription}

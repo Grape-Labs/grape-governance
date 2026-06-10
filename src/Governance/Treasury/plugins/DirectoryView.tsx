@@ -772,6 +772,8 @@ export default function DirectoryExtensionView(props: any){
                         {openAdvanced ? 
                             <>
                                 <AdvancedProposalView 
+                                    governanceAddress={governanceAddress}
+                                    rulesWallet={rulesWallet}
                                     proposalTitle={proposalTitle}
                                     setProposalTitle={setProposalTitle}
                                     proposalDescription={proposalDescription}

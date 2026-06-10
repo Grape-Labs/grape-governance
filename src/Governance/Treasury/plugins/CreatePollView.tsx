@@ -287,6 +287,7 @@ export default function CreatePollView(props: any) {
           {openAdvanced ? (
             <AdvancedProposalView
               governanceAddress={governanceAddress}
+              rulesWallet={rulesWallet}
               proposalTitle={proposalTitle}
               setProposalTitle={setProposalTitle}
               proposalDescription={proposalDescription}

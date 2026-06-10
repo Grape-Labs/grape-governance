@@ -174,6 +174,7 @@ export function InstructionView(props: any) {
     const index = props.index;
     const sentProp = props.proposal;
     const proposalAuthor = props?.proposalAuthor;
+    const hasProposalAuthority = props?.hasProposalAuthority;
     const state = props.state; 
     const realm = props.realm;
     const setReload= props.setReload;
@@ -683,7 +684,7 @@ export function InstructionView(props: any) {
                         <Typography variant="h6" component="span" color="#999">
                             Instruction Accounts
 
-                            {(publicKey && proposalAuthor === publicKey.toBase58() && state === 0) ?
+                            {((typeof hasProposalAuthority === 'boolean' ? hasProposalAuthority : (publicKey && proposalAuthor === publicKey.toBase58())) && state === 0) ?
                                 <>
                                     <Tooltip title="Remove Transaction &amp; Claim Rent Back">
                                         <IconButton 
