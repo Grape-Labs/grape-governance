@@ -222,6 +222,7 @@ export function InstructionTableView(props: any) {
     //const index = props.index;
     const sentProp = props.proposal;
     const proposalAuthor = props?.proposalAuthor;
+    const hasProposalAuthority = props?.hasProposalAuthority;
     const state = props.state; 
     const realm = props.realm;
     const setReload= props.setReload;
@@ -1083,7 +1084,7 @@ export function InstructionTableView(props: any) {
             
             renderCell: (params) => {
                 return(// if this is still in draft state
-                    (publicKey && proposalAuthor === publicKey.toBase58() && state === 0) ?
+                    ((typeof hasProposalAuthority === 'boolean' ? hasProposalAuthority : (publicKey && proposalAuthor === publicKey.toBase58())) && state === 0) ?
                         <>
                             <Tooltip title="Remove Transaction &amp; Claim Rent Back">
                                 <IconButton 

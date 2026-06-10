@@ -12,7 +12,13 @@ import Confetti from 'react-dom-confetti';
 import { useSnackbar } from 'notistack';
 import { createProposalInstructionsLegacy } from './Proposals/createProposalInstructionsLegacy';
 import { createProposalInstructionsV0, InstructionDataWithHoldUpTime } from './Proposals/createProposalInstructionsV0';
-import { getRecordDepositAmount, resolveProposalAuthorRecord, toBase58Safe } from './Proposals/proposalAuthority';
+import {
+  annotateProposalAuthorCandidates,
+  formatGovernanceTokenAmount,
+  getRecordDepositAmount,
+  resolveProposalAuthorRecord,
+  toBase58Safe,
+} from './Proposals/proposalAuthority';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import axios from 'axios';
 import ExplorerView from '../utils/grapeTools/Explorer';
@@ -252,6 +258,8 @@ export default function GovernanceCreateProposalView(props: any){
     const [isProposer, setIsProposer] = React.useState(false);
     const [isCopied, setIsCopied] = React.useState(false);
     const [proposalAuthorRecord, setProposalAuthorRecord] = React.useState<any>(null);
+    const [proposalAuthorOptions, setProposalAuthorOptions] = React.useState<any[]>([]);
+    const [selectedProposalAuthorPk, setSelectedProposalAuthorPk] = React.useState<string>('');
 
     const anchorWallet = useAnchorWallet();
     
@@ -373,13 +381,57 @@ export default function GovernanceCreateProposalView(props: any){
       return governingTokenMint;
     }, [cachedRealm, isCouncilVote, sentGoverningTokenMint]);
 
-    const resolveCurrentProposalAuthor = React.useCallback(async (governingTokenMint?: PublicKey | null) => {
+    const getSelectedGoverningMintDecimals = React.useCallback(() => {
+      const selectedMint58 = getSelectedGoverningTokenMint()?.toBase58?.() || '';
+      const councilMint58 = toBase58Safe(cachedRealm?.account?.config?.councilMint) || '';
+      if (selectedMint58 && councilMint58 && selectedMint58 === councilMint58) {
+        return 0;
+      }
+      return Number(tokenInfo?.decimals ?? 0);
+    }, [getSelectedGoverningTokenMint, cachedRealm, tokenInfo]);
+
+    const getSelectedGovernanceConfig = React.useCallback(() => {
+      if (governanceWallet?.account?.config) {
+        return governanceWallet.account.config;
+      }
+
+      if (governanceRulesWallet && Array.isArray(governanceWallets)) {
+        const matchedWallet = governanceWallets.find(
+          (item: any) => item?.pubkey?.toBase58?.() === new PublicKey(governanceRulesWallet).toBase58()
+        );
+        return matchedWallet?.account?.config || null;
+      }
+
+      return null;
+    }, [governanceWallet, governanceRulesWallet, governanceWallets]);
+
+    const pickProposalAuthorRecord = React.useCallback((records: any[] = [], preferredPk?: string | null) => {
+      const preferredRecordPk = preferredPk || selectedProposalAuthorPk || '';
+      if (!Array.isArray(records) || records.length === 0) return null;
+      if (preferredRecordPk){
+        const preferredRecord = records.find((item: any) => toBase58Safe(item?.pubkey) === preferredRecordPk);
+        if (preferredRecord){
+          return preferredRecord;
+        }
+      }
+      return records[0] || null;
+    }, [selectedProposalAuthorPk]);
+
+    const loadProposalAuthorOptions = React.useCallback(async (governingTokenMint?: PublicKey | null) => {
       if (!cachedRealm?.pubkey || !cachedRealm?.owner || !publicKey){
+        setProposalAuthorOptions([]);
+        setSelectedProposalAuthorPk('');
+        setProposalAuthorRecord(null);
+        setIsProposer(false);
         return null;
       }
 
       const selectedMint = governingTokenMint || getSelectedGoverningTokenMint();
       if (!selectedMint){
+        setProposalAuthorOptions([]);
+        setSelectedProposalAuthorPk('');
+        setProposalAuthorRecord(null);
+        setIsProposer(false);
         return null;
       }
 
@@ -390,8 +442,51 @@ export default function GovernanceCreateProposalView(props: any){
         selectedMint
       );
 
-      return authorResolution?.bestRecord || null;
-    }, [cachedRealm, publicKey, getSelectedGoverningTokenMint]);
+      const governanceConfig = getSelectedGovernanceConfig();
+      const candidates = annotateProposalAuthorCandidates(
+        Array.isArray(authorResolution?.allCandidates)
+          ? authorResolution.allCandidates
+          : [],
+        governanceConfig,
+        selectedMint.toBase58(),
+        toBase58Safe(cachedRealm?.account?.config?.councilMint)
+      );
+      const eligibleCandidates = candidates.filter(
+        (item: any) => item?.proposalAuthorEligibility?.eligible !== false
+      );
+      const defaultRecordPk = toBase58Safe(authorResolution?.bestRecord?.pubkey);
+      const selectedRecord = pickProposalAuthorRecord(
+        eligibleCandidates.length > 0 ? eligibleCandidates : candidates,
+        defaultRecordPk
+      );
+      const selectedRecordPk = toBase58Safe(selectedRecord?.pubkey) || '';
+
+      setProposalAuthorOptions(candidates);
+      setSelectedProposalAuthorPk(selectedRecordPk);
+      setProposalAuthorRecord(
+        selectedRecord?.proposalAuthorEligibility?.eligible === false ? null : selectedRecord
+      );
+      setIsProposer(!!selectedRecord && selectedRecord?.proposalAuthorEligibility?.eligible !== false);
+
+      return selectedRecord?.proposalAuthorEligibility?.eligible === false ? null : selectedRecord;
+    }, [cachedRealm, publicKey, getSelectedGoverningTokenMint, getSelectedGovernanceConfig, pickProposalAuthorRecord]);
+
+    const resolveCurrentProposalAuthor = React.useCallback(async (governingTokenMint?: PublicKey | null) => {
+      const selectedMint = governingTokenMint || getSelectedGoverningTokenMint();
+      if (!selectedMint){
+        return null;
+      }
+
+      if (
+        proposalAuthorRecord &&
+        toBase58Safe(proposalAuthorRecord?.account?.governingTokenMint) === selectedMint.toBase58() &&
+        (!selectedProposalAuthorPk || toBase58Safe(proposalAuthorRecord?.pubkey) === selectedProposalAuthorPk)
+      ){
+        return proposalAuthorRecord;
+      }
+
+      return await loadProposalAuthorOptions(selectedMint);
+    }, [getSelectedGoverningTokenMint, loadProposalAuthorOptions, proposalAuthorRecord, selectedProposalAuthorPk]);
     
 
     const calculateProposalFee = async() => {
@@ -719,6 +814,18 @@ export default function GovernanceCreateProposalView(props: any){
         //    console.log('G key pressed');
         //    event.preventDefault(); // Avoid unintended side effects
         }
+    };
+
+    const handleProposalAuthorChange = (event: SelectChangeEvent<string>) => {
+      const selectedPk = event.target.value || '';
+      const selectedRecord =
+        proposalAuthorOptions.find((item: any) => toBase58Safe(item?.pubkey) === selectedPk) || null;
+      if (selectedRecord?.proposalAuthorEligibility?.eligible === false) {
+        return;
+      }
+      setSelectedProposalAuthorPk(selectedPk);
+      setProposalAuthorRecord(selectedRecord);
+      setIsProposer(!!selectedRecord);
     };
       
     function handleDescriptionChange(text: string): void {
@@ -1611,16 +1718,7 @@ export default function GovernanceCreateProposalView(props: any){
     }
 
     const checkMemberStatus = async() => {
-      if (!publicKey || !cachedRealm?.pubkey || !cachedRealm?.owner){
-        setProposalAuthorRecord(null);
-        setIsProposer(false);
-        setLoading(false);
-        return;
-      }
-
-      const resolvedProposalAuthor = await resolveCurrentProposalAuthor();
-      setProposalAuthorRecord(resolvedProposalAuthor);
-      setIsProposer(!!resolvedProposalAuthor);
+      await loadProposalAuthorOptions();
       setLoading(false);
     }
 
@@ -2353,18 +2451,64 @@ export default function GovernanceCreateProposalView(props: any){
                                   label="Council Vote" />
                             </FormControl>
 
-                            {proposalAuthorRecord &&
-                              <Box sx={{mb:2, p:1.5, borderRadius:'12px', background:'rgba(255,255,255,0.04)'}}>
+                            <FormControl fullWidth sx={{mb:2}}>
+                              <InputLabel id="proposal-author-select-label">Create Proposal As</InputLabel>
+                              <Select
+                                labelId="proposal-author-select-label"
+                                id="proposal-author-select"
+                                value={selectedProposalAuthorPk || ''}
+                                label="Create Proposal As"
+                                onChange={handleProposalAuthorChange}
+                                disabled={!proposalAuthorOptions.length}
+                              >
+                                {proposalAuthorOptions.map((item: any) => {
+                                  const recordPk = toBase58Safe(item?.pubkey) || '';
+                                  const owner58 = toBase58Safe(item?.account?.governingTokenOwner) || '';
+                                  const isOwnRecord = owner58 === publicKey?.toBase58();
+                                  const amount = formatGovernanceTokenAmount(
+                                    item?.account?.governingTokenDepositAmount,
+                                    getSelectedGoverningMintDecimals()
+                                  );
+                                  const isEligible = item?.proposalAuthorEligibility?.eligible !== false;
+                                  const reason = item?.proposalAuthorEligibility?.reason;
+                                  return (
+                                    <MenuItem value={recordPk} key={recordPk} disabled={!isEligible}>
+                                      {isOwnRecord
+                                        ? `Your voting power • ${shortenString(owner58, 4, 4)} • ${amount}`
+                                        : `Delegated from ${shortenString(owner58, 4, 4)} • ${amount}`}
+                                      {!isEligible && reason ? ` • ${reason}` : ''}
+                                    </MenuItem>
+                                  );
+                                })}
+                              </Select>
+                            </FormControl>
+
+                            <Box sx={{mb:2, p:1.5, borderRadius:'12px', background:'rgba(255,255,255,0.04)'}}>
+                              {proposalAuthorRecord ?
+                                <>
+                                  <Typography variant="caption" sx={{display:'block'}}>
+                                    Proposal authority: {toBase58Safe(proposalAuthorRecord?.account?.governingTokenOwner) === publicKey?.toBase58()
+                                      ? 'your own voting record'
+                                      : `delegated voting power from ${shortenString(toBase58Safe(proposalAuthorRecord?.account?.governingTokenOwner), 4, 4)}`}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{display:'block', opacity:0.75}}>
+                                    Token owner record: {shortenString(toBase58Safe(proposalAuthorRecord?.pubkey), 5, 5)}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{display:'block', opacity:0.75}}>
+                                    Deposit: {formatGovernanceTokenAmount(
+                                      proposalAuthorRecord?.account?.governingTokenDepositAmount,
+                                      getSelectedGoverningMintDecimals()
+                                    )} tokens
+                                  </Typography>
+                                </>
+                              :
                                 <Typography variant="caption" sx={{display:'block'}}>
-                                  Proposal authority: {toBase58Safe(proposalAuthorRecord?.account?.governingTokenOwner) === publicKey?.toBase58()
-                                    ? 'your own voting record'
-                                    : `delegated voting power from ${shortenString(toBase58Safe(proposalAuthorRecord?.account?.governingTokenOwner), 4, 4)}`}
+                                  {proposalAuthorOptions.length > 0
+                                    ? 'Available wallets do not meet the minimum proposal threshold for this governance.'
+                                    : 'No own or delegated voting power is available for the selected governing mint.'}
                                 </Typography>
-                                <Typography variant="caption" sx={{display:'block', opacity:0.75}}>
-                                  Deposit: {getRecordDepositAmount(proposalAuthorRecord).toLocaleString()} tokens
-                                </Typography>
-                              </Box>
-                            }
+                              }
+                            </Box>
                             </>
                           :<></>}
                           

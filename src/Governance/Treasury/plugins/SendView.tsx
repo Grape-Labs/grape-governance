@@ -815,6 +815,7 @@ export default function SendExtensionView(props: any){
                         <>
                             <AdvancedProposalView 
                                 governanceAddress={governanceAddress}
+                                rulesWallet={rulesWallet}
                                 proposalTitle={proposalTitle}
                                 setProposalTitle={setProposalTitle}
                                 proposalDescription={proposalDescription}

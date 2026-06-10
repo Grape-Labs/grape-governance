@@ -1685,6 +1685,7 @@ export default function TokenManagerView(props) {
                             <>
                                 <AdvancedProposalView 
                                     governanceAddress={governanceAddress}
+                                    rulesWallet={rulesWallet}
                                     proposalTitle={proposalTitle}
                                     setProposalTitle={setProposalTitle}
                                     proposalDescription={proposalDescription}

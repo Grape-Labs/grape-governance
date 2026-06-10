@@ -745,6 +745,7 @@ export default function StreamflowView(props: any) {
           {openAdvanced ? (
             <AdvancedProposalView
               governanceAddress={governanceAddress}
+              rulesWallet={rulesWallet}
               proposalTitle={proposalTitle}
               setProposalTitle={setProposalTitle}
               proposalDescription={proposalDescription}

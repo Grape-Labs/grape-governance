@@ -115,6 +115,7 @@ import { InstructionTableView } from './GovernanceInstructionTableView';
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
+import { hasGovernanceAuthorityForRecord } from './Proposals/proposalAuthority';
 
 import ShareIcon from '@mui/icons-material/Share';
 import ArticleIcon from '@mui/icons-material/Article';
@@ -492,6 +493,29 @@ export function GovernanceProposalV2View(props: any){
         if (fromState) return fromState;
         return getProposalAuthorAddress(thisitem);
     }, [proposalAuthor, normalizePkString, getProposalAuthorAddress, thisitem]);
+
+    const proposalAuthorityRecord = React.useMemo(() => {
+        const tor = normalizePkString(thisitem?.account?.tokenOwnerRecord);
+        if (!tor) return null;
+        return tokenOwnerRecordToMember.get(tor) || null;
+    }, [thisitem, normalizePkString, tokenOwnerRecordToMember]);
+
+    const proposalAuthorityRole = React.useMemo(() => {
+        const wallet58 = publicKey?.toBase58?.();
+        if (!wallet58) return null;
+        return hasGovernanceAuthorityForRecord(proposalAuthorityRecord, wallet58)
+            ? (
+                normalizePkString(proposalAuthorityRecord?.account?.governingTokenOwner) === wallet58
+                    ? 'owner'
+                    : 'delegate'
+            )
+            : null;
+    }, [proposalAuthorityRecord, publicKey, normalizePkString]);
+
+    const canManageDraftProposal = React.useMemo(
+        () => !!publicKey && !!proposalAuthorityRole && +thisitem?.account?.state === 0,
+        [publicKey, proposalAuthorityRole, thisitem]
+    );
 
     const authorVetoedProposalCount = React.useMemo(() => {
         if (!proposalAuthorAddress) return 0;
@@ -4952,7 +4976,7 @@ export function GovernanceProposalV2View(props: any){
                                                             <Typography gutterBottom variant="body1" component="div">
                                                                 
                                                                 
-                                                                {(publicKey && proposalAuthor === publicKey.toBase58() && +thisitem.account.state === 0) ?
+                                                                {canManageDraftProposal ?
                                                                     <> 
                                                                         <IntegratedGovernanceProposalDialogView 
                                                                             governanceAddress={governanceAddress}
@@ -5055,7 +5079,7 @@ export function GovernanceProposalV2View(props: any){
                                                         </>
                                                     }
 
-                                                    {(publicKey && proposalAuthor === publicKey.toBase58() && +thisitem.account.state === 0) ?
+                                                    {canManageDraftProposal ?
                                                         <>
                                                             <Box sx={{ my: 3, mx: 2 }}>
                                                                 <Grid container alignItems="center">
@@ -5315,6 +5339,7 @@ export function GovernanceProposalV2View(props: any){
                                             setReload={setReload} 
                                             realm={realm} 
                                             proposalAuthor={proposalAuthor} 
+                                            hasProposalAuthority={canManageDraftProposal}
                                             state={thisitem.account.state} 
                                             cachedTokenMeta={cachedTokenMeta} 
                                             setInstructionTransferDetails={setInstructionTransferDetails} 

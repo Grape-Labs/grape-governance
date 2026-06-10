@@ -1725,6 +1725,7 @@ export default function GovernanceConfigView(props: any) {
             <Box sx={{ mt: 2 }}>
               <AdvancedProposalView
                 governanceAddress={governanceAddress}
+                rulesWallet={rulesWallet}
                 proposalTitle={proposalTitle}
                 setProposalTitle={setProposalTitle}
                 proposalDescription={proposalDescription}

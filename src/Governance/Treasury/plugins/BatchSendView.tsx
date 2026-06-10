@@ -604,6 +604,7 @@ export default function BatchSendView(props: any) {
           {openAdvanced ? (
             <AdvancedProposalView
               governanceAddress={(props.governanceAddress || realm?.pubkey?.toBase58?.()) ?? ""}
+              rulesWallet={rulesWallet}
               proposalTitle={proposalTitle}
               setProposalTitle={setProposalTitle}
               proposalDescription={proposalDescription}

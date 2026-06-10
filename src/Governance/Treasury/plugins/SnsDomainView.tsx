@@ -1047,6 +1047,7 @@ export default function SnsDomainView(props: any) {
             <Box sx={{ mt: 1.5 }}>
               <AdvancedProposalView
                 governanceAddress={governanceAddress}
+                rulesWallet={rulesWallet}
                 proposalTitle={proposalTitle}
                 setProposalTitle={setProposalTitle}
                 proposalDescription={proposalDescription}

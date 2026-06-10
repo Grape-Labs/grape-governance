@@ -46,6 +46,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { RPC_CONNECTION, BLACKLIST_WALLETS } from "../utils/grapeTools/constants";
 import { getGrapeGovernanceProgramVersion, shortenString } from "../utils/grapeTools/helpers";
 import { getAllTokenOwnerRecordsIndexed } from "../Governance/api/queries";
+import { findProposalAuthorCandidates } from "./Proposals/proposalAuthority";
 import { useSnackbar } from "notistack";
 
 // ----------------------------
@@ -257,13 +258,15 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
       const canUseCouncilFastPath = !!councilVoterRecord && vetoMint58 === councilMint58;
 
       // Veto TOR for THIS wallet (council or community depending on mode)
+      const vetoAuthorityResolution = findProposalAuthorCandidates(
+        rawTokenOwnerRecords,
+        walletPk58,
+        vetoMint58
+      );
+
       const vetoVoterRecord =
         (canUseCouncilFastPath ? councilVoterRecord : null) ||
-        rawTokenOwnerRecords.find(
-          (item: any) =>
-            item?.account?.governingTokenOwner?.toBase58?.() === walletPk58 &&
-            item?.account?.governingTokenMint?.toBase58?.() === vetoMint58
-        );
+        vetoAuthorityResolution.bestRecord;
 
       if (!vetoVoterRecord) {
         enqueueSnackbar("You do not have veto power for this proposal.", { variant: "error" });

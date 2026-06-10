@@ -605,6 +605,7 @@ export default function TokenMetadataView(props: any) {
           {openAdvanced ? (
             <AdvancedProposalView
               governanceAddress={governanceAddress}
+              rulesWallet={rulesWallet}
               proposalTitle={proposalTitle}
               setProposalTitle={setProposalTitle}
               proposalDescription={proposalDescription}

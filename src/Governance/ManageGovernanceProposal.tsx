@@ -87,6 +87,7 @@ import IconButton from '@mui/material/IconButton';
 import ApprovalIcon from '@mui/icons-material/Approval';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { AlreadyInitializedError } from '@metaplex-foundation/mpl-token-metadata';
+import { findProposalAuthorCandidates, toBase58Safe } from './Proposals/proposalAuthority';
 
 export const getAllProposalSignatories = async(programId:PublicKey, proposalAddress:PublicKey) => {
     
@@ -230,6 +231,23 @@ export function ManageGovernanceProposal(props: any){
         // Calculate the total priority fee based on compute units and price per compute unit
         return computeUnits * baseMicroLamportsPerUnit;
     };
+
+    const resolveProposalAuthorityRecordPk = React.useCallback((): PublicKey | null => {
+        const proposalTokenOwnerRecord58 =
+            toBase58Safe(proposal?.account?.tokenOwnerRecord) ||
+            toBase58Safe(proposalAuthor);
+        if (proposalTokenOwnerRecord58) {
+            return new PublicKey(proposalTokenOwnerRecord58);
+        }
+
+        const wallet58 = publicKey?.toBase58?.();
+        const mint58 = toBase58Safe(governingTokenMint);
+        if (!wallet58 || !mint58 || !Array.isArray(memberMap)) return null;
+
+        const authorityResolution = findProposalAuthorCandidates(memberMap, wallet58, mint58);
+        const record58 = toBase58Safe(authorityResolution.bestRecord?.pubkey);
+        return record58 ? new PublicKey(record58) : null;
+    }, [proposal, proposalAuthor, publicKey, governingTokenMint, memberMap]);
     
     async function createAndSendV0TxInline(txInstructions: TransactionInstruction[]) {
         // Step 1 - Fetch Latest Blockhash
@@ -321,12 +339,7 @@ export function ManageGovernanceProposal(props: any){
         const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
 
         
-        let tokenOwnerRecordPk = null;
-        for (let member of memberMap){
-            if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
-                new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
-                tokenOwnerRecordPk = new PublicKey(member.pubkey);
-        }
+        const tokenOwnerRecordPk = resolveProposalAuthorityRecordPk();
         
         const signatory = publicKey;
 
@@ -381,12 +394,7 @@ export function ManageGovernanceProposal(props: any){
         const realmPk = new PublicKey(governanceAddress);
         const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
 
-        let tokenOwnerRecordPk = null;
-        for (let member of memberMap){
-            if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
-                new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
-                tokenOwnerRecordPk = new PublicKey(member.pubkey);
-        }
+        const tokenOwnerRecordPk = resolveProposalAuthorityRecordPk();
 
         /*
         const tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
@@ -544,7 +552,7 @@ export function ManageGovernanceProposal(props: any){
                 return null;
             }
         } else{
-            enqueueSnackbar(`Error: Token Owner Record does not exist`,{ variant: 'error' });
+            enqueueSnackbar(`Error: Proposal authority record does not exist`,{ variant: 'error' });
         }
     }
 
@@ -610,12 +618,7 @@ export function ManageGovernanceProposal(props: any){
             console.log("new signatory address: "+signer)
 
             
-            const tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
-                programId,
-                realmPk,
-                governingTokenMint,
-                publicKey,
-            );
+            const tokenOwnerRecordPk = resolveProposalAuthorityRecordPk();
             
             
             //const filter = pubkeyFilter(1, proposalAddress)
@@ -640,6 +643,11 @@ export function ManageGovernanceProposal(props: any){
             console.log("realmPk: "+realmPk.toBase58());
             console.log("governingTokenMint: "+governingTokenMint.toBase58());
             console.log("payer: "+payer.toBase58());
+            if (!tokenOwnerRecordPk) {
+                enqueueSnackbar(`Error: Proposal authority record does not exist`,{ variant: 'error' });
+                return null;
+            }
+
             console.log("tokenOwnerRecordPk: "+tokenOwnerRecordPk.toBase58())
             console.log("programVersion: "+programVersion)
             console.log("governanceAuthority: "+governanceAuthority.toBase58())
