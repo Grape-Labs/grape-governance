@@ -174,6 +174,12 @@ function toNumberOrNull(value: any): number | null {
     return n;
 }
 
+function toPositiveUnix(value: any): number | null {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return n;
+}
+
 function toBase58Safe(value: any): string {
     try {
         if (!value) return "";
@@ -3964,6 +3970,69 @@ export function GovernanceProposalV2View(props: any){
         border: 'none',
         background: 'transparent',
     };
+    const timelineAccent = 'rgba(61, 167, 255, 0.96)';
+    const createdAt = toPositiveUnix(thisitem?.account?.draftAt);
+    const votingStartedAt =
+        toPositiveUnix(thisitem?.account?.signingOffAt) ??
+        toPositiveUnix(thisitem?.account?.votingAt) ??
+        toPositiveUnix(thisitem?.account?.startVotingAt);
+    const governanceConfig = thisGovernance?.account?.config;
+    const baseVotingTime =
+        toPositiveUnix(governanceConfig?.baseVotingTime) ??
+        toPositiveUnix(governanceConfig?.votingBaseTime) ??
+        0;
+    const coolOffTime = toPositiveUnix(governanceConfig?.votingCoolOffTime) ?? 0;
+    const votingCompletedAt = toPositiveUnix(thisitem?.account?.votingCompletedAt);
+    const scheduledEndsAt =
+        votingStartedAt && baseVotingTime > 0 ? votingStartedAt + baseVotingTime : null;
+    const resolvedEndsAt = votingCompletedAt ?? scheduledEndsAt;
+    const coolOffStartsAt =
+        coolOffTime > 0 && resolvedEndsAt
+            ? Math.max(votingStartedAt ?? resolvedEndsAt, resolvedEndsAt - coolOffTime)
+            : null;
+    const timelineEntries = [
+        {
+            key: 'created',
+            label: 'Created',
+            at: createdAt,
+        },
+        {
+            key: 'voting',
+            label: votingStartedAt ? 'Voting' : 'Voting Pending',
+            at: votingStartedAt,
+        },
+        ...(coolOffStartsAt
+            ? [
+                  {
+                      key: 'cooloff',
+                      label: 'Cool off',
+                      at: coolOffStartsAt,
+                  },
+              ]
+            : []),
+        {
+            key: 'ends',
+            label: votingCompletedAt ? 'Ended' : 'Ends',
+            at: resolvedEndsAt,
+        },
+    ];
+    const finalProposalStates = new Set([3, 5, 6, 7, 8]);
+    const nowUnix = moment().unix();
+    let activeTimelineKey = 'created';
+    if (
+        resolvedEndsAt &&
+        (nowUnix >= resolvedEndsAt || finalProposalStates.has(proposalState))
+    ) {
+        activeTimelineKey = 'ends';
+    } else if (coolOffStartsAt && nowUnix >= coolOffStartsAt) {
+        activeTimelineKey = 'cooloff';
+    } else if (votingStartedAt && nowUnix >= votingStartedAt) {
+        activeTimelineKey = 'voting';
+    }
+    const activeTimelineIndex = Math.max(
+        timelineEntries.findIndex((entry) => entry.key === activeTimelineKey),
+        0
+    );
 
     return (
         <>
@@ -4571,15 +4640,131 @@ export function GovernanceProposalV2View(props: any){
                                 </Box>
                             </Grid>
                             <Grid item md={4} sm={12} xs={12} sx={{ mt: { xs: 0.5, md: 1.5 } }}>
-                                <Box
+                                <Stack
                                     sx={{
-                                        p: { xs: 1, sm: 1.25 },
                                         ml: { xs: 0, md: 1 },
                                         position: { xs: 'relative', md: 'sticky' },
                                         top: { xs: 'auto', md: 10 },
-                                        ...panelSx,
+                                        gap: 1.25,
                                     }}
                                 >
+                                    <Box
+                                        sx={{
+                                            p: { xs: 1, sm: 1.25 },
+                                            ...panelSx,
+                                        }}
+                                    >
+                                        <Typography sx={{ ...sectionLabelSx, ml: { xs: 0.75, sm: 1 }, mt: 0.25, mb: 0.85 }}>
+                                            Timeline
+                                        </Typography>
+                                        <Box
+                                            sx={{
+                                                borderRadius: '14px',
+                                                border: '1px solid rgba(255,255,255,0.08)',
+                                                bgcolor: 'rgba(9,14,24,0.45)',
+                                                px: { xs: 1, sm: 1.25 },
+                                                py: { xs: 1.2, sm: 1.4 },
+                                            }}
+                                        >
+                                            <Stack spacing={0}>
+                                                {timelineEntries.map((entry, index) => {
+                                                    const isActive = index === activeTimelineIndex;
+                                                    const isComplete = index < activeTimelineIndex;
+                                                    const isFuture = index > activeTimelineIndex;
+                                                    const isLast = index === timelineEntries.length - 1;
+                                                    const connectorColor =
+                                                        isComplete || isActive
+                                                            ? timelineAccent
+                                                            : 'rgba(118,145,188,0.26)';
+                                                    return (
+                                                        <Box
+                                                            key={entry.key}
+                                                            sx={{
+                                                                display: 'grid',
+                                                                gridTemplateColumns: '20px minmax(0, 1fr)',
+                                                                columnGap: 1.25,
+                                                                minHeight: isLast ? 'auto' : 78,
+                                                            }}
+                                                        >
+                                                            <Box
+                                                                sx={{
+                                                                    display: 'flex',
+                                                                    flexDirection: 'column',
+                                                                    alignItems: 'center',
+                                                                }}
+                                                            >
+                                                                <Box
+                                                                    sx={{
+                                                                        mt: 0.35,
+                                                                        width: isActive ? 14 : 10,
+                                                                        height: isActive ? 14 : 10,
+                                                                        borderRadius: '50%',
+                                                                        bgcolor:
+                                                                            isActive || isComplete
+                                                                                ? timelineAccent
+                                                                                : 'rgba(118,145,188,0.45)',
+                                                                        border: isActive
+                                                                            ? '3px solid rgba(61, 167, 255, 0.22)'
+                                                                            : 'none',
+                                                                        boxShadow: isActive
+                                                                            ? '0 0 0 4px rgba(61, 167, 255, 0.12)'
+                                                                            : 'none',
+                                                                        zIndex: 1,
+                                                                    }}
+                                                                />
+                                                                {!isLast && (
+                                                                    <Box
+                                                                        sx={{
+                                                                            mt: 0.45,
+                                                                            width: 4,
+                                                                            flex: 1,
+                                                                            minHeight: 42,
+                                                                            borderRadius: 999,
+                                                                            bgcolor: connectorColor,
+                                                                            opacity: isFuture ? 0.55 : 1,
+                                                                        }}
+                                                                    />
+                                                                )}
+                                                            </Box>
+                                                            <Box sx={{ pb: isLast ? 0 : 1.15 }}>
+                                                                <Typography
+                                                                    variant="subtitle1"
+                                                                    sx={{
+                                                                        fontWeight: isActive ? 700 : 600,
+                                                                        color: isFuture
+                                                                            ? 'rgba(226,235,246,0.82)'
+                                                                            : 'rgba(244,248,255,0.96)',
+                                                                        lineHeight: 1.15,
+                                                                    }}
+                                                                >
+                                                                    {entry.label}
+                                                                </Typography>
+                                                                <Typography
+                                                                    variant="body2"
+                                                                    sx={{
+                                                                        mt: 0.45,
+                                                                        color: entry.at
+                                                                            ? 'rgba(194,205,222,0.82)'
+                                                                            : 'rgba(140,154,176,0.72)',
+                                                                    }}
+                                                                >
+                                                                    {entry.at
+                                                                        ? moment.unix(entry.at).format('MMM D, YYYY, h:mma')
+                                                                        : 'Pending'}
+                                                                </Typography>
+                                                            </Box>
+                                                        </Box>
+                                                    );
+                                                })}
+                                            </Stack>
+                                        </Box>
+                                    </Box>
+                                    <Box
+                                        sx={{
+                                            p: { xs: 1, sm: 1.25 },
+                                            ...panelSx,
+                                        }}
+                                    >
                                     <Typography sx={{ ...sectionLabelSx, ml: { xs: 0.75, sm: 1 }, mt: 0.25, mb: 0.85 }}>Governance Actions</Typography>
                                     <Grid container>
                                         <Grid item xs={12} key={1}>
@@ -4893,78 +5078,6 @@ export function GovernanceProposalV2View(props: any){
                                                         </Box>
                                                     }
                                                     
-                                                    {(thisitem.account.signingOffAt && +thisitem.account.signingOffAt > 0 && (thisitem.account.status !== 0 && thisitem.account.status !== 1)) &&
-                                                        <Box sx={{ my: 3, mx: 2 }}>
-                                                            <Grid container alignItems="center">
-                                                            <Grid item xs>
-                                                                <Typography gutterBottom variant="subtitle1" component="div">
-                                                                    Signed Off At
-                                                                </Typography>
-                                                            </Grid>
-                                                            <Grid item>
-                                                                <Typography gutterBottom variant="body1" component="div">
-                                                                    {moment.unix(Number(thisitem.account?.signingOffAt)).format("MMMM D, YYYY, h:mm a")}
-                                                                </Typography>
-                                                            </Grid>
-                                                            </Grid>
-                                                            <Typography color="text.secondary" variant="caption">
-                                                                Timestamp that this proposal was signed off (voting started)
-                                                            </Typography>
-                                                        </Box>
-                                                    }
-                                                    
-                                                    {(thisitem.account.signingOffAt && +thisitem.account.signingOffAt > 0 && thisitem.account.status !== 0 && thisitem.account.status !== 1) &&
-                                                        <Box sx={{ my: 3, mx: 2 }}>
-                                                            <Grid container alignItems="center">
-                                                            <Grid item xs>
-                                                                <Typography gutterBottom variant="subtitle1" component="div">
-                                                                    {(thisitem.account?.votingCompletedAt && +thisitem.account?.votingCompletedAt > 0) ?
-                                                                        <>Ended At</>
-                                                                    :
-                                                                        <>Ends At</>
-                                                                    }
-                                                                </Typography>
-                                                            </Grid>
-                                                            <Grid item>
-                                                                <Typography gutterBottom variant="body1" component="div">
-                                                                    {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
-                                                                        <>
-                                                                            {thisitem.account?.draftAt &&
-                                                                                `${moment.unix(Number(thisitem.account.signingOffAt)+(Number(thisGovernance.account.config.baseVotingTime))).format("MMMM D, YYYY, h:mm a")}`
-                                                                            }
-                                                                        </>
-                                                                    :
-                                                                        <>
-                                                                        {thisitem.account?.votingCompletedAt ?
-                                                                            `${moment.unix(thisitem.account.votingCompletedAt).format("MMMM D, YYYY, h:mm a")}`
-                                                                        :
-                                                                            `Ended`
-                                                                        }
-                                                                        </>
-                                                                    }
-                                                                </Typography>
-                                                            </Grid>
-                                                            </Grid>
-                                                            <Typography color="text.secondary" variant="caption">
-                                                                Calculated ending timestamp
-                                                            </Typography>
-                                                        </Box>
-                                                    }
-
-                                                    {/*
-                                                    const baseVotingTime = (Number(allGovernances.find(obj => obj.pubkey.toBase58() === item.account.governance.toBase58())?.account?.config?.baseVotingTime));
-                                                    const coolOffTime = (Number(allGovernances.find(obj => obj.pubkey.toBase58() === item.account.governance.toBase58())?.account?.config?.votingCoolOffTime));
-                                                    
-                                                    const timeEnding = Number(item.account?.signingOffAt) + baseVotingTime + coolOffTime;
-                                                    const timeEndingDate = new Date(timeEnding);
-                                                    const timeEndingTime = timeEndingDate.getTime() * 1000;
-                                                    const currentDate = new Date();
-                                                    const currentTime = currentDate.getTime();
-                                                    const timeAgo = moment.unix(timeEnding).fromNow();
-                                                    const endingStr = currentTime <= timeEndingTime ? `Ending ${timeAgo}` : ``;
-                                                    const coolOffStr = moment.unix(coolOffTime).hours();
-                                                    */}
-
                                                     <Box sx={{ my: 3, mx: 2 }}>
                                                         <Grid container alignItems="center">
                                                         <Grid item xs>
@@ -5223,6 +5336,7 @@ export function GovernanceProposalV2View(props: any){
                                         
                                     </Grid>  
                                 </Box>
+                                </Stack>
 
                             </Grid>
 
