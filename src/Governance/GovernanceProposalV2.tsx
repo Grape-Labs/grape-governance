@@ -3970,6 +3970,32 @@ export function GovernanceProposalV2View(props: any){
         border: 'none',
         background: 'transparent',
     };
+    const sidebarSectionCardSx = {
+        borderRadius: '12px',
+        border: '1px solid rgba(255,255,255,0.08)',
+        bgcolor: 'rgba(9,14,24,0.42)',
+        overflow: 'hidden',
+    };
+    const sidebarSectionHeaderSx = {
+        px: { xs: 1.15, sm: 1.3 },
+        pt: 1.05,
+        pb: 0.55,
+    };
+    const sidebarSectionTitleSx = {
+        ...sectionLabelSx,
+        color: 'rgba(224,232,242,0.92)',
+        fontSize: '0.66rem',
+        letterSpacing: 0.55,
+    };
+    const sidebarSectionSubtitleSx = {
+        mt: 0.35,
+        fontSize: '0.74rem',
+        lineHeight: 1.45,
+        color: 'rgba(154,168,188,0.72)',
+    };
+    const sidebarSectionDividerSx = {
+        borderColor: 'rgba(255,255,255,0.08)',
+    };
     const timelineAccent = 'rgba(61, 167, 255, 0.96)';
     const createdAt = toPositiveUnix(thisitem?.account?.draftAt);
     const votingStartedAt =
@@ -4016,23 +4042,164 @@ export function GovernanceProposalV2View(props: any){
             at: resolvedEndsAt,
         },
     ];
-    const finalProposalStates = new Set([3, 5, 6, 7, 8]);
     const nowUnix = moment().unix();
-    let activeTimelineKey = 'created';
-    if (
-        resolvedEndsAt &&
-        (nowUnix >= resolvedEndsAt || finalProposalStates.has(proposalState))
-    ) {
-        activeTimelineKey = 'ends';
-    } else if (coolOffStartsAt && nowUnix >= coolOffStartsAt) {
-        activeTimelineKey = 'cooloff';
-    } else if (votingStartedAt && nowUnix >= votingStartedAt) {
-        activeTimelineKey = 'voting';
+    const datedTimelineEntries = timelineEntries
+        .map((entry, index) => ({ ...entry, index }))
+        .filter((entry) => typeof entry.at === 'number' && entry.at > 0);
+    let timelineAnchorIndex = 0;
+    let timelineTargetIndex: number | null = null;
+    let timelineSegmentProgress = 0;
+    let timelineReachedIndex = -1;
+    if (datedTimelineEntries.length > 0) {
+        const firstTimelineEntry = datedTimelineEntries[0];
+        if (nowUnix <= Number(firstTimelineEntry.at)) {
+            timelineAnchorIndex = firstTimelineEntry.index;
+            timelineTargetIndex =
+                datedTimelineEntries.length > 1 ? datedTimelineEntries[1].index : null;
+        } else {
+            const reachedTimelinePosition = datedTimelineEntries.reduce(
+                (lastReachedPosition, entry, position) =>
+                    Number(entry.at) <= nowUnix ? position : lastReachedPosition,
+                0
+            );
+            const reachedTimelineEntry = datedTimelineEntries[reachedTimelinePosition];
+            const nextTimelineEntry = datedTimelineEntries[reachedTimelinePosition + 1];
+            timelineAnchorIndex = reachedTimelineEntry.index;
+            timelineReachedIndex = reachedTimelineEntry.index;
+            if (
+                nextTimelineEntry &&
+                nextTimelineEntry.at &&
+                reachedTimelineEntry.at &&
+                Number(nextTimelineEntry.at) > Number(reachedTimelineEntry.at)
+            ) {
+                timelineTargetIndex = nextTimelineEntry.index;
+                timelineSegmentProgress = Math.max(
+                    0,
+                    Math.min(
+                        (nowUnix - Number(reachedTimelineEntry.at)) /
+                            (Number(nextTimelineEntry.at) - Number(reachedTimelineEntry.at)),
+                        1
+                    )
+                );
+            }
+        }
     }
-    const activeTimelineIndex = Math.max(
-        timelineEntries.findIndex((entry) => entry.key === activeTimelineKey),
-        0
-    );
+    const proposalStateVisuals: Record<number, { accent: string; wash: string; border: string; shadow: string }> = {
+        0: {
+            accent: '#d9e6f2',
+            wash: 'rgba(196, 210, 226, 0.16)',
+            border: 'rgba(196, 210, 226, 0.24)',
+            shadow: 'rgba(6, 10, 16, 0.42)',
+        },
+        2: {
+            accent: '#52b7ff',
+            wash: 'rgba(82, 183, 255, 0.18)',
+            border: 'rgba(82, 183, 255, 0.28)',
+            shadow: 'rgba(9, 43, 74, 0.42)',
+        },
+        3: {
+            accent: '#6fe3a1',
+            wash: 'rgba(111, 227, 161, 0.16)',
+            border: 'rgba(111, 227, 161, 0.24)',
+            shadow: 'rgba(10, 43, 28, 0.36)',
+        },
+        5: {
+            accent: '#86efac',
+            wash: 'rgba(134, 239, 172, 0.16)',
+            border: 'rgba(134, 239, 172, 0.24)',
+            shadow: 'rgba(10, 43, 28, 0.36)',
+        },
+        7: {
+            accent: '#ff8f8f',
+            wash: 'rgba(255, 143, 143, 0.16)',
+            border: 'rgba(255, 143, 143, 0.24)',
+            shadow: 'rgba(64, 18, 18, 0.34)',
+        },
+    };
+    const proposalStateVisual =
+        proposalStateVisuals[proposalState] || {
+            accent: '#d7e3f4',
+            wash: 'rgba(170, 188, 214, 0.12)',
+            border: 'rgba(170, 188, 214, 0.2)',
+            shadow: 'rgba(6, 10, 16, 0.32)',
+        };
+    const heroPanelStateSx = {
+        ...heroPanelSx,
+        position: 'relative',
+        overflow: 'hidden',
+        border: `1px solid ${proposalStateVisual.border}`,
+        background: `radial-gradient(circle at top left, ${proposalStateVisual.wash} 0%, rgba(18,25,38,0.96) 34%, rgba(10,14,22,0.98) 100%)`,
+        boxShadow: `0 14px 34px ${proposalStateVisual.shadow}`,
+        '&::before': {
+            content: '""',
+            position: 'absolute',
+            inset: 'auto -12% -32% auto',
+            width: 240,
+            height: 240,
+            borderRadius: '50%',
+            background: `radial-gradient(circle, ${proposalStateVisual.wash} 0%, rgba(0,0,0,0) 72%)`,
+            pointerEvents: 'none',
+        },
+        '&::after': {
+            content: '""',
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 38%)',
+            pointerEvents: 'none',
+        },
+    };
+    const tokenScale = Math.pow(10, tokenDecimals || 0);
+    const parseProposalVoteRaw = (value: any): number => {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : 0;
+    };
+    const legacyForRaw =
+        thisitem?.account?.options && thisitem.account.options.length > 0
+            ? parseProposalVoteRaw(thisitem.account.options[0]?.voteWeight)
+            : parseProposalVoteRaw(thisitem?.account?.yesVotesCount);
+    const legacyAgainstRaw =
+        thisitem?.account?.denyVoteWeight !== undefined && thisitem?.account?.denyVoteWeight !== null
+            ? parseProposalVoteRaw(thisitem.account.denyVoteWeight)
+            : parseProposalVoteRaw(thisitem?.account?.noVotesCount);
+    const forRaw = Number(forVotes) > 0 ? Number(forVotes) : legacyForRaw;
+    const againstRaw = Number(againstVotes) > 0 ? Number(againstVotes) : legacyAgainstRaw;
+    const forUi = tokenScale > 0 ? forRaw / tokenScale : forRaw;
+    const againstUi = tokenScale > 0 ? againstRaw / tokenScale : againstRaw;
+    const totalCastUi = forUi + againstUi;
+    const forPct = totalCastUi > 0 ? (forUi / totalCastUi) * 100 : 0;
+    const againstPct = totalCastUi > 0 ? (againstUi / totalCastUi) * 100 : 0;
+    const quorumProgressPct =
+        totalQuorum && Number(totalQuorum) > 0
+            ? Math.min((totalCastUi / Number(totalQuorum)) * 100, 100)
+            : null;
+    const quorumRemainingUi =
+        totalQuorum && Number(totalQuorum) > 0
+            ? Math.max(Number(totalQuorum) - totalCastUi, 0)
+            : null;
+    const formatMetricValue = (value: number) =>
+        new Intl.NumberFormat('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: value >= 100 ? 0 : 2,
+        }).format(Number.isFinite(value) ? value : 0);
+    const resolvedEndsRelative = resolvedEndsAt ? moment.unix(resolvedEndsAt).fromNow() : 'Awaiting voting';
+    const heroSummaryText = `${
+        proposalTargetLabel
+    } proposal with ${proposalInstructionCount} executable instruction${
+        proposalInstructionCount === 1 ? '' : 's'
+    }${resolvedEndsAt ? `, scheduled ${votingCompletedAt ? 'to finish' : 'to close'} ${resolvedEndsRelative}.` : '.'}`;
+    const voteSummaryPanelSx = {
+        ...panelSx,
+        background: 'linear-gradient(180deg, rgba(17,24,38,0.94) 0%, rgba(11,17,27,0.96) 100%)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 14px 34px rgba(0,0,0,0.22)',
+    };
+    const isMultiChoiceProposal = thisitem?.account?.voteType?.type === 1;
+    const quorumRemainingLabel =
+        quorumRemainingUi === null
+            ? 'Awaiting threshold'
+            : quorumRemainingUi > 0
+            ? `${formatMetricValue(quorumRemainingUi)} votes left to quorum`
+            : 'Quorum reached';
 
     return (
         <>
@@ -4048,8 +4215,8 @@ export function GovernanceProposalV2View(props: any){
                     }}
                 >
 
-                {!loadingValidation && !loadingParticipants && thisitem ?
-                    <>
+                {!loadingValidation && !loadingParticipants && thisitem ? (
+                    <React.Fragment>
                         
                         <Helmet>
                             <meta name="msapplication-TileImage" content="./public/ms-icon-144x144.png"/>
@@ -4077,61 +4244,207 @@ export function GovernanceProposalV2View(props: any){
                         {/* =========================
                Header: title + actions + power
                ========================= */}
-            <Box sx={{ mb: 1.25, p: { xs: 1, sm: 1.25 }, ...heroPanelSx }}>
-              <Stack
-                direction={{ xs: "column", md: "row" }}
-                spacing={1}
-                alignItems={{ xs: "flex-start", md: "center" }}
-                justifyContent="space-between"
-              >
-                <Stack spacing={0.75} sx={{ minWidth: 0 }}>
-                  <Typography sx={sectionLabelSx}>Proposal Overview</Typography>
-                  {showGovernanceTitle && realmName && (
+            <Box sx={{ mb: 1.15, p: { xs: 0.95, sm: 1.1 }, ...heroPanelStateSx }}>
+              <Grid container spacing={1} alignItems="flex-start">
+                <Grid item xs={12} lg={realm ? 9 : 12}>
+                  <Stack spacing={0.9} sx={{ minWidth: 0, position: 'relative', zIndex: 1 }}>
+                    <Typography sx={sectionLabelSx}>Proposal Overview</Typography>
+                    {showGovernanceTitle && realmName && (
+                      <Typography
+                        variant="h4"
+                        sx={{
+                          lineHeight: 1,
+                          fontWeight: 700,
+                          fontSize: { xs: '1.18rem', sm: '1.42rem', md: '1.64rem' },
+                          color: 'rgba(214,228,244,0.88)',
+                          letterSpacing: '-0.02em',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        {realmName}
+                      </Typography>
+                    )}
                     <Typography
-                      variant="h4"
+                      variant="h2"
                       sx={{
-                        lineHeight: 1.1,
-                        fontSize: { xs: '1.3rem', sm: '1.65rem', md: '2rem' },
+                        lineHeight: 1.02,
+                        fontWeight: 800,
+                        letterSpacing: '-0.035em',
+                        fontSize: { xs: '1.42rem', sm: '1.88rem', md: '2.35rem' },
+                        color: 'rgba(244,249,255,0.98)',
+                        maxWidth: { xs: '100%', md: 880 },
+                        textWrap: 'balance',
                         wordBreak: 'break-word',
                       }}
                     >
-                      {realmName}
+                      {thisitem?.account?.name}
                     </Typography>
-                  )}
-                  <Typography
-                    variant="h5"
-                    sx={{
-                      lineHeight: 1.2,
-                      fontWeight: 700,
-                      fontSize: { xs: '1.05rem', sm: '1.22rem', md: '1.34rem' },
-                      color: 'rgba(235,247,255,0.95)',
-                      maxWidth: { xs: '100%', md: 820 },
-                      wordBreak: 'break-word',
-                    }}
-                  >
-                    {thisitem?.account?.name}
-                  </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        maxWidth: 720,
+                        color: 'rgba(205,220,239,0.76)',
+                        lineHeight: 1.58,
+                        fontSize: { xs: '0.88rem', sm: '0.94rem' },
+                      }}
+                    >
+                      {heroSummaryText}
+                    </Typography>
 
-	                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1} flexWrap="wrap" alignItems={{ xs: "stretch", sm: "center" }}>
-                    {showGovernanceTitle && proposalPk && realmName && (
-                      <Tooltip title={`Back to ${realmName} Governance`}>
-                        <Button
-                          aria-label="back"
-                          variant="outlined"
-                          color="inherit"
-                          component={Link}
-                          to={`/governance/${governanceAddress}`}
-                          sx={{ ...softActionButtonSx, width: { xs: '100%', sm: 'auto' } }}
+                    <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap">
+                      {(proposalAuthorAddress || thisitem.account?.tokenOwnerRecord) && (
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: 'rgba(214,228,244,0.9)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 0.6,
+                            fontSize: '0.8rem',
+                          }}
                         >
-                          <ArrowBackIcon fontSize="inherit" sx={{ mr: 1 }} />
-                          Back
-                        </Button>
-                      </Tooltip>
-                    )}
+                          <Box component="span" sx={{ color: 'rgba(180,192,208,0.72)' }}>
+                            Proposed by
+                          </Box>
+                          {proposalAuthorAddress ? (
+                            <ExplorerView
+                              showSolanaProfile={true}
+                              memberMap={memberMap}
+                              grapeArtProfile={true}
+                              address={proposalAuthorAddress}
+                              type="address"
+                              shorten={8}
+                              hideTitle={false}
+                              style="text"
+                              color="white"
+                              fontSize="12px"
+                            />
+                          ) : (
+                            <ExplorerView
+                              address={new PublicKey(thisitem.account.tokenOwnerRecord).toBase58()}
+                              type="address"
+                              shorten={8}
+                              hideTitle={false}
+                              style="text"
+                              color="white"
+                              fontSize="12px"
+                            />
+                          )}
+                        </Typography>
+                      )}
+                      <Typography
+                        variant="caption"
+                        sx={{ color: isFlaggedMaliciousAuthor ? 'rgba(255,120,120,0.88)' : 'rgba(182,196,214,0.72)' }}
+                      >
+                        {authorInlineMeta}
+                      </Typography>
+                      {isFlaggedMaliciousAuthor && (
+                        <Chip
+                          size="small"
+                          label="Author flagged"
+                          sx={{
+                            ...metaChipSx,
+                            height: 22,
+                            bgcolor: 'rgba(255,116,116,0.14)',
+                            color: '#fca5a5',
+                            border: '1px solid rgba(255,116,116,0.28)',
+                          }}
+                        />
+                      )}
+                    </Stack>
 
-                      <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+                    <Stack direction="row" spacing={0.75} flexWrap="wrap" alignItems="center">
+                      <Chip
+                        size="small"
+                        label={proposalStateLabel}
+                        sx={{
+                          ...metaChipSx,
+                          bgcolor: proposalStateVisual.wash,
+                          color: proposalStateVisual.accent,
+                          border: `1px solid ${proposalStateVisual.border}`,
+                          boxShadow: `0 0 0 1px ${proposalStateVisual.wash} inset`,
+                        }}
+                      />
+                      <Chip
+                        size="small"
+                        label={`${proposalTargetLabel} Proposal`}
+                        sx={{
+                          ...metaChipSx,
+                          bgcolor: 'rgba(255,255,255,0.05)',
+                        }}
+                      />
+                      <Chip
+                        size="small"
+                        icon={<CodeIcon sx={{ fontSize: '0.95rem !important' }} />}
+                        label={`${proposalInstructionCount} instruction${proposalInstructionCount === 1 ? '' : 's'}`}
+                        sx={{
+                          ...metaChipSx,
+                          bgcolor: 'rgba(255,255,255,0.05)',
+                        }}
+                      />
+                      {hasVoted && (
+                        <Chip
+                          size="small"
+                          icon={
+                            hasVotedSide === 'yes' ? (
+                              <ThumbUpIcon sx={{ fontSize: '0.95rem !important' }} />
+                            ) : hasVotedSide === 'no' ? (
+                              <ThumbDownIcon sx={{ fontSize: '0.95rem !important' }} />
+                            ) : (
+                              <CheckCircleIcon sx={{ fontSize: '0.95rem !important' }} />
+                            )
+                          }
+                          label={
+                            hasVotedSide === 'yes'
+                              ? 'You voted: For'
+                              : hasVotedSide === 'no'
+                              ? 'You voted: Against'
+                              : 'You voted'
+                          }
+                          sx={{
+                            ...metaChipSx,
+                            bgcolor:
+                              hasVotedSide === 'yes'
+                                ? 'rgba(82,190,128,0.18)'
+                                : hasVotedSide === 'no'
+                                ? 'rgba(236,112,99,0.18)'
+                                : 'rgba(255,255,255,0.06)',
+                            color:
+                              hasVotedSide === 'yes'
+                                ? '#86efac'
+                                : hasVotedSide === 'no'
+                                ? '#fca5a5'
+                                : 'rgba(255,255,255,0.95)',
+                            border:
+                              hasVotedSide === 'yes'
+                                ? '1px solid rgba(82,190,128,0.38)'
+                                : hasVotedSide === 'no'
+                                ? '1px solid rgba(236,112,99,0.38)'
+                                : '1px solid rgba(255,255,255,0.1)',
+                          }}
+                        />
+                      )}
+                    </Stack>
+
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} flexWrap="wrap" alignItems={{ xs: 'stretch', sm: 'center' }}>
+                      {showGovernanceTitle && proposalPk && realmName && (
+                        <Tooltip title={`Back to ${realmName} Governance`}>
+                          <Button
+                            aria-label="back"
+                            variant="outlined"
+                            color="inherit"
+                            component={Link}
+                            to={`/governance/${governanceAddress}`}
+                            sx={{ ...softActionButtonSx, width: { xs: '100%', sm: 'auto' } }}
+                          >
+                            <ArrowBackIcon fontSize="inherit" sx={{ mr: 1 }} />
+                            Back
+                          </Button>
+                        </Tooltip>
+                      )}
+
                       <CopyToClipboard text={proposalUrl} onCopy={handleCopy}>
-                        <Tooltip title={`Copy proposal link`}>
+                        <Tooltip title="Copy proposal link">
                           <Button
                             aria-label="copy"
                             variant="outlined"
@@ -4145,7 +4458,7 @@ export function GovernanceProposalV2View(props: any){
                         </Tooltip>
                       </CopyToClipboard>
 
-                      <Tooltip title={`Share proposal`}>
+                      <Tooltip title="Share proposal">
                         <Button
                           aria-label="share"
                           onClick={handleShare}
@@ -4159,226 +4472,150 @@ export function GovernanceProposalV2View(props: any){
                         </Button>
                       </Tooltip>
 
-                      </Stack>
-			                  </Stack>
-                      <Box sx={{ mt: 0.2 }}>
-                        <Tooltip title="Open on Realms">
-                          <Typography
-                            component="a"
-                            href={realmsUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            sx={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 0.45,
-                              fontSize: '0.69rem',
-                              color: 'rgba(208,226,244,0.56)',
-                              textDecoration: 'none',
-                              '&:hover': {
-                                color: 'rgba(232,242,252,0.8)',
-                                textDecoration: 'underline',
-                              },
-                            }}
-                          >
-                            View on Realms
-                            <OpenInNewIcon sx={{ fontSize: '0.84rem' }} />
-                          </Typography>
-                        </Tooltip>
-                      </Box>
+                      <Tooltip title="Open on Realms">
+                        <Button
+                          component="a"
+                          href={realmsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          variant="text"
+                          color="inherit"
+                          size="small"
+                          sx={{
+                            ...softActionButtonSx,
+                            borderColor: 'transparent',
+                            background: 'rgba(255,255,255,0.03)',
+                            color: 'rgba(220,233,247,0.82)',
+                            '&:hover': {
+                              borderColor: 'rgba(255,255,255,0.12)',
+                              background: 'rgba(255,255,255,0.06)',
+                            },
+                          }}
+                        >
+                          View on Realms
+                          <OpenInNewIcon sx={{ ml: 1, fontSize: '0.86rem' }} />
+                        </Button>
+                      </Tooltip>
+                    </Stack>
+                  </Stack>
+                </Grid>
 
-                      <Stack direction="row" spacing={0.75} flexWrap="wrap" alignItems="center">
-                        <Chip
-                          size="small"
-                          label={proposalStateLabel}
-                          sx={{
-                            ...metaChipSx,
-                            bgcolor:
-                              proposalState === 5 ? 'rgba(114, 211, 140, 0.14)' :
-                              proposalState === 7 ? 'rgba(230, 95, 95, 0.14)' :
-                              proposalState === 2 ? 'rgba(142, 197, 255, 0.14)' :
-                              'rgba(255,255,255,0.08)',
-                          }}
-                        />
-                        <Chip
-                          size="small"
-                          label={`${proposalTargetLabel} Proposal`}
-                          sx={{
-                            ...metaChipSx,
-                            bgcolor: 'rgba(255,255,255,0.05)',
-                          }}
-                        />
-                        <Chip
-                          size="small"
-                          icon={<CodeIcon sx={{ fontSize: '0.95rem !important' }} />}
-                          label={`${proposalInstructionCount} instruction${proposalInstructionCount === 1 ? '' : 's'}`}
-                          sx={{
-                            ...metaChipSx,
-                            bgcolor: 'rgba(255,255,255,0.05)',
-                          }}
-                        />
-                        {hasVoted && (
-                          <Chip
-                            size="small"
-                            icon={
-                              hasVotedSide === 'yes' ? (
-                                <ThumbUpIcon sx={{ fontSize: '0.95rem !important' }} />
-                              ) : hasVotedSide === 'no' ? (
-                                <ThumbDownIcon sx={{ fontSize: '0.95rem !important' }} />
-                              ) : (
-                                <CheckCircleIcon sx={{ fontSize: '0.95rem !important' }} />
-                              )
-                            }
-                            label={
-                              hasVotedSide === 'yes'
-                                ? 'You voted: For'
-                                : hasVotedSide === 'no'
-                                ? 'You voted: Against'
-                                : 'You voted'
-                            }
-                            sx={{
-                              ...metaChipSx,
-                              bgcolor:
-                                hasVotedSide === 'yes'
-                                  ? 'rgba(82,190,128,0.18)'
-                                  : hasVotedSide === 'no'
-                                  ? 'rgba(236,112,99,0.18)'
-                                  : 'rgba(255,255,255,0.06)',
-                              color:
-                                hasVotedSide === 'yes'
-                                  ? '#86efac'
-                                  : hasVotedSide === 'no'
-                                  ? '#fca5a5'
-                                  : 'rgba(255,255,255,0.95)',
-                              border:
-                                hasVotedSide === 'yes'
-                                  ? '1px solid rgba(82,190,128,0.38)'
-                                  : hasVotedSide === 'no'
-                                  ? '1px solid rgba(236,112,99,0.38)'
-                                  : '1px solid rgba(255,255,255,0.1)',
-                            }}
-                          />
-                        )}
-                      </Stack>
-	                </Stack>
-                
                 {realm && (
-                  <Box sx={{ mt: { xs: 1, md: 0 } }}>
-                    <GovernancePower
-                      governanceAddress={typeof realm.pubkey.toBase58 === "function" ? realm.pubkey.toBase58() : realm.pubkey}
-                      realm={realm}
-                    />
-                  </Box>
+                <Grid item xs={12} lg={3}>
+                  <Stack spacing={0.8} sx={{ position: 'relative', zIndex: 1 }}>
+                    <Box
+                      sx={{
+                        borderRadius: '14px',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        bgcolor: 'rgba(255,255,255,0.03)',
+                        p: 0.65,
+                      }}
+                    >
+                      <GovernancePower
+                        governanceAddress={typeof realm.pubkey.toBase58 === "function" ? realm.pubkey.toBase58() : realm.pubkey}
+                        realm={realm}
+                      />
+                    </Box>
+                  </Stack>
+                </Grid>
                 )}
-              </Stack>
+              </Grid>
             </Box>
 
 	            <Box sx={{ textAlign: "left" }}>
 		              <Divider sx={sectionDividerSx} />
 
-              {/* =========================
-                 Author + drafted + vote tiles
-                 ========================= */}
-              <Typography sx={{ ...sectionLabelSx, mb: 0.8 }}>Voting Snapshot</Typography>
-              <Grid container spacing={1} alignItems="center">
-                <Grid item xs={12} md={6}>
-                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                    {proposalAuthorAddress ? (
-                      <Typography variant="subtitle1" sx={{ m: 0 }}>
-                        Author:&nbsp;
-                        <ExplorerView
-                          showSolanaProfile={true}
-                          memberMap={memberMap}
-                          grapeArtProfile={true}
-                          address={proposalAuthorAddress}
-                          type="address"
-                          shorten={8}
-                          hideTitle={false}
-                          style="text"
-                          color="white"
-                          fontSize="12px"
-                        />
-                        <Box
-                          component="span"
-                          sx={{
-                            ml: 0.7,
-                            fontSize: '0.73rem',
-                            color: isFlaggedMaliciousAuthor ? 'rgba(255,120,120,0.88)' : 'rgba(255,255,255,0.6)',
-                          }}
-                        >
-                          {`• ${authorInlineMeta}`}
-                        </Box>
-                      </Typography>
-                    ) : thisitem.account?.tokenOwnerRecord ? (
-                      <Typography variant="subtitle1" sx={{ m: 0 }}>
-                        Author Record:&nbsp;
-                        <ExplorerView
-                          address={new PublicKey(thisitem.account.tokenOwnerRecord).toBase58()}
-                          type="address"
-                          shorten={8}
-                          hideTitle={false}
-                          style="text"
-                          color="white"
-                          fontSize="12px"
-                        />
-                        <Box
-                          component="span"
-                          sx={{
-                            ml: 0.7,
-                            fontSize: '0.73rem',
-                            color: isFlaggedMaliciousAuthor ? 'rgba(255,120,120,0.88)' : 'rgba(255,255,255,0.6)',
-                          }}
-                        >
-                          {`• ${authorInlineMeta}`}
-                        </Box>
-                      </Typography>
-                    ) : null}
+              <Box sx={{ ...voteSummaryPanelSx, p: { xs: 0.95, sm: 1.05 }, mb: 0.45 }}>
+                <Typography sx={{ ...sectionLabelSx, mb: 0.55 }}>Voting Snapshot</Typography>
 
-	                    <Tooltip title="Drafted at">
-                          <Chip
-                            size="small"
-                            label={moment.unix(Number(thisitem.account?.draftAt)).format("MMMM D, YYYY, h:mm a")}
-                            sx={{
-                              height: 24,
-                              borderRadius: '8px',
-                              bgcolor: 'rgba(255,255,255,0.10)',
-                              color: 'rgba(255,255,255,0.95)',
-                              border: '1px solid rgba(255,255,255,0.1)',
-                            }}
-                          />
-	                    </Tooltip>
-                  </Stack>
-	                </Grid>
+                {isMultiChoiceProposal && (
+                  <Box
+                    sx={{
+                      borderRadius: '16px',
+                      border: '1px solid rgba(74,167,255,0.2)',
+                      bgcolor: 'rgba(25,41,62,0.46)',
+                      px: 1.1,
+                      py: 1.15,
+                    }}
+                  >
+                    <Typography sx={{ ...sectionLabelSx, color: 'rgba(154,204,255,0.84)', mb: 0.45 }}>
+                      Vote Actions
+                    </Typography>
+                    <Typography variant="subtitle1" sx={{ color: 'rgba(244,249,255,0.97)', fontWeight: 700 }}>
+                      Choose an option below to cast your vote
+                    </Typography>
+                    <Typography variant="body2" sx={{ mt: 0.35, color: 'rgba(194,205,222,0.76)', lineHeight: 1.6 }}>
+                      This is a multiple choice proposal, so voting happens in the detailed option breakdown below rather than a single for/against pair.
+                    </Typography>
+                  </Box>
+                )}
 
-                <Grid item xs={12} md={6} sx={{ display: "flex", justifyContent: { xs: "center", md: "flex-end" } }}>
-                  {thisitem?.account?.voteType?.type === 1 ? null : (
-                    <Grid container spacing={1} sx={{ maxWidth: 520 }} justifyContent="center">
-                      <Grid item xs={12} sm={6}>
-                        <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
-                          
+                {!isMultiChoiceProposal && (
+                  <Stack spacing={0.85}>
+                    <Box
+                      sx={{
+                        borderRadius: '16px',
+                        border: hasVoted
+                          ? '1px solid rgba(82,190,128,0.24)'
+                          : '1px solid rgba(255,255,255,0.08)',
+                        background: hasVoted
+                          ? 'linear-gradient(180deg, rgba(17,34,28,0.86) 0%, rgba(12,19,18,0.9) 100%)'
+                          : 'linear-gradient(180deg, rgba(21,30,45,0.9) 0%, rgba(12,18,29,0.92) 100%)',
+                        px: { xs: 0.95, sm: 1.05 },
+                        py: { xs: 0.95, sm: 1.05 },
+                      }}
+                    >
+                      <Grid container spacing={0.8} alignItems="center" sx={{ mb: 0.85 }}>
+                        <Grid item xs={12} md={7}>
+                          <Stack spacing={0.35}>
+                            <Typography sx={{ ...sectionLabelSx, color: hasVoted ? 'rgba(147,230,177,0.82)' : 'rgba(180,192,208,0.74)' }}>
+                              Vote Actions
+                            </Typography>
+                            <Typography variant="subtitle1" sx={{ color: 'rgba(244,249,255,0.98)', fontWeight: 700 }}>
+                              {hasVoted ? 'Manage your vote' : 'Cast your vote'}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'rgba(190,204,223,0.76)', lineHeight: 1.55 }}>
+                              {hasVoted
+                                ? `You already voted ${hasVotedSide === 'yes' ? 'for' : hasVotedSide === 'no' ? 'against' : 'on'} this proposal. Use the controls below to review or update your position if governance rules allow it.`
+                                : 'Voting is the primary action on this page. Choose a side below to participate in the proposal outcome.'}
+                            </Typography>
+                          </Stack>
+                        </Grid>
+                        <Grid item xs={12} md={5}>
+                          <Stack direction="row" spacing={0.75} flexWrap="wrap" justifyContent={{ xs: 'flex-start', md: 'flex-end' }}>
+                            <Chip
+                              size="small"
+                              label={hasVoted ? 'Vote recorded' : 'Vote open'}
+                              sx={{
+                                ...metaChipSx,
+                                height: 24,
+                                bgcolor: hasVoted ? 'rgba(82,190,128,0.18)' : 'rgba(74,167,255,0.14)',
+                                color: hasVoted ? '#86efac' : 'rgba(214,236,255,0.92)',
+                                border: hasVoted
+                                  ? '1px solid rgba(82,190,128,0.32)'
+                                  : '1px solid rgba(74,167,255,0.22)',
+                              }}
+                            />
+                            <Chip
+                              size="small"
+                              label={
+                                totalQuorum
+                                  ? `${formatMetricValue(Number(totalQuorum))} quorum target`
+                                  : 'Quorum pending'
+                              }
+                              sx={{ ...metaChipSx, height: 24, bgcolor: 'rgba(255,255,255,0.05)' }}
+                            />
+                          </Stack>
+                        </Grid>
+                      </Grid>
+
+                      <Grid container spacing={1} justifyContent="center">
+                        <Grid item xs={12} md={6}>
+                          <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
                             {realm && (
                               <VoteForProposal
-                                title={`${
-                                  thisitem.account?.options && thisitem.account?.options.length >= 0
-                                    ? forVotes
-                                      ? (+((forVotes / 10 ** tokenDecimals)).toFixed(0)).toLocaleString()
-                                      : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight) / Math.pow(10, tokenDecimals)).toFixed(0)))
-                                    : forVotes
-                                    ? (+((forVotes / 10 ** tokenDecimals)).toFixed(0)).toLocaleString()
-                                    : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.yesVotesCount) / Math.pow(10, tokenDecimals)).toFixed(0)))
-                                }`}
-                                subtitle={`For ${
-                                  forVotes
-                                    ? (forVotes / (forVotes + againstVotes) * 100).toFixed(2) + "%"
-                                    : (thisitem.account?.options &&
-                                        thisitem.account?.options[0]?.voteWeight &&
-                                        thisitem?.account?.denyVoteWeight &&
-                                        Number(thisitem.account?.options[0].voteWeight) > 0)
-                                    ? (((Number(thisitem.account?.options[0].voteWeight)) / ((Number(thisitem.account?.denyVoteWeight)) + (Number(thisitem.account?.options[0].voteWeight)))) * 100).toFixed(2) + "%"
-                                    : thisitem.account.yesVotesCount
-                                    ? (Number(thisitem.account.yesVotesCount) / (Number(thisitem.account.noVotesCount) + Number(thisitem.account.yesVotesCount)) * 100).toFixed(2) + "%"
-                                    : "0%"
-                                }`}
+                                title={formatMetricValue(forUi)}
+                                subtitle={`For ${forPct.toFixed(2)}%`}
                                 hovertext=""
                                 showIcon={true}
                                 votingResultRows={solanaVotingResultRows}
@@ -4395,34 +4632,14 @@ export function GovernanceProposalV2View(props: any){
                                 governanceRules={thisGovernance}
                               />
                             )}
-                        </Box>
-                      </Grid>
-
-                      <Grid item xs={12} sm={6}>
-                        <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
                             {realm && (
                               <VoteForProposal
-                                title={`${
-                                  thisitem.account?.denyVoteWeight
-                                    ? againstVotes
-                                      ? getFormattedNumberToLocale(formatAmount(+(againstVotes / 10 ** tokenDecimals).toFixed(0)))
-                                      : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight) / Math.pow(10, tokenDecimals)).toFixed(0)))
-                                    : againstVotes
-                                    ? getFormattedNumberToLocale(formatAmount(+(againstVotes / 10 ** tokenDecimals).toFixed(0)))
-                                    : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.noVotesCount) / Math.pow(10, tokenDecimals)).toFixed(0)))
-                                }`}
-                                subtitle={`Against ${
-                                  againstVotes
-                                    ? (againstVotes / (forVotes + againstVotes) * 100).toFixed(2) + "%"
-                                    : (thisitem.account?.options &&
-                                        thisitem.account?.options[0]?.voteWeight &&
-                                        thisitem?.account?.denyVoteWeight &&
-                                        Number(thisitem.account?.options[0].voteWeight) > 0)
-                                    ? (((Number(thisitem.account?.denyVoteWeight) / Math.pow(10, tokenDecimals)) / ((Number(thisitem.account?.denyVoteWeight) / Math.pow(10, tokenDecimals)) + (Number(thisitem.account?.options[0].voteWeight) / Math.pow(10, tokenDecimals)))) * 100).toFixed(2) + "%"
-                                    : thisitem.account.noVotesCount
-                                    ? (Number(thisitem.account.noVotesCount) / (Number(thisitem.account.noVotesCount) + Number(thisitem.account.yesVotesCount)) * 100).toFixed(2) + "%"
-                                    : "0%"
-                                }`}
+                                title={formatMetricValue(againstUi)}
+                                subtitle={`Against ${againstPct.toFixed(2)}%`}
                                 hovertext=""
                                 showIcon={true}
                                 votingResultRows={solanaVotingResultRows}
@@ -4439,14 +4656,158 @@ export function GovernanceProposalV2View(props: any){
                                 governanceRules={thisGovernance}
                               />
                             )}
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </Box>
+
+                    <Grid container spacing={0.85}>
+                      <Grid item xs={12} md={4}>
+                        <Box
+                          sx={{
+                            borderRadius: '16px',
+                            border: '1px solid rgba(88, 195, 129, 0.2)',
+                            background: 'linear-gradient(180deg, rgba(24,48,36,0.78) 0%, rgba(13,26,20,0.88) 100%)',
+                            px: 1,
+                            py: 0.9,
+                            minHeight: 82,
+                          }}
+                        >
+                          <Typography sx={{ ...sectionLabelSx, color: 'rgba(147, 230, 177, 0.76)' }}>For</Typography>
+                          <Typography variant="h5" sx={{ mt: 0.35, color: '#b8ffd1', fontWeight: 800, fontSize: { xs: '1.55rem', sm: '1.75rem' } }}>
+                            {formatMetricValue(forUi)}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'rgba(185,233,202,0.76)' }}>
+                            {forPct.toFixed(1)}% of cast votes
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <Box
+                          sx={{
+                            borderRadius: '16px',
+                            border: '1px solid rgba(99, 175, 255, 0.2)',
+                            background: 'linear-gradient(180deg, rgba(17,37,59,0.82) 0%, rgba(11,20,31,0.9) 100%)',
+                            px: 1,
+                            py: 0.9,
+                            minHeight: 82,
+                          }}
+                        >
+                          <Typography sx={{ ...sectionLabelSx, color: 'rgba(154, 204, 255, 0.82)' }}>Quorum</Typography>
+                          <Typography variant="h5" sx={{ mt: 0.35, color: 'rgba(234,245,255,0.98)', fontWeight: 800, fontSize: { xs: '1.55rem', sm: '1.75rem' } }}>
+                            {quorumProgressPct !== null ? `${quorumProgressPct.toFixed(1)}%` : 'Pending'}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'rgba(193,214,236,0.76)' }}>
+                            {quorumRemainingLabel}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <Box
+                          sx={{
+                            borderRadius: '16px',
+                            border: '1px solid rgba(240, 114, 114, 0.18)',
+                            background: 'linear-gradient(180deg, rgba(58,24,24,0.82) 0%, rgba(25,13,14,0.9) 100%)',
+                            px: 1,
+                            py: 0.9,
+                            minHeight: 82,
+                          }}
+                        >
+                          <Typography sx={{ ...sectionLabelSx, color: 'rgba(255, 174, 174, 0.8)' }}>Against</Typography>
+                          <Typography variant="h5" sx={{ mt: 0.35, color: '#ffd0d0', fontWeight: 800, fontSize: { xs: '1.55rem', sm: '1.75rem' } }}>
+                            {formatMetricValue(againstUi)}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'rgba(240,198,198,0.76)' }}>
+                            {againstPct.toFixed(1)}% of cast votes
+                          </Typography>
                         </Box>
                       </Grid>
                     </Grid>
-                  )}
-                </Grid>
-              </Grid>
+
+                    <Grid container spacing={0.85}>
+                      <Grid item xs={12} md={7}>
+                        <Box sx={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(255,255,255,0.035)', px: 1, py: 0.95 }}>
+                          <Typography variant="subtitle2" sx={{ color: 'rgba(234,243,252,0.96)' }}>
+                            Vote split
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'rgba(180,192,208,0.76)' }}>
+                            For versus against across currently cast votes
+                          </Typography>
+                          <Box
+                            sx={{
+                              mt: 0.75,
+                              height: 10,
+                              borderRadius: 999,
+                              overflow: 'hidden',
+                              border: '1px solid rgba(255,255,255,0.08)',
+                              bgcolor: 'rgba(255,255,255,0.06)',
+                              position: 'relative',
+                            }}
+                          >
+                            <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(236,112,99,0.92)' }} />
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                left: 0,
+                                top: 0,
+                                bottom: 0,
+                                width: `${Math.max(0, Math.min(forPct, 100))}%`,
+                                bgcolor: 'rgba(82,190,128,0.98)',
+                              }}
+                            />
+                          </Box>
+                          <Stack direction="row" justifyContent="space-between" sx={{ mt: 0.45 }}>
+                            <Typography variant="caption" sx={{ color: '#9af0bb' }}>
+                              For {forPct.toFixed(1)}%
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: '#ffb7b7' }}>
+                              Against {againstPct.toFixed(1)}%
+                            </Typography>
+                          </Stack>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} md={5}>
+                        <Box sx={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(255,255,255,0.035)', px: 1, py: 0.95 }}>
+                          <Typography variant="subtitle2" sx={{ color: 'rgba(234,243,252,0.96)' }}>
+                            Quorum progress
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'rgba(180,192,208,0.76)' }}>
+                            Cast votes compared with the passing threshold
+                          </Typography>
+                          <Box
+                            sx={{
+                              mt: 0.75,
+                              height: 10,
+                              borderRadius: 999,
+                              overflow: 'hidden',
+                              border: '1px solid rgba(255,255,255,0.08)',
+                              bgcolor: 'rgba(255,255,255,0.06)',
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                height: '100%',
+                                width: `${Math.max(0, Math.min(quorumProgressPct || 0, 100))}%`,
+                                borderRadius: 999,
+                                background: 'linear-gradient(90deg, rgba(74,167,255,0.98) 0%, rgba(130,211,255,0.98) 100%)',
+                              }}
+                            />
+                          </Box>
+                          <Stack direction="row" justifyContent="space-between" sx={{ mt: 0.55 }}>
+                            <Typography variant="caption" sx={{ color: 'rgba(194,205,222,0.76)' }}>
+                              {formatMetricValue(totalCastUi)} cast
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'rgba(194,205,222,0.76)' }}>
+                              {totalQuorum ? `${formatMetricValue(Number(totalQuorum))} target` : 'Target pending'}
+                            </Typography>
+                          </Stack>
+                        </Box>
+                      </Grid>
+                    </Grid>
+                  </Stack>
+                )}
+              </Box>
             </Box>
-                        
 
 	                        <Divider sx={sectionDividerSx} />
 
@@ -4668,14 +5029,26 @@ export function GovernanceProposalV2View(props: any){
                                         >
                                             <Stack spacing={0}>
                                                 {timelineEntries.map((entry, index) => {
-                                                    const isActive = index === activeTimelineIndex;
-                                                    const isComplete = index < activeTimelineIndex;
-                                                    const isFuture = index > activeTimelineIndex;
+                                                    const isAnchor = index === timelineAnchorIndex;
+                                                    const isReached =
+                                                        timelineReachedIndex >= 0
+                                                            ? index <= timelineReachedIndex
+                                                            : false;
+                                                    const isFuture = !isReached && !isAnchor;
                                                     const isLast = index === timelineEntries.length - 1;
-                                                    const connectorColor =
-                                                        isComplete || isActive
-                                                            ? timelineAccent
-                                                            : 'rgba(118,145,188,0.26)';
+                                                    const connectorFillRatio = !isLast
+                                                        ? index < timelineAnchorIndex
+                                                            ? 1
+                                                            : index === timelineAnchorIndex &&
+                                                              timelineTargetIndex !== null
+                                                            ? timelineSegmentProgress
+                                                            : 0
+                                                        : 0;
+                                                    const showSegmentMarker =
+                                                        index === timelineAnchorIndex &&
+                                                        timelineTargetIndex !== null &&
+                                                        timelineSegmentProgress > 0.04 &&
+                                                        timelineSegmentProgress < 0.96;
                                                     return (
                                                         <Box
                                                             key={entry.key}
@@ -4696,17 +5069,17 @@ export function GovernanceProposalV2View(props: any){
                                                                 <Box
                                                                     sx={{
                                                                         mt: 0.35,
-                                                                        width: isActive ? 14 : 10,
-                                                                        height: isActive ? 14 : 10,
+                                                                        width: isAnchor ? 14 : 10,
+                                                                        height: isAnchor ? 14 : 10,
                                                                         borderRadius: '50%',
                                                                         bgcolor:
-                                                                            isActive || isComplete
+                                                                            isReached || isAnchor
                                                                                 ? timelineAccent
                                                                                 : 'rgba(118,145,188,0.45)',
-                                                                        border: isActive
+                                                                        border: isAnchor
                                                                             ? '3px solid rgba(61, 167, 255, 0.22)'
                                                                             : 'none',
-                                                                        boxShadow: isActive
+                                                                        boxShadow: isAnchor
                                                                             ? '0 0 0 4px rgba(61, 167, 255, 0.12)'
                                                                             : 'none',
                                                                         zIndex: 1,
@@ -4720,17 +5093,52 @@ export function GovernanceProposalV2View(props: any){
                                                                             flex: 1,
                                                                             minHeight: 42,
                                                                             borderRadius: 999,
-                                                                            bgcolor: connectorColor,
+                                                                            bgcolor: 'rgba(118,145,188,0.26)',
                                                                             opacity: isFuture ? 0.55 : 1,
+                                                                            position: 'relative',
+                                                                            overflow: 'visible',
                                                                         }}
-                                                                    />
+                                                                    >
+                                                                        <Box
+                                                                            sx={{
+                                                                                position: 'absolute',
+                                                                                inset: '0 auto auto 0',
+                                                                                width: '100%',
+                                                                                height: `${Math.max(
+                                                                                    0,
+                                                                                    Math.min(connectorFillRatio, 1)
+                                                                                ) * 100}%`,
+                                                                                borderRadius: 999,
+                                                                                bgcolor: timelineAccent,
+                                                                            }}
+                                                                        />
+                                                                        {showSegmentMarker && (
+                                                                            <Box
+                                                                                sx={{
+                                                                                    position: 'absolute',
+                                                                                    left: '50%',
+                                                                                    top: `calc(${(
+                                                                                        timelineSegmentProgress * 100
+                                                                                    ).toFixed(2)}% - 7px)`,
+                                                                                    transform: 'translateX(-50%)',
+                                                                                    width: 14,
+                                                                                    height: 14,
+                                                                                    borderRadius: '50%',
+                                                                                    bgcolor: '#9dd6ff',
+                                                                                    border: '3px solid rgba(61, 167, 255, 0.2)',
+                                                                                    boxShadow: '0 0 0 4px rgba(61, 167, 255, 0.12)',
+                                                                                    zIndex: 2,
+                                                                                }}
+                                                                            />
+                                                                        )}
+                                                                    </Box>
                                                                 )}
                                                             </Box>
                                                             <Box sx={{ pb: isLast ? 0 : 1.15 }}>
                                                                 <Typography
                                                                     variant="subtitle1"
                                                                     sx={{
-                                                                        fontWeight: isActive ? 700 : 600,
+                                                                        fontWeight: isAnchor ? 700 : 600,
                                                                         color: isFuture
                                                                             ? 'rgba(226,235,246,0.82)'
                                                                             : 'rgba(244,248,255,0.96)',
@@ -4768,573 +5176,563 @@ export function GovernanceProposalV2View(props: any){
                                     <Typography sx={{ ...sectionLabelSx, ml: { xs: 0.75, sm: 1 }, mt: 0.25, mb: 0.85 }}>Governance Actions</Typography>
                                     <Grid container>
                                         <Grid item xs={12} key={1}>
-                                            
-                                            {thisitem.account.governingTokenMint &&
-                                            <Box sx={{ my: 3, mx: 2 }}>
-                                                <Grid container alignItems="center">
-                                                    <Grid item xs>
-                                                        <Typography gutterBottom variant="subtitle1" component="div">
-                                                            Mint
-                                                        </Typography>
-                                                    </Grid>
-                                                    <Grid item>
-                                                        <Typography gutterBottom variant="body1" component="div">
-                                                                <ExplorerView
-                                                                    address={thisitem.account.governingTokenMint?.toBase58()} type='address'
-                                                                    shorten={8}
-                                                                    hideTitle={false} style='text' color='white' fontSize='12px'
-                                                                    showTokenMetadata={true}
-                                                                    tokenMap={tokenMap}/>
-                                                        </Typography>
-                                                    </Grid>
-                                                </Grid>
-                                                <Typography color="text.secondary" variant="caption">
-                                                    {propVoteType} used to vote for this proposal
-                                                </Typography>
-                                            </Box>
-                                            }
-
-                                            {governingMintInfo &&
-                                            <>
-
-                                                {(totalQuorum && thisitem.account?.state === 2 && thisitem.account?.options &&  thisitem.account?.options.length === 1 && forVotes) ?
-                                                    <Box sx={{ my: 3, mx: 2 }}>
-                                                        <Grid container alignItems="center">
-                                                        <Grid item xs>
-                                                            <Typography gutterBottom variant="subtitle1" component="div">
-                                                                Votes Required
-                                                            </Typography>
-                                                        </Grid>
-                                                        <Grid item>
-                                                            <Typography gutterBottom variant="body1" component="div">
-                                                                {/* ((+(totalQuorum) - (Number(thisitem.account.options[0]?.voteWeight) / 10 ** votingDecimals)) */}
-                                                                {(totalQuorum - (forVotes/10**votingDecimals)) > 0 ?
-                                                                    <>
-                                                                        {(+(totalQuorum - (forVotes/10**votingDecimals))
-                                                                        .toFixed(0)).toLocaleString()}
-                                                                    </>
-                                                                    :
-                                                                    <>Passing</>
-                                                                }
-                                                            </Typography>
-                                                        </Grid>
-                                                        </Grid>
-                                                        <Typography color="text.secondary" variant="caption">
-                                                            {(totalQuorum - (forVotes/10**votingDecimals)) > 0 ?
-                                                            <>
-                                                                Remaining votes required for proposal to pass
-                                                            </>
-                                                            :
-                                                            <>
-                                                                Passing {(+((totalQuorum - (forVotes/10**votingDecimals)) * -1)
-                                                                        .toFixed(0)).toLocaleString()} over quorum
-                                                            </>
-                                                            }
-                                                            
+                                            <Stack spacing={1.1} sx={{ px: { xs: 0.5, sm: 0.75 }, pb: 0.45 }}>
+                                                <Box sx={sidebarSectionCardSx}>
+                                                    <Box sx={sidebarSectionHeaderSx}>
+                                                        <Typography sx={sidebarSectionTitleSx}>Status</Typography>
+                                                        <Typography sx={sidebarSectionSubtitleSx}>
+                                                            Lifecycle, wallet context, and timing for this proposal.
                                                         </Typography>
                                                     </Box>
-                                                :<></>}
+                                                    <Divider sx={sidebarSectionDividerSx} />
 
-                                                <VetoVoteRow
-                                                    realm={realm}
-                                                    proposal={thisitem}
-                                                    memberMap={memberMap}
-                                                    councilVoterRecord={councilVoterRecord}
-                                                    publicKey={publicKey}
-                                                    sendTransaction={sendTransaction}
-                                                    getVotingParticipants={getVotingParticipants}
-                                                    vetoCount={vetoCount ?? undefined}
-                                                    vetoVoters={vetoVoters}
-                                                    />
-
-
-                                                {
-                                                (publicKey &&
-                                                    +thisitem.account.state === 2 &&
-                                                    (() => {
-                                                    // Inline function to check if the proposal has ended including the cooldown time
-                                                    const signingOffAt = Number(thisitem.account?.signingOffAt || 0);
-                                                    const baseVotingTime = Number(thisGovernance.account?.config?.baseVotingTime || 0);
-                                                    const votingCoolOffTime = Number(thisGovernance.account?.config?.votingCoolOffTime || 0);
-
-                                                    // Calculate end times
-                                                    const votingEndTime = signingOffAt + baseVotingTime;
-                                                    const totalEndTime = votingEndTime + votingCoolOffTime;
-                                                    const currentTime = moment().unix();
-                                                    
-                                                    // Return true if the current time has passed the total end time including cooldown
-                                                    return currentTime >= totalEndTime;
-                                                    })()
-                                                ) ? (
-                                                    <>
-                                                    <Box sx={{ my: 3, mx: 2 }}>
-                                                        <Grid container alignItems="center">
-                                                        <ManageGovernanceProposal
-                                                            governanceAddress={governanceAddress}
-                                                            governanceRulesWallet={thisitem.account.governance}
-                                                            governingTokenMint={thisitem.account.governingTokenMint}
-                                                            proposalAuthor={thisitem.account.tokenOwnerRecord}
-                                                            payerWallet={publicKey}
-                                                            governanceLookup={governanceLookup}
-                                                            editProposalAddress={thisitem.pubkey}
-                                                            realm={realm}
-                                                            memberMap={memberMap}
-                                                            setReload={setReload}
-                                                            proposalSignatories={proposalSignatories}
-                                                            mode={5} // finalize
-                                                            state={thisitem.account.state}
-                                                        />
-                                                        </Grid>
-                                                    </Box>
-                                                    </>
-                                                ) : (
-                                                    <></>
-                                                )
-                                                }
-                                                        
-
-                                                {(thisitem.account.signingOffAt && +thisitem.account.signingOffAt > 0 && thisitem.account.status !== 0 && thisitem.account.status !== 1) &&
-                                                    <Box sx={{ my: 3, mx: 2 }}>
-                                                        <Grid container alignItems="center">
-                                                        <Grid item xs>
-                                                            <Typography gutterBottom variant="subtitle1" component="div">
-                                                                Time Left
-                                                            </Typography>
-                                                        </Grid>
-                                                        <Grid item>
-                                                            <Typography gutterBottom variant="body1" component="div">
-                                                                {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
-                                                                    <>
-                                                                        {thisitem.account?.draftAt &&
-                                                                            <>
-                                                                                {thisitem.account?.votingCompletedAt ?
-                                                                                    `${moment.unix(Number(thisitem.account.signingOffAt)+Number(thisGovernance.account?.config.baseVotingTime)).fromNow()}`
-                                                                                :
-                                                                                    `Ending ${moment.unix(Number(thisitem.account.signingOffAt)+Number(thisGovernance.account.config.baseVotingTime)).fromNow()}`
-                                                                                }
-                                                                            </>
-                                                                        }
-                                                                    </>
-                                                                :
-                                                                    `Ended`
-                                                                }
-                                                            </Typography>
-                                                        </Grid>
-                                                        </Grid>
-                                                        <Typography color="text.secondary" variant="caption">
-                                                            From now how much time left until this proposal ends (Cool Off: {moment.unix((Number(thisGovernance?.account?.config?.votingCoolOffTime))).hours() > 0 && `${moment.unix((Number(thisGovernance?.account?.config?.votingCoolOffTime))).hours()}hrs`})
-                                                        </Typography>
-                                                    </Box>
-                                                }
-
-                                                </>
-                                            }
-
-                                            {expandInfo &&
-                                                <Box>
-                                                    {totalQuorum &&
-                                                    <Box sx={{ my: 3, mx: 2 }}>
-                                                        <Grid container alignItems="center">
-                                                        <Grid item xs>
-                                                            <Typography gutterBottom variant="subtitle1" component="div">
-                                                                Quorum
-                                                            </Typography>
-                                                        </Grid>
-                                                        <Grid item>
-                                                            <Typography gutterBottom variant="body1" component="div">
-                                                                {((+(totalQuorum).toFixed(1)).toLocaleString())}
-                                                            </Typography>
-                                                        </Grid>
-                                                        </Grid>
-                                                        <Typography color="text.secondary" variant="caption">
-                                                            Tokens needed for the proposal to pass *{(totalVoteThresholdPercentage)}% max vote threshhold
-                                                        </Typography>
-                                                    </Box>
-                                                    }
-
-                                                    {totalSupplyFractionPercentage &&
-                                                    <Box sx={{ my: 3, mx: 2 }}>
-                                                        <Grid container alignItems="center">
-                                                        <Grid item xs>
-                                                            <Typography gutterBottom variant="subtitle1" component="div">
-                                                                Supply Fraction Percentage
-                                                            </Typography>
-                                                        </Grid>
-                                                        <Grid item>
-                                                            <Typography gutterBottom variant="body1" component="div">
-                                                                {(totalSupplyFractionPercentage)}%
-                                                            </Typography>
-                                                        </Grid>
-                                                        </Grid>
-                                                        <Typography color="text.secondary" variant="caption">
-                                                            {(+((totalSupplyFractionPercentage/100)*totalSupply).toFixed(0)).toLocaleString()} calculated from {(totalSupply.toLocaleString())} supply
-                                                        </Typography>
-                                                    </Box>
-                                                    }
-                                                    
-                                                    {(voteType !== 'Council' && realm && 
-                                                        (realm?.account?.config?.useCommunityVoterWeightAddin || realm?.account?.communityTokenConfig?.voterWeightAddin)) &&
-                                                        <Box sx={{ my: 3, mx: 2 }}>
-                                                            <Grid container alignItems="center">
-                                                            <Grid item xs>
-                                                                <Typography gutterBottom variant="subtitle1" component="div">
-                                                                    VSR
-                                                                </Typography>
-                                                            </Grid>
-                                                            <Grid item>
-                                                                <Typography gutterBottom variant="body1" component="div">
-
-                                                                    {(realm && 
-                                                                        (realm?.account?.config?.useCommunityVoterWeightAddin || realm?.account?.communityTokenConfig?.voterWeightAddin)
-                                                                        ) ?
-                                                                        <>
-                                                                            Using Voter Weight Plugin
-                                                                        </>
-                                                                    :
-                                                                        ``
-                                                                        
-                                                                    }
-                                                                </Typography>
-                                                            </Grid>
-                                                            </Grid>
-                                                            <Typography color="text.secondary" variant="caption">
-                                                                {realm?.account?.communityTokenConfig?.voterWeightAddin &&
-                                                                <>
-                                                                    VSR: {realm.account.communityTokenConfig.voterWeightAddin.toBase58()}
-                                                                </>
-                                                                }
-                                                                {console.log("realm: "+JSON.stringify(realm))}
-                                                            </Typography>
-                                                        </Box>
-                                                    }
-
-                                                    
-                                                    {/*totalSupply &&
-                                                    <Box sx={{ my: 3, mx: 2 }}>
-                                                        <Grid container alignItems="center">
-                                                        <Grid item xs>
-                                                            <Typography gutterBottom variant="subtitle1" component="div">
-                                                                Token Supply
-                                                            </Typography>
-                                                        </Grid>
-                                                        <Grid item>
-                                                            <Typography gutterBottom variant="body1" component="div">
-                                                                {(totalSupply.toLocaleString())}
-                                                            </Typography>
-                                                        </Grid>
-                                                        </Grid>
-                                                        <Typography color="text.secondary" variant="caption">
-                                                            Number of tokens in circulation
-                                                        </Typography>
-                                                    </Box>
-                                                    */}
-                                            
-                                                    {(thisitem.account.signingOffAt && +thisitem.account.signingOffAt > 0 &&  thisitem.account.status !== 0 && thisitem.account.status !== 1) &&
-                                                        <Box sx={{ my: 3, mx: 2 }}>
-                                                            <Grid container alignItems="center">
-                                                            <Grid item xs>
-                                                                <Typography gutterBottom variant="subtitle1" component="div">
-                                                                    General Sentiment
-                                                                </Typography>
-                                                            </Grid>
-                                                            <Grid item>
-                                                                <Typography gutterBottom variant="body1" component="div">
-                                                                    {uniqueYes} / {uniqueNo}
-                                                                </Typography>
-                                                            </Grid>
-                                                            </Grid>
-                                                            <Typography color="text.secondary" variant="caption">
-                                                                Total unique voters voting for/against this proposal <sup>*</sup>{uniqueYes+uniqueNo} participants
-                                                            </Typography>
-                                                        </Box>
-                                                    }
-
-                                                    {
+                                                    {thisitem.account.governingTokenMint &&
                                                         <Box sx={{ my: 3, mx: 2 }}>
                                                             <Grid container alignItems="center">
                                                                 <Grid item xs>
                                                                     <Typography gutterBottom variant="subtitle1" component="div">
-                                                                        Wallet
+                                                                        Mint
                                                                     </Typography>
                                                                 </Grid>
                                                                 <Grid item>
-                                                                    {governanceNativeWallet &&
                                                                     <Typography gutterBottom variant="body1" component="div">
-                                                                        <ExplorerView 
-                                                                            address={governanceNativeWallet && governanceNativeWallet.toBase58()}
-                                                                            governance={thisitem.account.governance && thisitem.account.governance.toBase58()}
-                                                                            dao={governanceAddress && new PublicKey(governanceAddress).toBase58()}
-                                                                            type='address' 
-                                                                            shorten={4} 
-                                                                            hideTitle={false} 
-                                                                            style='text' color='white' fontSize='14px' />
+                                                                        <ExplorerView
+                                                                            address={thisitem.account.governingTokenMint?.toBase58()} type='address'
+                                                                            shorten={8}
+                                                                            hideTitle={false} style='text' color='white' fontSize='12px'
+                                                                            showTokenMetadata={true}
+                                                                            tokenMap={tokenMap} />
                                                                     </Typography>
-                                                                    }
                                                                 </Grid>
                                                             </Grid>
                                                             <Typography color="text.secondary" variant="caption">
-                                                                Rules {thisitem.account.governance.toBase58()}
+                                                                {propVoteType} used to vote for this proposal
                                                             </Typography>
                                                         </Box>
                                                     }
-                                                    
-                                                    <Box sx={{ my: 3, mx: 2 }}>
-                                                        <Grid container alignItems="center">
-                                                        <Grid item xs>
-                                                            <Typography gutterBottom variant="subtitle1" component="div">
-                                                                Status
-                                                            </Typography>
-                                                        </Grid>
-                                                        <Grid item>
-                                                            <Typography gutterBottom variant="body1" component="div">
-                                                                
-                                                                
-                                                                {canManageDraftProposal ?
-                                                                    <> 
-                                                                        <IntegratedGovernanceProposalDialogView 
-                                                                            governanceAddress={governanceAddress}
-                                                                            governanceRulesWallet={thisitem.account.governance}
-                                                                            governingTokenMint={thisitem.account.governingTokenMint}
-                                                                            proposalAuthor={thisitem.account.tokenOwnerRecord}
-                                                                            payerWallet={publicKey}
-                                                                            governanceLookup={governanceLookup}
-                                                                            editProposalAddress={thisitem.pubkey}
-                                                                            setReload={setReload}
-                                                                            title="Edit Proposal"
-                                                                        />
-                                                                    </>
-                                                                    :<>
-                                                                        {GOVERNANCE_STATE[thisitem.account?.state]}
-                                                                    </>
-                                                                }
-                                                            </Typography>
-                                                        </Grid>
-                                                        </Grid>
-                                                        <Typography color="text.secondary" variant="caption">
-                                                            Voting Status
-                                                        </Typography>
-                                                    </Box>
 
-                                                    
-                                                   {(publicKey && proposalSignatories && proposalSignatories.length > 0) &&
+                                                    {governingMintInfo &&
+                                                        <>
+                                                            {(thisitem.account.signingOffAt && +thisitem.account.signingOffAt > 0 && thisitem.account.status !== 0 && thisitem.account.status !== 1) &&
+                                                                <Box sx={{ my: 3, mx: 2 }}>
+                                                                    <Grid container alignItems="center">
+                                                                        <Grid item xs>
+                                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                                Time Left
+                                                                            </Typography>
+                                                                        </Grid>
+                                                                        <Grid item>
+                                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                                {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
+                                                                                    <>
+                                                                                        {thisitem.account?.draftAt &&
+                                                                                            <>
+                                                                                                {thisitem.account?.votingCompletedAt ?
+                                                                                                    `${moment.unix(Number(thisitem.account.signingOffAt) + Number(thisGovernance.account?.config.baseVotingTime)).fromNow()}`
+                                                                                                    :
+                                                                                                    `Ending ${moment.unix(Number(thisitem.account.signingOffAt) + Number(thisGovernance.account.config.baseVotingTime)).fromNow()}`
+                                                                                                }
+                                                                                            </>
+                                                                                        }
+                                                                                    </>
+                                                                                    :
+                                                                                    `Ended`
+                                                                                }
+                                                                            </Typography>
+                                                                        </Grid>
+                                                                    </Grid>
+                                                                    <Typography color="text.secondary" variant="caption">
+                                                                        From now how much time left until this proposal ends (Cool Off: {moment.unix((Number(thisGovernance?.account?.config?.votingCoolOffTime))).hours() > 0 && `${moment.unix((Number(thisGovernance?.account?.config?.votingCoolOffTime))).hours()}hrs`})
+                                                                    </Typography>
+                                                                </Box>
+                                                            }
+                                                        </>
+                                                    }
+
+                                                    {expandInfo &&
                                                         <>
                                                             <Box sx={{ my: 3, mx: 2 }}>
                                                                 <Grid container alignItems="center">
                                                                     <Grid item xs>
                                                                         <Typography gutterBottom variant="subtitle1" component="div">
-                                                                            Signers {(proposalSignatories.length && proposalSignatories.length > 1) ? `${proposalSignatories.length}` : ``}
+                                                                            Wallet
                                                                         </Typography>
                                                                     </Grid>
                                                                     <Grid item>
-
-                                                                        {proposalSignatories
-                                                                            //.filter((obj:any,key:number) => obj.account.signatory.toBase58() === publicKey.toBase58() && obj.account.signedOff === false)
-                                                                            .map((filteredItem:any) => (
-                                                                                <>
-                                                                                {/*
-                                                                                <br/>Signer: {filteredItem.account.signatory.toBase58()}
-                                                                                <><br/></>Status: {filteredItem.account.signedOff ? `true` : `false`}
-                                                                                */}
-
-                                                                                    <br/>
-                                                                                    <ButtonGroup>
-                                                                                        <Button
-                                                                                            color='inherit'
-                                                                                            variant='text'
-                                                                                            disabled={true}
-                                                                                        >
-                                                                                        {filteredItem.account.signedOff ? 
-                                                                                            <CheckCircleIcon color='success' />
-                                                                                        : 
-                                                                                            <RadioButtonUncheckedIcon />
-                                                                                        }
-                                                                                        </Button>
-                                                                                        <ExplorerView 
-                                                                                            address={filteredItem.account.signatory.toBase58()} 
-                                                                                            type='address' 
-                                                                                            shorten={4} 
-                                                                                            hideTitle={false} 
-                                                                                            style='text' color='white' fontSize='14px' />
-                                                                                    </ButtonGroup>
-                                                                                    
-                                                                                    {(filteredItem.account.signatory.toBase58() === publicKey.toBase58() && filteredItem.account.signedOff === false) ? 
-                                                                                        <>
-                                                                                        <Grid container alignItems="center">
-                                                                                            <ManageGovernanceProposal 
-                                                                                                governanceAddress={governanceAddress}
-                                                                                                governanceRulesWallet={thisitem.account.governance}
-                                                                                                governingTokenMint={thisitem.account.governingTokenMint}
-                                                                                                proposalAuthor={thisitem.account.tokenOwnerRecord}
-                                                                                                payerWallet={publicKey}
-                                                                                                governanceLookup={governanceLookup}
-                                                                                                editProposalAddress={thisitem.pubkey}
-                                                                                                realm={realm}
-                                                                                                memberMap={memberMap}
-                                                                                                setReload={setReload}
-                                                                                                proposalSignatories={proposalSignatories}
-                                                                                                mode={1} // signoff
-                                                                                            />
-                                                                                        </Grid>
-                                                                                        </>
-                                                                                    :
-                                                                                        <>
-                                                                                            
-                                                                                        </>
-                                                                                    }
-                                                                                </>
-                                                                        ))}
+                                                                        {governanceNativeWallet &&
+                                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                                <ExplorerView
+                                                                                    address={governanceNativeWallet && governanceNativeWallet.toBase58()}
+                                                                                    governance={thisitem.account.governance && thisitem.account.governance.toBase58()}
+                                                                                    dao={governanceAddress && new PublicKey(governanceAddress).toBase58()}
+                                                                                    type='address'
+                                                                                    shorten={4}
+                                                                                    hideTitle={false}
+                                                                                    style='text' color='white' fontSize='14px' />
+                                                                            </Typography>
+                                                                        }
                                                                     </Grid>
-                                                                    
                                                                 </Grid>
                                                                 <Typography color="text.secondary" variant="caption">
+                                                                    Rules {thisitem.account.governance.toBase58()}
                                                                 </Typography>
                                                             </Box>
+
+                                                            <Box sx={{ my: 3, mx: 2 }}>
+                                                                <Grid container alignItems="center">
+                                                                    <Grid item xs>
+                                                                        <Typography gutterBottom variant="subtitle1" component="div">
+                                                                            Status
+                                                                        </Typography>
+                                                                    </Grid>
+                                                                    <Grid item>
+                                                                        <Typography gutterBottom variant="body1" component="div">
+                                                                            {canManageDraftProposal ?
+                                                                                <>
+                                                                                    <IntegratedGovernanceProposalDialogView
+                                                                                        governanceAddress={governanceAddress}
+                                                                                        governanceRulesWallet={thisitem.account.governance}
+                                                                                        governingTokenMint={thisitem.account.governingTokenMint}
+                                                                                        proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                                                        payerWallet={publicKey}
+                                                                                        governanceLookup={governanceLookup}
+                                                                                        editProposalAddress={thisitem.pubkey}
+                                                                                        setReload={setReload}
+                                                                                        title="Edit Proposal"
+                                                                                    />
+                                                                                </>
+                                                                                : <>
+                                                                                    {GOVERNANCE_STATE[thisitem.account?.state]}
+                                                                                </>
+                                                                            }
+                                                                        </Typography>
+                                                                    </Grid>
+                                                                </Grid>
+                                                                <Typography color="text.secondary" variant="caption">
+                                                                    Voting Status
+                                                                </Typography>
+                                                            </Box>
+                                                        </>
+                                                    }
+                                                </Box>
+
+                                                <Box sx={sidebarSectionCardSx}>
+                                                    <Box sx={sidebarSectionHeaderSx}>
+                                                        <Typography sx={sidebarSectionTitleSx}>Participation</Typography>
+                                                        <Typography sx={sidebarSectionSubtitleSx}>
+                                                            Thresholds, voter sentiment, and signatory progress.
+                                                        </Typography>
+                                                    </Box>
+                                                    <Divider sx={sidebarSectionDividerSx} />
+
+                                                    {governingMintInfo &&
+                                                        <>
+                                                            {(totalQuorum && thisitem.account?.state === 2 && thisitem.account?.options && thisitem.account?.options.length === 1 && forVotes) ?
+                                                                <Box sx={{ my: 3, mx: 2 }}>
+                                                                    <Grid container alignItems="center">
+                                                                        <Grid item xs>
+                                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                                Votes Required
+                                                                            </Typography>
+                                                                        </Grid>
+                                                                        <Grid item>
+                                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                                {(totalQuorum - (forVotes / 10 ** votingDecimals)) > 0 ?
+                                                                                    <>
+                                                                                        {(+(totalQuorum - (forVotes / 10 ** votingDecimals))
+                                                                                            .toFixed(0)).toLocaleString()}
+                                                                                    </>
+                                                                                    :
+                                                                                    <>Passing</>
+                                                                                }
+                                                                            </Typography>
+                                                                        </Grid>
+                                                                    </Grid>
+                                                                    <Typography color="text.secondary" variant="caption">
+                                                                        {(totalQuorum - (forVotes / 10 ** votingDecimals)) > 0 ?
+                                                                            <>
+                                                                                Remaining votes required for proposal to pass
+                                                                            </>
+                                                                            :
+                                                                            <>
+                                                                                Passing {(+((totalQuorum - (forVotes / 10 ** votingDecimals)) * -1)
+                                                                                    .toFixed(0)).toLocaleString()} over quorum
+                                                                            </>
+                                                                        }
+                                                                    </Typography>
+                                                                </Box>
+                                                                : <></>}
+
+                                                            <VetoVoteRow
+                                                                realm={realm}
+                                                                proposal={thisitem}
+                                                                memberMap={memberMap}
+                                                                councilVoterRecord={councilVoterRecord}
+                                                                publicKey={publicKey}
+                                                                sendTransaction={sendTransaction}
+                                                                getVotingParticipants={getVotingParticipants}
+                                                                vetoCount={vetoCount ?? undefined}
+                                                                vetoVoters={vetoVoters}
+                                                            />
                                                         </>
                                                     }
 
-                                                    {canManageDraftProposal ?
-                                                        <>
-                                                            <Box sx={{ my: 3, mx: 2 }}>
-                                                                <Grid container alignItems="center">
-                                                                        <IntegratedGovernanceProposalDialogView 
-                                                                            governanceAddress={governanceAddress}
-                                                                            governanceRulesWallet={thisitem.account.governance}
-                                                                            governingTokenMint={thisitem.account.governingTokenMint}
-                                                                            proposalAuthor={thisitem.account.tokenOwnerRecord}
-                                                                            payerWallet={publicKey}
-                                                                            governanceLookup={governanceLookup}
-                                                                            editProposalAddress={thisitem.pubkey}
-                                                                            setReload={setReload}
-                                                                            title="Add Instructions"
-                                                                            useButton={5}
-                                                                        />
-                                                                </Grid>
-                                                            </Box>
-                                                                
-                                                            
-                                                            <Box sx={{ my: 3, mx: 2 }}>
-                                                                <Grid container alignItems="center">
-                                                                    <ManageGovernanceProposal 
-                                                                        governanceAddress={governanceAddress}
-                                                                        governanceRulesWallet={thisitem.account.governance}
-                                                                        governingTokenMint={thisitem.account.governingTokenMint}
-                                                                        proposalAuthor={thisitem.account.tokenOwnerRecord}
-                                                                        payerWallet={publicKey}
-                                                                        governanceLookup={governanceLookup}
-                                                                        editProposalAddress={thisitem.pubkey}
-                                                                        realm={realm}
-                                                                        memberMap={memberMap}
-                                                                        setReload={setReload}
-                                                                        proposalSignatories={proposalSignatories}
-                                                                        mode={1} // signoff
-                                                                    />
-                                                                </Grid>
-                                                            </Box>
-                                                            
-                                                            <Box sx={{ my: 3, mx: 2 }}>
-                                                                <Grid container alignItems="center">
-                                                                    <ManageGovernanceProposal 
-                                                                        governanceAddress={governanceAddress}
-                                                                        governanceRulesWallet={thisitem.account.governance}
-                                                                        governingTokenMint={thisitem.account.governingTokenMint}
-                                                                        proposalAuthor={thisitem.account.tokenOwnerRecord}
-                                                                        payerWallet={publicKey}
-                                                                        governanceLookup={governanceLookup}
-                                                                        editProposalAddress={thisitem.pubkey}
-                                                                        realm={realm}
-                                                                        memberMap={memberMap}
-                                                                        setReload={setReload}
-                                                                        proposal={thisitem}
-                                                                        proposalSignatories={proposalSignatories}
-                                                                        mode={2} // add signer
-                                                                    />
-                                                                </Grid>
-                                                            </Box>
-                                                        {
-                                                            <Box sx={{ my: 3, mx: 2 }}>
-                                                                <Grid container alignItems="center">
-                                                                    <ManageGovernanceProposal 
-                                                                        governanceAddress={governanceAddress}
-                                                                        governanceRulesWallet={thisitem.account.governance}
-                                                                        governingTokenMint={thisitem.account.governingTokenMint}
-                                                                        proposalAuthor={thisitem.account.tokenOwnerRecord}
-                                                                        proposalInstructions={proposalInstructions}
-                                                                        payerWallet={publicKey}
-                                                                        governanceLookup={governanceLookup}
-                                                                        editProposalAddress={thisitem.pubkey}
-                                                                        realm={realm}
-                                                                        memberMap={memberMap}
-                                                                        setReload={setReload}
-                                                                        proposalSignatories={proposalSignatories}
-                                                                        mode={3} // cancel
-                                                                    />
-                                                                </Grid>
-                                                            </Box>
-                                                        }
-                                                            
-                                                        </>
-                                                        :<></>
-                                                    }
-                                                                                                        
-                                                    {(thisitem.account.signingOffAt && +thisitem.account.signingOffAt > 0 && +thisitem.account.state !== 0 && +thisitem.account.state !== 1 && csvGenerated) &&
-                                                        <Box sx={{ my: 3, mx: 2 }}>
-                                                            <Grid container alignItems="center">
-                                                            <Grid item xs>
-                                                                <Typography gutterBottom variant="subtitle1" component="div">
-                                                                    Export
-                                                                </Typography>
-                                                            </Grid>
-                                                            <Grid item>
-                                                                <Typography gutterBottom variant="body1" component="div">
-                                                                    <Tooltip title="Download Voter Participation CSV file">
-                                                                        <Button
-                                                                            size="small"
-                                                                            color='inherit'
-                                                                            variant="outlined"
-                                                                            sx={{borderRadius:'17px'}}
-                                                                            download={`${thisitem.pubkey.toBase58()}.csv`}
-                                                                            href={csvGenerated}
-                                                                        >
-                                                                            <DownloadIcon /> CSV
-                                                                        </Button>
-                                                                    </Tooltip>
-                                                                </Typography>
-                                                            </Grid>
-                                                            </Grid>
-                                                            <Typography color="text.secondary" variant="caption">
-                                                                Export voter participation as a CSV file
-                                                            </Typography>
+                                                    {expandInfo &&
+                                                        <Box>
+                                                            {totalQuorum &&
+                                                                <Box sx={{ my: 3, mx: 2 }}>
+                                                                    <Grid container alignItems="center">
+                                                                        <Grid item xs>
+                                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                                Quorum
+                                                                            </Typography>
+                                                                        </Grid>
+                                                                        <Grid item>
+                                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                                {((+(totalQuorum).toFixed(1)).toLocaleString())}
+                                                                            </Typography>
+                                                                        </Grid>
+                                                                    </Grid>
+                                                                    <Typography color="text.secondary" variant="caption">
+                                                                        Tokens needed for the proposal to pass *{(totalVoteThresholdPercentage)}% max vote threshhold
+                                                                    </Typography>
+                                                                </Box>
+                                                            }
+
+                                                            {totalSupplyFractionPercentage &&
+                                                                <Box sx={{ my: 3, mx: 2 }}>
+                                                                    <Grid container alignItems="center">
+                                                                        <Grid item xs>
+                                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                                Supply Fraction Percentage
+                                                                            </Typography>
+                                                                        </Grid>
+                                                                        <Grid item>
+                                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                                {(totalSupplyFractionPercentage)}%
+                                                                            </Typography>
+                                                                        </Grid>
+                                                                    </Grid>
+                                                                    <Typography color="text.secondary" variant="caption">
+                                                                        {(+((totalSupplyFractionPercentage / 100) * totalSupply).toFixed(0)).toLocaleString()} calculated from {(totalSupply.toLocaleString())} supply
+                                                                    </Typography>
+                                                                </Box>
+                                                            }
+
+                                                            {(voteType !== 'Council' && realm &&
+                                                                (realm?.account?.config?.useCommunityVoterWeightAddin || realm?.account?.communityTokenConfig?.voterWeightAddin)) &&
+                                                                <Box sx={{ my: 3, mx: 2 }}>
+                                                                    <Grid container alignItems="center">
+                                                                        <Grid item xs>
+                                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                                VSR
+                                                                            </Typography>
+                                                                        </Grid>
+                                                                        <Grid item>
+                                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                                {(realm &&
+                                                                                    (realm?.account?.config?.useCommunityVoterWeightAddin || realm?.account?.communityTokenConfig?.voterWeightAddin)
+                                                                                ) ?
+                                                                                    <>
+                                                                                        Using Voter Weight Plugin
+                                                                                    </>
+                                                                                    :
+                                                                                    ``
+                                                                                }
+                                                                            </Typography>
+                                                                        </Grid>
+                                                                    </Grid>
+                                                                    <Typography color="text.secondary" variant="caption">
+                                                                        {realm?.account?.communityTokenConfig?.voterWeightAddin &&
+                                                                            <>
+                                                                                VSR: {realm.account.communityTokenConfig.voterWeightAddin.toBase58()}
+                                                                            </>
+                                                                        }
+                                                                        {console.log("realm: " + JSON.stringify(realm))}
+                                                                    </Typography>
+                                                                </Box>
+                                                            }
+
+                                                            {(thisitem.account.signingOffAt && +thisitem.account.signingOffAt > 0 && thisitem.account.status !== 0 && thisitem.account.status !== 1) &&
+                                                                <Box sx={{ my: 3, mx: 2 }}>
+                                                                    <Grid container alignItems="center">
+                                                                        <Grid item xs>
+                                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                                General Sentiment
+                                                                            </Typography>
+                                                                        </Grid>
+                                                                        <Grid item>
+                                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                                {uniqueYes} / {uniqueNo}
+                                                                            </Typography>
+                                                                        </Grid>
+                                                                    </Grid>
+                                                                    <Typography color="text.secondary" variant="caption">
+                                                                        Total unique voters voting for/against this proposal <sup>*</sup>{uniqueYes + uniqueNo} participants
+                                                                    </Typography>
+                                                                </Box>
+                                                            }
+
+                                                            {(publicKey && proposalSignatories && proposalSignatories.length > 0) &&
+                                                                <>
+                                                                    <Box sx={{ my: 3, mx: 2 }}>
+                                                                        <Grid container alignItems="center">
+                                                                            <Grid item xs>
+                                                                                <Typography gutterBottom variant="subtitle1" component="div">
+                                                                                    Signers {(proposalSignatories.length && proposalSignatories.length > 1) ? `${proposalSignatories.length}` : ``}
+                                                                                </Typography>
+                                                                            </Grid>
+                                                                            <Grid item>
+                                                                                {proposalSignatories.map((filteredItem: any) => (
+                                                                                    <>
+                                                                                        <br />
+                                                                                        <ButtonGroup>
+                                                                                            <Button
+                                                                                                color='inherit'
+                                                                                                variant='text'
+                                                                                                disabled={true}
+                                                                                            >
+                                                                                                {filteredItem.account.signedOff ?
+                                                                                                    <CheckCircleIcon color='success' />
+                                                                                                    :
+                                                                                                    <RadioButtonUncheckedIcon />
+                                                                                                }
+                                                                                            </Button>
+                                                                                            <ExplorerView
+                                                                                                address={filteredItem.account.signatory.toBase58()}
+                                                                                                type='address'
+                                                                                                shorten={4}
+                                                                                                hideTitle={false}
+                                                                                                style='text' color='white' fontSize='14px' />
+                                                                                        </ButtonGroup>
+
+                                                                                        {(filteredItem.account.signatory.toBase58() === publicKey.toBase58() && filteredItem.account.signedOff === false) ?
+                                                                                            <>
+                                                                                                <Grid container alignItems="center">
+                                                                                                    <ManageGovernanceProposal
+                                                                                                        governanceAddress={governanceAddress}
+                                                                                                        governanceRulesWallet={thisitem.account.governance}
+                                                                                                        governingTokenMint={thisitem.account.governingTokenMint}
+                                                                                                        proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                                                                        payerWallet={publicKey}
+                                                                                                        governanceLookup={governanceLookup}
+                                                                                                        editProposalAddress={thisitem.pubkey}
+                                                                                                        realm={realm}
+                                                                                                        memberMap={memberMap}
+                                                                                                        setReload={setReload}
+                                                                                                        proposalSignatories={proposalSignatories}
+                                                                                                        mode={1} // signoff
+                                                                                                    />
+                                                                                                </Grid>
+                                                                                            </>
+                                                                                            :
+                                                                                            <></>
+                                                                                        }
+                                                                                    </>
+                                                                                ))}
+                                                                            </Grid>
+                                                                        </Grid>
+                                                                        <Typography color="text.secondary" variant="caption">
+                                                                        </Typography>
+                                                                    </Box>
+                                                                </>
+                                                            }
                                                         </Box>
                                                     }
                                                 </Box>
-                                            }
 
-                                            <Box sx={{ my: 3, mx: 2 }}>
-                                                <Grid container alignItems="center">
-                                                    <Grid item xs>
-                                                        
-                                                    </Grid>
-                                                    <Grid item>
-                                                        <Typography gutterBottom variant="body1" component="div">
-                                                            <Button
-                                                                size="small"
-                                                                color='inherit'
-                                                                variant="outlined"
-                                                                onClick={toggleInfoExpand}
-                                                                sx={{
-                                                                    borderRadius:'17px',
-                                                                    textTransform:'none',
-                                                                }}
-                                                            >
-                                                                {expandInfo ? <><ExpandLess sx={{mr:1}}/> Less</> : <><ExpandMoreIcon sx={{mr:1}}/> More Info</>}
-                                                            </Button>
+                                                <Box sx={sidebarSectionCardSx}>
+                                                    <Box sx={sidebarSectionHeaderSx}>
+                                                        <Typography sx={sidebarSectionTitleSx}>Controls</Typography>
+                                                        <Typography sx={sidebarSectionSubtitleSx}>
+                                                            Management actions, exports, and deeper proposal tools.
                                                         </Typography>
-                                                    </Grid>
-                                                </Grid>
-                                            </Box>
+                                                    </Box>
+                                                    <Divider sx={sidebarSectionDividerSx} />
+
+                                                    {governingMintInfo &&
+                                                        <>
+                                                            {(publicKey &&
+                                                                +thisitem.account.state === 2 &&
+                                                                (() => {
+                                                                    const signingOffAt = Number(thisitem.account?.signingOffAt || 0);
+                                                                    const baseVotingTime = Number(thisGovernance.account?.config?.baseVotingTime || 0);
+                                                                    const votingCoolOffTime = Number(thisGovernance.account?.config?.votingCoolOffTime || 0);
+                                                                    const votingEndTime = signingOffAt + baseVotingTime;
+                                                                    const totalEndTime = votingEndTime + votingCoolOffTime;
+                                                                    const currentTime = moment().unix();
+                                                                    return currentTime >= totalEndTime;
+                                                                })()
+                                                            ) ? (
+                                                                <>
+                                                                    <Box sx={{ my: 3, mx: 2 }}>
+                                                                        <Grid container alignItems="center">
+                                                                            <ManageGovernanceProposal
+                                                                                governanceAddress={governanceAddress}
+                                                                                governanceRulesWallet={thisitem.account.governance}
+                                                                                governingTokenMint={thisitem.account.governingTokenMint}
+                                                                                proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                                                payerWallet={publicKey}
+                                                                                governanceLookup={governanceLookup}
+                                                                                editProposalAddress={thisitem.pubkey}
+                                                                                realm={realm}
+                                                                                memberMap={memberMap}
+                                                                                setReload={setReload}
+                                                                                proposalSignatories={proposalSignatories}
+                                                                                mode={5} // finalize
+                                                                                state={thisitem.account.state}
+                                                                            />
+                                                                        </Grid>
+                                                                    </Box>
+                                                                </>
+                                                            ) : (
+                                                                <></>
+                                                            )}
+                                                        </>
+                                                    }
+
+                                                    {expandInfo &&
+                                                        <>
+                                                            {canManageDraftProposal ?
+                                                                <>
+                                                                    <Box sx={{ my: 3, mx: 2 }}>
+                                                                        <Grid container alignItems="center">
+                                                                            <IntegratedGovernanceProposalDialogView
+                                                                                governanceAddress={governanceAddress}
+                                                                                governanceRulesWallet={thisitem.account.governance}
+                                                                                governingTokenMint={thisitem.account.governingTokenMint}
+                                                                                proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                                                payerWallet={publicKey}
+                                                                                governanceLookup={governanceLookup}
+                                                                                editProposalAddress={thisitem.pubkey}
+                                                                                setReload={setReload}
+                                                                                title="Add Instructions"
+                                                                                useButton={5}
+                                                                            />
+                                                                        </Grid>
+                                                                    </Box>
+
+                                                                    <Box sx={{ my: 3, mx: 2 }}>
+                                                                        <Grid container alignItems="center">
+                                                                            <ManageGovernanceProposal
+                                                                                governanceAddress={governanceAddress}
+                                                                                governanceRulesWallet={thisitem.account.governance}
+                                                                                governingTokenMint={thisitem.account.governingTokenMint}
+                                                                                proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                                                payerWallet={publicKey}
+                                                                                governanceLookup={governanceLookup}
+                                                                                editProposalAddress={thisitem.pubkey}
+                                                                                realm={realm}
+                                                                                memberMap={memberMap}
+                                                                                setReload={setReload}
+                                                                                proposalSignatories={proposalSignatories}
+                                                                                mode={1} // signoff
+                                                                            />
+                                                                        </Grid>
+                                                                    </Box>
+
+                                                                    <Box sx={{ my: 3, mx: 2 }}>
+                                                                        <Grid container alignItems="center">
+                                                                            <ManageGovernanceProposal
+                                                                                governanceAddress={governanceAddress}
+                                                                                governanceRulesWallet={thisitem.account.governance}
+                                                                                governingTokenMint={thisitem.account.governingTokenMint}
+                                                                                proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                                                payerWallet={publicKey}
+                                                                                governanceLookup={governanceLookup}
+                                                                                editProposalAddress={thisitem.pubkey}
+                                                                                realm={realm}
+                                                                                memberMap={memberMap}
+                                                                                setReload={setReload}
+                                                                                proposal={thisitem}
+                                                                                proposalSignatories={proposalSignatories}
+                                                                                mode={2} // add signer
+                                                                            />
+                                                                        </Grid>
+                                                                    </Box>
+
+                                                                    <Box sx={{ my: 3, mx: 2 }}>
+                                                                        <Grid container alignItems="center">
+                                                                            <ManageGovernanceProposal
+                                                                                governanceAddress={governanceAddress}
+                                                                                governanceRulesWallet={thisitem.account.governance}
+                                                                                governingTokenMint={thisitem.account.governingTokenMint}
+                                                                                proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                                                proposalInstructions={proposalInstructions}
+                                                                                payerWallet={publicKey}
+                                                                                governanceLookup={governanceLookup}
+                                                                                editProposalAddress={thisitem.pubkey}
+                                                                                realm={realm}
+                                                                                memberMap={memberMap}
+                                                                                setReload={setReload}
+                                                                                proposalSignatories={proposalSignatories}
+                                                                                mode={3} // cancel
+                                                                            />
+                                                                        </Grid>
+                                                                    </Box>
+                                                                </>
+                                                                : <></>
+                                                            }
+
+                                                            {(thisitem.account.signingOffAt && +thisitem.account.signingOffAt > 0 && +thisitem.account.state !== 0 && +thisitem.account.state !== 1 && csvGenerated) &&
+                                                                <Box sx={{ my: 3, mx: 2 }}>
+                                                                    <Grid container alignItems="center">
+                                                                        <Grid item xs>
+                                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                                Export
+                                                                            </Typography>
+                                                                        </Grid>
+                                                                        <Grid item>
+                                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                                <Tooltip title="Download Voter Participation CSV file">
+                                                                                    <Button
+                                                                                        size="small"
+                                                                                        color='inherit'
+                                                                                        variant="outlined"
+                                                                                        sx={{ borderRadius: '17px' }}
+                                                                                        download={`${thisitem.pubkey.toBase58()}.csv`}
+                                                                                        href={csvGenerated}
+                                                                                    >
+                                                                                        <DownloadIcon /> CSV
+                                                                                    </Button>
+                                                                                </Tooltip>
+                                                                            </Typography>
+                                                                        </Grid>
+                                                                    </Grid>
+                                                                    <Typography color="text.secondary" variant="caption">
+                                                                        Export voter participation as a CSV file
+                                                                    </Typography>
+                                                                </Box>
+                                                            }
+                                                        </>
+                                                    }
+
+                                                    <Divider sx={sidebarSectionDividerSx} />
+                                                    <Box sx={{ my: 2.2, mx: 2 }}>
+                                                        <Grid container alignItems="center">
+                                                            <Grid item xs />
+                                                            <Grid item>
+                                                                <Typography gutterBottom variant="body1" component="div">
+                                                                    <Button
+                                                                        size="small"
+                                                                        color='inherit'
+                                                                        variant="outlined"
+                                                                        onClick={toggleInfoExpand}
+                                                                        sx={{
+                                                                            borderRadius: '17px',
+                                                                            textTransform: 'none',
+                                                                        }}
+                                                                    >
+                                                                        {expandInfo ? <><ExpandLess sx={{ mr: 1 }} /> Less</> : <><ExpandMoreIcon sx={{ mr: 1 }} /> More Info</>}
+                                                                    </Button>
+                                                                </Typography>
+                                                            </Grid>
+                                                        </Grid>
+                                                    </Box>
+                                                </Box>
+                                            </Stack>
                                         </Grid>
-                                        
-                                    </Grid>  
+                                    </Grid>
                                 </Box>
                                 </Stack>
 
@@ -5706,8 +6104,8 @@ export function GovernanceProposalV2View(props: any){
                         :
                             <LinearProgress color="inherit" />
                         }
-                    </>
-                    :
+                    </React.Fragment>
+                    ) : (
                         <Grid 
                             xs={12}
                             sx={{textAlign:'center'}}
@@ -5715,7 +6113,7 @@ export function GovernanceProposalV2View(props: any){
                             <CircularProgress color="inherit" /><br/>
                             <small>{loadingMessage || 'Loading...'}</small>
                         </Grid>
-                    }
+                    )}
                 </Box>
             </ThemeProvider>
         </>
