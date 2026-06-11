@@ -271,6 +271,7 @@
         "node-forge": "1.4.0",
         "path-to-regexp": "0.1.12",
         "picomatch": "2.3.2",
+        "shell-quote": "1.8.4",
         "serialize-javascript": "7.0.5"
     },
     "staticFiles": {
