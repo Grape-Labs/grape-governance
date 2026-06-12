@@ -4618,6 +4618,7 @@ export function GovernanceProposalV2View(props: any){
                                 subtitle={`For ${forPct.toFixed(2)}%`}
                                 hovertext=""
                                 showIcon={true}
+                                actionOnly={true}
                                 votingResultRows={solanaVotingResultRows}
                                 getVotingParticipants={getVotingParticipants}
                                 hasVotedVotes={hasVotedVotes}
@@ -4642,6 +4643,7 @@ export function GovernanceProposalV2View(props: any){
                                 subtitle={`Against ${againstPct.toFixed(2)}%`}
                                 hovertext=""
                                 showIcon={true}
+                                actionOnly={true}
                                 votingResultRows={solanaVotingResultRows}
                                 getVotingParticipants={getVotingParticipants}
                                 hasVotedVotes={hasVotedVotes}
@@ -4661,72 +4663,80 @@ export function GovernanceProposalV2View(props: any){
                       </Grid>
                     </Box>
 
-                    <Grid container spacing={0.85}>
-                      <Grid item xs={12} md={4}>
-                        <Box
-                          sx={{
-                            borderRadius: '16px',
-                            border: '1px solid rgba(88, 195, 129, 0.2)',
-                            background: 'linear-gradient(180deg, rgba(24,48,36,0.78) 0%, rgba(13,26,20,0.88) 100%)',
-                            px: 1,
-                            py: 0.9,
-                            minHeight: 82,
-                          }}
-                        >
-                          <Typography sx={{ ...sectionLabelSx, color: 'rgba(147, 230, 177, 0.76)' }}>For</Typography>
-                          <Typography variant="h5" sx={{ mt: 0.35, color: '#b8ffd1', fontWeight: 800, fontSize: { xs: '1.55rem', sm: '1.75rem' } }}>
-                            {formatMetricValue(forUi)}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: 'rgba(185,233,202,0.76)' }}>
-                            {forPct.toFixed(1)}% of cast votes
-                          </Typography>
-                        </Box>
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <Box
-                          sx={{
-                            borderRadius: '16px',
-                            border: '1px solid rgba(99, 175, 255, 0.2)',
-                            background: 'linear-gradient(180deg, rgba(17,37,59,0.82) 0%, rgba(11,20,31,0.9) 100%)',
-                            px: 1,
-                            py: 0.9,
-                            minHeight: 82,
-                          }}
-                        >
-                          <Typography sx={{ ...sectionLabelSx, color: 'rgba(154, 204, 255, 0.82)' }}>Quorum</Typography>
-                          <Typography variant="h5" sx={{ mt: 0.35, color: 'rgba(234,245,255,0.98)', fontWeight: 800, fontSize: { xs: '1.55rem', sm: '1.75rem' } }}>
-                            {quorumProgressPct !== null ? `${quorumProgressPct.toFixed(1)}%` : 'Pending'}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: 'rgba(193,214,236,0.76)' }}>
-                            {quorumRemainingLabel}
-                          </Typography>
-                        </Box>
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <Box
-                          sx={{
-                            borderRadius: '16px',
-                            border: '1px solid rgba(240, 114, 114, 0.18)',
-                            background: 'linear-gradient(180deg, rgba(58,24,24,0.82) 0%, rgba(25,13,14,0.9) 100%)',
-                            px: 1,
-                            py: 0.9,
-                            minHeight: 82,
-                          }}
-                        >
-                          <Typography sx={{ ...sectionLabelSx, color: 'rgba(255, 174, 174, 0.8)' }}>Against</Typography>
-                          <Typography variant="h5" sx={{ mt: 0.35, color: '#ffd0d0', fontWeight: 800, fontSize: { xs: '1.55rem', sm: '1.75rem' } }}>
-                            {formatMetricValue(againstUi)}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: 'rgba(240,198,198,0.76)' }}>
-                            {againstPct.toFixed(1)}% of cast votes
-                          </Typography>
-                        </Box>
-                      </Grid>
-                    </Grid>
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
+                        gap: 0.85,
+                        width: '100%',
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          borderRadius: '16px',
+                          border: '1px solid rgba(88, 195, 129, 0.2)',
+                          background: 'linear-gradient(180deg, rgba(24,48,36,0.78) 0%, rgba(13,26,20,0.88) 100%)',
+                          px: 1,
+                          py: 0.9,
+                          minHeight: 82,
+                        }}
+                      >
+                        <Typography sx={{ ...sectionLabelSx, color: 'rgba(147, 230, 177, 0.76)' }}>For</Typography>
+                        <Typography variant="h5" sx={{ mt: 0.35, color: '#b8ffd1', fontWeight: 800, fontSize: { xs: '1.55rem', sm: '1.75rem' } }}>
+                          {formatMetricValue(forUi)}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'rgba(185,233,202,0.76)' }}>
+                          {forPct.toFixed(1)}% of cast votes
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          borderRadius: '16px',
+                          border: '1px solid rgba(99, 175, 255, 0.2)',
+                          background: 'linear-gradient(180deg, rgba(17,37,59,0.82) 0%, rgba(11,20,31,0.9) 100%)',
+                          px: 1,
+                          py: 0.9,
+                          minHeight: 82,
+                        }}
+                      >
+                        <Typography sx={{ ...sectionLabelSx, color: 'rgba(154, 204, 255, 0.82)' }}>Quorum</Typography>
+                        <Typography variant="h5" sx={{ mt: 0.35, color: 'rgba(234,245,255,0.98)', fontWeight: 800, fontSize: { xs: '1.55rem', sm: '1.75rem' } }}>
+                          {quorumProgressPct !== null ? `${quorumProgressPct.toFixed(1)}%` : 'Pending'}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'rgba(193,214,236,0.76)' }}>
+                          {quorumRemainingLabel}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          borderRadius: '16px',
+                          border: '1px solid rgba(240, 114, 114, 0.18)',
+                          background: 'linear-gradient(180deg, rgba(58,24,24,0.82) 0%, rgba(25,13,14,0.9) 100%)',
+                          px: 1,
+                          py: 0.9,
+                          minHeight: 82,
+                        }}
+                      >
+                        <Typography sx={{ ...sectionLabelSx, color: 'rgba(255, 174, 174, 0.8)' }}>Against</Typography>
+                        <Typography variant="h5" sx={{ mt: 0.35, color: '#ffd0d0', fontWeight: 800, fontSize: { xs: '1.55rem', sm: '1.75rem' } }}>
+                          {formatMetricValue(againstUi)}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'rgba(240,198,198,0.76)' }}>
+                          {againstPct.toFixed(1)}% of cast votes
+                        </Typography>
+                      </Box>
+                    </Box>
 
-                    <Grid container spacing={0.85}>
-                      <Grid item xs={12} md={7}>
-                        <Box sx={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(255,255,255,0.035)', px: 1, py: 0.95 }}>
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 2fr) minmax(0, 1fr)' },
+                        gap: 0.85,
+                        width: '100%',
+                      }}
+                    >
+                      <Box>
+                        <Box sx={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(255,255,255,0.035)', px: 1, py: 0.95, height: '100%' }}>
                           <Typography variant="subtitle2" sx={{ color: 'rgba(234,243,252,0.96)' }}>
                             Vote split
                           </Typography>
@@ -4765,9 +4775,9 @@ export function GovernanceProposalV2View(props: any){
                             </Typography>
                           </Stack>
                         </Box>
-                      </Grid>
-                      <Grid item xs={12} md={5}>
-                        <Box sx={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(255,255,255,0.035)', px: 1, py: 0.95 }}>
+                      </Box>
+                      <Box>
+                        <Box sx={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(255,255,255,0.035)', px: 1, py: 0.95, height: '100%' }}>
                           <Typography variant="subtitle2" sx={{ color: 'rgba(234,243,252,0.96)' }}>
                             Quorum progress
                           </Typography>
@@ -4802,8 +4812,8 @@ export function GovernanceProposalV2View(props: any){
                             </Typography>
                           </Stack>
                         </Box>
-                      </Grid>
-                    </Grid>
+                      </Box>
+                    </Box>
                   </Stack>
                 )}
               </Box>
