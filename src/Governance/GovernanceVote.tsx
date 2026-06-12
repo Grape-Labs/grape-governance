@@ -446,6 +446,28 @@ export function VoteForProposal(props:any){
     const voteMagnitude = Math.abs(Number(hasVotedVotes || 0));
     const voteDirectionLabel = hasVotedSide === 'yes' ? 'for' : hasVotedSide === 'no' ? 'against' : null;
     const votedForThisOption = (hasVotedSide === 'yes' && type === 0) || (hasVotedSide === 'no' && type === 1);
+    const actionOnly = !!props.actionOnly;
+    const isCompactPollVote = !!multiChoice;
+    const useCompactVoteSizing = isCompactPollVote || actionOnly;
+    const currentSideLabel = type === 0 ? 'For' : 'Against';
+    const minimalVotePrimaryLabel = votedForThisOption
+        ? `Voted ${currentSideLabel}`
+        : hasVoted && voteDirectionLabel && !hasCastedVotesForCurrentOption
+        ? 'Not selected'
+        : hasCastedVotesForCurrentOption
+        ? `Manage ${currentSideLabel}`
+        : `Vote ${currentSideLabel}`;
+    const minimalVoteSecondaryLabel = votedForThisOption
+        ? 'Your vote'
+        : hasVoted && voteDirectionLabel
+        ? `You voted ${voteDirectionLabel}`
+        : hasCastedVotesForCurrentOption
+        ? 'Recorded'
+        : !publicKey
+        ? 'Connect wallet'
+        : state === 2
+        ? 'Cast vote'
+        : 'Voting closed';
     /*
     console.log("memberMap: "+JSON.stringify(memberMap));
     const memberMapReduced = memberMap.reduce((map: any, item: any) => {
@@ -1046,11 +1068,11 @@ export function VoteForProposal(props:any){
           };
 
     const splitVoteGroupSx = {
-        borderRadius: "20px",
+        borderRadius: useCompactVoteSizing ? "16px" : "20px",
         overflow: "hidden",
         width: { xs: "100%", sm: "auto" },
         maxWidth: "100%",
-        boxShadow: `0 14px 34px ${voteTone.soft}`,
+        boxShadow: useCompactVoteSizing ? `0 10px 24px ${voteTone.soft}` : `0 14px 34px ${voteTone.soft}`,
         border: `1px solid ${voteTone.border}`,
         background: `linear-gradient(180deg, ${voteTone.soft}, rgba(15,18,24,0.9))`,
         "& .MuiButton-root": {
@@ -1065,15 +1087,20 @@ export function VoteForProposal(props:any){
 
     const splitVoteMainButtonSx = {
         borderRadius: 0,
-        px: { xs: 1.5, sm: 2.4 },
-        py: 1.25,
-        minHeight: 70,
-        minWidth: { xs: 0, sm: 224 },
+        px: useCompactVoteSizing ? { xs: 1.1, sm: 1.45 } : { xs: 1.5, sm: 2.4 },
+        py: useCompactVoteSizing ? 0.8 : 1.25,
+        minHeight: useCompactVoteSizing ? 56 : 70,
+        minWidth: useCompactVoteSizing ? { xs: 0, sm: 118 } : { xs: 0, sm: 224 },
         width: { xs: "100%", sm: "auto" },
         maxWidth: "100%",
         background: `linear-gradient(180deg, ${voteTone.main}, ${voteTone.dark})`,
         fontWeight: 700,
-        letterSpacing: 0.2,
+        letterSpacing: useCompactVoteSizing ? 0 : 0.2,
+        fontSize: useCompactVoteSizing ? "0.94rem" : undefined,
+        boxShadow:
+            actionOnly && votedForThisOption
+                ? 'inset 0 0 0 1px rgba(255,255,255,0.2)'
+                : 'none',
         "&:hover": {
             background: `linear-gradient(180deg, ${voteTone.main}, ${voteTone.dark})`,
             filter: "brightness(1.06)",
@@ -1082,8 +1109,8 @@ export function VoteForProposal(props:any){
 
     const splitVoteCaretButtonSx = {
         borderRadius: 0,
-        px: 1.15,
-        minWidth: 48,
+        px: useCompactVoteSizing ? 0.8 : 1.15,
+        minWidth: useCompactVoteSizing ? 40 : 48,
         background: "rgba(6,10,16,0.34)",
         "&:hover": {
             background: "rgba(6,10,16,0.5)",
@@ -1091,26 +1118,69 @@ export function VoteForProposal(props:any){
     };
 
     const inactiveVoteButtonSx = {
-        borderRadius: "20px",
+        borderRadius: useCompactVoteSizing ? "16px" : "20px",
         textTransform: "none",
-        px: 2,
-        py: 1.1,
-        minHeight: 68,
+        px: useCompactVoteSizing ? 1.4 : 2,
+        py: useCompactVoteSizing ? 0.8 : 1.1,
+        minHeight: useCompactVoteSizing ? 56 : 68,
         borderColor: voteTone.border,
         color: "#fff",
         background: "rgba(255,255,255,0.03)",
     };
 
     const castedVoteSummarySx = {
-        borderRadius: "20px",
+        borderRadius: useCompactVoteSizing ? "16px" : "20px",
         textTransform: "none",
-        px: 2,
-        py: 1.15,
-        minHeight: 68,
+        px: useCompactVoteSizing ? 1.4 : 2,
+        py: useCompactVoteSizing ? 0.85 : 1.15,
+        minHeight: useCompactVoteSizing ? 56 : 68,
         borderColor: voteTone.border,
         color: "#fff",
         background: `linear-gradient(180deg, ${voteTone.soft}, rgba(255,255,255,0.04))`,
-        boxShadow: `0 10px 28px ${voteTone.soft}`,
+        boxShadow: useCompactVoteSizing ? `0 8px 18px ${voteTone.soft}` : `0 10px 28px ${voteTone.soft}`,
+    };
+
+    const renderVoteButtonContent = (icon: React.ReactNode) => {
+        if (actionOnly) {
+            return (
+                <Stack spacing={0.35} alignItems="center" sx={{ minWidth: { xs: 0, sm: 110 } }}>
+                    <Stack direction="row" spacing={0.55} alignItems="center">
+                        {icon}
+                        <Typography sx={{ fontWeight: 700, fontSize: "0.98rem", lineHeight: 1.05 }}>
+                            {minimalVotePrimaryLabel}
+                        </Typography>
+                        {votedForThisOption && (
+                            <CheckCircleIcon fontSize="inherit" sx={{ color: '#fff', opacity: 0.92 }} />
+                        )}
+                    </Stack>
+                    <Typography sx={{ fontSize: "0.72rem", opacity: 0.86, textAlign: "center", lineHeight: 1.2 }}>
+                        {minimalVoteSecondaryLabel}
+                    </Typography>
+                </Stack>
+            );
+        }
+
+        if (title && subtitle && showIcon) {
+            return (
+                <Grid container direction="column" alignItems="center">
+                    <Grid item>
+                        <Grid container direction="row" alignItems="center">
+                            <Grid item>{icon}</Grid>
+                            <Grid item>{title}</Grid>
+                        </Grid>
+                    </Grid>
+
+                    <Grid item sx={{ minWidth: { xs: 0, sm: "140px" }, width: "100%" }}>
+                        <Divider sx={{ my: 0.5, opacity: 0.35 }} />
+                        <Typography sx={{ fontSize: "11px", opacity: 0.9, textAlign: "center" }}>
+                            {subtitle}
+                        </Typography>
+                    </Grid>
+                </Grid>
+            );
+        }
+
+        return null;
     };
 
     const renderManageVoteMenuItems = (side: 'yes' | 'no') => {
@@ -1164,29 +1234,7 @@ export function VoteForProposal(props:any){
             disabled
             sx={inactiveVoteButtonSx}
           >
-            {title && subtitle && showIcon && (
-              <Grid container direction="column" alignItems="center">
-                <Grid item>
-                  <Grid container direction="row" alignItems="center">
-                    <Grid item>
-                      {type === 0 ? (
-                        <ThumbUpIcon fontSize="small" sx={{ mr: 0.25, ml: 0.25 }} />
-                      ) : (
-                        <ThumbDownIcon fontSize="small" sx={{ mr: 0.25, ml: 0.25 }} />
-                      )}
-                    </Grid>
-                    <Grid item>{title}</Grid>
-                  </Grid>
-                </Grid>
-
-                <Grid item sx={{ minWidth: "100px" }}>
-                  <Divider />
-                  <Grid sx={{ mt: 0.5 }}>
-                    <Typography sx={{ fontSize: "10px" }}>{subtitle}</Typography>
-                  </Grid>
-                </Grid>
-              </Grid>
-            )}
+            {renderVoteButtonContent(<ThumbUpIcon fontSize="small" sx={{ mr: actionOnly ? 0 : 0.25, ml: 0.25 }} />)}
           </Button>
         ) : (
           <Button
@@ -1195,29 +1243,7 @@ export function VoteForProposal(props:any){
             disabled
             sx={inactiveVoteButtonSx}
           >
-            {title && subtitle && showIcon && (
-              <Grid container direction="column" alignItems="center">
-                <Grid item>
-                  <Grid container direction="row" alignItems="center">
-                    <Grid item>
-                      {type === 0 ? (
-                        <ThumbUpIcon fontSize="small" sx={{ mr: 0.25, ml: 0.25 }} />
-                      ) : (
-                        <ThumbDownIcon fontSize="small" sx={{ mr: 0.25, ml: 0.25 }} />
-                      )}
-                    </Grid>
-                    <Grid item>{title}</Grid>
-                  </Grid>
-                </Grid>
-
-                <Grid item sx={{ minWidth: "100px" }}>
-                  <Divider />
-                  <Grid sx={{ mt: 0.5 }}>
-                    <Typography sx={{ fontSize: "10px" }}>{subtitle}</Typography>
-                  </Grid>
-                </Grid>
-              </Grid>
-            )}
+            {renderVoteButtonContent(<ThumbDownIcon fontSize="small" sx={{ mr: actionOnly ? 0 : 0.25, ml: 0.25 }} />)}
           </Button>
         )}
       </>
@@ -1238,25 +1264,7 @@ export function VoteForProposal(props:any){
                       onClick={handleVoteYes}
                       sx={splitVoteMainButtonSx}
                     >
-                      {title && subtitle && showIcon ? (
-                        <Grid container direction="column" alignItems="center">
-                          <Grid item>
-                            <Grid container direction="row" alignItems="center">
-                              <Grid item>
-                                <ThumbUpIcon fontSize="small" sx={{ mr: 0.5 }} />
-                              </Grid>
-                              <Grid item>{title}</Grid>
-                            </Grid>
-                          </Grid>
-
-                          <Grid item sx={{ minWidth: { xs: 0, sm: "140px" }, width: "100%" }}>
-                            <Divider sx={{ my: 0.5, opacity: 0.35 }} />
-                            <Typography sx={{ fontSize: "11px", opacity: 0.9, textAlign: "center" }}>
-                              {subtitle}
-                            </Typography>
-                          </Grid>
-                        </Grid>
-                      ) : (
+                      {renderVoteButtonContent(<ThumbUpIcon fontSize="small" sx={{ mr: actionOnly ? 0 : 0.5 }} />) || (
                         <>Vote{!multiChoice && " YES"}</>
                       )}
                     </Button>
@@ -1362,24 +1370,7 @@ export function VoteForProposal(props:any){
                       onClick={handleVoteNo}
                       sx={splitVoteMainButtonSx}
                     >
-                      {title && subtitle && showIcon ? (
-                        <Grid container direction="column" alignItems="center">
-                          <Grid item>
-                            <Grid container direction="row" alignItems="center">
-                              <Grid item>
-                                <ThumbDownIcon fontSize="small" sx={{ mr: 0.5 }} />
-                              </Grid>
-                              <Grid item>{title}</Grid>
-                            </Grid>
-                          </Grid>
-                          <Grid item sx={{ minWidth: { xs: 0, sm: "140px" }, width: "100%" }}>
-                            <Divider sx={{ my: 0.5, opacity: 0.35 }} />
-                            <Typography sx={{ fontSize: "11px", opacity: 0.9, textAlign: "center" }}>
-                              {subtitle}
-                            </Typography>
-                          </Grid>
-                        </Grid>
-                      ) : (
+                      {renderVoteButtonContent(<ThumbDownIcon fontSize="small" sx={{ mr: actionOnly ? 0 : 0.5 }} />) || (
                         <>Vote NO</>
                       )}
                     </Button>
@@ -1497,34 +1488,40 @@ export function VoteForProposal(props:any){
                     color={type === 0 ? "success" : "error"}
                     sx={castedVoteSummarySx}
                   >
-                    <Grid container direction="column" alignItems="center">
-                      <Grid item>
-                        <Grid container direction="row" alignItems="center">
-                          <Grid item>
-                            {type === 0 ? (
-                              <ThumbUpIcon fontSize="small" sx={{ mr: 0.25, ml: 0.25 }} />
-                            ) : (
-                              <ThumbDownIcon fontSize="small" sx={{ mr: 0.25, ml: 0.25 }} />
-                            )}
+                    {actionOnly ? (
+                      renderVoteButtonContent(
+                        type === 0 ? <ThumbUpIcon fontSize="small" sx={{ mr: 0 }} /> : <ThumbDownIcon fontSize="small" sx={{ mr: 0 }} />
+                      )
+                    ) : (
+                      <Grid container direction="column" alignItems="center">
+                        <Grid item>
+                          <Grid container direction="row" alignItems="center">
+                            <Grid item>
+                              {type === 0 ? (
+                                <ThumbUpIcon fontSize="small" sx={{ mr: 0.25, ml: 0.25 }} />
+                              ) : (
+                                <ThumbDownIcon fontSize="small" sx={{ mr: 0.25, ml: 0.25 }} />
+                              )}
+                            </Grid>
+                            <Grid item>{title}</Grid>
                           </Grid>
-                          <Grid item>{title}</Grid>
                         </Grid>
-                      </Grid>
 
-                      <Grid item sx={{ minWidth: "100px" }}>
-                        <Divider />
-                        <Grid sx={{ mt: 0.5 }}>
-                          <Typography sx={{ fontSize: "10px" }}>
-                            {hasCastedVotesForCurrentOption
-                              ? `${castedVoteRows.length} casted vote${castedVoteRows.length > 1 ? 's' : ''} to manage`
-                              : subtitle}
-                            {hasCastedVotesForCurrentOption ? (
-                              <CheckCircleIcon fontSize="inherit" sx={{ ml: 0.5 }} />
-                            ) : null}
-                          </Typography>
+                        <Grid item sx={{ minWidth: "100px" }}>
+                          <Divider />
+                          <Grid sx={{ mt: 0.5 }}>
+                            <Typography sx={{ fontSize: "10px" }}>
+                              {hasCastedVotesForCurrentOption
+                                ? `${castedVoteRows.length} casted vote${castedVoteRows.length > 1 ? 's' : ''} to manage`
+                                : subtitle}
+                              {hasCastedVotesForCurrentOption ? (
+                                <CheckCircleIcon fontSize="inherit" sx={{ ml: 0.5 }} />
+                              ) : null}
+                            </Typography>
+                          </Grid>
                         </Grid>
                       </Grid>
-                    </Grid>
+                    )}
                   </Button>
                 </Tooltip>
 
