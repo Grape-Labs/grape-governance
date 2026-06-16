@@ -14,7 +14,6 @@ import { CardinalTwitterIdentityResolver } from '@dialectlabs/identity-cardinal'
 import React, { useCallback } from 'react';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import BN from 'bn.js';
-import { AnchorProvider } from '@coral-xyz/anchor';
 import { styled, useTheme } from '@mui/material/styles';
 import {
   Typography,
@@ -41,7 +40,7 @@ import { GovernanceHeaderView } from './GovernanceHeaderView';
 import GovernanceNavigation from './GovernanceNavigation'; 
 import GovernancePower from './GovernancePower';
 
-import { formatAmount, getFormattedNumberToLocale, VSR_PLUGIN_PKS } from '../utils/grapeTools/helpers';
+import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers';
 import ExplorerView from '../utils/grapeTools/Explorer';
 import { getProfilePicture } from '@solflare-wallet/pfp';
 import { findDisplayName } from '../utils/name-service';
@@ -59,7 +58,6 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import IconButton from '@mui/material/IconButton';
 
 import { 
-    tryGetRealmConfig,
     getRealm, 
     getAllTokenOwnerRecords } from '@solana/spl-governance';
 import { 
@@ -74,8 +72,8 @@ import PropTypes from 'prop-types';
 import { 
     RPC_CONNECTION,
     TX_RPC_ENDPOINT } from '../utils/grapeTools/constants';
-import { VsrClient } from '../utils/governanceTools/components/instructions/client';
-import { getRegistrarPDA, getVoterPDA } from '../utils/governanceTools/components/instructions/account';
+import { getVoterPDA } from '../utils/governanceTools/components/instructions/account';
+import { getVsrRegistrarInfo, isVsrPluginForRealm } from '../utils/governanceTools/vsrPlugin';
 
 const GOVERNANNCE_STATE = {
     0:'Draft',
@@ -89,16 +87,9 @@ const GOVERNANNCE_STATE = {
     8:'Executing with Errors!',
 }
 
-const READONLY_WALLET_PK = new PublicKey('11111111111111111111111111111111');
 const LARGE_REALM_PROGRESS_INTERVAL = 100;
 const VSR_SIMULATION_MEMBER_THRESHOLD = 250;
 const VSR_SIMULATION_TOP_DEPOSITORS_LIMIT = 150;
-
-const createReadonlyWalletAdapter = () => ({
-    publicKey: READONLY_WALLET_PK,
-    signTransaction: async (tx: any) => tx,
-    signAllTransactions: async (txs: any) => txs,
-});
 
 const toNumberSafe = (value: any): number => {
     if (value === null || value === undefined) return 0;
@@ -809,6 +800,7 @@ export function GovernanceMembersView(props: any) {
     const [recordCount, setRecordCount] = React.useState(null);
     const [pluginDao, setPluginDao] = React.useState(null);
     const [pluginProgramId, setPluginProgramId] = React.useState<string | null>(null);
+    const [isVsrPluginRealm, setIsVsrPluginRealm] = React.useState(false);
     const [gspl, setGSPL] = React.useState(null);
     const [gsplMetadata, setGSPLMetadata] = React.useState(null);
     const [membersDebug, setMembersDebug] = React.useState<any>(null);
@@ -825,23 +817,17 @@ export function GovernanceMembersView(props: any) {
         voterWeightAddinPk: PublicKey,
         participantArray: any[]
     ) => {
-        const pluginPkString = voterWeightAddinPk.toBase58();
-        if (!VSR_PLUGIN_PKS.includes(pluginPkString)) {
+        const registrarInfo = await getVsrRegistrarInfo(
+            voterWeightAddinPk,
+            realmPk,
+            communityMintPk
+        );
+
+        if (!registrarInfo) {
             return null;
         }
 
-        const walletAdapter = createReadonlyWalletAdapter();
-        const provider = new AnchorProvider(
-            RPC_CONNECTION,
-            walletAdapter as any,
-            AnchorProvider.defaultOptions()
-        );
-        const client = await VsrClient.connect(provider, voterWeightAddinPk, false);
-        const { registrar } = await getRegistrarPDA(
-            realmPk,
-            communityMintPk,
-            client.program.programId
-        );
+        const { client, registrar, registrarState } = registrarInfo;
 
         const voterAccounts = await Promise.all(
             participantArray.map(async (participant: any) => {
@@ -863,7 +849,6 @@ export function GovernanceMembersView(props: any) {
             })
         );
 
-        const registrarAccountInfo = await RPC_CONNECTION.getAccountInfo(registrar);
         const voterAccountInfos = await getMultipleAccountsInfoBatched(
             RPC_CONNECTION,
             voterAccounts.map((item) => item.voter)
@@ -878,17 +863,6 @@ export function GovernanceMembersView(props: any) {
                 return null;
             }
         });
-        let registrarState: any = null;
-        try {
-            if (registrarAccountInfo?.data) {
-                registrarState = client.program.coder.accounts.decode(
-                    'registrar',
-                    registrarAccountInfo.data
-                );
-            }
-        } catch (_e) {
-            registrarState = null;
-        }
 
         const usedConfigCounts: Record<number, number> = {};
         const usedConfigDeposits: Record<number, number> = {};
@@ -1246,12 +1220,21 @@ export function GovernanceMembersView(props: any) {
                 const voterWeightAddin = toBase58Safe(
                     config?.account?.communityTokenConfig?.voterWeightAddin
                 );
+                const resolvedIsVsrPluginRealm = voterWeightAddin
+                    ? await isVsrPluginForRealm(
+                        voterWeightAddin,
+                        realmPk,
+                        grealm.account?.communityMint
+                    )
+                    : false;
                 debugInfo.pluginProgramId = voterWeightAddin;
+                debugInfo.isVsrPluginRealm = resolvedIsVsrPluginRealm;
 
                 if (voterWeightAddin){
                     setPluginDao(true);
                     setPluginProgramId(voterWeightAddin);
-                    if (!VSR_PLUGIN_PKS.includes(voterWeightAddin)) {
+                    setIsVsrPluginRealm(resolvedIsVsrPluginRealm);
+                    if (!resolvedIsVsrPluginRealm) {
                         setVsrTokenDecimals(null);
                         setVsrVotingPowerDecimals(null);
                         setVsrSummary({
@@ -1264,6 +1247,7 @@ export function GovernanceMembersView(props: any) {
                 } else {
                     setPluginDao(false);
                     setPluginProgramId(null);
+                    setIsVsrPluginRealm(false);
                     setVsrTokenDecimals(null);
                     setVsrVotingPowerDecimals(null);
                     setVsrSummary({
@@ -1308,9 +1292,8 @@ export function GovernanceMembersView(props: any) {
                 let rpcTokenOwnerRecords: any[] = [];
 
                 const realmOwnerString = grealm?.owner?.toBase58 ? grealm.owner.toBase58() : `${grealm?.owner || ''}`;
-                const isVsrPluginRealm = !!voterWeightAddin && VSR_PLUGIN_PKS.includes(voterWeightAddin);
 
-                if (isVsrPluginRealm) {
+                if (resolvedIsVsrPluginRealm) {
                     try {
                         rpcTokenOwnerRecords = await getAllTokenOwnerRecords(
                             RPC_CONNECTION,
@@ -1492,11 +1475,7 @@ export function GovernanceMembersView(props: any) {
                     let effectiveVsrTokenDecimals: number | null = null;
                     let effectiveVsrVotingPowerDecimals: number | null = null;
 
-                    if (
-                        voterWeightAddin &&
-                        VSR_PLUGIN_PKS.includes(voterWeightAddin) &&
-                        participantArray.length > 0
-                    ) {
+                    if (resolvedIsVsrPluginRealm && voterWeightAddin && participantArray.length > 0) {
                         try {
                             const vsrData = await fetchVsrMemberStats(
                                 realmPk,
@@ -1557,11 +1536,11 @@ export function GovernanceMembersView(props: any) {
                             else
                                 csvFile = 'Member,VotesDeposited,LegacyVotesDeposited,TokenDecimals,RawVotesDeposited,RawLegacyVotesDeposited,CouncilVotesDeposited,VsrLockedRaw,VsrWithdrawableRaw\r\n';
                             
-                            const rawDepositedAmount = isVsrPluginRealm
+                            const rawDepositedAmount = resolvedIsVsrPluginRealm
                                 ? Number(singleParticipant?.vsrDepositedAmount ?? 0)
                                 : Number(singleParticipant?.governingTokenDepositAmount ?? 0);
                             const rawLegacyDepositedAmount = Number(singleParticipant?.governingTokenDepositAmount ?? 0);
-                            const participantDisplayDecimals = isVsrPluginRealm
+                            const participantDisplayDecimals = resolvedIsVsrPluginRealm
                                 ? Number(
                                     singleParticipant?.vsrDisplayDecimals ??
                                     effectiveVsrTokenDecimals ??
@@ -1593,7 +1572,7 @@ export function GovernanceMembersView(props: any) {
 
                     //console.log("participantArray: "+JSON.stringify(participantArray));
                     const getDepositedAmount = (member: any) =>
-                        isVsrPluginRealm
+                        resolvedIsVsrPluginRealm
                             ? Number(member?.vsrDepositedAmount ?? 0)
                             : Number(member?.governingTokenDepositAmount ?? 0);
                     const presortedResults = enrichedParticipants.sort((a,b) => (a.totalVotesCount > b.totalVotesCount) ? 1 : -1);
@@ -1611,7 +1590,7 @@ export function GovernanceMembersView(props: any) {
                     for (var member of sortedResults){
                         if (count < 10){
                             const memberDepositedAmount = getDepositedAmount(member);
-                            const memberDisplayDecimals = isVsrPluginRealm
+                            const memberDisplayDecimals = resolvedIsVsrPluginRealm
                                 ? Number(member?.vsrDisplayDecimals ?? topLevelDisplayDecimals)
                                 : thisTokenDecimals;
                             totalTopVotes += memberDepositedAmount/Math.pow(10, memberDisplayDecimals || 0);
@@ -1687,7 +1666,7 @@ export function GovernanceMembersView(props: any) {
     const participatingVotersCount = Number(votingParticipants || 0);
     const activeVoterRate = allVotersCount > 0 ? (activeVotersCount / allVotersCount) * 100 : 0;
     const participatingVoterRate = allVotersCount > 0 ? (participatingVotersCount / allVotersCount) * 100 : 0;
-    const isVsrRealm = !!pluginProgramId && VSR_PLUGIN_PKS.includes(pluginProgramId);
+    const isVsrRealm = isVsrPluginRealm;
     const depositDisplayDecimals = isVsrRealm
         ? Number(vsrTokenDecimals ?? governingTokenDecimals ?? 0)
         : Number(governingTokenDecimals ?? 0);

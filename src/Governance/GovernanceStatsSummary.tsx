@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Box, Grid, LinearProgress, Paper, Tooltip, Typography } from '@mui/material';
 import { getFormattedNumberToLocale } from '../utils/grapeTools/helpers';
 
@@ -34,6 +34,28 @@ interface GovernanceStatsProps {
         totalVotes: number;
         state?: string;
     }[];
+    proposals?: any[];
+    participationSeries?: {
+        month: string;
+        voters: number;
+    }[];
+    participantArray?: {
+        voteStats?: {
+            total?: number;
+            approve?: number;
+            deny?: number;
+            abstain?: number;
+        };
+        voteHistory?: any[];
+        wallet?: string;
+    }[];
+    flaggedAuthors?: {
+        totalFlagged?: number;
+        vetoed?: number;
+        cancelled?: number;
+        wallet?: string | null;
+        authorKey?: string;
+    }[];
 }
 
 type StatCardProps = {
@@ -46,6 +68,10 @@ type StatCardProps = {
 };
 
 const safeNumber = (value: any): number => {
+    if (value && typeof value === 'object' && typeof value.toNumber === 'function') {
+        const converted = value.toNumber();
+        return Number.isFinite(converted) ? converted : 0;
+    }
     const parsed = Number(value ?? 0);
     return Number.isFinite(parsed) ? parsed : 0;
 };
@@ -59,6 +85,54 @@ const toPercent = (value: any): number | null => {
 const fmt = (value: number | null | undefined, digits = 1): string => {
     if (value === null || value === undefined || Number.isNaN(value)) return '-';
     return Number(value).toFixed(digits);
+};
+
+const PROPOSAL_STATE_LABELS: Record<number, string> = {
+    0: 'Draft',
+    1: 'Signing Off',
+    2: 'Voting',
+    3: 'Succeeded',
+    4: 'Executing',
+    5: 'Completed',
+    6: 'Cancelled',
+    7: 'Defeated',
+    8: 'Executing with Errors',
+    9: 'Vetoed',
+};
+
+const getProposalTimestamp = (proposal: any): number => {
+    const rawValue =
+        proposal?.account?.draftAt ??
+        proposal?.account?.votingAt ??
+        proposal?.draftAt ??
+        proposal?.votingAt ??
+        0;
+    return safeNumber(rawValue);
+};
+
+const getProposalState = (proposal: any, fallbackState?: string): string => {
+    if (fallbackState) return String(fallbackState);
+    const numericState = safeNumber(proposal?.account?.state);
+    return PROPOSAL_STATE_LABELS[numericState] || 'Unknown';
+};
+
+const getProposalAuthorKey = (proposal: any): string => {
+    return String(
+        proposal?.account?.proposer?.toBase58?.() ||
+        proposal?.account?.proposer?.toString?.() ||
+        proposal?.account?.tokenOwnerRecord?.toBase58?.() ||
+        proposal?.account?.tokenOwnerRecord?.toString?.() ||
+        ''
+    );
+};
+
+const formatRelativeAge = (timestamp: number | null): string => {
+    if (!timestamp) return '-';
+    const ageDays = Math.max(0, Math.floor((Date.now() / 1000 - timestamp) / 86400));
+    if (ageDays === 0) return 'today';
+    if (ageDays < 30) return `${ageDays}d ago`;
+    if (ageDays < 365) return `${Math.floor(ageDays / 30)}mo ago`;
+    return `${fmt(ageDays / 365, ageDays < 730 ? 1 : 0)}y ago`;
 };
 
 const SectionHeader = ({ title, subtitle }: { title: string; subtitle: string }) => (
@@ -144,14 +218,21 @@ export function GovernanceStatsSummaryView(props: GovernanceStatsProps) {
         mostParticipatedProposal,
         averageVotesPerProposal,
         proposalParticipationStats,
+        proposals,
+        participationSeries,
+        participantArray,
+        flaggedAuthors,
     } = props;
 
-    const [averageVotesPerParticipant, setAverageVotesPerParticipant] = useState<string | null>(null);
-    const [medianVotesFormatted, setMedianVotesFormatted] = useState<string | null>(null);
-    const [delegationRate, setDelegationRate] = useState<string | null>(null);
+    const memberStats = useMemo(() => {
+        if (!members?.length) {
+            return {
+                averageVotesPerParticipant: null,
+                medianVotesFormatted: null,
+                delegationRate: null,
+            };
+        }
 
-    useEffect(() => {
-        if (!members?.length) return;
         const deposits = members.map((m) => safeNumber(m.governingTokenDepositAmount)).sort((a, b) => a - b);
         const activeCount = safeNumber(activeParticipants);
 
@@ -164,15 +245,47 @@ export function GovernanceStatsSummaryView(props: GovernanceStatsProps) {
         const delegatedCount = members.filter((p) => !!p.governanceDelegate).length;
         const delRate = activeCount ? (delegatedCount / activeCount) * 100 : null;
 
-        setAverageVotesPerParticipant(avg?.toFixed(1) || null);
-        setMedianVotesFormatted((median / Math.pow(10, governingTokenDecimals || 0)).toFixed(1));
-        setDelegationRate(delRate?.toFixed(1) || null);
+        return {
+            averageVotesPerParticipant: avg?.toFixed(1) || null,
+            medianVotesFormatted: (median / Math.pow(10, governingTokenDecimals || 0)).toFixed(1),
+            delegationRate: delRate?.toFixed(1) || null,
+        };
     }, [members, activeParticipants, governingTokenDecimals]);
 
     const derived = useMemo(() => {
         const rows = proposalParticipationStats || [];
-        const votes = rows.map((r) => safeNumber(r.totalVotes)).sort((a, b) => a - b);
-        const totalProposals = rows.length;
+        const proposalVoteMap = new Map(rows.map((row) => [row.pubkey, safeNumber(row.totalVotes)]));
+        const proposalRows = (proposals || []).map((proposal: any) => {
+            const pubkey =
+                proposal?.pubkey?.toBase58?.() ||
+                proposal?.pubkey?.toString?.() ||
+                proposal?.pubkey ||
+                '';
+            const matchingStat = rows.find((row) => row.pubkey === pubkey);
+
+            return {
+                pubkey,
+                title: proposal?.account?.name || matchingStat?.title || 'Untitled Proposal',
+                totalVotes: proposalVoteMap.get(pubkey) || 0,
+                state: getProposalState(proposal, matchingStat?.state),
+                createdAt: getProposalTimestamp(proposal),
+                authorKey: getProposalAuthorKey(proposal),
+            };
+        });
+
+        const fallbackRows = proposalRows.length > 0
+            ? proposalRows
+            : rows.map((row) => ({
+                pubkey: row.pubkey,
+                title: row.title,
+                totalVotes: safeNumber(row.totalVotes),
+                state: row.state || 'Unknown',
+                createdAt: 0,
+                authorKey: '',
+            }));
+
+        const votes = fallbackRows.map((r) => safeNumber(r.totalVotes)).sort((a, b) => a - b);
+        const totalProposals = fallbackRows.length;
         const proposalsWithVotes = votes.filter((v) => v > 0).length;
         const zeroVoteProposals = Math.max(totalProposals - proposalsWithVotes, 0);
         const totalVotes = votes.reduce((sum, value) => sum + value, 0);
@@ -183,17 +296,59 @@ export function GovernanceStatsSummaryView(props: GovernanceStatsProps) {
             : null;
 
         const normalize = (state?: string) => String(state || '').toLowerCase();
-        const passed = rows.filter((r) => {
+        const passed = fallbackRows.filter((r) => {
             const s = normalize(r.state);
             return s.includes('succeeded') || s.includes('completed') || s.includes('executing');
         }).length;
-        const defeated = rows.filter((r) => normalize(r.state).includes('defeated')).length;
-        const completed = rows.filter((r) => normalize(r.state).includes('completed')).length;
+        const defeated = fallbackRows.filter((r) => normalize(r.state).includes('defeated')).length;
+        const completed = fallbackRows.filter((r) => normalize(r.state).includes('completed')).length;
         const resolved = passed + defeated;
 
         const passRate = resolved > 0 ? (passed / resolved) * 100 : null;
         const completionRate = passed > 0 ? (completed / passed) * 100 : null;
         const engagementRate = totalProposals > 0 ? (proposalsWithVotes / totalProposals) * 100 : null;
+
+        const proposalTimestamps = fallbackRows
+            .map((row) => safeNumber(row.createdAt))
+            .filter((value) => value > 0)
+            .sort((a, b) => a - b);
+        const proposalMonths = new Set(
+            proposalTimestamps.map((timestamp) => new Date(timestamp * 1000).toISOString().slice(0, 7))
+        );
+        const averageGapDays = proposalTimestamps.length > 1
+            ? proposalTimestamps
+                .slice(1)
+                .map((timestamp, index) => (timestamp - proposalTimestamps[index]) / 86400)
+                .reduce((sum, value) => sum + value, 0) / (proposalTimestamps.length - 1)
+            : null;
+        const lastProposalAt = proposalTimestamps.length
+            ? proposalTimestamps[proposalTimestamps.length - 1]
+            : null;
+        const recentProposalCount90d = proposalTimestamps.filter((timestamp) => timestamp >= (Date.now() / 1000) - (90 * 86400)).length;
+
+        const authorKeys = fallbackRows.map((row) => row.authorKey).filter(Boolean);
+        const uniqueAuthors = new Set(authorKeys);
+        const proposalsPerAuthor = uniqueAuthors.size > 0 ? totalProposals / uniqueAuthors.size : null;
+
+        const participatingVoters = (participantArray || []).filter((participant) => safeNumber(participant?.voteStats?.total) > 0);
+        const repeatVoters = participatingVoters.filter((participant) => safeNumber(participant?.voteStats?.total) > 1).length;
+        const repeatVoterRate = participatingVoters.length > 0
+            ? (repeatVoters / participatingVoters.length) * 100
+            : null;
+
+        const monthlyParticipation = participationSeries || [];
+        const peakMonthlyVoters = monthlyParticipation.length
+            ? Math.max(...monthlyParticipation.map((row) => safeNumber(row.voters)))
+            : null;
+        const latestMonthlyVoters = monthlyParticipation.length
+            ? safeNumber(monthlyParticipation[monthlyParticipation.length - 1]?.voters)
+            : null;
+
+        const flaggedProposalCount = (flaggedAuthors || []).reduce((sum, row) => sum + safeNumber(row.totalFlagged), 0);
+        const flaggedAuthorCount = (flaggedAuthors || []).length;
+        const flaggedProposalRate = totalProposals + flaggedProposalCount > 0
+            ? (flaggedProposalCount / (totalProposals + flaggedProposalCount)) * 100
+            : null;
 
         return {
             totalProposals,
@@ -204,25 +359,41 @@ export function GovernanceStatsSummaryView(props: GovernanceStatsProps) {
             passRate,
             completionRate,
             engagementRate,
+            lastProposalAt,
+            proposalMonths: proposalMonths.size,
+            proposalsPerAuthor,
+            uniqueAuthors: uniqueAuthors.size,
+            averageGapDays,
+            repeatVoters,
+            repeatVoterRate,
+            peakMonthlyVoters,
+            latestMonthlyVoters,
+            recentProposalCount90d,
+            flaggedProposalCount,
+            flaggedAuthorCount,
+            flaggedProposalRate,
         };
-    }, [proposalParticipationStats]);
+    }, [proposalParticipationStats, proposals, participantArray, participationSeries, flaggedAuthors]);
 
     const activePct = activeParticipationPercentage ?? fmt(totalParticipants ? (safeNumber(activeParticipants) / safeNumber(totalParticipants)) * 100 : null, 1);
     const votingPct = votingParticipationPercentage ?? fmt(totalParticipants ? (safeNumber(votingParticipants) / safeNumber(totalParticipants)) * 100 : null, 1);
     const top10Share = top10GovernanceShare ?? fmt(top10Participants?.percentageOfGovernanceSupply, 1);
     const councilShare = councilVoteShare ?? '-';
-    const activationGap = Math.max(safeNumber(votingParticipants) - safeNumber(activeParticipants), 0);
 
     const depositedVotesDisplay =
         totalDepositedVotes !== null && totalDepositedVotes !== undefined
             ? getFormattedNumberToLocale((safeNumber(totalDepositedVotes) / Math.pow(10, governingTokenDecimals || 0)).toFixed(0))
             : '-';
+    const depositedCouncilVotesDisplay =
+        totalDepositedCouncilVotes !== null && totalDepositedCouncilVotes !== undefined
+            ? getFormattedNumberToLocale(safeNumber(totalDepositedCouncilVotes))
+            : null;
     const circulatingSupplyPct = circulatingSupply?.value?.amount
         ? ((safeNumber(totalDepositedVotes) / safeNumber(circulatingSupply.value.amount)) * 100).toFixed(1)
         : null;
 
-    const skewRatio = averageVotesPerParticipant && medianVotesFormatted && safeNumber(medianVotesFormatted) > 0
-        ? safeNumber(averageVotesPerParticipant) / safeNumber(medianVotesFormatted)
+    const skewRatio = memberStats.averageVotesPerParticipant && memberStats.medianVotesFormatted && safeNumber(memberStats.medianVotesFormatted) > 0
+        ? safeNumber(memberStats.averageVotesPerParticipant) / safeNumber(memberStats.medianVotesFormatted)
         : null;
 
     return (
@@ -264,11 +435,21 @@ export function GovernanceStatsSummaryView(props: GovernanceStatsProps) {
                 <Grid item xs={12} sm={6} md={4} lg={3}>
                     <StatCard
                         title="Delegation Rate"
-                        value={delegationRate ? `${delegationRate}%` : '-'}
-                        progress={toPercent(delegationRate)}
+                        value={memberStats.delegationRate ? `${memberStats.delegationRate}%` : '-'}
+                        progress={toPercent(memberStats.delegationRate)}
                         hint="among active voters"
                         tooltip="Share of active members using a governance delegate."
                         accent="#d0a6ff"
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4} lg={3}>
+                    <StatCard
+                        title="Repeat Voters"
+                        value={derived.repeatVoterRate !== null ? `${fmt(derived.repeatVoterRate, 1)}%` : '-'}
+                        progress={toPercent(derived.repeatVoterRate)}
+                        hint={derived.repeatVoters ? `${derived.repeatVoters} members voted more than once` : 'no repeat voter history yet'}
+                        tooltip="Share of participating members who have cast more than one vote."
+                        accent="#7dd0c8"
                     />
                 </Grid>
             </Grid>
@@ -344,6 +525,76 @@ export function GovernanceStatsSummaryView(props: GovernanceStatsProps) {
                         accent="#f0b16c"
                     />
                 </Grid>
+                <Grid item xs={12} sm={6} md={4} lg={3}>
+                    <StatCard
+                        title="Proposal Authors"
+                        value={`${derived.uniqueAuthors}`}
+                        hint={derived.proposalsPerAuthor !== null ? `${fmt(derived.proposalsPerAuthor, 1)} proposals per author` : 'author data unavailable'}
+                        tooltip="Distinct proposal creators represented in this governance snapshot."
+                        accent="#d39ed9"
+                    />
+                </Grid>
+            </Grid>
+
+            <SectionHeader
+                title="Activity & Risk"
+                subtitle="Cadence, recency, and governance hygiene signals"
+            />
+            <Grid container spacing={1.25}>
+                <Grid item xs={12} sm={6} md={4} lg={3}>
+                    <StatCard
+                        title="Latest Proposal"
+                        value={formatRelativeAge(derived.lastProposalAt)}
+                        hint={derived.lastProposalAt ? new Date(derived.lastProposalAt * 1000).toLocaleDateString() : 'no proposal timestamp'}
+                        tooltip="How recently the DAO published a proposal."
+                        accent="#8dc1ff"
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4} lg={3}>
+                    <StatCard
+                        title="Proposal Cadence"
+                        value={derived.proposalMonths > 0 ? `${fmt(derived.totalProposals / derived.proposalMonths, 1)}/mo` : '-'}
+                        hint={derived.proposalMonths ? `${derived.proposalMonths} active proposal months` : 'no month history yet'}
+                        tooltip="Average proposals created per active month."
+                        accent="#8ad2a4"
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4} lg={3}>
+                    <StatCard
+                        title="Peak Monthly Voters"
+                        value={derived.peakMonthlyVoters !== null ? `${derived.peakMonthlyVoters}` : '-'}
+                        hint={derived.latestMonthlyVoters !== null ? `latest month: ${derived.latestMonthlyVoters}` : 'monthly participation unavailable'}
+                        tooltip="Highest number of distinct wallets that voted in the same month."
+                        accent="#f0c27a"
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4} lg={3}>
+                    <StatCard
+                        title="Flagged Proposals"
+                        value={`${derived.flaggedProposalCount}`}
+                        hint={derived.flaggedProposalRate !== null ? `${fmt(derived.flaggedProposalRate, 1)}% cancelled or vetoed` : 'no flagged proposals'}
+                        tooltip="Community proposals that ended cancelled or vetoed."
+                        accent="#f08c7a"
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4} lg={3}>
+                    <StatCard
+                        title="Avg Proposal Gap"
+                        value={derived.averageGapDays !== null ? `${fmt(derived.averageGapDays, 1)}d` : '-'}
+                        hint={derived.recentProposalCount90d ? `${derived.recentProposalCount90d} proposals in 90d` : 'no recent proposal activity'}
+                        tooltip="Average days between proposal creation events."
+                        accent="#b7a7ff"
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4} lg={3}>
+                    <StatCard
+                        title="Flagged Authors"
+                        value={`${derived.flaggedAuthorCount}`}
+                        hint="wallets with cancelled/vetoed history"
+                        tooltip="Distinct proposal authors associated with flagged community proposals."
+                        accent="#d9aa86"
+                    />
+                </Grid>
             </Grid>
 
             <SectionHeader
@@ -354,7 +605,7 @@ export function GovernanceStatsSummaryView(props: GovernanceStatsProps) {
                 <Grid item xs={12} sm={6} md={4} lg={3}>
                     <StatCard
                         title="Deposited Votes"
-                        value={totalDepositedCouncilVotes ? `${depositedVotesDisplay} / ${safeNumber(totalDepositedCouncilVotes)}` : depositedVotesDisplay}
+                        value={depositedCouncilVotesDisplay ? `${depositedVotesDisplay} / ${depositedCouncilVotesDisplay}` : depositedVotesDisplay}
                         hint="community / council"
                         tooltip="Current deposited voting capital."
                         accent="#98d0ad"
@@ -393,7 +644,7 @@ export function GovernanceStatsSummaryView(props: GovernanceStatsProps) {
                 <Grid item xs={12} sm={6} md={4} lg={3}>
                     <StatCard
                         title="Avg Deposit / Active"
-                        value={averageVotesPerParticipant ? getFormattedNumberToLocale(Number(averageVotesPerParticipant)) : '-'}
+                        value={memberStats.averageVotesPerParticipant ? getFormattedNumberToLocale(Number(memberStats.averageVotesPerParticipant)) : '-'}
                         hint="community units"
                         tooltip="Average deposited community stake per active member."
                         accent="#9ac3d8"
@@ -402,7 +653,7 @@ export function GovernanceStatsSummaryView(props: GovernanceStatsProps) {
                 <Grid item xs={12} sm={6} md={4} lg={3}>
                     <StatCard
                         title="Median Deposit / Active"
-                        value={medianVotesFormatted ? getFormattedNumberToLocale(Number(medianVotesFormatted)) : '-'}
+                        value={memberStats.medianVotesFormatted ? getFormattedNumberToLocale(Number(memberStats.medianVotesFormatted)) : '-'}
                         hint="community units"
                         tooltip="Median deposited community stake per active member."
                         accent="#8abbd0"

@@ -43,7 +43,7 @@ import {
   RPC_CONNECTION,
   GGAPI_STORAGE_POOL
 } from '../utils/grapeTools/constants';
-import { VSR_PLUGIN_PKS } from '../utils/grapeTools/helpers';
+import { isVsrPluginForRealm } from '../utils/governanceTools/vsrPlugin';
 
 function toBase58OrEmpty(value: any): string {
   try {
@@ -136,7 +136,12 @@ export function GovernanceTreasuryView(props: any) {
         realmConfig?.account?.communityTokenConfig?.voterWeightAddin
       );
       const communityVsrEnabled =
-        !!communityVoterWeightAddin && VSR_PLUGIN_PKS.includes(communityVoterWeightAddin);
+        !!communityVoterWeightAddin &&
+        (await isVsrPluginForRealm(
+          communityVoterWeightAddin,
+          rlm?.pubkey,
+          rlm?.account?.communityMint
+        ));
 
       setVsrInfo({
         enabled: communityVsrEnabled,
