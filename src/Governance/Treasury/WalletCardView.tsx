@@ -225,6 +225,59 @@ const STAKE_ACCOUNT_CACHE_TTL_MS = 60_000;
 const stakeAccountsByAuthorityCache = new Map<string, { expiresAt: number; accounts: any[] }>();
 const stakeAccountsByAuthorityInflight = new Map<string, Promise<any[]>>();
 
+const normalizeShyftStakeAccounts = (raw: any): any[] => {
+    const arr =
+        Array.isArray(raw) ? raw :
+        Array.isArray(raw?.stake_accounts) ? raw.stake_accounts :
+        Array.isArray(raw?.accounts) ? raw.accounts :
+        Array.isArray(raw?.data) ? raw.data :
+        [];
+
+    return arr.map((a: any) => {
+        const pubkey = a?.pubkey || a?.address || a?.stake_account_address;
+        if (!pubkey) return null;
+
+        const delegation = a?.stake?.delegation;
+        const deactivationEpoch =
+            delegation?.deactivation_epoch ?? delegation?.deactivationEpoch ?? 'N/A';
+
+        let derivedState = 'inactive';
+        if (delegation && String(deactivationEpoch) === STAKE_U64_MAX) derivedState = 'active';
+        else if (delegation && String(deactivationEpoch) !== 'N/A') derivedState = 'deactivating';
+        else if (a?.type === 'initialized') derivedState = 'initialized';
+
+        const totalSol = Number(a?.total_amount ?? 0);
+        const rentSol = Number(a?.rent ?? 0);
+        const delegatedSol = a?.delegated_amount != null ? Number(a.delegated_amount) : null;
+        const activeSolRaw = a?.active_amount != null ? Number(a.active_amount) : null;
+        const activeStakeSol =
+            delegatedSol != null && Number.isFinite(delegatedSol) && delegatedSol <= totalSol + 0.01
+                ? delegatedSol
+                : activeSolRaw != null && Number.isFinite(activeSolRaw) && activeSolRaw <= totalSol + 0.01
+                ? activeSolRaw
+                : 0;
+        const inactiveSol = Math.max(0, totalSol - activeStakeSol - rentSol);
+
+        return {
+            pubkey,
+            stake_account_address: a?.stake_account_address ?? pubkey,
+            total_amount: totalSol,
+            active_amount: activeStakeSol,
+            active_stake_amount: activeStakeSol,
+            delegated_amount: delegatedSol ?? activeStakeSol,
+            rent: rentSol,
+            inactive_amount: inactiveSol,
+            lamports: Math.round(totalSol * LAMPORTS_PER_SOL),
+            activeStakeLamports: Math.round(activeStakeSol * LAMPORTS_PER_SOL),
+            rentLamports: Math.round(rentSol * LAMPORTS_PER_SOL),
+            inactiveLamports: Math.round(inactiveSol * LAMPORTS_PER_SOL),
+            vote_account_address: a?.vote_account_address ?? delegation?.voter ?? 'N/A',
+            status: a?.status ?? a?.state ?? 'unknown',
+            state: a?.state ?? derivedState,
+        };
+    }).filter(Boolean);
+};
+
 const normalizeRpcStakeAccounts = (accounts: any[]): any[] => {
     return accounts.map((acc: any) => {
         const info = acc?.account?.data?.parsed?.info;
@@ -270,6 +323,24 @@ const normalizeRpcStakeAccounts = (accounts: any[]): any[] => {
     });
 };
 
+const fetchStakeAccountsByAuthorityShyft = async (wallet: PublicKey): Promise<any[]> => {
+    if (!SHYFT_KEY) return [];
+
+    const response = await axios.get('https://api.shyft.to/sol/v1/wallet/stake_accounts', {
+        params: {
+            network: 'mainnet-beta',
+            wallet_address: wallet.toBase58(),
+        },
+        headers: {
+            'x-api-key': SHYFT_KEY,
+            'Accept-Encoding': 'gzip, deflate, br',
+        },
+        timeout: 10_000,
+    });
+
+    return normalizeShyftStakeAccounts(response?.data?.result);
+};
+
 const fetchStakeAccountsByAuthorityRpc = async (wallet: PublicKey): Promise<any[]> => {
     const walletBase58 = wallet.toBase58();
     const [stakerAccounts, withdrawerAccounts] = await Promise.all([
@@ -287,6 +358,24 @@ const fetchStakeAccountsByAuthorityRpc = async (wallet: PublicKey): Promise<any[
     }
 
     return normalizeRpcStakeAccounts(Array.from(dedupedAccounts.values()));
+};
+
+const fetchStakeAccountsForWallet = async (wallet: PublicKey): Promise<any[]> => {
+    try {
+        const rpcAccounts = await fetchStakeAccountsByAuthorityRpc(wallet);
+        if (rpcAccounts.length > 0) {
+            return rpcAccounts;
+        }
+    } catch (error) {
+        console.warn('Stake RPC lookup failed, trying Shyft fallback', error);
+    }
+
+    try {
+        return await fetchStakeAccountsByAuthorityShyft(wallet);
+    } catch (error) {
+        console.error('Stake Shyft fallback failed', error);
+        return [];
+    }
 };
 
 const getCachedStakeAccountsByAuthority = async (
@@ -309,7 +398,7 @@ const getCachedStakeAccountsByAuthority = async (
         }
     }
 
-    const request = fetchStakeAccountsByAuthorityRpc(wallet)
+    const request = fetchStakeAccountsForWallet(wallet)
         .then((accounts) => {
             stakeAccountsByAuthorityCache.set(walletBase58, {
                 expiresAt: Date.now() + STAKE_ACCOUNT_CACHE_TTL_MS,
@@ -1293,13 +1382,13 @@ export default function WalletCardView(props:any) {
 
     const getStakeAccountsSnapshot = async (
         nativeWalletPk: PublicKey,
-        rulesWalletPk: PublicKey,
+        rulesWalletPk?: PublicKey | null,
         options?: { force?: boolean }
     ) => {
-        const sameWallet = nativeWalletPk.equals(rulesWalletPk);
+        const sameWallet = !rulesWalletPk || nativeWalletPk.equals(rulesWalletPk);
         const [nativeStake, rulesStakeRaw] = await Promise.all([
             getWalletStakeAccounts(nativeWalletPk, options),
-            sameWallet ? Promise.resolve([]) : getWalletStakeAccounts(rulesWalletPk, options),
+            sameWallet || !rulesWalletPk ? Promise.resolve([]) : getWalletStakeAccounts(rulesWalletPk, options),
         ]);
 
         const nativeAccounts = Array.isArray(nativeStake) ? nativeStake : [];
@@ -2129,14 +2218,14 @@ export default function WalletCardView(props:any) {
 const StakeAccountsView = () => {
   const [loadingStake, setLoadingStake] = React.useState(false);
 
-  const fetchStakeAccounts = async () => {
-    if (!walletAddress || !rulesWalletAddress) return;
+  const fetchStakeAccounts = async (force = false) => {
+    if (!walletAddress) return;
     setLoadingStake(true);
     try {
       const stakeSnapshot = await getStakeAccountsSnapshot(
         new PublicKey(walletAddress),
-        new PublicKey(rulesWalletAddress),
-        { force: true }
+        rulesWalletAddress ? new PublicKey(rulesWalletAddress) : null,
+        { force }
       );
       setNativeStakeAccounts(stakeSnapshot.native);
       setRulesStakeAccounts(stakeSnapshot.rules);
@@ -2158,7 +2247,14 @@ const StakeAccountsView = () => {
   const isStakeLoading = loadingStake || (nativeStakeAccounts === null && rulesStakeAccounts === null);
 
   React.useEffect(() => {
-    if (!loadingStake && nativeStakeAccounts === null && rulesStakeAccounts === null) fetchStakeAccounts();
+    if (loadingStake) return;
+    if (nativeStakeAccounts === null && rulesStakeAccounts === null) {
+      fetchStakeAccounts(false);
+      return;
+    }
+    if (combinedStake.length === 0) {
+      fetchStakeAccounts(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
