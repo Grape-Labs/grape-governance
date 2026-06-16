@@ -222,8 +222,22 @@ export interface DialogTitleProps {
 const STAKE_U64_MAX = '18446744073709551615';
 const STAKE_RENT_EXEMPT_LAMPORTS = 2282880;
 const STAKE_ACCOUNT_CACHE_TTL_MS = 60_000;
+const STAKE_LOOKUP_TIMEOUT_MS = 4_000;
 const stakeAccountsByAuthorityCache = new Map<string, { expiresAt: number; accounts: any[] }>();
 const stakeAccountsByAuthorityInflight = new Map<string, Promise<any[]>>();
+
+const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const timeoutPromise = new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    });
+
+    try {
+        return await Promise.race([promise, timeoutPromise]);
+    } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+    }
+};
 
 const normalizeShyftStakeAccounts = (raw: any): any[] => {
     const arr =
@@ -326,54 +340,97 @@ const normalizeRpcStakeAccounts = (accounts: any[]): any[] => {
 const fetchStakeAccountsByAuthorityShyft = async (wallet: PublicKey): Promise<any[]> => {
     if (!SHYFT_KEY) return [];
 
-    const response = await axios.get('https://api.shyft.to/sol/v1/wallet/stake_accounts', {
-        params: {
-            network: 'mainnet-beta',
-            wallet_address: wallet.toBase58(),
-        },
-        headers: {
-            'x-api-key': SHYFT_KEY,
-            'Accept-Encoding': 'gzip, deflate, br',
-        },
-        timeout: 10_000,
-    });
+    const response = await withTimeout(
+        axios.get('https://api.shyft.to/sol/v1/wallet/stake_accounts', {
+            params: {
+                network: 'mainnet-beta',
+                wallet_address: wallet.toBase58(),
+            },
+            headers: {
+                'x-api-key': SHYFT_KEY,
+                'Accept-Encoding': 'gzip, deflate, br',
+            },
+            timeout: STAKE_LOOKUP_TIMEOUT_MS,
+        }),
+        STAKE_LOOKUP_TIMEOUT_MS + 250,
+        'Shyft stake lookup'
+    );
 
     return normalizeShyftStakeAccounts(response?.data?.result);
 };
 
 const fetchStakeAccountsByAuthorityRpc = async (wallet: PublicKey): Promise<any[]> => {
     const walletBase58 = wallet.toBase58();
-    const [stakerAccounts, withdrawerAccounts] = await Promise.all([
-        RPC_CONNECTION.getParsedProgramAccounts(StakeProgram.programId, {
-            filters: [{ memcmp: { offset: 12, bytes: walletBase58 } }],
+    const stakerAccounts = await withTimeout(
+        RPC_CONNECTION.getProgramAccounts(StakeProgram.programId, {
+            dataSlice: { offset: 0, length: 0 },
+            filters: [
+                { dataSize: StakeProgram.space },
+                { memcmp: { offset: 12, bytes: walletBase58 } },
+            ],
         }),
-        RPC_CONNECTION.getParsedProgramAccounts(StakeProgram.programId, {
-            filters: [{ memcmp: { offset: 44, bytes: walletBase58 } }],
+        STAKE_LOOKUP_TIMEOUT_MS,
+        'Stake staker-authority lookup'
+    );
+    const withdrawerAccounts = await withTimeout(
+        RPC_CONNECTION.getProgramAccounts(StakeProgram.programId, {
+            dataSlice: { offset: 0, length: 0 },
+            filters: [
+                { dataSize: StakeProgram.space },
+                { memcmp: { offset: 44, bytes: walletBase58 } },
+            ],
         }),
-    ]);
+        STAKE_LOOKUP_TIMEOUT_MS,
+        'Stake withdraw-authority lookup'
+    );
 
-    const dedupedAccounts = new Map<string, any>();
+    const dedupedPubkeys = new Map<string, PublicKey>();
     for (const account of [...stakerAccounts, ...withdrawerAccounts]) {
-        dedupedAccounts.set(account.pubkey.toBase58(), account);
+        dedupedPubkeys.set(account.pubkey.toBase58(), account.pubkey);
     }
 
-    return normalizeRpcStakeAccounts(Array.from(dedupedAccounts.values()));
+    if (dedupedPubkeys.size === 0) {
+        return [];
+    }
+
+    const pubkeys = Array.from(dedupedPubkeys.values());
+    const parsedAccounts = await withTimeout(
+        RPC_CONNECTION.getMultipleParsedAccounts(pubkeys, 'confirmed'),
+        STAKE_LOOKUP_TIMEOUT_MS,
+        'Stake account details lookup'
+    );
+
+    const normalizedAccounts = pubkeys.reduce((acc: any[], pubkey, index) => {
+        const accountInfo = parsedAccounts?.value?.[index];
+        if (!accountInfo) return acc;
+
+        acc.push({
+            pubkey,
+            account: {
+                lamports: accountInfo.lamports,
+                data: accountInfo.data,
+            },
+        });
+        return acc;
+    }, []);
+
+    return normalizeRpcStakeAccounts(normalizedAccounts);
 };
 
 const fetchStakeAccountsForWallet = async (wallet: PublicKey): Promise<any[]> => {
     try {
-        const rpcAccounts = await fetchStakeAccountsByAuthorityRpc(wallet);
-        if (rpcAccounts.length > 0) {
-            return rpcAccounts;
+        const shyftAccounts = await fetchStakeAccountsByAuthorityShyft(wallet);
+        if (shyftAccounts.length > 0) {
+            return shyftAccounts;
         }
     } catch (error) {
-        console.warn('Stake RPC lookup failed, trying Shyft fallback', error);
+        console.warn('Stake Shyft lookup failed, trying RPC fallback', error);
     }
 
     try {
-        return await fetchStakeAccountsByAuthorityShyft(wallet);
+        return await fetchStakeAccountsByAuthorityRpc(wallet);
     } catch (error) {
-        console.error('Stake Shyft fallback failed', error);
+        console.error('Stake RPC fallback failed', error);
         return [];
     }
 };
@@ -1380,34 +1437,6 @@ export default function WalletCardView(props:any) {
         }
     }
 
-    const getStakeAccountsSnapshot = async (
-        nativeWalletPk: PublicKey,
-        rulesWalletPk?: PublicKey | null,
-        options?: { force?: boolean }
-    ) => {
-        const sameWallet = !rulesWalletPk || nativeWalletPk.equals(rulesWalletPk);
-        const [nativeStake, rulesStakeRaw] = await Promise.all([
-            getWalletStakeAccounts(nativeWalletPk, options),
-            sameWallet || !rulesWalletPk ? Promise.resolve([]) : getWalletStakeAccounts(rulesWalletPk, options),
-        ]);
-
-        const nativeAccounts = Array.isArray(nativeStake) ? nativeStake : [];
-        const seen = new Set<string>(
-            nativeAccounts.map((item: any) => item?.stake_account_address || item?.pubkey).filter(Boolean)
-        );
-        const rulesAccounts = (Array.isArray(rulesStakeRaw) ? rulesStakeRaw : []).filter((item: any) => {
-            const key = item?.stake_account_address || item?.pubkey;
-            if (!key || seen.has(key)) return false;
-            seen.add(key);
-            return true;
-        });
-
-        return {
-            native: nativeAccounts,
-            rules: rulesAccounts,
-        };
-    }
-
     const getWalletDomains = async(tokenOwnerRecord: PublicKey): Promise<{ domains: Array<{ name: string; isPrimary: boolean }>; debug: any }> => {
         const ownerAddress = tokenOwnerRecord.toBase58();
         const startedAtMs = Date.now();
@@ -2217,13 +2246,24 @@ const StakeAccountsView = () => {
     if (!walletAddress) return;
     setLoadingStake(true);
     try {
-      const stakeSnapshot = await getStakeAccountsSnapshot(
-        new PublicKey(walletAddress),
-        rulesWalletAddress ? new PublicKey(rulesWalletAddress) : null,
-        { force }
-      );
-      setNativeStakeAccounts(stakeSnapshot.native);
-      setRulesStakeAccounts(stakeSnapshot.rules);
+      const primaryWalletPk = new PublicKey(walletAddress);
+      const primaryStake = await getWalletStakeAccounts(primaryWalletPk, { force });
+      const normalizedPrimaryStake = Array.isArray(primaryStake) ? primaryStake : [];
+
+      let fallbackStake: any[] = [];
+      const shouldTryFallbackWallet =
+        normalizedPrimaryStake.length === 0 &&
+        rulesWalletAddress &&
+        rulesWalletAddress !== walletAddress;
+
+      if (shouldTryFallbackWallet) {
+        const fallbackWalletPk = new PublicKey(rulesWalletAddress);
+        const fallbackStakeAccounts = await getWalletStakeAccounts(fallbackWalletPk, { force });
+        fallbackStake = Array.isArray(fallbackStakeAccounts) ? fallbackStakeAccounts : [];
+      }
+
+      setNativeStakeAccounts(normalizedPrimaryStake);
+      setRulesStakeAccounts(fallbackStake);
     } catch (e) {
       setNativeStakeAccounts([]);
       setRulesStakeAccounts([]);
@@ -2237,7 +2277,7 @@ const StakeAccountsView = () => {
   const rulesStake = Array.isArray(rulesStakeAccounts) ? rulesStakeAccounts : [];
   const combinedStake = [
     ...nativeStake.map((item: any) => ({ ...item, __walletSource: "Treasury Wallet" })),
-    ...rulesStake.map((item: any) => ({ ...item, __walletSource: "Rules Wallet" })),
+    ...rulesStake.map((item: any) => ({ ...item, __walletSource: "Governance Wallet Fallback" })),
   ];
   const isStakeLoading = loadingStake || (nativeStakeAccounts === null && rulesStakeAccounts === null);
 
