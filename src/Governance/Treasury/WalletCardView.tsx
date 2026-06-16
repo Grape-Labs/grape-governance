@@ -1927,12 +1927,11 @@ export default function WalletCardView(props:any) {
         try {
             const nativeWalletPk = new PublicKey(walletAddress);
             const rulesWalletPk = new PublicKey(rulesWalletAddress);
-            const [sol1, sol2, token1, token2, stakeSnapshot] = await Promise.all([
+            const [sol1, sol2, token1, token2] = await Promise.all([
                 getWalletBalance(nativeWalletPk),
                 getWalletBalance(rulesWalletPk),
                 getWalletAllTokenBalance(nativeWalletPk),
                 getWalletAllTokenBalance(rulesWalletPk),
-                getStakeAccountsSnapshot(nativeWalletPk, rulesWalletPk),
             ]);
             
             // Consolidate tokens
@@ -1961,8 +1960,6 @@ export default function WalletCardView(props:any) {
 
             setNativeTokens(token1);
             setRulesTokens(token2);
-            setNativeStakeAccounts(stakeSnapshot.native);
-            setRulesStakeAccounts(stakeSnapshot.rules);
 
             //setNativeNftTokens(nft1);
             //setRulesNftTokens(nft2);
@@ -1972,8 +1969,6 @@ export default function WalletCardView(props:any) {
                 rulesSol: sol2,
                 nativeTokens: token1,
                 rulesTokens: token2,
-                nativeStakeAccounts: stakeSnapshot.native,
-                rulesStakeAccounts: stakeSnapshot.rules,
                 nativeNftTokens: null,//nft1,
                 rulesNftTokens: null,//nft2,
             };
@@ -2247,14 +2242,7 @@ const StakeAccountsView = () => {
   const isStakeLoading = loadingStake || (nativeStakeAccounts === null && rulesStakeAccounts === null);
 
   React.useEffect(() => {
-    if (loadingStake) return;
-    if (nativeStakeAccounts === null && rulesStakeAccounts === null) {
-      fetchStakeAccounts(false);
-      return;
-    }
-    if (combinedStake.length === 0) {
-      fetchStakeAccounts(true);
-    }
+    fetchStakeAccounts(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -2638,6 +2626,8 @@ const StakeAccountsView = () => {
         if (!isLoading.current) {    
             if (walletAddress && rulesWalletAddress){
                 console.log("rulesWallet: "+JSON.stringify(rulesWallet))
+                setNativeStakeAccounts(null);
+                setRulesStakeAccounts(null);
                 getWalletBalances();
             }
         }
