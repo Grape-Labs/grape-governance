@@ -86,7 +86,7 @@ import {
 import { 
     shortenString, 
     parseMintNaturalAmountFromDecimalAsBN,
-    VSR_PLUGIN_PKS } from '../utils/grapeTools/helpers';
+} from '../utils/grapeTools/helpers';
 
 import { 
     RPC_CONNECTION,
@@ -99,7 +99,8 @@ import { getUnrelinquishedVoteRecords } from '../utils/governanceTools/models/ap
 import { VsrClient } from '../utils/governanceTools/components/instructions/client';
 import { withVoteRegistryDeposit } from '../utils/governanceTools/components/instructions/withVoteRegistryDeposit';
 import { withVoteRegistryWithdraw } from '../utils/governanceTools/components/instructions/withVoteRegistryWithdraw';
-import { getRegistrarPDA, getVoterPDA, getVoterWeightPDA } from '../utils/governanceTools/components/instructions/account';
+import { getVoterPDA, getVoterWeightPDA } from '../utils/governanceTools/components/instructions/account';
+import { getVsrRegistrarInfo } from '../utils/governanceTools/vsrPlugin';
 //import { LogoutIcon } from '@dynamic-labs/sdk-react-core';
 
 export interface DialogTitleProps {
@@ -395,7 +396,13 @@ export default function GovernancePower(props: any){
         }
 
         const pluginPkStr = voterWeightAddinPk.toBase58();
-        if (!VSR_PLUGIN_PKS.includes(pluginPkStr)) {
+        const registrarInfo = await getVsrRegistrarInfo(
+            voterWeightAddinPk,
+            realmPk,
+            communityMintPk
+        );
+
+        if (!registrarInfo) {
             setIsVsrPlugin(false);
             resetVsrState();
             return;
@@ -404,24 +411,15 @@ export default function GovernancePower(props: any){
         setIsVsrPlugin(true);
 
         try {
-            const client = await getVsrClient(voterWeightAddinPk);
+            const client = registrarInfo.client;
             const clientProgramId = client.program.programId;
-            const { registrar } = await getRegistrarPDA(
-                realmPk,
-                communityMintPk,
-                clientProgramId
-            );
+            const { registrar, registrarState: registrarAccount } = registrarInfo;
             const { voter } = await getVoterPDA(registrar, publicKey, clientProgramId);
             const { voterWeightPk } = await getVoterWeightPDA(
                 registrar,
                 publicKey,
                 clientProgramId
             );
-            const registrarAccount =
-                typeof (client.program.account.registrar as any)?.fetchNullable === 'function'
-                    ? await (client.program.account.registrar as any).fetchNullable(registrar)
-                    : await client.program.account.registrar.fetch(registrar).catch(() => null);
-
             const voterAccount =
                 typeof (client.program.account.voter as any)?.fetchNullable === 'function'
                     ? await (client.program.account.voter as any).fetchNullable(voter)

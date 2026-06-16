@@ -888,24 +888,24 @@ export function GovernanceStatsView(props: any) {
                         percentageOfGovernanceSupply:totalTopGovernanceSupply
                     }
 
-                    const quorumPercentage = circulatingSupply?.value?.amount
-                        ? ((totalDepositedVotes / circulatingSupply.value.amount) * 100).toFixed(2)
+                    const quorumPercentage = tknSupply?.value?.amount
+                        ? ((tVotes / Number(tknSupply.value.amount)) * 100).toFixed(2)
                         : null;
 
-                    const activeParticipationPercentage = totalParticipants
-                        ? ((activeParticipants / totalParticipants) * 100).toFixed(1)
+                    const activeParticipationPercentage = tParticipants
+                        ? ((lParticipants / tParticipants) * 100).toFixed(1)
                         : null;
 
-                    const votingParticipationPercentage = totalParticipants
-                        ? ((votingParticipants / totalParticipants) * 100).toFixed(1)
+                    const votingParticipationPercentage = tParticipants
+                        ? ((aParticipants / tParticipants) * 100).toFixed(1)
                         : null;
 
-                    const top10GovernanceShare = top10Participants
-                        ? top10Participants.percentageOfGovernanceSupply.toFixed(2)
+                    const top10GovernanceShare = top10
+                        ? Number(top10.percentageOfGovernanceSupply || 0).toFixed(2)
                         : null;
 
-                    const councilVoteShare = totalDepositedCouncilVotes && totalDepositedVotes
-                        ? ((totalDepositedCouncilVotes / totalDepositedVotes) * 100).toFixed(2)
+                    const councilVoteShare = tDepositedCouncilVotesCasted && tVotes
+                        ? ((tDepositedCouncilVotesCasted / tVotes) * 100).toFixed(2)
                         : null;
 
                     setQuorumPercentage(quorumPercentage);
@@ -1083,6 +1083,10 @@ export function GovernanceStatsView(props: any) {
                             mostParticipatedProposal={mostParticipatedProposal}
                             averageVotesPerProposal={averageVotesPerProposal}
                             proposalParticipationStats={proposalParticipationStats}
+                            proposals={governanceProposals}
+                            participationSeries={participationArray}
+                            participantArray={governanceParticipants}
+                            flaggedAuthors={sortedFlaggedAuthors}
                         />
 
                         {/*participationArray?.length > 0 && (
