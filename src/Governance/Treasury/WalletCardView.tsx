@@ -36,8 +36,9 @@ import {
 } from '../Proposals/proposalAuthority';
 
 import { 
+    APP_CLUSTER,
+    getPreferredRpc,
     RPC_CONNECTION,
-    TX_RPC_ENDPOINT,
     SHYFT_KEY,
     HELIUS_API,
     QUICKNODE_RPC_ENDPOINT,
@@ -226,10 +227,7 @@ const STAKE_ACCOUNT_CACHE_TTL_MS = 60_000;
 const STAKE_LOOKUP_TIMEOUT_MS = 4_000;
 const stakeAccountsByAuthorityCache = new Map<string, { expiresAt: number; accounts: any[] }>();
 const stakeAccountsByAuthorityInflight = new Map<string, Promise<any[]>>();
-const STAKE_DISCOVERY_CONNECTION = new Connection(
-    TX_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com',
-    'confirmed'
-);
+const stakeDiscoveryConnectionCache = new Map<string, Connection>();
 
 const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -242,6 +240,34 @@ const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): 
     } finally {
         if (timeoutId) clearTimeout(timeoutId);
     }
+};
+
+const getStakeDiscoveryEndpointCandidates = (): string[] => {
+    const preferredEndpoint = getPreferredRpc(APP_CLUSTER);
+    const fallbackEndpoint =
+        APP_CLUSTER === 'devnet'
+            ? 'https://api.devnet.solana.com'
+            : 'https://api.mainnet-beta.solana.com';
+
+    return Array.from(new Set([preferredEndpoint, fallbackEndpoint].filter(Boolean)));
+};
+
+const getStakeDiscoveryConnection = (endpoint: string): Connection => {
+    const cached = stakeDiscoveryConnectionCache.get(endpoint);
+    if (cached) return cached;
+
+    const connection = new Connection(endpoint, 'confirmed');
+    stakeDiscoveryConnectionCache.set(endpoint, connection);
+    return connection;
+};
+
+const isUnsupportedStakeIndexError = (error: any): boolean => {
+    const message = `${error?.message || ''} ${error?.data || ''} ${error?.error?.data || ''}`.toLowerCase();
+    return (
+        message.includes('index not supported for this program and filter combination') ||
+        message.includes('failed to get accounts owned by program') ||
+        message.includes('invalid params')
+    );
 };
 
 const normalizeShyftStakeAccounts = (raw: any): any[] => {
@@ -368,58 +394,75 @@ const fetchStakeAccountsByAuthorityShyft = async (wallet: PublicKey): Promise<an
 
 const fetchStakeAccountsByAuthorityRpc = async (wallet: PublicKey): Promise<any[]> => {
     const walletBase58 = wallet.toBase58();
-    const stakerAccounts = await withTimeout(
-        STAKE_DISCOVERY_CONNECTION.getProgramAccounts(StakeProgram.programId, {
-            dataSlice: { offset: 0, length: 0 },
-            filters: [
-                { memcmp: { offset: 12, bytes: walletBase58 } },
-            ],
-        }),
-        STAKE_LOOKUP_TIMEOUT_MS,
-        'Stake staker-authority lookup'
-    );
-    const withdrawerAccounts = await withTimeout(
-        STAKE_DISCOVERY_CONNECTION.getProgramAccounts(StakeProgram.programId, {
-            dataSlice: { offset: 0, length: 0 },
-            filters: [
-                { memcmp: { offset: 44, bytes: walletBase58 } },
-            ],
-        }),
-        STAKE_LOOKUP_TIMEOUT_MS,
-        'Stake withdraw-authority lookup'
-    );
+    const endpoints = getStakeDiscoveryEndpointCandidates();
+    let lastError: any = null;
 
-    const dedupedPubkeys = new Map<string, PublicKey>();
-    for (const account of [...stakerAccounts, ...withdrawerAccounts]) {
-        dedupedPubkeys.set(account.pubkey.toBase58(), account.pubkey);
+    for (const endpoint of endpoints) {
+        const connection = getStakeDiscoveryConnection(endpoint);
+
+        try {
+            const stakerAccounts = await withTimeout(
+                connection.getProgramAccounts(StakeProgram.programId, {
+                    dataSlice: { offset: 0, length: 0 },
+                    filters: [{ memcmp: { offset: 12, bytes: walletBase58 } }],
+                }),
+                STAKE_LOOKUP_TIMEOUT_MS,
+                `Stake staker-authority lookup (${endpoint})`
+            );
+            const withdrawerAccounts = await withTimeout(
+                connection.getProgramAccounts(StakeProgram.programId, {
+                    dataSlice: { offset: 0, length: 0 },
+                    filters: [{ memcmp: { offset: 44, bytes: walletBase58 } }],
+                }),
+                STAKE_LOOKUP_TIMEOUT_MS,
+                `Stake withdraw-authority lookup (${endpoint})`
+            );
+
+            const dedupedPubkeys = new Map<string, PublicKey>();
+            for (const account of [...stakerAccounts, ...withdrawerAccounts]) {
+                dedupedPubkeys.set(account.pubkey.toBase58(), account.pubkey);
+            }
+
+            if (dedupedPubkeys.size === 0) {
+                return [];
+            }
+
+            const pubkeys = Array.from(dedupedPubkeys.values());
+            const parsedAccounts = await withTimeout(
+                connection.getMultipleParsedAccounts(pubkeys, 'confirmed'),
+                STAKE_LOOKUP_TIMEOUT_MS,
+                `Stake account details lookup (${endpoint})`
+            );
+
+            const normalizedAccounts = pubkeys.reduce((acc: any[], pubkey, index) => {
+                const accountInfo = parsedAccounts?.value?.[index];
+                if (!accountInfo) return acc;
+
+                acc.push({
+                    pubkey,
+                    account: {
+                        lamports: accountInfo.lamports,
+                        data: accountInfo.data,
+                    },
+                });
+                return acc;
+            }, []);
+
+            return normalizeRpcStakeAccounts(normalizedAccounts);
+        } catch (error) {
+            lastError = error;
+            if (endpoint !== endpoints[endpoints.length - 1] && isUnsupportedStakeIndexError(error)) {
+                console.warn(`Stake discovery RPC ${endpoint} does not support stake authority indexing; trying fallback RPC.`);
+                continue;
+            }
+            if (endpoint !== endpoints[endpoints.length - 1]) {
+                console.warn(`Stake discovery RPC ${endpoint} failed; trying fallback RPC.`, error);
+                continue;
+            }
+        }
     }
 
-    if (dedupedPubkeys.size === 0) {
-        return [];
-    }
-
-    const pubkeys = Array.from(dedupedPubkeys.values());
-    const parsedAccounts = await withTimeout(
-        STAKE_DISCOVERY_CONNECTION.getMultipleParsedAccounts(pubkeys, 'confirmed'),
-        STAKE_LOOKUP_TIMEOUT_MS,
-        'Stake account details lookup'
-    );
-
-    const normalizedAccounts = pubkeys.reduce((acc: any[], pubkey, index) => {
-        const accountInfo = parsedAccounts?.value?.[index];
-        if (!accountInfo) return acc;
-
-        acc.push({
-            pubkey,
-            account: {
-                lamports: accountInfo.lamports,
-                data: accountInfo.data,
-            },
-        });
-        return acc;
-    }, []);
-
-    return normalizeRpcStakeAccounts(normalizedAccounts);
+    throw lastError || new Error('Stake discovery RPC lookup failed');
 };
 
 const fetchStakeAccountsForWallet = async (wallet: PublicKey): Promise<any[]> => {
