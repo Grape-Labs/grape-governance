@@ -36,8 +36,6 @@ import {
 } from '../Proposals/proposalAuthority';
 
 import { 
-    APP_CLUSTER,
-    getPreferredRpc,
     getShyftKey,
     RPC_CONNECTION,
     HELIUS_API,
@@ -222,12 +220,10 @@ export interface DialogTitleProps {
   }));
 
 const STAKE_U64_MAX = '18446744073709551615';
-const STAKE_RENT_EXEMPT_LAMPORTS = 2282880;
 const STAKE_ACCOUNT_CACHE_TTL_MS = 60_000;
 const STAKE_LOOKUP_TIMEOUT_MS = 4_000;
 const stakeAccountsByAuthorityCache = new Map<string, { expiresAt: number; accounts: any[] }>();
 const stakeAccountsByAuthorityInflight = new Map<string, Promise<any[]>>();
-const stakeDiscoveryConnectionCache = new Map<string, Connection>();
 
 const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -240,34 +236,6 @@ const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): 
     } finally {
         if (timeoutId) clearTimeout(timeoutId);
     }
-};
-
-const getStakeDiscoveryEndpointCandidates = (): string[] => {
-    const preferredEndpoint = getPreferredRpc(APP_CLUSTER);
-    const fallbackEndpoint =
-        APP_CLUSTER === 'devnet'
-            ? 'https://api.devnet.solana.com'
-            : 'https://api.mainnet-beta.solana.com';
-
-    return Array.from(new Set([preferredEndpoint, fallbackEndpoint].filter(Boolean)));
-};
-
-const getStakeDiscoveryConnection = (endpoint: string): Connection => {
-    const cached = stakeDiscoveryConnectionCache.get(endpoint);
-    if (cached) return cached;
-
-    const connection = new Connection(endpoint, 'confirmed');
-    stakeDiscoveryConnectionCache.set(endpoint, connection);
-    return connection;
-};
-
-const isUnsupportedStakeIndexError = (error: any): boolean => {
-    const message = `${error?.message || ''} ${error?.data || ''} ${error?.error?.data || ''}`.toLowerCase();
-    return (
-        message.includes('index not supported for this program and filter combination') ||
-        message.includes('failed to get accounts owned by program') ||
-        message.includes('invalid params')
-    );
 };
 
 const normalizeShyftStakeAccounts = (raw: any): any[] => {
@@ -323,54 +291,11 @@ const normalizeShyftStakeAccounts = (raw: any): any[] => {
     }).filter(Boolean);
 };
 
-const normalizeRpcStakeAccounts = (accounts: any[]): any[] => {
-    return accounts.map((acc: any) => {
-        const info = acc?.account?.data?.parsed?.info;
-        const delegation = info?.stake?.delegation;
-        const deactivationEpoch = delegation?.deactivationEpoch ?? 'N/A';
-
-        let state = info?.type ?? 'unknown';
-        if (info?.type === 'delegated' && String(deactivationEpoch) === STAKE_U64_MAX) state = 'active';
-        else if (info?.type === 'delegated') state = 'deactivating';
-        else if (info?.type === 'initialized') state = 'initialized';
-
-        const totalLamports = Number(acc?.account?.lamports || 0);
-        const rentLamports =
-            info?.meta?.rentExemptReserve != null
-                ? Number(info.meta.rentExemptReserve)
-                : STAKE_RENT_EXEMPT_LAMPORTS;
-        const activeStakeLamports = delegation?.stake != null ? Number(delegation.stake) : 0;
-        const inactiveLamports = Math.max(0, totalLamports - activeStakeLamports - rentLamports);
-
-        const totalSol = totalLamports / LAMPORTS_PER_SOL;
-        const rentSol = rentLamports / LAMPORTS_PER_SOL;
-        const activeStakeSol = activeStakeLamports / LAMPORTS_PER_SOL;
-        const inactiveSol = inactiveLamports / LAMPORTS_PER_SOL;
-        const pubkey = acc.pubkey.toBase58();
-
-        return {
-            pubkey,
-            stake_account_address: pubkey,
-            vote_account_address: delegation?.voter ?? 'N/A',
-            status: info?.type ?? 'unknown',
-            state,
-            total_amount: totalSol,
-            active_amount: activeStakeSol,
-            active_stake_amount: activeStakeSol,
-            delegated_amount: activeStakeSol,
-            rent: rentSol,
-            inactive_amount: inactiveSol,
-            lamports: totalLamports,
-            activeStakeLamports,
-            rentLamports,
-            inactiveLamports,
-        };
-    });
-};
-
 const fetchStakeAccountsByAuthorityShyft = async (wallet: PublicKey): Promise<any[]> => {
     const shyftKey = getShyftKey();
-    if (!shyftKey) return [];
+    if (!shyftKey) {
+        throw new Error('Shyft API key not configured');
+    }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), STAKE_LOOKUP_TIMEOUT_MS);
@@ -405,95 +330,8 @@ const fetchStakeAccountsByAuthorityShyft = async (wallet: PublicKey): Promise<an
     }
 };
 
-const fetchStakeAccountsByAuthorityRpc = async (wallet: PublicKey): Promise<any[]> => {
-    const walletBase58 = wallet.toBase58();
-    const endpoints = getStakeDiscoveryEndpointCandidates();
-    let lastError: any = null;
-
-    for (const endpoint of endpoints) {
-        const connection = getStakeDiscoveryConnection(endpoint);
-
-        try {
-            const stakerAccounts = await withTimeout(
-                connection.getProgramAccounts(StakeProgram.programId, {
-                    dataSlice: { offset: 0, length: 0 },
-                    filters: [{ memcmp: { offset: 12, bytes: walletBase58 } }],
-                }),
-                STAKE_LOOKUP_TIMEOUT_MS,
-                `Stake staker-authority lookup (${endpoint})`
-            );
-            const withdrawerAccounts = await withTimeout(
-                connection.getProgramAccounts(StakeProgram.programId, {
-                    dataSlice: { offset: 0, length: 0 },
-                    filters: [{ memcmp: { offset: 44, bytes: walletBase58 } }],
-                }),
-                STAKE_LOOKUP_TIMEOUT_MS,
-                `Stake withdraw-authority lookup (${endpoint})`
-            );
-
-            const dedupedPubkeys = new Map<string, PublicKey>();
-            for (const account of [...stakerAccounts, ...withdrawerAccounts]) {
-                dedupedPubkeys.set(account.pubkey.toBase58(), account.pubkey);
-            }
-
-            if (dedupedPubkeys.size === 0) {
-                return [];
-            }
-
-            const pubkeys = Array.from(dedupedPubkeys.values());
-            const parsedAccounts = await withTimeout(
-                connection.getMultipleParsedAccounts(pubkeys, 'confirmed'),
-                STAKE_LOOKUP_TIMEOUT_MS,
-                `Stake account details lookup (${endpoint})`
-            );
-
-            const normalizedAccounts = pubkeys.reduce((acc: any[], pubkey, index) => {
-                const accountInfo = parsedAccounts?.value?.[index];
-                if (!accountInfo) return acc;
-
-                acc.push({
-                    pubkey,
-                    account: {
-                        lamports: accountInfo.lamports,
-                        data: accountInfo.data,
-                    },
-                });
-                return acc;
-            }, []);
-
-            return normalizeRpcStakeAccounts(normalizedAccounts);
-        } catch (error) {
-            lastError = error;
-            if (endpoint !== endpoints[endpoints.length - 1] && isUnsupportedStakeIndexError(error)) {
-                console.warn(`Stake discovery RPC ${endpoint} does not support stake authority indexing; trying fallback RPC.`);
-                continue;
-            }
-            if (endpoint !== endpoints[endpoints.length - 1]) {
-                console.warn(`Stake discovery RPC ${endpoint} failed; trying fallback RPC.`, error);
-                continue;
-            }
-        }
-    }
-
-    throw lastError || new Error('Stake discovery RPC lookup failed');
-};
-
 const fetchStakeAccountsForWallet = async (wallet: PublicKey): Promise<any[]> => {
-    try {
-        const shyftAccounts = await fetchStakeAccountsByAuthorityShyft(wallet);
-        if (shyftAccounts.length > 0) {
-            return shyftAccounts;
-        }
-    } catch (error) {
-        console.warn('Stake Shyft lookup failed, trying RPC fallback', error);
-    }
-
-    try {
-        return await fetchStakeAccountsByAuthorityRpc(wallet);
-    } catch (error) {
-        console.error('Stake RPC fallback failed', error);
-        return [];
-    }
+    return await fetchStakeAccountsByAuthorityShyft(wallet);
 };
 
 const getCachedStakeAccountsByAuthority = async (
@@ -1495,12 +1333,7 @@ export default function WalletCardView(props:any) {
     }
 
     const getWalletStakeAccounts = async(tokenOwnerRecord: PublicKey, options?: { force?: boolean }) => {
-        try {
-            return await getCachedStakeAccountsByAuthority(tokenOwnerRecord, options);
-        } catch (error) {
-            console.error(error);
-            return null;
-        }
+        return await getCachedStakeAccountsByAuthority(tokenOwnerRecord, options);
     }
 
     const getWalletDomains = async(tokenOwnerRecord: PublicKey): Promise<{ domains: Array<{ name: string; isPrimary: boolean }>; debug: any }> => {
@@ -2309,32 +2142,23 @@ export default function WalletCardView(props:any) {
 
 const StakeAccountsView = () => {
   const [loadingStake, setLoadingStake] = React.useState(false);
+  const [stakeFetchFailed, setStakeFetchFailed] = React.useState(false);
 
   const fetchStakeAccounts = async (force = false) => {
     if (!walletAddress) return;
     setLoadingStake(true);
+    setStakeFetchFailed(false);
     try {
       const primaryWalletPk = new PublicKey(walletAddress);
       const primaryStake = await getWalletStakeAccounts(primaryWalletPk, { force });
       const normalizedPrimaryStake = Array.isArray(primaryStake) ? primaryStake : [];
 
-      let fallbackStake: any[] = [];
-      const shouldTryFallbackWallet =
-        normalizedPrimaryStake.length === 0 &&
-        rulesWalletAddress &&
-        rulesWalletAddress !== walletAddress;
-
-      if (shouldTryFallbackWallet) {
-        const fallbackWalletPk = new PublicKey(rulesWalletAddress);
-        const fallbackStakeAccounts = await getWalletStakeAccounts(fallbackWalletPk, { force });
-        fallbackStake = Array.isArray(fallbackStakeAccounts) ? fallbackStakeAccounts : [];
-      }
-
       setNativeStakeAccounts(normalizedPrimaryStake);
-      setRulesStakeAccounts(fallbackStake);
+      setRulesStakeAccounts([]);
     } catch (e) {
       setNativeStakeAccounts([]);
       setRulesStakeAccounts([]);
+      setStakeFetchFailed(true);
     } finally {
       setLoadingStake(false);
     }
@@ -2359,6 +2183,12 @@ const StakeAccountsView = () => {
       {isStakeLoading ? (
         <Grid container justifyContent={"center"} alignContent={"center"} sx={{ mt: 2 }}>
           <CircularProgress />
+        </Grid>
+      ) : stakeFetchFailed ? (
+        <Grid container justifyContent="center" alignContent="center" sx={{ mt: 2 }}>
+          <Typography variant="caption" sx={{ color: "#919EAB" }}>
+            Could not fetch
+          </Typography>
         </Grid>
       ) : (
         <>
