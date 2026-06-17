@@ -387,8 +387,8 @@ export default function StakeValidatorView(props: any){
                 // -------- SHYFT --------
                 try {
                     const { data } = await axios.get(
-                        //"https://api.shyft.to/sol/v1/wallet/stake_accounts",
-                        'rpc.ny.shyft.to/sol/v1/wallet/stake_accounts',
+                        "https://api.shyft.to/sol/v1/wallet/stake_accounts",
+                        //'https://rpc.ny.shyft.to/sol/v1/wallet/stake_accounts',
                         {
                             params: {
                                 network: "mainnet-beta",
