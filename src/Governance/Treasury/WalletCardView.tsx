@@ -7,7 +7,6 @@ import {
     TransactionInstruction,
     SystemProgram,
     SystemInstruction,
-    StakeProgram,
     LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
 import { Buffer } from 'buffer';
@@ -307,14 +306,18 @@ const fetchStakeAccountsByAuthorityShyft = async (wallet: PublicKey): Promise<an
         url.searchParams.set('page', '1');
         url.searchParams.set('size', '10');
 
-        const response = await fetch(url.toString(), {
-            method: 'GET',
-            headers: {
-                'x-api-key': shyftKey,
-            },
-            redirect: 'follow',
-            signal: controller.signal,
-        });
+        const response = await withTimeout(
+            fetch(url.toString(), {
+                method: 'GET',
+                headers: {
+                    'x-api-key': shyftKey,
+                },
+                redirect: 'follow',
+                signal: controller.signal,
+            }),
+            STAKE_LOOKUP_TIMEOUT_MS + 250,
+            'Shyft stake lookup'
+        );
 
         if (!response.ok) {
             const errorText = await response.text().catch(() => '');
@@ -2142,11 +2145,20 @@ export default function WalletCardView(props:any) {
 
 const StakeAccountsView = () => {
   const [loadingStake, setLoadingStake] = React.useState(false);
+  const [stakeLoaded, setStakeLoaded] = React.useState(false);
   const [stakeFetchFailed, setStakeFetchFailed] = React.useState(false);
 
   const fetchStakeAccounts = async (force = false) => {
-    if (!walletAddress) return;
+    if (!walletAddress) {
+      setNativeStakeAccounts([]);
+      setRulesStakeAccounts([]);
+      setStakeFetchFailed(true);
+      setStakeLoaded(true);
+      setLoadingStake(false);
+      return;
+    }
     setLoadingStake(true);
+    setStakeLoaded(false);
     setStakeFetchFailed(false);
     try {
       const primaryWalletPk = new PublicKey(walletAddress);
@@ -2160,6 +2172,7 @@ const StakeAccountsView = () => {
       setRulesStakeAccounts([]);
       setStakeFetchFailed(true);
     } finally {
+      setStakeLoaded(true);
       setLoadingStake(false);
     }
   };
@@ -2171,7 +2184,7 @@ const StakeAccountsView = () => {
     ...nativeStake.map((item: any) => ({ ...item, __walletSource: "Treasury Wallet" })),
     ...rulesStake.map((item: any) => ({ ...item, __walletSource: "Governance Wallet Fallback" })),
   ];
-  const isStakeLoading = loadingStake || (nativeStakeAccounts === null && rulesStakeAccounts === null);
+  const isStakeLoading = loadingStake || !stakeLoaded;
 
   React.useEffect(() => {
     fetchStakeAccounts(false);
