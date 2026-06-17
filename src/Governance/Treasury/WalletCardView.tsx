@@ -372,7 +372,10 @@ const fetchStakeAccountsByAuthorityShyft = async (wallet: PublicKey): Promise<an
     if (!SHYFT_KEY) return [];
 
     const response = await withTimeout(
-        axios.get('https://api.shyft.to/sol/v1/wallet/stake_accounts', {
+        
+        
+        axios.get('rpc.ny.shyft.to/sol/v1/wallet/stake_accounts', {
+        //axios.get('https://api.shyft.to/sol/v1/wallet/stake_accounts', {
             params: {
                 network: 'mainnet-beta',
                 wallet_address: wallet.toBase58(),
