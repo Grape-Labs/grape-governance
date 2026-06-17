@@ -37,6 +37,7 @@ import {
 
 import { 
     RPC_CONNECTION,
+    TX_RPC_ENDPOINT,
     SHYFT_KEY,
     HELIUS_API,
     QUICKNODE_RPC_ENDPOINT,
@@ -225,6 +226,10 @@ const STAKE_ACCOUNT_CACHE_TTL_MS = 60_000;
 const STAKE_LOOKUP_TIMEOUT_MS = 4_000;
 const stakeAccountsByAuthorityCache = new Map<string, { expiresAt: number; accounts: any[] }>();
 const stakeAccountsByAuthorityInflight = new Map<string, Promise<any[]>>();
+const STAKE_DISCOVERY_CONNECTION = new Connection(
+    TX_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com',
+    'confirmed'
+);
 
 const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -364,7 +369,7 @@ const fetchStakeAccountsByAuthorityShyft = async (wallet: PublicKey): Promise<an
 const fetchStakeAccountsByAuthorityRpc = async (wallet: PublicKey): Promise<any[]> => {
     const walletBase58 = wallet.toBase58();
     const stakerAccounts = await withTimeout(
-        RPC_CONNECTION.getProgramAccounts(StakeProgram.programId, {
+        STAKE_DISCOVERY_CONNECTION.getProgramAccounts(StakeProgram.programId, {
             dataSlice: { offset: 0, length: 0 },
             filters: [
                 { memcmp: { offset: 12, bytes: walletBase58 } },
@@ -374,7 +379,7 @@ const fetchStakeAccountsByAuthorityRpc = async (wallet: PublicKey): Promise<any[
         'Stake staker-authority lookup'
     );
     const withdrawerAccounts = await withTimeout(
-        RPC_CONNECTION.getProgramAccounts(StakeProgram.programId, {
+        STAKE_DISCOVERY_CONNECTION.getProgramAccounts(StakeProgram.programId, {
             dataSlice: { offset: 0, length: 0 },
             filters: [
                 { memcmp: { offset: 44, bytes: walletBase58 } },
@@ -395,7 +400,7 @@ const fetchStakeAccountsByAuthorityRpc = async (wallet: PublicKey): Promise<any[
 
     const pubkeys = Array.from(dedupedPubkeys.values());
     const parsedAccounts = await withTimeout(
-        RPC_CONNECTION.getMultipleParsedAccounts(pubkeys, 'confirmed'),
+        STAKE_DISCOVERY_CONNECTION.getMultipleParsedAccounts(pubkeys, 'confirmed'),
         STAKE_LOOKUP_TIMEOUT_MS,
         'Stake account details lookup'
     );
