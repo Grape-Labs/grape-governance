@@ -26,6 +26,7 @@ export const HELLO_MOON_BEARER = process.env.REACT_APP_API_HELLOMOON_API_KEY;
 export const HELLO_MOON_ENDPOINT = HELLO_MOON_BEARER ? `https://rpc.hellomoon.io/${HELLO_MOON_BEARER}` : null;
 export const HELLO_MOON_DEVNET_ENDPOINT = HELLO_MOON_BEARER ? `https://rpc-devnet.hellomoon.io/${HELLO_MOON_BEARER}` : null;
 export const SHYFT_KEY = process.env.REACT_APP_API_SHYFT_KEY;
+export const SHYFT_API_KEY_STORAGE_KEY = 'shyft_api_key';
 export const FLUX_RPC_ENDPOINT = process.env.REACT_APP_API_FLUX_RPC_ENDPOINT || null;
 export const SHYFT_RPC_ENDPOINT = SHYFT_KEY ? `https://rpc.shyft.to?api_key=${SHYFT_KEY}` : null;
 export const SHYFT_RPC_DEVNET_ENDPOINT = SHYFT_KEY ? `https://devnet-rpc.shyft.to?api_key=${SHYFT_KEY}` : null;
@@ -117,6 +118,13 @@ export const getPreferredCluster = (): AppCluster => {
   }
 
   return selected;
+};
+
+export const getShyftKey = (): string | null => {
+  if (SHYFT_KEY) return SHYFT_KEY;
+  const storage = getLocalStorage();
+  const runtimeKey = storage?.getItem(SHYFT_API_KEY_STORAGE_KEY)?.trim();
+  return runtimeKey || null;
 };
 
 export const setPreferredCluster = (cluster: AppCluster) => {
