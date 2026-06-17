@@ -345,6 +345,8 @@ const fetchStakeAccountsByAuthorityShyft = async (wallet: PublicKey): Promise<an
             params: {
                 network: 'mainnet-beta',
                 wallet_address: wallet.toBase58(),
+                page: 1,
+                size: 100,
             },
             headers: {
                 'x-api-key': SHYFT_KEY,
@@ -365,7 +367,6 @@ const fetchStakeAccountsByAuthorityRpc = async (wallet: PublicKey): Promise<any[
         RPC_CONNECTION.getProgramAccounts(StakeProgram.programId, {
             dataSlice: { offset: 0, length: 0 },
             filters: [
-                { dataSize: StakeProgram.space },
                 { memcmp: { offset: 12, bytes: walletBase58 } },
             ],
         }),
@@ -376,7 +377,6 @@ const fetchStakeAccountsByAuthorityRpc = async (wallet: PublicKey): Promise<any[
         RPC_CONNECTION.getProgramAccounts(StakeProgram.programId, {
             dataSlice: { offset: 0, length: 0 },
             filters: [
-                { dataSize: StakeProgram.space },
                 { memcmp: { offset: 44, bytes: walletBase58 } },
             ],
         }),
