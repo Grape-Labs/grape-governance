@@ -38,8 +38,8 @@ import {
 import { 
     APP_CLUSTER,
     getPreferredRpc,
+    getShyftKey,
     RPC_CONNECTION,
-    SHYFT_KEY,
     HELIUS_API,
     QUICKNODE_RPC_ENDPOINT,
 } from '../../utils/grapeTools/constants';
@@ -369,30 +369,40 @@ const normalizeRpcStakeAccounts = (accounts: any[]): any[] => {
 };
 
 const fetchStakeAccountsByAuthorityShyft = async (wallet: PublicKey): Promise<any[]> => {
-    if (!SHYFT_KEY) return [];
+    const shyftKey = getShyftKey();
+    if (!shyftKey) return [];
 
-    const response = await withTimeout(
-        
-        
-        //axios.get('https://rpc.ny.shyft.to/sol/v1/wallet/stake_accounts', {
-        axios.get('https://api.shyft.to/sol/v1/wallet/stake_accounts', {
-            params: {
-                network: 'mainnet-beta',
-                wallet_address: wallet.toBase58(),
-                page: 1,
-                size: 100,
-            },
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), STAKE_LOOKUP_TIMEOUT_MS);
+
+    try {
+        const url = new URL('https://api.shyft.to/sol/v1/wallet/stake_accounts');
+        url.searchParams.set('network', 'mainnet-beta');
+        url.searchParams.set('wallet_address', wallet.toBase58());
+        url.searchParams.set('page', '1');
+        url.searchParams.set('size', '10');
+
+        const response = await fetch(url.toString(), {
+            method: 'GET',
             headers: {
-                'x-api-key': SHYFT_KEY,
-                'Accept-Encoding': 'gzip, deflate, br',
+                'x-api-key': shyftKey,
             },
-            timeout: STAKE_LOOKUP_TIMEOUT_MS,
-        }),
-        STAKE_LOOKUP_TIMEOUT_MS + 250,
-        'Shyft stake lookup'
-    );
+            redirect: 'follow',
+            signal: controller.signal,
+        });
 
-    return normalizeShyftStakeAccounts(response?.data?.result);
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new Error(
+                `Shyft stake lookup failed (${response.status})${errorText ? `: ${errorText}` : ''}`
+            );
+        }
+
+        const data = await response.json();
+        return normalizeShyftStakeAccounts(data?.result);
+    } finally {
+        clearTimeout(timeoutId);
+    }
 };
 
 const fetchStakeAccountsByAuthorityRpc = async (wallet: PublicKey): Promise<any[]> => {
@@ -1384,9 +1394,10 @@ export default function WalletCardView(props:any) {
                 das_success = false;
                 //return null;
             }
-        } else if (!das_success && SHYFT_KEY) {
+        } else if (!das_success && getShyftKey()) {
             try{
-                const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
+                const shyftKey = getShyftKey();
+                const uri = `https://rpc.shyft.to/?api_key=${shyftKey}`;
                 
                 const response = await fetch(uri, {
                     method: 'POST',
@@ -1431,12 +1442,14 @@ export default function WalletCardView(props:any) {
     }
     
     const getWalletAllTokenBalance = async(tokenOwnerRecord: PublicKey) => {
+        const shyftKey = getShyftKey();
+        if (!shyftKey) return null;
     
         const uri = `https://api.shyft.to/sol/v1/wallet/all_tokens?network=mainnet-beta&wallet=${tokenOwnerRecord.toBase58()}`;
     
         return axios.get(uri, {
             headers: {
-                'x-api-key': SHYFT_KEY,
+                'x-api-key': shyftKey,
                 'Accept-Encoding': 'gzip, deflate, br'
             }
             })
@@ -1455,12 +1468,14 @@ export default function WalletCardView(props:any) {
     }
     
     const getWalletBalance = async(tokenOwnerRecord: PublicKey) => {
+        const shyftKey = getShyftKey();
+        if (!shyftKey) return null;
         
         const uri = `https://api.shyft.to/sol/v1/wallet/balance?network=mainnet-beta&wallet=${tokenOwnerRecord.toBase58()}`;
         
         return axios.get(uri, {
                 headers: {
-                    'x-api-key': SHYFT_KEY,
+                    'x-api-key': shyftKey,
                     'Accept-Encoding': 'gzip, deflate, br'
                 }
                 })
@@ -1542,11 +1557,13 @@ export default function WalletCardView(props:any) {
 
         const getWalletDomainsFromShyft = async (owner: PublicKey): Promise<string[]> => {
             const sourceStart = Date.now();
+            const shyftKey = getShyftKey();
+            if (!shyftKey) return [];
             const uri = `https://api.shyft.to/sol/v1/wallet/get_domains?network=mainnet-beta&wallet=${owner.toBase58()}`;
 
             return axios.get(uri, {
                     headers: {
-                        'x-api-key': SHYFT_KEY,
+                        'x-api-key': shyftKey,
                         'Accept-Encoding': 'gzip, deflate, br'
                     }
                     })
