@@ -121,6 +121,12 @@ function trimAddress(addr: string) {
     return `${start}...${end}`;
 }
 
+function shortPk(addr?: string | null) {
+    if (!addr) return '—';
+    if (addr.length <= 8) return addr;
+    return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
+}
+
 function getExplorerUrl(
     endpoint: string,
     viewTypeOrItemAddress: 'inspector' | PublicKey | string,
@@ -1316,10 +1322,14 @@ export function InstructionTableView(props: any) {
                     if (!infoDescription) return null;
                     if (ix?.info?.destinationAta) {
                         try {
+                            const resolvedDestination =
+                                ix?.info?.tokenOwner || findOwnerRecord(ix.info.destinationAta);
                             const ataStr =
                                 ix.info.destinationAta?.toBase58?.() ||
                                 new PublicKey(ix.info.destinationAta).toBase58();
-                            return infoDescription.replace(ataStr, findOwnerRecord(ix.info.destinationAta));
+                            return infoDescription
+                                .replace(ataStr, resolvedDestination)
+                                .replace(shortPk(ataStr), resolvedDestination);
                         } catch {
                             return infoDescription;
                         }
