@@ -1529,12 +1529,25 @@ export function GovernanceProposalV2View(props: any){
                                     const address = resolvePubkeyString(pk);
                                     return address ? allResults.get(address) : null;
                                 };
+                                const getParsedAccountInfo = (pk?: any) => {
+                                    const accountInfo = getAccountInfoFromCache(pk) as any;
+                                    return accountInfo?.data?.parsed?.info || accountInfo?.value?.data?.parsed?.info || null;
+                                };
                                 const getTokenAccountMint = (pk?: any): string | null =>
-                                    getAccountInfoFromCache(pk)?.data?.parsed?.info?.mint || null;
+                                    getParsedAccountInfo(pk)?.mint || null;
                                 const getTokenAccountDecimals = (pk?: any): number =>
-                                    Number(
-                                        getAccountInfoFromCache(pk)?.data?.parsed?.info?.tokenAmount?.decimals || 0
-                                    );
+                                    Number(getParsedAccountInfo(pk)?.tokenAmount?.decimals || 0);
+                                const getTokenAccountOwner = (pk?: any): string | null =>
+                                    getParsedAccountInfo(pk)?.owner || null;
+                                const getTokenRecipientDisplay = (pk?: any) => {
+                                    const destinationAta = resolvePubkeyString(pk);
+                                    const tokenOwner = getTokenAccountOwner(destinationAta);
+                                    return {
+                                        destinationAta,
+                                        tokenOwner,
+                                        recipientWallet: tokenOwner || destinationAta,
+                                    };
+                                };
                                 const getTokenPresentation = (mint?: string | null) => {
                                     let symbol = mint ? `${mint.slice(0, 3)}...${mint.slice(-3)}` : null;
                                     let name = symbol;
@@ -1832,6 +1845,11 @@ export function GovernanceProposalV2View(props: any){
                                         ) {
                                             const source = resolvePubkeyString(decoded?.keys?.source?.pubkey || decoded?.keys?.source || decoded?.keys?.account?.pubkey || decoded?.keys?.account);
                                             const destination = resolvePubkeyString(decoded?.keys?.destination?.pubkey || decoded?.keys?.destination);
+                                            const {
+                                                destinationAta,
+                                                tokenOwner,
+                                                recipientWallet,
+                                            } = getTokenRecipientDisplay(destination);
                                             const mint =
                                                 resolvePubkeyString(decoded?.keys?.mint?.pubkey || decoded?.keys?.mint) ||
                                                 getTokenAccountMint(source);
@@ -1848,15 +1866,17 @@ export function GovernanceProposalV2View(props: any){
                                                         ? "TokenTransferChecked"
                                                         : "TokenTransfer",
                                                 ix: instructionItem.pubkey,
-                                                pubkey: destination,
+                                                pubkey: recipientWallet || destination,
                                                 sourcePubkey: source,
                                                 mint,
                                                 name: meta.name,
                                                 logoURI: meta.logoURI,
                                                 amount: amount.amountValue,
                                                 data: ixLike?.data,
-                                                destinationAta: destination,
-                                                description: `${amount.amountUi} ${meta.symbol} to ${shortPk(destination)}`,
+                                                destinationAta,
+                                                tokenOwner,
+                                                recipientWallet,
+                                                description: `${amount.amountUi} ${meta.symbol} to ${recipientWallet || destination}`,
                                             };
                                         }
 
@@ -1866,6 +1886,11 @@ export function GovernanceProposalV2View(props: any){
                                         ) {
                                             const mint = resolvePubkeyString(decoded?.keys?.mint?.pubkey || decoded?.keys?.mint);
                                             const destination = resolvePubkeyString(decoded?.keys?.destination?.pubkey || decoded?.keys?.destination);
+                                            const {
+                                                destinationAta,
+                                                tokenOwner,
+                                                recipientWallet,
+                                            } = getTokenRecipientDisplay(destination);
                                             const decimals = Number(
                                                 decoded?.data?.decimals ?? getTokenAccountDecimals(destination)
                                             );
@@ -1880,8 +1905,10 @@ export function GovernanceProposalV2View(props: any){
                                                 logoURI: meta.logoURI,
                                                 amount: amount.amountValue,
                                                 data: ixLike?.data,
-                                                destinationAta: destination,
-                                                description: `Mint ${amount.amountUi} ${meta.symbol} to ${shortPk(destination)}`,
+                                                destinationAta,
+                                                tokenOwner,
+                                                recipientWallet,
+                                                description: `Mint ${amount.amountUi} ${meta.symbol} to ${recipientWallet || destination}`,
                                             };
                                         }
 
@@ -2139,18 +2166,25 @@ export function GovernanceProposalV2View(props: any){
                                                     if (!symbol)
                                                         symbol = `${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
 
+                                                    const {
+                                                        destinationAta,
+                                                        tokenOwner,
+                                                        recipientWallet,
+                                                    } = getTokenRecipientDisplay(accountInstruction.accounts[1].pubkey);
                                                     newObject = {
                                                         type:"BatchTokenTransfer",
                                                         ix: instructionItem.pubkey,
-                                                        pubkey: accountInstruction.accounts[1].pubkey,
+                                                        pubkey: recipientWallet || accountInstruction.accounts[1].pubkey,
                                                         sourcePubkey: accountInstruction.accounts[0].pubkey,
                                                         mint: gai?.data.parsed.info.mint,
                                                         name: tname,
                                                         logoURI: logo,
                                                         amount: parseFloat(amount.replace(/,/g, '')), //amount,
                                                         data: accountInstruction.data,
-                                                        destinationAta:accountInstruction.accounts[1].pubkey,
-                                                        description:amount+' '+symbol+' to '+accountInstruction.accounts[1].pubkey,
+                                                        destinationAta,
+                                                        tokenOwner,
+                                                        recipientWallet,
+                                                        description:amount+' '+symbol+' to '+(recipientWallet || destinationAta),
                                                     };
                                                     
                                                     //console.log("newObject "+JSON.stringify(newObject))
@@ -2424,8 +2458,12 @@ export function GovernanceProposalV2View(props: any){
                                                                 symbol = `${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
                                                             
                                                             destinationAta = accountInstruction?.accounts[3].pubkey;
-                                                            console.log("Grant "+amount+" "+tname+" to "+accountInstruction?.accounts[3].pubkey.toBase58());
-                                                            description = "Grant "+amount+" "+tname+" to "+accountInstruction?.accounts[3].pubkey.toBase58();
+                                                            const destinationWallet =
+                                                                getTokenAccountOwner(destinationAta) ||
+                                                                destinationAta?.toBase58?.() ||
+                                                                `${destinationAta ?? ''}`;
+                                                            console.log("Grant "+amount+" "+tname+" to "+destinationWallet);
+                                                            description = "Grant "+amount+" "+tname+" to "+destinationWallet;
                                                         } else{
                                                             description = "Amount "+amount;
                                                         }
@@ -2471,12 +2509,14 @@ export function GovernanceProposalV2View(props: any){
                                                     ix: instructionItem.pubkey,
                                                     decodedIx:decodedIx,
                                                     amount: amount ? parseFloat(amount.replace(/,/g, '')) : null, //amount,
-                                                    pubkey: accountInstruction.accounts[0].pubkey,
+                                                    pubkey: getTokenAccountOwner(destinationAta) || accountInstruction.accounts[0].pubkey,
                                                     mint: mint,
                                                     name: symbol,
                                                     //logoURI: tokenMap.get(gai?.data.parsed.info.mint)?.logoURI,
                                                     description: description,
                                                     destinationAta: destinationAta,
+                                                    tokenOwner: getTokenAccountOwner(destinationAta),
+                                                    recipientWallet: getTokenAccountOwner(destinationAta) || destinationAta?.toBase58?.() || null,
                                                     data:accountInstruction.data
                                                 };
                                                 accountInstruction.info = newObject;
@@ -3644,7 +3684,8 @@ export function GovernanceProposalV2View(props: any){
             ixTransferDetails.reduce((result, item) => {
                 if (item && typeof item === 'object') {
                     const { mint, amount, name, logoURI, destinationAta } = item;
-                    if (!mint || !destinationAta) return result;
+                    const destinationWallet = item?.tokenOwner || destinationAta;
+                    if (!mint || !destinationWallet) return result;
 
                     if (!result[mint]) {
                         result[mint] = {
@@ -3659,10 +3700,10 @@ export function GovernanceProposalV2View(props: any){
                     const group = result[mint];
                     const parsedAmount = parseFloat(amount) || 0;
 
-                    group.destinationAmounts[destinationAta] = (group.destinationAmounts[destinationAta] || 0) + parsedAmount;
+                    group.destinationAmounts[destinationWallet] = (group.destinationAmounts[destinationWallet] || 0) + parsedAmount;
                     group.totalAmount += parsedAmount;
 
-                    console.log(`[DEBUG] ix: ${item.ix}, mint: ${mint}, dest: ${destinationAta}, amount: ${parsedAmount}`);
+                    console.log(`[DEBUG] ix: ${item.ix}, mint: ${mint}, dest: ${destinationWallet}, amount: ${parsedAmount}`);
                 }
                 return result;
             }, {})
