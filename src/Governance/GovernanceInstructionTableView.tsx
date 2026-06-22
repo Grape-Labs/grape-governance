@@ -1158,6 +1158,60 @@ export function InstructionTableView(props: any) {
         return null;
     };
 
+    const resolveInspectableInstruction = React.useCallback(
+        async (instructionSet: any) => {
+            const tryResolve = (candidate: any) => {
+                const rawCandidate =
+                    extractRawInstruction(candidate) ||
+                    candidate?.instruction ||
+                    candidate?.account?.instruction ||
+                    candidate;
+                const normalizedCandidate = normalizeInstructionFromAny(rawCandidate);
+                if (!normalizedCandidate) {
+                    return null;
+                }
+                return {
+                    instructionSet: candidate,
+                    rawIx: rawCandidate,
+                    normalizedIx: normalizedCandidate,
+                };
+            };
+
+            const initialResolved = tryResolve(instructionSet);
+            if (initialResolved) {
+                return initialResolved;
+            }
+
+            try {
+                const proposalPk = sentProp?.pubkey?.toBase58?.() || `${sentProp?.pubkey ?? ''}`;
+                const instructionPk = getInstructionSetPubkey(instructionSet);
+                if (!proposalPk || !instructionPk) {
+                    return null;
+                }
+
+                const liveInstructionSets = await getProposalInstructionsIndexed(
+                    realm?.pubkey?.toBase58?.(),
+                    proposalPk,
+                    realm?.owner?.toBase58?.() || `${realm?.owner ?? ''}`
+                );
+
+                const liveMatch = (Array.isArray(liveInstructionSets) ? liveInstructionSets : []).find(
+                    (item: any) => getInstructionSetPubkey(item) === instructionPk
+                );
+
+                if (!liveMatch) {
+                    return null;
+                }
+
+                return tryResolve(liveMatch);
+            } catch (e) {
+                console.warn('Failed to resolve inspectable instruction from live proposal data', e);
+                return null;
+            }
+        },
+        [getInstructionSetPubkey, realm?.owner, realm?.pubkey, sentProp?.pubkey]
+    );
+
     const resolveSimulationFeePayer = async (ix: TransactionInstruction) => {
         const candidates: Array<{ pubkey: PublicKey; source: string }> = [];
         const seen = new Set<string>();
@@ -1264,11 +1318,9 @@ export function InstructionTableView(props: any) {
             setInspectorError(null);
             setInspectorSimulation(null);
             setInspectorTab('parsed');
-            setInspectorTarget(instructionSet);
-
-            const rawIx = extractRawInstruction(instructionSet);
-            const normalizedIx = normalizeInstructionFromAny(rawIx);
-            if (!normalizedIx) {
+            const resolvedInstruction = await resolveInspectableInstruction(instructionSet);
+            if (!resolvedInstruction) {
+                setInspectorTarget(instructionSet);
                 setInspectorIx(null);
                 setInspectorParsed(null);
                 setInspectorAccountRows([]);
@@ -1276,14 +1328,17 @@ export function InstructionTableView(props: any) {
                 return;
             }
 
+            const { instructionSet: inspectableTarget, rawIx, normalizedIx } = resolvedInstruction;
+            setInspectorTarget(inspectableTarget);
+
             setInspectorIx(normalizedIx);
             setInspectorParsed({
                 programId: normalizedIx.programId.toBase58(),
                 keyCount: normalizedIx.keys.length,
                 dataBase64: normalizedIx.data.toString('base64'),
                 dataHex: normalizedIx.data.toString('hex'),
-                info: rawIx?.info || instructionSet?.account?.instructions?.[0]?.info || null,
-                decodedIx: rawIx?.decodedIx || instructionSet?.account?.instructions?.[0]?.decodedIx || null,
+                info: rawIx?.info || inspectableTarget?.account?.instructions?.[0]?.info || null,
+                decodedIx: rawIx?.decodedIx || inspectableTarget?.account?.instructions?.[0]?.decodedIx || null,
             });
 
             setInspectorAccountLoading(true);
@@ -1364,28 +1419,32 @@ export function InstructionTableView(props: any) {
         const tx = [];
         // now lets get all tx items
         for (const instruction of instructionSets) {
-            let txi: any[] | undefined = undefined;
-            if (typeof instruction.account?.getAllInstructions === 'function') {
-                // From RPC: getAllInstructions() is available
-                txi = instruction.account.getAllInstructions();
-            } else if (Array.isArray(instruction.account?.instructions)) {
-                // From GraphQL: instructions is an array
-                txi = instruction.account.instructions;
-            }
+            const txi = getInstructionSetInstructions(instruction);
 
             if (txi && txi.length > 0) {
                 const first = txi[0];
-                const dataBuffer = Array.isArray(first.data)
+                const normalizedIx = normalizeInstructionFromAny(first);
+                const dataBuffer = normalizedIx?.data
+                    ? Buffer.from(normalizedIx.data)
+                    : Array.isArray(first.data)
                     ? Buffer.from(first.data)
                     : Buffer.from(first.data, 'base64');
 
                 const transactionInstruction = new TransactionInstruction({
-                    keys: first.accounts.map((key: any) => ({
-                        pubkey: new PublicKey(key.pubkey),
-                        isSigner: key.isSigner,
-                        isWritable: key.isWritable,
-                    })),
-                    programId: new PublicKey(first.programId),
+                    keys: normalizedIx?.keys?.length
+                        ? normalizedIx.keys.map((key: any) => ({
+                            pubkey: new PublicKey(key.pubkey),
+                            isSigner: key.isSigner,
+                            isWritable: key.isWritable,
+                        }))
+                        : first.accounts.map((key: any) => ({
+                            pubkey: new PublicKey(key.pubkey),
+                            isSigner: key.isSigner,
+                            isWritable: key.isWritable,
+                        })),
+                    programId: normalizedIx?.programId
+                        ? new PublicKey(normalizedIx.programId)
+                        : new PublicKey(first.programId),
                     data: dataBuffer,
                 });
 
