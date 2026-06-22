@@ -7,12 +7,13 @@ import {
     fetchGovernanceLookupFile,
     getFileFromLookup
 } from './CachedStorageHelpers'; 
+import { getProposalInstructionsIndexed } from './api/queries';
 import BN from 'bn.js';
 import base58 from 'bs58';
 import { BorshCoder } from "@coral-xyz/anchor";
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
-import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token-v2";
+import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction } from "@solana/spl-token-v2";
 import { Signer, Connection, TransactionMessage, PublicKey, Transaction, VersionedTransaction, TransactionInstruction, ComputeBudgetProgram } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError, TransactionOrVersionedTransaction } from '@solana/wallet-adapter-base';
@@ -66,9 +67,7 @@ import {
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
  
-import { createAndSendV0Tx } from './Proposals/proposalHelperInstructions'
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
-import { sendTransactions, SequenceType } from '../utils/governanceTools/sendTransactions';
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
@@ -179,6 +178,8 @@ function getInstructionStatusLabel(status: any) {
     return Number(status) === 0 ? 'Pending' : 'Executed';
 }
 
+const TOKEN_2022_PROGRAM_ID = 'TokenzQdBNbLqP5VEh84bYQNJ9Y7fA1aC33mW7zk1g';
+
 function buildInstructionCsv(rows: any[], proposal: any) {
     if (!Array.isArray(rows) || rows.length === 0) {
         return '';
@@ -247,7 +248,8 @@ export function InstructionTableView(props: any) {
     const verifiedDAODestinationWalletArray = props?.verifiedDAODestinationWalletArray;
     
     const [instructionSet, setInstructionSet] = React.useState(null);
-    const { publicKey, sendTransaction, signTransaction, signAllTransactions } = useWallet();
+    const [failedExecuteKeys, setFailedExecuteKeys] = React.useState<string[]>([]);
+    const { publicKey, sendTransaction } = useWallet();
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const EXECUTE_ALL_MAX_BATCH_SIZE = 1100;
     const EXECUTE_ALL_MAX_BATCH_INSTRUCTIONS = 4;
@@ -433,12 +435,6 @@ export function InstructionTableView(props: any) {
     }
 
     const handleExecuteIx = async(instructionSets:any[]) => {
-        const orderedInstructionSets = [...(instructionSets || [])].sort((a: any, b: any) => {
-            const aIndex = Number(a?.account?.instructionIndex ?? 0);
-            const bIndex = Number(b?.account?.instructionIndex ?? 0);
-            return aIndex - bIndex;
-        });
-
         const programId = new PublicKey(realm.owner);
         const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realm.pubkey);
 
@@ -488,138 +484,116 @@ export function InstructionTableView(props: any) {
                 [...instruction.account?.getAllInstructions()] // Assuming this returns the instructions for this set
             );
         }*/
-        if (!orderedInstructionSets.length) {
+        const refreshLiveInstructionState = async () => {
+            try {
+                const proposalPk = sentProp?.pubkey?.toBase58?.() || `${sentProp?.pubkey ?? ''}`;
+                if (!proposalPk) {
+                    return Array.isArray(proposalIx) ? proposalIx : [];
+                }
+
+                const liveInstructionSets = await getProposalInstructionsIndexed(
+                    realm?.pubkey?.toBase58?.(),
+                    proposalPk,
+                    realm?.owner?.toBase58?.() || `${realm?.owner ?? ''}`
+                );
+
+                if (Array.isArray(liveInstructionSets)) {
+                    createIxTable(liveInstructionSets);
+                    return liveInstructionSets;
+                }
+            } catch (e) {
+                console.warn('Failed to refresh live proposal instructions', e);
+            }
+
+            return Array.isArray(proposalIx) ? proposalIx : [];
+        };
+
+        const requestedInstructionKeys = new Set(
+            (instructionSets || [])
+                .map((instruction: any) => getInstructionSetPubkey(instruction))
+                .filter((key: string) => !!key)
+        );
+
+        if (!requestedInstructionKeys.size) {
             enqueueSnackbar(`No pending instructions found`, { variant: 'warning' });
             return null;
         }
 
-        const latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('confirmed');
-        const executeInstructionBatches: TransactionInstruction[][] = [];
-        const executeBatchIndexes: number[][] = [];
-        let currentBatch: TransactionInstruction[] = [];
-        let currentBatchIndexes: number[] = [];
+        let executedNowCount = 0;
+        let skippedCompletedCount = 0;
+        let walletApprovalCount = 0;
 
-        for (let i = 0; i < orderedInstructionSets.length; i++) {
-            const instruction = orderedInstructionSets[i];
-            const instructionIndex = Number(instruction?.account?.instructionIndex ?? i);
-            const proposal = new PublicKey(instruction.account.proposal);
-            const proposalTransaction = new PublicKey(instruction.account.pubkey || instruction.pubkey);
+        try {
+            while (requestedInstructionKeys.size > 0) {
+                const liveInstructionSets = await refreshLiveInstructionState();
+                const liveByPubkey = new Map<string, any>();
 
-            console.log(`Preparing Execute Instruction ${i + 1}/${orderedInstructionSets.length}`);
-            console.log("Handling proposal transaction:", proposalTransaction.toBase58(), "instructionIndex:", instructionIndex);
-
-            let txi: InstructionData[] = [];
-            if (typeof instruction.account?.getAllInstructions === 'function') {
-                txi = instruction.account.getAllInstructions();
-            } else if (Array.isArray(instruction.account?.instructions)) {
-                txi = instruction.account.instructions;
-            }
-
-            const executeIxs: TransactionInstruction[] = [];
-            await withExecuteTransaction(
-                executeIxs,
-                programId,
-                programVersion,
-                governanceRulesWallet,
-                proposal,
-                proposalTransaction,
-                txi
-            );
-
-            if (!executeIxs.length) {
-                enqueueSnackbar(
-                    `Execution halted: no execute instruction built for tx index ${instructionIndex}`,
-                    { variant: 'error' }
-                );
-                return null;
-            }
-
-            const nextBatch = [...currentBatch, ...executeIxs];
-            const exceedsInstructionCount =
-                currentBatchIndexes.length >= EXECUTE_ALL_MAX_BATCH_INSTRUCTIONS;
-            const exceedsTxSize =
-                currentBatch.length > 0 &&
-                estimateVersionedTransactionSize(nextBatch, latestBlockhash.blockhash) > EXECUTE_ALL_MAX_BATCH_SIZE;
-
-            if (currentBatch.length > 0 && (exceedsInstructionCount || exceedsTxSize)) {
-                executeInstructionBatches.push(currentBatch);
-                executeBatchIndexes.push(currentBatchIndexes);
-                currentBatch = [...executeIxs];
-                currentBatchIndexes = [instructionIndex];
-            } else {
-                currentBatch = nextBatch;
-                currentBatchIndexes = [...currentBatchIndexes, instructionIndex];
-            }
-        }
-
-        if (currentBatch.length > 0) {
-            executeInstructionBatches.push(currentBatch);
-            executeBatchIndexes.push(currentBatchIndexes);
-        }
-
-        if (!executeInstructionBatches.length) {
-            enqueueSnackbar(`No executable instruction batches were built`, { variant: 'warning' });
-            return null;
-        }
-
-        const describeBatch = (indexes: number[]) =>
-            indexes.length > 1
-                ? `indexes ${indexes[0]}-${indexes[indexes.length - 1]}`
-                : `index ${indexes[0]}`;
-
-        if (typeof signAllTransactions === 'function') {
-            try {
-                await sendTransactions(
-                    RPC_CONNECTION,
-                    {
-                        publicKey,
-                        signTransaction,
-                        signAllTransactions,
-                    },
-                    executeInstructionBatches,
-                    executeInstructionBatches.map(() => []),
-                    SequenceType.StopOnFailure,
-                    'confirmed',
-                    (_txid: string, batchIndex: number, totalBatches: number) => {
-                        enqueueSnackbar(
-                            `Executed batch ${batchIndex + 1}/${totalBatches} (${describeBatch(executeBatchIndexes[batchIndex] || [])})`,
-                            { variant: 'success' }
-                        );
-                    },
-                    (reason: string, batchIndex: number, totalBatches: number) => {
-                        enqueueSnackbar(
-                            `Execution halted at batch ${batchIndex + 1}/${totalBatches} (${describeBatch(executeBatchIndexes[batchIndex] || [])}): ${reason}`,
-                            { variant: 'error' }
-                        );
-                        return true;
+                for (const item of liveInstructionSets || []) {
+                    const key = getInstructionSetPubkey(item);
+                    if (key) {
+                        liveByPubkey.set(key, item);
                     }
+                }
+
+                const pendingInstructionSets = Array.from(requestedInstructionKeys)
+                    .map((key) => {
+                        const liveItem = liveByPubkey.get(key);
+                        if (!liveItem) {
+                            requestedInstructionKeys.delete(key);
+                            return null;
+                        }
+
+                        if (getInstructionSetStatus(liveItem) !== 0) {
+                            requestedInstructionKeys.delete(key);
+                            skippedCompletedCount += 1;
+                            return null;
+                        }
+
+                        return liveItem;
+                    })
+                    .filter(Boolean)
+                    .sort((a: any, b: any) => getInstructionSetIndex(a) - getInstructionSetIndex(b));
+
+                if (!pendingInstructionSets.length) {
+                    break;
+                }
+
+                const executeBatch = await buildExecuteBatch(
+                    pendingInstructionSets,
+                    programId,
+                    programVersion
                 );
-            } catch (e: any) {
-                const errMessage = e?.message || `${e}`;
-                console.error("Execute-all batched signing failed", errMessage);
-                enqueueSnackbar(`Execution halted: ${errMessage}`, { variant: 'error' });
-                if (setReload) setReload(true);
-                return null;
-            }
-        } else {
-            const signatures: string[] = [];
-            for (let batchIndex = 0; batchIndex < executeInstructionBatches.length; batchIndex++) {
-                const batchInstructions = executeInstructionBatches[batchIndex];
+
+                if (!executeBatch?.instructions?.length) {
+                    enqueueSnackbar(`No executable instruction batches were built`, { variant: 'warning' });
+                    return null;
+                }
+
                 try {
-                    const signature = await createAndSendV0TxInline(batchInstructions);
-                    signatures.push(signature);
+                    await createAndSendV0TxInline(executeBatch.instructions);
+                    walletApprovalCount += 1;
+                    executedNowCount += executeBatch.keys.length;
+                    executeBatch.keys.forEach((key: string) => requestedInstructionKeys.delete(key));
+                    setFailedExecuteKeys((current) =>
+                        current.filter((key) => !executeBatch.keys.includes(key))
+                    );
+
                     enqueueSnackbar(
-                        `Executed batch ${batchIndex + 1}/${executeInstructionBatches.length} (${describeBatch(executeBatchIndexes[batchIndex] || [])})`,
+                        `Executed batch ${walletApprovalCount} (${describeBatch(executeBatch.indexes || [])})`,
                         { variant: 'success' }
                     );
                 } catch (e: any) {
                     const errMessage = e?.message || `${e}`;
-                    console.error("Execute-all fallback batching failed", {
-                        batchIndex,
+                    console.error("Execute-all live batching failed", {
+                        batchIndexes: executeBatch.indexes,
                         error: errMessage,
                     });
+                    setFailedExecuteKeys((current) =>
+                        Array.from(new Set([...current, ...executeBatch.keys]))
+                    );
+                    await refreshLiveInstructionState();
                     enqueueSnackbar(
-                        `Execution halted at batch ${batchIndex + 1}/${executeInstructionBatches.length} (${describeBatch(executeBatchIndexes[batchIndex] || [])}): ${errMessage}`,
+                        `Execution halted at ${describeBatch(executeBatch.indexes || [])}: ${errMessage}`,
                         { variant: 'error' }
                     );
                     if (setReload) setReload(true);
@@ -627,18 +601,37 @@ export function InstructionTableView(props: any) {
                 }
             }
 
-            if (!signatures.length) {
-                enqueueSnackbar(`No proposal transactions were executed`, { variant: 'warning' });
+            await refreshLiveInstructionState();
+
+            if (!executedNowCount && skippedCompletedCount > 0) {
+                enqueueSnackbar(
+                    `Skipped ${skippedCompletedCount} instruction${skippedCompletedCount > 1 ? 's' : ''} already completed`,
+                    { variant: 'info' }
+                );
+                if (setReload) setReload(true);
                 return null;
             }
-        }
 
-        enqueueSnackbar(
-            `Executed ${orderedInstructionSets.length} proposal transaction${orderedInstructionSets.length > 1 ? 's' : ''} in ${executeInstructionBatches.length} wallet approval${executeInstructionBatches.length > 1 ? 's' : ''}`,
-            { variant: 'success' }
-        );
-        if (setReload) setReload(true);
-        return null;
+            if (!executedNowCount) {
+                enqueueSnackbar(`No proposal transactions were executed`, { variant: 'warning' });
+                if (setReload) setReload(true);
+                return null;
+            }
+
+            enqueueSnackbar(
+                `Executed ${executedNowCount} proposal transaction${executedNowCount > 1 ? 's' : ''} in ${walletApprovalCount} wallet approval${walletApprovalCount > 1 ? 's' : ''}${skippedCompletedCount ? `, skipped ${skippedCompletedCount} already completed` : ''}`,
+                { variant: 'success' }
+            );
+            if (setReload) setReload(true);
+            return null;
+        } catch (e: any) {
+            const errMessage = e?.message || `${e}`;
+            console.error("Execute-all failed", errMessage);
+            await refreshLiveInstructionState();
+            enqueueSnackbar(`Execution halted: ${errMessage}`, { variant: 'error' });
+            if (setReload) setReload(true);
+            return null;
+        }
     }
 
     const handleRemoveIx = async(instructionSets:any[]) => {
@@ -758,6 +751,341 @@ export function InstructionTableView(props: any) {
             }
         },
         [publicKey]
+    );
+
+    const getInstructionSetPubkey = React.useCallback((instructionSet: any) => {
+        try {
+            return (
+                instructionSet?.pubkey?.toBase58?.() ||
+                instructionSet?.account?.pubkey?.toBase58?.() ||
+                `${instructionSet?.pubkey || instructionSet?.account?.pubkey || ''}`
+            );
+        } catch {
+            return '';
+        }
+    }, []);
+
+    const getInstructionSetIndex = React.useCallback((instructionSet: any, fallback = 0) => {
+        return Number(instructionSet?.account?.instructionIndex ?? fallback);
+    }, []);
+
+    const getInstructionSetStatus = React.useCallback((instructionSet: any) => {
+        return Number(instructionSet?.account?.executionStatus ?? 0);
+    }, []);
+
+    const describeBatch = React.useCallback((indexes: number[]) => {
+        if (!indexes.length) return 'unknown indexes';
+        return indexes.length > 1
+            ? `indexes ${indexes[0]}-${indexes[indexes.length - 1]}`
+            : `index ${indexes[0]}`;
+    }, []);
+
+    const getInstructionSetInstructions = React.useCallback((instructionSet: any) => {
+        if (!instructionSet) return [];
+        if (typeof instructionSet?.account?.getAllInstructions === 'function') {
+            const all = instructionSet.account.getAllInstructions();
+            return Array.isArray(all) ? all : [];
+        }
+        if (Array.isArray(instructionSet?.account?.instructions)) {
+            return instructionSet.account.instructions;
+        }
+        if (instructionSet?.account?.instruction) {
+            return [instructionSet.account.instruction];
+        }
+        return [];
+    }, []);
+
+    const getKnownTokenOwnerForAta = React.useCallback(
+        (instructionSet: any, mint: string, destinationAta: string) => {
+            const instructionKey = getInstructionSetPubkey(instructionSet);
+            const entries = Array.isArray(instructionTransferDetails) ? instructionTransferDetails : [];
+            const match = entries.find((item: any) => {
+                const itemInstructionKey =
+                    item?.ix?.toBase58?.() ||
+                    `${item?.ix ?? ''}`;
+                const itemMint =
+                    item?.mint?.toBase58?.() ||
+                    `${item?.mint ?? ''}`;
+                const itemDestinationAta =
+                    item?.destinationAta?.toBase58?.() ||
+                    `${item?.destinationAta ?? ''}`;
+
+                return (
+                    itemInstructionKey === instructionKey &&
+                    itemMint === mint &&
+                    itemDestinationAta === destinationAta
+                );
+            });
+
+            return (
+                match?.tokenOwner ||
+                match?.recipientWallet ||
+                null
+            );
+        },
+        [getInstructionSetPubkey, instructionTransferDetails]
+    );
+
+    const resolveTokenTransferAtaTargets = React.useCallback(
+        async (instructionSet: any) => {
+            const targets: Array<{
+                destinationAta: PublicKey;
+                mint: PublicKey;
+                tokenProgramId: PublicKey;
+                tokenOwner: string | null;
+            }> = [];
+            const seen = new Set<string>();
+            const rawInstructions = getInstructionSetInstructions(instructionSet);
+
+            for (const rawInstruction of rawInstructions) {
+                const normalizedIx = normalizeInstructionFromAny(rawInstruction);
+                if (!normalizedIx) continue;
+
+                const programIdString = normalizedIx.programId.toBase58();
+                if (
+                    programIdString !== TOKEN_PROGRAM_ID.toBase58() &&
+                    programIdString !== TOKEN_2022_PROGRAM_ID
+                ) {
+                    continue;
+                }
+
+                const discr = normalizedIx.data?.[0];
+                let mintPk: PublicKey | null = null;
+                let destinationAtaPk: PublicKey | null = null;
+
+                if (discr === 3 && normalizedIx.keys.length >= 2) {
+                    destinationAtaPk = normalizedIx.keys[1].pubkey;
+                    mintPk = toPublicKeySafe(rawInstruction?.info?.mint || rawInstruction?.mint);
+
+                    if (!mintPk) {
+                        try {
+                            const sourceAtaPk = normalizedIx.keys[0].pubkey;
+                            const sourceInfo = await RPC_CONNECTION.getParsedAccountInfo(sourceAtaPk, 'confirmed');
+                            const parsedInfo = (sourceInfo?.value as any)?.data?.parsed?.info;
+                            mintPk = toPublicKeySafe(parsedInfo?.mint);
+                        } catch (e) {
+                            console.warn('Failed to resolve source mint for token transfer ATA helper', e);
+                        }
+                    }
+                } else if (discr === 12 && normalizedIx.keys.length >= 3) {
+                    mintPk = normalizedIx.keys[1].pubkey;
+                    destinationAtaPk = normalizedIx.keys[2].pubkey;
+                } else {
+                    continue;
+                }
+
+                if (!mintPk || !destinationAtaPk) continue;
+
+                const destinationAta = destinationAtaPk.toBase58();
+                const mint = mintPk.toBase58();
+                const key = `${programIdString}:${mint}:${destinationAta}`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+
+                const tokenOwner =
+                    rawInstruction?.info?.tokenOwner ||
+                    rawInstruction?.info?.recipientWallet ||
+                    getKnownTokenOwnerForAta(instructionSet, mint, destinationAta);
+
+                targets.push({
+                    destinationAta: destinationAtaPk,
+                    mint: mintPk,
+                    tokenProgramId: normalizedIx.programId,
+                    tokenOwner,
+                });
+            }
+
+            return targets;
+        },
+        [getInstructionSetInstructions, getKnownTokenOwnerForAta]
+    );
+
+    const hasCreateAtaHelper = React.useCallback(
+        (instructionSet: any) => {
+            const rawInstructions = getInstructionSetInstructions(instructionSet);
+            return rawInstructions.some((rawInstruction) => {
+                const normalizedIx = normalizeInstructionFromAny(rawInstruction);
+                if (!normalizedIx) return false;
+
+                const programIdString = normalizedIx.programId.toBase58();
+                if (
+                    programIdString !== TOKEN_PROGRAM_ID.toBase58() &&
+                    programIdString !== TOKEN_2022_PROGRAM_ID
+                ) {
+                    return false;
+                }
+
+                const discr = normalizedIx.data?.[0];
+                return discr === 3 || discr === 12;
+            });
+        },
+        [getInstructionSetInstructions]
+    );
+
+    const handleCreateAtaHelper = React.useCallback(
+        async (instructionSet: any) => {
+            try {
+                if (!publicKey) {
+                    enqueueSnackbar('Connect wallet to create recipient ATA.', { variant: 'warning' });
+                    return null;
+                }
+
+                const targets = await resolveTokenTransferAtaTargets(instructionSet);
+                if (!targets.length) {
+                    enqueueSnackbar('No token transfer ATA helper is available for this instruction.', { variant: 'info' });
+                    return null;
+                }
+
+                const helperInstructions: TransactionInstruction[] = [];
+                let alreadyExistsCount = 0;
+
+                for (const target of targets) {
+                    const existingAta = await RPC_CONNECTION.getAccountInfo(target.destinationAta, 'confirmed');
+                    if (existingAta) {
+                        alreadyExistsCount += 1;
+                        continue;
+                    }
+
+                    let tokenOwnerPk = toPublicKeySafe(target.tokenOwner);
+                    if (!tokenOwnerPk) {
+                        const enteredOwner = window.prompt(
+                            `Enter the recipient wallet for ATA ${target.destinationAta.toBase58()}`
+                        );
+                        tokenOwnerPk = toPublicKeySafe(enteredOwner?.trim());
+                    }
+
+                    if (!tokenOwnerPk) {
+                        enqueueSnackbar('Recipient wallet is required to create the ATA.', { variant: 'warning' });
+                        return null;
+                    }
+
+                    const derivedAta = await getAssociatedTokenAddress(
+                        target.mint,
+                        tokenOwnerPk,
+                        true,
+                        target.tokenProgramId,
+                        ASSOCIATED_TOKEN_PROGRAM_ID
+                    );
+
+                    if (!derivedAta.equals(target.destinationAta)) {
+                        enqueueSnackbar('Recipient wallet does not match the transfer destination ATA.', { variant: 'error' });
+                        return null;
+                    }
+
+                    helperInstructions.push(
+                        createAssociatedTokenAccountInstruction(
+                            publicKey,
+                            target.destinationAta,
+                            tokenOwnerPk,
+                            target.mint,
+                            target.tokenProgramId,
+                            ASSOCIATED_TOKEN_PROGRAM_ID
+                        )
+                    );
+                }
+
+                if (!helperInstructions.length) {
+                    enqueueSnackbar(
+                        alreadyExistsCount > 0
+                            ? `Recipient ATA already exists for ${alreadyExistsCount} transfer${alreadyExistsCount > 1 ? 's' : ''}.`
+                            : 'No missing recipient ATA found.',
+                        { variant: 'info' }
+                    );
+                    return null;
+                }
+
+                const signature = await createAndSendV0TxInline(helperInstructions);
+                enqueueSnackbar(
+                    `Created ${helperInstructions.length} recipient ATA${helperInstructions.length > 1 ? 's' : ''}${alreadyExistsCount ? `, skipped ${alreadyExistsCount} existing` : ''} - ${signature}`,
+                    { variant: 'success' }
+                );
+                if (setReload) setReload(true);
+                return signature;
+            } catch (e: any) {
+                enqueueSnackbar(e?.message || 'Failed to create recipient ATA.', { variant: 'error' });
+                return null;
+            }
+        },
+        [createAndSendV0TxInline, enqueueSnackbar, publicKey, resolveTokenTransferAtaTargets, setReload]
+    );
+
+    const buildExecuteBatch = React.useCallback(
+        async (
+            orderedInstructionSets: any[],
+            programId: PublicKey,
+            programVersion: number
+        ) => {
+            if (!orderedInstructionSets.length) {
+                return null;
+            }
+
+            const latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('confirmed');
+            const batchInstructions: TransactionInstruction[] = [];
+            const batchIndexes: number[] = [];
+            const batchKeys: string[] = [];
+
+            for (let i = 0; i < orderedInstructionSets.length; i++) {
+                const instruction = orderedInstructionSets[i];
+                const instructionIndex = getInstructionSetIndex(instruction, i);
+                const proposal = new PublicKey(instruction.account.proposal);
+                const proposalTransaction = new PublicKey(instruction.account.pubkey || instruction.pubkey);
+
+                let txi: InstructionData[] = [];
+                if (typeof instruction.account?.getAllInstructions === 'function') {
+                    txi = instruction.account.getAllInstructions();
+                } else if (Array.isArray(instruction.account?.instructions)) {
+                    txi = instruction.account.instructions;
+                }
+
+                const executeIxs: TransactionInstruction[] = [];
+                await withExecuteTransaction(
+                    executeIxs,
+                    programId,
+                    programVersion,
+                    governanceRulesWallet,
+                    proposal,
+                    proposalTransaction,
+                    txi
+                );
+
+                if (!executeIxs.length) {
+                    throw new Error(`No execute instruction built for tx index ${instructionIndex}`);
+                }
+
+                const nextBatch = [...batchInstructions, ...executeIxs];
+                const exceedsInstructionCount =
+                    batchIndexes.length >= EXECUTE_ALL_MAX_BATCH_INSTRUCTIONS;
+                const exceedsTxSize =
+                    batchInstructions.length > 0 &&
+                    estimateVersionedTransactionSize(nextBatch, latestBlockhash.blockhash) > EXECUTE_ALL_MAX_BATCH_SIZE;
+
+                if (batchInstructions.length > 0 && (exceedsInstructionCount || exceedsTxSize)) {
+                    break;
+                }
+
+                batchInstructions.push(...executeIxs);
+                batchIndexes.push(instructionIndex);
+                batchKeys.push(getInstructionSetPubkey(instruction));
+            }
+
+            if (!batchInstructions.length) {
+                return null;
+            }
+
+            return {
+                instructions: batchInstructions,
+                indexes: batchIndexes,
+                keys: batchKeys,
+            };
+        },
+        [
+            EXECUTE_ALL_MAX_BATCH_INSTRUCTIONS,
+            EXECUTE_ALL_MAX_BATCH_SIZE,
+            estimateVersionedTransactionSize,
+            getInstructionSetIndex,
+            getInstructionSetPubkey,
+            governanceRulesWallet,
+        ]
     );
 
     const toInstructionDataBuffer = (value: any): Buffer => {
@@ -1205,6 +1533,17 @@ export function InstructionTableView(props: any) {
                         <>{(publicKey && (state === 3 || state === 4 || state === 8) && (params.row.status === 0)) ?
 
                             <>
+                                {hasCreateAtaHelper(params.value) ? (
+                                    <Tooltip title="Create recipient ATA with your wallet before execution">
+                                        <IconButton
+                                            sx={{ml:1}}
+                                            color='warning'
+                                            onClick={e => handleCreateAtaHelper(params.value)}
+                                        >
+                                            <AccountBalanceWalletIcon fontSize='small' />
+                                        </IconButton>
+                                    </Tooltip>
+                                ) : null}
                                 <Tooltip title="Execute Instruction">
                                     <IconButton 
                                         sx={{ml:1}}
@@ -1261,11 +1600,11 @@ export function InstructionTableView(props: any) {
         }
     }
 
-    function createIxTable(){
+    function createIxTable(sourceProposalIx: any = proposalIx){
         let ixarr = new Array();
         let ixarray = new Array();
-        console.log("proposalIx: "+JSON.stringify(proposalIx));
-        if (!Array.isArray(proposalIx) || proposalIx.length === 0) {
+        console.log("proposalIx: "+JSON.stringify(sourceProposalIx));
+        if (!Array.isArray(sourceProposalIx) || sourceProposalIx.length === 0) {
             setIxRows([]);
             setInstructionSet([]);
             return;
@@ -1273,14 +1612,14 @@ export function InstructionTableView(props: any) {
 
         // Some indexed payloads nest proposal transactions under the first item.
         // Normal path is already a flat array of proposal transactions.
-        const maybeNested = proposalIx[0]?.account?.instructions;
+        const maybeNested = sourceProposalIx[0]?.account?.instructions;
         const rawTxRows = (
             Array.isArray(maybeNested) &&
             maybeNested.length > 0 &&
             maybeNested[0]?.account?.instructionIndex !== undefined
         )
             ? maybeNested
-            : proposalIx;
+            : sourceProposalIx;
 
         const txRows = [...rawTxRows].sort(
             (a: any, b: any) =>
@@ -1378,7 +1717,7 @@ export function InstructionTableView(props: any) {
                 inspector:item,
             });
 
-            if ((item?.account?.executionStatus ?? 1) === 0)
+            if ((item?.account?.executionStatus ?? 1) === 0 && !failedExecuteKeys.includes(itemPubkey))
                 ixarray.push(item);
         });
 
@@ -1386,11 +1725,15 @@ export function InstructionTableView(props: any) {
         setInstructionSet(ixarray)
     }
 
+    React.useEffect(() => {
+        setFailedExecuteKeys([]);
+    }, [sentProp?.pubkey?.toBase58?.()]);
+
     React.useEffect(() => { 
         if (proposalIx){
             createIxTable();
         }
-    }, [proposalIx]);
+    }, [failedExecuteKeys, proposalIx]);
 
     const instructionCsv = ixRows ? buildInstructionCsv(ixRows, sentProp) : '';
     const instructionCsvHref = instructionCsv
