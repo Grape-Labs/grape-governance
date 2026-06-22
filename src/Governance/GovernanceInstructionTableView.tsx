@@ -34,6 +34,10 @@ import {
   Button,
   Grid,
   Box,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Table,
   Tooltip,
   LinearProgress,
@@ -719,6 +723,7 @@ export function InstructionTableView(props: any) {
     const [inspectorAccountRows, setInspectorAccountRows] = React.useState<any[]>([]);
     const [inspectorAccountLoading, setInspectorAccountLoading] = React.useState(false);
     const [inspectorSimulationLoading, setInspectorSimulationLoading] = React.useState(false);
+    const [inspectorLoading, setInspectorLoading] = React.useState(false);
     const [inspectorSimulation, setInspectorSimulation] = React.useState<any>(null);
     const [inspectorFeePayer, setInspectorFeePayer] = React.useState<PublicKey | null>(null);
     const [inspectorFeePayerSource, setInspectorFeePayerSource] = React.useState<string>('none');
@@ -1315,12 +1320,13 @@ export function InstructionTableView(props: any) {
 
     const handleInspectIx = async (instructionSet: any) => {
         try {
+            setInspectorLoading(true);
             setInspectorError(null);
             setInspectorSimulation(null);
             setInspectorTab('parsed');
+            setInspectorTarget(instructionSet);
             const resolvedInstruction = await resolveInspectableInstruction(instructionSet);
             if (!resolvedInstruction) {
-                setInspectorTarget(instructionSet);
                 setInspectorIx(null);
                 setInspectorParsed(null);
                 setInspectorAccountRows([]);
@@ -1353,6 +1359,7 @@ export function InstructionTableView(props: any) {
         } catch (e: any) {
             setInspectorError(e?.message || `${e}`);
         } finally {
+            setInspectorLoading(false);
             setInspectorAccountLoading(false);
         }
     };
@@ -1630,7 +1637,10 @@ export function InstructionTableView(props: any) {
                         <IconButton 
                             sx={{ml:1}}
                             color='success'
-                            onClick={e => handleInspectIx(params.value)}
+                            onClick={e => {
+                                e.stopPropagation();
+                                handleInspectIx(params.value);
+                            }}
                         >
                             <SearchIcon fontSize='small' />
                         </IconButton>
@@ -1873,68 +1883,61 @@ export function InstructionTableView(props: any) {
                     </div>
                 </div>
             }
-            {inspectorTarget && (
-                <Box
-                    sx={{
-                        mt: 2,
-                        p: 1.5,
-                        borderRadius: '14px',
-                        border: '1px solid rgba(255,255,255,0.18)',
-                        backgroundColor: 'rgba(255,255,255,0.02)',
-                    }}
-                >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.9)' }}>
-                            Instruction Inspector
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Button
-                                size="small"
-                                variant={inspectorTab === 'parsed' ? 'contained' : 'outlined'}
-                                sx={{ borderRadius: '10px', textTransform: 'none' }}
-                                onClick={() => setInspectorTab('parsed')}
-                            >
-                                Parsed
-                            </Button>
-                            <Button
-                                size="small"
-                                variant={inspectorTab === 'accounts' ? 'contained' : 'outlined'}
-                                sx={{ borderRadius: '10px', textTransform: 'none' }}
-                                onClick={() => setInspectorTab('accounts')}
-                            >
-                                Accounts
-                            </Button>
-                            <Button
-                                size="small"
-                                variant={inspectorTab === 'simulation' ? 'contained' : 'outlined'}
-                                sx={{ borderRadius: '10px', textTransform: 'none' }}
-                                onClick={() => setInspectorTab('simulation')}
-                            >
-                                Simulation
-                            </Button>
-                            <IconButton
-                                size="small"
-                                onClick={() => {
-                                    setInspectorTarget(null);
-                                    setInspectorIx(null);
-                                    setInspectorParsed(null);
-                                    setInspectorAccountRows([]);
-                                    setInspectorSimulation(null);
-                                    setInspectorError(null);
-                                }}
-                            >
-                                <CloseIcon fontSize="small" />
-                            </IconButton>
-                        </Box>
+            <Dialog
+                open={!!inspectorTarget}
+                onClose={() => {
+                    setInspectorTarget(null);
+                    setInspectorIx(null);
+                    setInspectorParsed(null);
+                    setInspectorAccountRows([]);
+                    setInspectorSimulation(null);
+                    setInspectorError(null);
+                    setInspectorLoading(false);
+                }}
+                fullWidth
+                maxWidth="md"
+            >
+                <DialogTitle>Instruction Inspector</DialogTitle>
+                <DialogContent dividers>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                        <Button
+                            size="small"
+                            variant={inspectorTab === 'parsed' ? 'contained' : 'outlined'}
+                            sx={{ borderRadius: '10px', textTransform: 'none' }}
+                            onClick={() => setInspectorTab('parsed')}
+                            disabled={inspectorLoading}
+                        >
+                            Parsed
+                        </Button>
+                        <Button
+                            size="small"
+                            variant={inspectorTab === 'accounts' ? 'contained' : 'outlined'}
+                            sx={{ borderRadius: '10px', textTransform: 'none' }}
+                            onClick={() => setInspectorTab('accounts')}
+                            disabled={inspectorLoading}
+                        >
+                            Accounts
+                        </Button>
+                        <Button
+                            size="small"
+                            variant={inspectorTab === 'simulation' ? 'contained' : 'outlined'}
+                            sx={{ borderRadius: '10px', textTransform: 'none' }}
+                            onClick={() => setInspectorTab('simulation')}
+                            disabled={inspectorLoading}
+                        >
+                            Simulation
+                        </Button>
                     </Box>
 
-                    {inspectorError && (
+                    {inspectorLoading && <LinearProgress sx={{ borderRadius: '8px', mb: 2 }} />}
+
+                    {inspectorError && !inspectorLoading && (
                         <Typography variant="caption" sx={{ color: '#ffb4b4', display: 'block', mb: 1 }}>
                             {inspectorError}
                         </Typography>
                     )}
 
-                    {inspectorTab === 'parsed' && (
+                    {!inspectorLoading && inspectorTab === 'parsed' && (
                         <Box sx={{ display: 'grid', gap: 1 }}>
                             <Typography variant="caption">
                                 Program: {inspectorParsed?.programId || '-'}
@@ -1978,7 +1981,7 @@ export function InstructionTableView(props: any) {
                         </Box>
                     )}
 
-                    {inspectorTab === 'accounts' && (
+                    {!inspectorLoading && inspectorTab === 'accounts' && (
                         <Box>
                             {inspectorAccountLoading ? (
                                 <LinearProgress sx={{ borderRadius: '8px' }} />
@@ -2019,7 +2022,7 @@ export function InstructionTableView(props: any) {
                         </Box>
                     )}
 
-                    {inspectorTab === 'simulation' && (
+                    {!inspectorLoading && inspectorTab === 'simulation' && (
                         <Box sx={{ display: 'grid', gap: 1 }}>
                             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                                 <Button
@@ -2060,8 +2063,23 @@ export function InstructionTableView(props: any) {
                             )}
                         </Box>
                     )}
-                </Box>
-            )}
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        onClick={() => {
+                            setInspectorTarget(null);
+                            setInspectorIx(null);
+                            setInspectorParsed(null);
+                            setInspectorAccountRows([]);
+                            setInspectorSimulation(null);
+                            setInspectorError(null);
+                            setInspectorLoading(false);
+                        }}
+                    >
+                        Close
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </>
     );
 }
