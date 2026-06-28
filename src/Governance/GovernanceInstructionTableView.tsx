@@ -13,7 +13,7 @@ import base58 from 'bs58';
 import { BorshCoder } from "@coral-xyz/anchor";
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
-import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction } from "@solana/spl-token-v2";
+import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, ACCOUNT_SIZE, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction } from "@solana/spl-token-v2";
 import { Signer, Connection, TransactionMessage, PublicKey, Transaction, VersionedTransaction, TransactionInstruction, ComputeBudgetProgram } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError, TransactionOrVersionedTransaction } from '@solana/wallet-adapter-base';
@@ -184,6 +184,15 @@ function getInstructionStatusLabel(status: any) {
 
 const TOKEN_2022_PROGRAM_ID = 'TokenzQdBNbLqP5VEh84bYQNJ9Y7fA1aC33mW7zk1g';
 
+type AtaHelperTarget = {
+    destinationAta: string;
+    mint: string;
+    tokenProgramId: string;
+    tokenOwner: string;
+    exists: boolean;
+    estimatedRentLamports: number;
+};
+
 function buildInstructionCsv(rows: any[], proposal: any) {
     if (!Array.isArray(rows) || rows.length === 0) {
         return '';
@@ -253,6 +262,12 @@ export function InstructionTableView(props: any) {
     
     const [instructionSet, setInstructionSet] = React.useState(null);
     const [failedExecuteKeys, setFailedExecuteKeys] = React.useState<string[]>([]);
+    const [ataHelperDialogOpen, setAtaHelperDialogOpen] = React.useState(false);
+    const [ataHelperInstructionSet, setAtaHelperInstructionSet] = React.useState<any>(null);
+    const [ataHelperTargets, setAtaHelperTargets] = React.useState<AtaHelperTarget[]>([]);
+    const [ataHelperLoading, setAtaHelperLoading] = React.useState(false);
+    const [ataHelperSubmitting, setAtaHelperSubmitting] = React.useState(false);
+    const [ataHelperError, setAtaHelperError] = React.useState<string | null>(null);
     const { publicKey, sendTransaction } = useWallet();
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const EXECUTE_ALL_MAX_BATCH_SIZE = 1100;
@@ -905,6 +920,15 @@ export function InstructionTableView(props: any) {
         [getInstructionSetInstructions, getKnownTokenOwnerForAta]
     );
 
+    const closeAtaHelperDialog = React.useCallback(() => {
+        setAtaHelperDialogOpen(false);
+        setAtaHelperInstructionSet(null);
+        setAtaHelperTargets([]);
+        setAtaHelperError(null);
+        setAtaHelperLoading(false);
+        setAtaHelperSubmitting(false);
+    }, []);
+
     const hasCreateAtaHelper = React.useCallback(
         (instructionSet: any) => {
             const rawInstructions = getInstructionSetInstructions(instructionSet);
@@ -935,55 +959,105 @@ export function InstructionTableView(props: any) {
                     return null;
                 }
 
+                setAtaHelperDialogOpen(true);
+                setAtaHelperInstructionSet(instructionSet);
+                setAtaHelperTargets([]);
+                setAtaHelperError(null);
+                setAtaHelperLoading(true);
+
                 const targets = await resolveTokenTransferAtaTargets(instructionSet);
                 if (!targets.length) {
-                    enqueueSnackbar('No token transfer ATA helper is available for this instruction.', { variant: 'info' });
+                    setAtaHelperError('No token transfer ATA helper is available for this instruction.');
                     return null;
                 }
+
+                const estimatedRentLamports = await RPC_CONNECTION.getMinimumBalanceForRentExemption(ACCOUNT_SIZE);
+                const hydratedTargets: AtaHelperTarget[] = [];
+
+                for (const target of targets) {
+                    const existingAta = await RPC_CONNECTION.getAccountInfo(target.destinationAta, 'confirmed');
+                    hydratedTargets.push({
+                        destinationAta: target.destinationAta.toBase58(),
+                        mint: target.mint.toBase58(),
+                        tokenProgramId: target.tokenProgramId.toBase58(),
+                        tokenOwner: target.tokenOwner || '',
+                        exists: !!existingAta,
+                        estimatedRentLamports,
+                    });
+                }
+
+                setAtaHelperTargets(hydratedTargets);
+                return hydratedTargets;
+            } catch (e: any) {
+                setAtaHelperError(e?.message || 'Failed to prepare ATA helper.');
+                return null;
+            } finally {
+                setAtaHelperLoading(false);
+            }
+        },
+        [enqueueSnackbar, publicKey, resolveTokenTransferAtaTargets]
+    );
+
+    const handleAtaHelperTargetChange = React.useCallback((index: number, tokenOwner: string) => {
+        setAtaHelperTargets((current) =>
+            current.map((target, targetIndex) =>
+                targetIndex === index
+                    ? { ...target, tokenOwner }
+                    : target
+            )
+        );
+    }, []);
+
+    const handleConfirmCreateAtaHelper = React.useCallback(
+        async () => {
+            try {
+                if (!publicKey) {
+                    setAtaHelperError('Connect wallet to create recipient ATA.');
+                    return null;
+                }
+
+                setAtaHelperSubmitting(true);
+                setAtaHelperError(null);
 
                 const helperInstructions: TransactionInstruction[] = [];
                 let alreadyExistsCount = 0;
 
-                for (const target of targets) {
-                    const existingAta = await RPC_CONNECTION.getAccountInfo(target.destinationAta, 'confirmed');
-                    if (existingAta) {
+                for (const target of ataHelperTargets) {
+                    if (target.exists) {
                         alreadyExistsCount += 1;
                         continue;
                     }
 
-                    let tokenOwnerPk = toPublicKeySafe(target.tokenOwner);
+                    const tokenOwnerPk = toPublicKeySafe(target.tokenOwner.trim());
                     if (!tokenOwnerPk) {
-                        const enteredOwner = window.prompt(
-                            `Enter the recipient wallet for ATA ${target.destinationAta.toBase58()}`
-                        );
-                        tokenOwnerPk = toPublicKeySafe(enteredOwner?.trim());
-                    }
-
-                    if (!tokenOwnerPk) {
-                        enqueueSnackbar('Recipient wallet is required to create the ATA.', { variant: 'warning' });
+                        setAtaHelperError(`Recipient wallet is required for ATA ${target.destinationAta}.`);
                         return null;
                     }
 
+                    const mintPk = new PublicKey(target.mint);
+                    const tokenProgramPk = new PublicKey(target.tokenProgramId);
+                    const destinationAtaPk = new PublicKey(target.destinationAta);
+
                     const derivedAta = await getAssociatedTokenAddress(
-                        target.mint,
+                        mintPk,
                         tokenOwnerPk,
                         true,
-                        target.tokenProgramId,
+                        tokenProgramPk,
                         ASSOCIATED_TOKEN_PROGRAM_ID
                     );
 
-                    if (!derivedAta.equals(target.destinationAta)) {
-                        enqueueSnackbar('Recipient wallet does not match the transfer destination ATA.', { variant: 'error' });
+                    if (!derivedAta.equals(destinationAtaPk)) {
+                        setAtaHelperError(`Recipient wallet does not match ATA ${target.destinationAta}.`);
                         return null;
                     }
 
                     helperInstructions.push(
                         createAssociatedTokenAccountInstruction(
                             publicKey,
-                            target.destinationAta,
+                            destinationAtaPk,
                             tokenOwnerPk,
-                            target.mint,
-                            target.tokenProgramId,
+                            mintPk,
+                            tokenProgramPk,
                             ASSOCIATED_TOKEN_PROGRAM_ID
                         )
                     );
@@ -996,6 +1070,7 @@ export function InstructionTableView(props: any) {
                             : 'No missing recipient ATA found.',
                         { variant: 'info' }
                     );
+                    closeAtaHelperDialog();
                     return null;
                 }
 
@@ -1004,14 +1079,17 @@ export function InstructionTableView(props: any) {
                     `Created ${helperInstructions.length} recipient ATA${helperInstructions.length > 1 ? 's' : ''}${alreadyExistsCount ? `, skipped ${alreadyExistsCount} existing` : ''} - ${signature}`,
                     { variant: 'success' }
                 );
+                closeAtaHelperDialog();
                 if (setReload) setReload(true);
                 return signature;
             } catch (e: any) {
-                enqueueSnackbar(e?.message || 'Failed to create recipient ATA.', { variant: 'error' });
+                setAtaHelperError(e?.message || 'Failed to create recipient ATA.');
                 return null;
+            } finally {
+                setAtaHelperSubmitting(false);
             }
         },
-        [createAndSendV0TxInline, enqueueSnackbar, publicKey, resolveTokenTransferAtaTargets, setReload]
+        [ataHelperTargets, closeAtaHelperDialog, createAndSendV0TxInline, enqueueSnackbar, publicKey, setReload]
     );
 
     const buildExecuteBatch = React.useCallback(
@@ -1604,7 +1682,10 @@ export function InstructionTableView(props: any) {
                                         <IconButton
                                             sx={{ml:1}}
                                             color='warning'
-                                            onClick={e => handleCreateAtaHelper(params.value)}
+                                            onClick={e => {
+                                                e.stopPropagation();
+                                                handleCreateAtaHelper(params.value);
+                                            }}
                                         >
                                             <AccountBalanceWalletIcon fontSize='small' />
                                         </IconButton>
@@ -1883,6 +1964,103 @@ export function InstructionTableView(props: any) {
                     </div>
                 </div>
             }
+            <Dialog
+                open={ataHelperDialogOpen}
+                onClose={ataHelperSubmitting ? undefined : closeAtaHelperDialog}
+                fullWidth
+                maxWidth="md"
+            >
+                <DialogTitle>Create Recipient ATA</DialogTitle>
+                <DialogContent dividers>
+                    <Box sx={{ display: 'grid', gap: 2 }}>
+                        <Typography variant="caption">
+                            Payer: {publicKey?.toBase58?.() || '-'}
+                        </Typography>
+
+                        {(ataHelperLoading || ataHelperSubmitting) && (
+                            <LinearProgress sx={{ borderRadius: '8px' }} />
+                        )}
+
+                        {ataHelperError && (
+                            <Typography variant="caption" sx={{ color: '#ffb4b4' }}>
+                                {ataHelperError}
+                            </Typography>
+                        )}
+
+                        {!ataHelperLoading && ataHelperTargets.length > 0 && (
+                            <Typography variant="caption">
+                                Estimated rent: {(
+                                    ataHelperTargets
+                                        .filter((target) => !target.exists)
+                                        .reduce((sum, target) => sum + target.estimatedRentLamports, 0) /
+                                    1_000_000_000
+                                ).toLocaleString(undefined, { maximumFractionDigits: 6 })} SOL
+                            </Typography>
+                        )}
+
+                        {!ataHelperLoading && ataHelperTargets.length === 0 && !ataHelperError && (
+                            <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                                No ATA targets were found for this instruction.
+                            </Typography>
+                        )}
+
+                        {!ataHelperLoading && ataHelperTargets.map((target, index) => (
+                            <Box
+                                key={`${target.destinationAta}-${index}`}
+                                sx={{
+                                    p: 1.25,
+                                    borderRadius: '12px',
+                                    border: '1px solid rgba(255,255,255,0.12)',
+                                    display: 'grid',
+                                    gap: 1,
+                                    backgroundColor: target.exists ? 'rgba(255,255,255,0.03)' : 'transparent',
+                                }}
+                            >
+                                <Typography variant="caption">
+                                    Mint: {target.mint}
+                                </Typography>
+                                <Typography variant="caption">
+                                    Destination ATA: {target.destinationAta}
+                                </Typography>
+                                <Typography variant="caption">
+                                    Token Program: {target.tokenProgramId}
+                                </Typography>
+                                <Typography variant="caption">
+                                    Status: {target.exists ? 'Already exists' : 'Missing'}
+                                </Typography>
+                                <Typography variant="caption">
+                                    Estimated rent: {(target.estimatedRentLamports / 1_000_000_000).toLocaleString(undefined, { maximumFractionDigits: 6 })} SOL
+                                </Typography>
+                                <TextField
+                                    size="small"
+                                    label="Recipient Wallet"
+                                    value={target.tokenOwner}
+                                    onChange={(e) => handleAtaHelperTargetChange(index, e.target.value)}
+                                    disabled={target.exists || ataHelperSubmitting}
+                                    fullWidth
+                                    helperText={target.exists ? 'ATA already exists, no action required.' : 'Wallet owner used to derive and validate the ATA.'}
+                                />
+                            </Box>
+                        ))}
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={closeAtaHelperDialog} disabled={ataHelperSubmitting}>
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleConfirmCreateAtaHelper}
+                        disabled={
+                            ataHelperLoading ||
+                            ataHelperSubmitting ||
+                            !ataHelperTargets.some((target) => !target.exists)
+                        }
+                    >
+                        {ataHelperSubmitting ? 'Creating...' : 'Create ATA'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
             <Dialog
                 open={!!inspectorTarget}
                 onClose={() => {
