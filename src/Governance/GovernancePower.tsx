@@ -732,6 +732,13 @@ export default function GovernancePower(props: any){
             setCouncilUnrelinquishedVotesCount(0);
             setCommunityTokenOwnerRecordPk(null);
             setCouncilTokenOwnerRecordPk(null);
+
+            if (communityMint) {
+                await getTokenMintInfo(communityMint).catch((error) => {
+                    console.log("ERR(getTokenMintInfo): ", error);
+                });
+                fetchedTMI = true;
+            }
             
             for (let record of tokenOwnerRecord){
                 if (record.account.realm.toBase58() === governanceAddress){
@@ -739,8 +746,10 @@ export default function GovernancePower(props: any){
                     if (record.account.governingTokenOwner.toBase58() === publicKey.toBase58()){
                         if (record.account.governingTokenMint.toBase58() === communityMint){
                             depCommunityTorPk = record?.pubkey?.toBase58?.() || record?.pubkey || null;
-                            const tki = await getTokenMintInfo(communityMint);
-                            fetchedTMI = true;
+                            if (!fetchedTMI) {
+                                await getTokenMintInfo(communityMint);
+                                fetchedTMI = true;
+                            }
                             //console.log("tokenMintInfo: "+JSON.stringify(tki));
                             depCommunityMint = Number(record.account.governingTokenDepositAmount);
                             depCommunityUnrelinquishedVotesCount = toNumberSafe(record.account?.unrelinquishedVotesCount);
@@ -752,7 +761,7 @@ export default function GovernancePower(props: any){
                             depCouncilDelegate = record.account?.governanceDelegate;
                         }
                         //console.log("record "+JSON.stringify(record));
-                    } else if (record.account.governanceDelegate.toBase58() === publicKey.toBase58()){
+                    } else if (record.account.governanceDelegate?.toBase58?.() === publicKey.toBase58()){
                         if (record.account.governingTokenMint.toBase58() === communityMint){
                             setCurrentCommunityDelegateFrom(record.account.governingTokenOwner.toBase58());
                             setCurrentCommunityDelegateFromAmount(Number(record.account.governingTokenDepositAmount));

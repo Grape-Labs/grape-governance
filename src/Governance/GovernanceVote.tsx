@@ -804,8 +804,7 @@ export function VoteForProposal(props:any){
         const transactionData = { proposal, action: 0 }; // 0 = yes (as per your original)
 
         if (wOwner && !memberItem) {
-        enqueueSnackbar("Voter Record Not Found!", { variant: "error" });
-        return;
+        console.log("Voter record not found locally; vote builder may create it for plugin voting");
         }
 
         const hasRecordedVote = (owner58: string) =>
@@ -822,7 +821,7 @@ export function VoteForProposal(props:any){
 
         if (wOwner) {
         const iAlreadyVoted = hasRecordedVote(myPk58);
-        if (!iAlreadyVoted && memberItem) {
+        if (!iAlreadyVoted && (memberItem || isCommunityVote)) {
             voteTargets.push({
             owner58: myPk58,
             delegate: null,
