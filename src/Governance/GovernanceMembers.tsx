@@ -74,6 +74,11 @@ import {
     TX_RPC_ENDPOINT } from '../utils/grapeTools/constants';
 import { getVoterPDA } from '../utils/governanceTools/components/instructions/account';
 import { getVsrRegistrarInfo, isVsrPluginForRealm } from '../utils/governanceTools/vsrPlugin';
+import {
+    getStakingStakeAccountAddress,
+    getStakingVoterRegistrar,
+    isStakingVoterPlugin,
+} from '../utils/governanceTools/stakingVoterPlugin';
 
 const GOVERNANNCE_STATE = {
     0:'Draft',
@@ -312,6 +317,79 @@ const getApproximateVsrVotingPowerNative = (
 
         return sum + baselineVoteWeight + extraVoteWeight;
     }, 0n);
+};
+
+const fetchStakingPluginMemberStats = async (
+    realmPk: PublicKey,
+    voterWeightAddinPk: PublicKey,
+    participants: any[]
+) => {
+    const registrar = await getStakingVoterRegistrar(
+        RPC_CONNECTION,
+        realmPk,
+        voterWeightAddinPk
+    );
+
+    if (!registrar) return null;
+
+    const members = participants.map((participant: any) => {
+        const ownerPk = new PublicKey(participant.governingTokenOwner);
+        return {
+            owner: ownerPk.toBase58(),
+            ownerPk,
+            stakeAccount: getStakingStakeAccountAddress(
+                registrar.stakePool,
+                ownerPk,
+                registrar.stakingProgramId
+            ),
+        };
+    });
+    const accountInfos = await getMultipleAccountsInfoBatched(
+        RPC_CONNECTION,
+        members.map((item) => item.stakeAccount)
+    );
+
+    const memberStats: Record<string, any> = {};
+    const totals = {
+        totalDepositedNative: 0,
+        totalLockedNative: 0,
+        totalWithdrawableNative: 0,
+        activeParticipants: 0,
+        totalVotingPowerNative: 0,
+    };
+
+    members.forEach((member, index) => {
+        const accountInfo = accountInfos[index];
+        const stakedAmount =
+            accountInfo?.data && accountInfo.data.length >= 80
+                ? Number(accountInfo.data.readBigUInt64LE(72))
+                : 0;
+
+        memberStats[member.owner] = {
+            depositedNative: stakedAmount,
+            lockedNative: stakedAmount,
+            withdrawableNative: 0,
+            depositCount: stakedAmount > 0 ? 1 : 0,
+            voterWeightNative: stakedAmount,
+            voterWeightApproximate: false,
+            voterWeightRecordFound: stakedAmount > 0,
+            displayDecimals: null,
+            votingPowerDisplayDecimals: null,
+        };
+
+        totals.totalDepositedNative += stakedAmount;
+        totals.totalLockedNative += stakedAmount;
+        totals.totalVotingPowerNative += stakedAmount;
+        if (stakedAmount > 0) {
+            totals.activeParticipants += 1;
+        }
+    });
+
+    return {
+        memberStats,
+        totals,
+        summaryDisplayConfig: null,
+    };
 };
 
 const toBase58Safe = (value: any): string | null => {
@@ -801,6 +879,7 @@ export function GovernanceMembersView(props: any) {
     const [pluginDao, setPluginDao] = React.useState(null);
     const [pluginProgramId, setPluginProgramId] = React.useState<string | null>(null);
     const [isVsrPluginRealm, setIsVsrPluginRealm] = React.useState(false);
+    const [isStakingPluginRealm, setIsStakingPluginRealm] = React.useState(false);
     const [gspl, setGSPL] = React.useState(null);
     const [gsplMetadata, setGSPLMetadata] = React.useState(null);
     const [membersDebug, setMembersDebug] = React.useState<any>(null);
@@ -1227,14 +1306,17 @@ export function GovernanceMembersView(props: any) {
                         grealm.account?.communityMint
                     )
                     : false;
+                const resolvedIsStakingPluginRealm = isStakingVoterPlugin(voterWeightAddin);
                 debugInfo.pluginProgramId = voterWeightAddin;
                 debugInfo.isVsrPluginRealm = resolvedIsVsrPluginRealm;
+                debugInfo.isStakingPluginRealm = resolvedIsStakingPluginRealm;
 
                 if (voterWeightAddin){
                     setPluginDao(true);
                     setPluginProgramId(voterWeightAddin);
                     setIsVsrPluginRealm(resolvedIsVsrPluginRealm);
-                    if (!resolvedIsVsrPluginRealm) {
+                    setIsStakingPluginRealm(resolvedIsStakingPluginRealm);
+                    if (!resolvedIsVsrPluginRealm && !resolvedIsStakingPluginRealm) {
                         setVsrTokenDecimals(null);
                         setVsrVotingPowerDecimals(null);
                         setVsrSummary({
@@ -1248,6 +1330,7 @@ export function GovernanceMembersView(props: any) {
                     setPluginDao(false);
                     setPluginProgramId(null);
                     setIsVsrPluginRealm(false);
+                    setIsStakingPluginRealm(false);
                     setVsrTokenDecimals(null);
                     setVsrVotingPowerDecimals(null);
                     setVsrSummary({
@@ -1474,6 +1557,8 @@ export function GovernanceMembersView(props: any) {
                     let effectiveActiveParticipants = lParticipants;
                     let effectiveVsrTokenDecimals: number | null = null;
                     let effectiveVsrVotingPowerDecimals: number | null = null;
+                    const resolvedHasPluginPower =
+                        resolvedIsVsrPluginRealm || resolvedIsStakingPluginRealm;
 
                     if (resolvedIsVsrPluginRealm && voterWeightAddin && participantArray.length > 0) {
                         try {
@@ -1527,6 +1612,56 @@ export function GovernanceMembersView(props: any) {
                                 activeParticipants: 0,
                             });
                         }
+                    } else if (resolvedIsStakingPluginRealm && voterWeightAddin && participantArray.length > 0) {
+                        try {
+                            const stakingData = await fetchStakingPluginMemberStats(
+                                realmPk,
+                                new PublicKey(voterWeightAddin),
+                                participantArray
+                            );
+
+                            if (stakingData) {
+                                enrichedParticipants = participantArray.map((participant: any) => {
+                                    const owner = participant.governingTokenOwner.toBase58();
+                                    const stats = stakingData.memberStats?.[owner];
+
+                                    return {
+                                        ...participant,
+                                        vsrDepositedAmount: Number(stats?.depositedNative || 0),
+                                        vsrLockedAmount: Number(stats?.lockedNative || 0),
+                                        vsrWithdrawableAmount: 0,
+                                        vsrDepositCount: Number(stats?.depositCount || 0),
+                                        vsrVotingPower: Number(stats?.voterWeightNative || 0),
+                                        vsrVotingPowerApproximate: false,
+                                        vsrVotingPowerRecord: !!stats?.voterWeightRecordFound,
+                                        vsrDisplayDecimals: thisTokenDecimals,
+                                        vsrVotingPowerDecimals: thisTokenDecimals,
+                                    };
+                                });
+                                effectiveDepositedVotes = Number(stakingData.totals?.totalDepositedNative || 0);
+                                effectiveActiveParticipants = Number(stakingData.totals?.activeParticipants || 0);
+                                effectiveVsrTokenDecimals = thisTokenDecimals;
+                                effectiveVsrVotingPowerDecimals = thisTokenDecimals;
+                                setVsrTokenDecimals(effectiveVsrTokenDecimals);
+                                setVsrVotingPowerDecimals(effectiveVsrVotingPowerDecimals);
+                                setVsrSummary({
+                                    totalDepositedNative: Number(stakingData.totals?.totalDepositedNative || 0),
+                                    totalLockedNative: Number(stakingData.totals?.totalLockedNative || 0),
+                                    totalWithdrawableNative: 0,
+                                    activeParticipants: Number(stakingData.totals?.activeParticipants || 0),
+                                });
+                            }
+                        } catch (stakingError) {
+                            console.log("Failed to load staking plugin member stats: ", stakingError);
+                            setVsrTokenDecimals(null);
+                            setVsrVotingPowerDecimals(null);
+                            setVsrSummary({
+                                totalDepositedNative: 0,
+                                totalLockedNative: 0,
+                                totalWithdrawableNative: 0,
+                                activeParticipants: 0,
+                            });
+                        }
                     }
 
                     let pcount = 0;
@@ -1536,11 +1671,11 @@ export function GovernanceMembersView(props: any) {
                             else
                                 csvFile = 'Member,VotesDeposited,LegacyVotesDeposited,TokenDecimals,RawVotesDeposited,RawLegacyVotesDeposited,CouncilVotesDeposited,VsrLockedRaw,VsrWithdrawableRaw\r\n';
                             
-                            const rawDepositedAmount = resolvedIsVsrPluginRealm
+                            const rawDepositedAmount = resolvedHasPluginPower
                                 ? Number(singleParticipant?.vsrDepositedAmount ?? 0)
                                 : Number(singleParticipant?.governingTokenDepositAmount ?? 0);
                             const rawLegacyDepositedAmount = Number(singleParticipant?.governingTokenDepositAmount ?? 0);
-                            const participantDisplayDecimals = resolvedIsVsrPluginRealm
+                            const participantDisplayDecimals = resolvedHasPluginPower
                                 ? Number(
                                     singleParticipant?.vsrDisplayDecimals ??
                                     effectiveVsrTokenDecimals ??
@@ -1572,7 +1707,7 @@ export function GovernanceMembersView(props: any) {
 
                     //console.log("participantArray: "+JSON.stringify(participantArray));
                     const getDepositedAmount = (member: any) =>
-                        resolvedIsVsrPluginRealm
+                        resolvedHasPluginPower
                             ? Number(member?.vsrDepositedAmount ?? 0)
                             : Number(member?.governingTokenDepositAmount ?? 0);
                     const presortedResults = enrichedParticipants.sort((a,b) => (a.totalVotesCount > b.totalVotesCount) ? 1 : -1);
@@ -1590,7 +1725,7 @@ export function GovernanceMembersView(props: any) {
                     for (var member of sortedResults){
                         if (count < 10){
                             const memberDepositedAmount = getDepositedAmount(member);
-                            const memberDisplayDecimals = resolvedIsVsrPluginRealm
+                            const memberDisplayDecimals = resolvedHasPluginPower
                                 ? Number(member?.vsrDisplayDecimals ?? topLevelDisplayDecimals)
                                 : thisTokenDecimals;
                             totalTopVotes += memberDepositedAmount/Math.pow(10, memberDisplayDecimals || 0);
@@ -1666,8 +1801,9 @@ export function GovernanceMembersView(props: any) {
     const participatingVotersCount = Number(votingParticipants || 0);
     const activeVoterRate = allVotersCount > 0 ? (activeVotersCount / allVotersCount) * 100 : 0;
     const participatingVoterRate = allVotersCount > 0 ? (participatingVotersCount / allVotersCount) * 100 : 0;
+    const isPluginPowerRealm = isVsrPluginRealm || isStakingPluginRealm;
     const isVsrRealm = isVsrPluginRealm;
-    const depositDisplayDecimals = isVsrRealm
+    const depositDisplayDecimals = isPluginPowerRealm
         ? Number(vsrTokenDecimals ?? governingTokenDecimals ?? 0)
         : Number(governingTokenDecimals ?? 0);
     const communityVotesDepositedUi = totalDepositedVotes
@@ -2028,7 +2164,7 @@ export function GovernanceMembersView(props: any) {
                                 </Box>
                             }
 
-                        <RenderGovernanceMembersTable members={members} memberMap={null} participating={participating} tokenMap={tokenMap} pluginDao={isVsrRealm} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} vsrTokenDecimals={vsrTokenDecimals} vsrVotingPowerDecimals={vsrVotingPowerDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />
+                        <RenderGovernanceMembersTable members={members} memberMap={null} participating={participating} tokenMap={tokenMap} pluginDao={isPluginPowerRealm} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} vsrTokenDecimals={vsrTokenDecimals} vsrVotingPowerDecimals={vsrVotingPowerDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />
                     
                         {endTime &&
                             <Typography 

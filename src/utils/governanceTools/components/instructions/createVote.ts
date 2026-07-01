@@ -24,7 +24,9 @@ import {
   getRealmConfig,
   getRealmConfigAddress,
   Realm,
+  getTokenOwnerRecordAddress,
   withCastVote,
+  withCreateTokenOwnerRecord,
   Vote,
   VoteChoice,
   VoteKind,
@@ -44,6 +46,10 @@ import {
 // end plugin stuff
 
 import { getVotingPluginWithUpdate } from './getVotePlugin';
+import {
+  createStakingVoterUpdateInstruction,
+  isStakingVoterPlugin,
+} from '../../stakingVoterPlugin';
 
 const connection = RPC_CONNECTION;
 
@@ -78,24 +84,15 @@ export const createCastVoteTransaction = async (
     }
 
     //console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecord));
-    
-    if (tokenOwnerRecord){
-      console.log("isCommunityVote "+isCommunityVote)
-      //console.log("tokenOwnerRecord?.communityPublicKey "+tokenOwnerRecord?.communityPublicKey)
-      //console.log("tokenOwnerRecord?.councilPublicKey "+tokenOwnerRecord?.councilPublicKey)
+
+    console.log("isCommunityVote "+isCommunityVote)
+    if (tokenOwnerRecord) {
       console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecord))
+    }
 
-      const tokenRecordPublicKey = tokenOwnerRecord?.pubkey;//.account?.governingTokenMint;
-      
-      //console.log("tokenRecordPublicKey: "+tokenRecordPublicKey)
-
-      //isCommunityVote
-      //  ? tokenOwnerRecord?.communityPublicKey
-      //  : tokenOwnerRecord?.councilPublicKey;
-      
-      const payer = walletPubkey;
-      const instructions: TransactionInstruction[] = [];
-      let programVersion = null;
+    const payer = walletPubkey;
+    const instructions: TransactionInstruction[] = [];
+    let programVersion = null;
     
       // metaplex dao fails this and needs to be harcoded for now
 
@@ -112,7 +109,24 @@ export const createCastVoteTransaction = async (
       //}
       
       // PLUGIN STUFF
-      const realmConfig = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(selectedRealm.owner), new PublicKey(selectedRealm.pubkey));
+      const realmPk = new PublicKey(selectedRealm.pubkey);
+      const programId = new PublicKey(selectedRealm.owner);
+      const governingTokenMint = new PublicKey(proposal.governingTokenMint);
+      const governingTokenOwner = tokenOwnerRecord?.account?.governingTokenOwner
+        ? new PublicKey(tokenOwnerRecord.account.governingTokenOwner)
+        : selectedDelegate
+        ? new PublicKey(selectedDelegate)
+        : walletPubkey;
+      let tokenRecordPublicKey = tokenOwnerRecord?.pubkey
+        ? new PublicKey(tokenOwnerRecord.pubkey)
+        : await getTokenOwnerRecordAddress(
+          programId,
+          realmPk,
+          governingTokenMint,
+          governingTokenOwner
+        );
+
+      const realmConfig = await tryGetRealmConfig(RPC_CONNECTION, programId, realmPk);
       //console.log("realm config "+JSON.stringify(config));
       /*
       const configPk = await getRealmConfigAddress(selectedRealm.owner, selectedRealm.pubkey)
@@ -123,6 +137,7 @@ export const createCastVoteTransaction = async (
       }*/
 
       let votePlugin = null;
+      let stakingVoterUpdate = null;
       // // TODO: update this to handle any vsr plugin, rn only runs for mango dao
       
       //console.log("selectedRealm: "+JSON.stringify(selectedRealm))
@@ -139,14 +154,52 @@ export const createCastVoteTransaction = async (
         hasMaxVoterWeight = true;
       }
 
-      if (hasVoterWeight || realmConfig?.account?.communityTokenConfig?.voterWeightAddin){
-        console.log("vwa: "+realmConfig.account.communityTokenConfig.voterWeightAddin.toBase58())
+      const communityVoterWeightAddin = realmConfig?.account?.communityTokenConfig?.voterWeightAddin;
+      const communityMaxVoterWeightAddin = realmConfig?.account?.communityTokenConfig?.maxVoterWeightAddin;
+      const canCreateTokenOwnerRecordForPluginVote =
+        isCommunityVote && communityVoterWeightAddin && !tokenOwnerRecord && !selectedDelegate;
+
+      if (!tokenOwnerRecord) {
+        if (!canCreateTokenOwnerRecordForPluginVote) {
+          return null;
+        }
+
+        const tokenOwnerRecordInfo = await RPC_CONNECTION.getAccountInfo(tokenRecordPublicKey);
+        if (!tokenOwnerRecordInfo) {
+          await withCreateTokenOwnerRecord(
+            instructions,
+            programId,
+            programVersion,
+            realmPk,
+            governingTokenOwner,
+            governingTokenMint,
+            payer
+          );
+        }
+      }
+
+      if (isCommunityVote && communityVoterWeightAddin && isStakingVoterPlugin(communityVoterWeightAddin)) {
+        stakingVoterUpdate = await createStakingVoterUpdateInstruction(
+          RPC_CONNECTION,
+          realmPk,
+          walletPubkey,
+          payer,
+          new PublicKey(communityVoterWeightAddin)
+        );
+
+        if (!stakingVoterUpdate) {
+          return null;
+        }
+
+        instructions.push(stakingVoterUpdate.instruction);
+      } else if (hasVoterWeight || communityVoterWeightAddin){
+        console.log("vwa: "+communityVoterWeightAddin.toBase58())
         //if (selectedRealm.pubkey === "DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE") {
           votePlugin = await getVotingPluginWithUpdate(
             selectedRealm,
             proposal.governingTokenMint,
             walletPublicKey,
-            realmConfig.account.communityTokenConfig.voterWeightAddin
+            communityVoterWeightAddin
           );
           
           //console.log("Vote Plugin: "+JSON.stringify(votePlugin))
@@ -299,19 +352,21 @@ export const createCastVoteTransaction = async (
 
       await withCastVote(
         instructions,
-        new PublicKey(selectedRealm!.owner), //  realm/governance PublicKey
+        programId, //  realm/governance PublicKey
         programVersion, // version object, version of realm
-        new PublicKey(selectedRealm!.pubkey), // realms publicKey
+        realmPk, // realms publicKey
         new PublicKey(proposal.governanceId), // proposal governance Public key
         new PublicKey(proposal.proposalId), // proposal public key
         new PublicKey(proposal.tokenOwnerRecord), // proposal token owner record, publicKey
-        new PublicKey(tokenRecordPublicKey), // publicKey of tokenOwnerRecord
+        tokenRecordPublicKey, // publicKey of tokenOwnerRecord
         governanceAuthority, // wallet publicKey
-        new PublicKey(proposal.governingTokenMint), // proposal governanceMint Authority
+        governingTokenMint, // proposal governanceMint Authority
         voteDirection, //Vote.fromYesNoVote(action), //  *Vote* class? 1 = no, 0 = yes
         payer,
-        hasVoterWeight ? votePlugin?.voterWeightPk : nftPlugin ? nftPlugin?.voterWeightPk : votePlugin?.voterWeightPk,
-        hasMaxVoterWeight ? votePlugin?.maxVoterWeightRecord : nftPlugin ? nftPlugin?.maxVoterWeightRecord : votePlugin?.maxVoterWeightRecord
+        stakingVoterUpdate?.voterWeightPk || votePlugin?.voterWeightPk || nftPlugin?.voterWeightPk,
+        (hasMaxVoterWeight || communityMaxVoterWeightAddin)
+          ? (votePlugin?.maxVoterWeightRecord || nftPlugin?.maxVoterWeightRecord)
+          : undefined
       );
 
       //console.log("HERE after withCastVote")
@@ -376,8 +431,5 @@ export const createCastVoteTransaction = async (
       transaction.add(PRIORITY_FEE_IX);
 
       return transaction;
-    } else{
-        return null;
-    }
 
 }
