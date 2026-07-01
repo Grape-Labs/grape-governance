@@ -101,6 +101,12 @@ import { withVoteRegistryDeposit } from '../utils/governanceTools/components/ins
 import { withVoteRegistryWithdraw } from '../utils/governanceTools/components/instructions/withVoteRegistryWithdraw';
 import { getVoterPDA, getVoterWeightPDA } from '../utils/governanceTools/components/instructions/account';
 import { getVsrRegistrarInfo } from '../utils/governanceTools/vsrPlugin';
+import {
+    getStakingStakeAccountAddress,
+    getStakingVoterRegistrar,
+    getStakingVoterStakeAmount,
+    isStakingVoterPlugin,
+} from '../utils/governanceTools/stakingVoterPlugin';
 //import { LogoutIcon } from '@dynamic-labs/sdk-react-core';
 
 export interface DialogTitleProps {
@@ -282,6 +288,7 @@ export default function GovernancePower(props: any){
     const [currentCouncilDelegateFromAmount, setCurrentCouncilDelegateFromAmount] = React.useState(null);
     const [isPlugin, setIsPlugin] = React.useState(false);
     const [isVsrPlugin, setIsVsrPlugin] = React.useState(false);
+    const [isStakingPlugin, setIsStakingPlugin] = React.useState(false);
     const [realmConfig, setRealmConfig] = React.useState(null);
     const [communityTokenOwnerRecordPk, setCommunityTokenOwnerRecordPk] = React.useState(null);
     const [councilTokenOwnerRecordPk, setCouncilTokenOwnerRecordPk] = React.useState(null);
@@ -310,6 +317,58 @@ export default function GovernancePower(props: any){
             votingPowerDecimals: null,
         });
     }, []);
+
+    const loadStakingPluginState = React.useCallback(async (
+        realmPk: PublicKey,
+        voterWeightAddinPk: PublicKey
+    ) => {
+        if (!publicKey) {
+            resetVsrState();
+            return;
+        }
+
+        const pluginPkStr = voterWeightAddinPk.toBase58();
+        const registrar = await getStakingVoterRegistrar(
+            RPC_CONNECTION,
+            realmPk,
+            voterWeightAddinPk
+        );
+
+        if (!registrar) {
+            resetVsrState();
+            return;
+        }
+
+        const stakeAccount = getStakingStakeAccountAddress(
+            registrar.stakePool,
+            publicKey,
+            registrar.stakingProgramId
+        );
+        const stakedAmount = await getStakingVoterStakeAmount(
+            RPC_CONNECTION,
+            stakeAccount
+        );
+
+        setVsrState({
+            enabled: true,
+            programId: pluginPkStr,
+            stakedAmount,
+            withdrawableAmount: 0,
+            voterWeight: stakedAmount,
+            deposits: stakedAmount > 0
+                ? [{
+                    index: 0,
+                    amountDepositedNative: stakedAmount,
+                    withdrawableAmount: 0,
+                    lockupKind: 'staking',
+                    unlockLabel: 'Managed by staking program',
+                    isUsed: true,
+                }]
+                : [],
+            depositDecimals: mintDecimals ?? null,
+            votingPowerDecimals: mintDecimals ?? null,
+        });
+    }, [mintDecimals, publicKey, resetVsrState]);
 
     const getVsrClient = React.useCallback(async (programPk: PublicKey) => {
         if (!publicKey) {
@@ -404,11 +463,18 @@ export default function GovernancePower(props: any){
 
         if (!registrarInfo) {
             setIsVsrPlugin(false);
-            resetVsrState();
+            if (isStakingVoterPlugin(voterWeightAddinPk)) {
+                setIsStakingPlugin(true);
+                await loadStakingPluginState(realmPk, voterWeightAddinPk);
+            } else {
+                setIsStakingPlugin(false);
+                resetVsrState();
+            }
             return;
         }
 
         setIsVsrPlugin(true);
+        setIsStakingPlugin(false);
 
         try {
             const client = registrarInfo.client;
@@ -537,7 +603,7 @@ export default function GovernancePower(props: any){
                 votingPowerDecimals: mintDecimals ?? null,
             });
         }
-    }, [getVsrClient, mintDecimals, publicKey, resetVsrState]);
+    }, [getVsrClient, loadStakingPluginState, mintDecimals, publicKey, resetVsrState]);
 
 
     const getTokenMintInfo = async(mintAddress:string) => {
@@ -626,6 +692,7 @@ export default function GovernancePower(props: any){
             let plugin = false;
             setIsPlugin(false);
             setIsVsrPlugin(false);
+            setIsStakingPlugin(false);
             setRealmConfig(null);
             resetVsrState();
             
@@ -2076,13 +2143,14 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
   );
 }
 
-    const displayedCommunityMintAmount = isVsrPlugin
+    const isPluginVotingPower = isVsrPlugin || isStakingPlugin;
+    const displayedCommunityMintAmount = isPluginVotingPower
         ? (toNumberSafe(vsrState?.stakedAmount) || toNumberSafe(depositedCommunityMint))
         : toNumberSafe(depositedCommunityMint);
-    const displayedCommunityMintDecimals = isVsrPlugin
+    const displayedCommunityMintDecimals = isPluginVotingPower
         ? Number(vsrState?.depositDecimals ?? mintDecimals ?? 0)
         : Number(mintDecimals ?? 0);
-    const displayedVsrVotingPowerDecimals = isVsrPlugin
+    const displayedVsrVotingPowerDecimals = isPluginVotingPower
         ? Number(vsrState?.votingPowerDecimals ?? vsrState?.depositDecimals ?? mintDecimals ?? 0)
         : Number(mintDecimals ?? 0);
     const hasGovernancePowerCard = !!publicKey && (
@@ -2228,7 +2296,7 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                                             :<>&nbsp;Community</>
 
                                         }
-                                        {isVsrPlugin && vsrState?.voterWeight > 0 && (
+                                        {isPluginVotingPower && vsrState?.voterWeight > 0 && (
                                             <>&nbsp;•&nbsp;VP {(+(toNumberSafe(vsrState.voterWeight)/10**displayedVsrVotingPowerDecimals).toFixed(0)).toLocaleString()}</>
                                         )}
                                     

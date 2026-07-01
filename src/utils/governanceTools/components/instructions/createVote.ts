@@ -44,6 +44,10 @@ import {
 // end plugin stuff
 
 import { getVotingPluginWithUpdate } from './getVotePlugin';
+import {
+  createStakingVoterUpdateInstruction,
+  isStakingVoterPlugin,
+} from '../../stakingVoterPlugin';
 
 const connection = RPC_CONNECTION;
 
@@ -123,6 +127,7 @@ export const createCastVoteTransaction = async (
       }*/
 
       let votePlugin = null;
+      let stakingVoterUpdate = null;
       // // TODO: update this to handle any vsr plugin, rn only runs for mango dao
       
       //console.log("selectedRealm: "+JSON.stringify(selectedRealm))
@@ -139,14 +144,31 @@ export const createCastVoteTransaction = async (
         hasMaxVoterWeight = true;
       }
 
-      if (hasVoterWeight || realmConfig?.account?.communityTokenConfig?.voterWeightAddin){
-        console.log("vwa: "+realmConfig.account.communityTokenConfig.voterWeightAddin.toBase58())
+      const communityVoterWeightAddin = realmConfig?.account?.communityTokenConfig?.voterWeightAddin;
+      const communityMaxVoterWeightAddin = realmConfig?.account?.communityTokenConfig?.maxVoterWeightAddin;
+
+      if (isCommunityVote && communityVoterWeightAddin && isStakingVoterPlugin(communityVoterWeightAddin)) {
+        stakingVoterUpdate = await createStakingVoterUpdateInstruction(
+          RPC_CONNECTION,
+          new PublicKey(selectedRealm.pubkey),
+          walletPubkey,
+          payer,
+          new PublicKey(communityVoterWeightAddin)
+        );
+
+        if (!stakingVoterUpdate) {
+          return null;
+        }
+
+        instructions.push(stakingVoterUpdate.instruction);
+      } else if (hasVoterWeight || communityVoterWeightAddin){
+        console.log("vwa: "+communityVoterWeightAddin.toBase58())
         //if (selectedRealm.pubkey === "DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE") {
           votePlugin = await getVotingPluginWithUpdate(
             selectedRealm,
             proposal.governingTokenMint,
             walletPublicKey,
-            realmConfig.account.communityTokenConfig.voterWeightAddin
+            communityVoterWeightAddin
           );
           
           //console.log("Vote Plugin: "+JSON.stringify(votePlugin))
@@ -310,8 +332,10 @@ export const createCastVoteTransaction = async (
         new PublicKey(proposal.governingTokenMint), // proposal governanceMint Authority
         voteDirection, //Vote.fromYesNoVote(action), //  *Vote* class? 1 = no, 0 = yes
         payer,
-        hasVoterWeight ? votePlugin?.voterWeightPk : nftPlugin ? nftPlugin?.voterWeightPk : votePlugin?.voterWeightPk,
-        hasMaxVoterWeight ? votePlugin?.maxVoterWeightRecord : nftPlugin ? nftPlugin?.maxVoterWeightRecord : votePlugin?.maxVoterWeightRecord
+        stakingVoterUpdate?.voterWeightPk || votePlugin?.voterWeightPk || nftPlugin?.voterWeightPk,
+        (hasMaxVoterWeight || communityMaxVoterWeightAddin)
+          ? (votePlugin?.maxVoterWeightRecord || nftPlugin?.maxVoterWeightRecord)
+          : undefined
       );
 
       //console.log("HERE after withCastVote")
