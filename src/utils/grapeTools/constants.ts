@@ -28,8 +28,8 @@ export const HELLO_MOON_DEVNET_ENDPOINT = HELLO_MOON_BEARER ? `https://rpc-devne
 export const SHYFT_KEY = process.env.REACT_APP_API_SHYFT_KEY;
 export const SHYFT_API_KEY_STORAGE_KEY = 'shyft_api_key';
 export const FLUX_RPC_ENDPOINT = process.env.REACT_APP_API_FLUX_RPC_ENDPOINT || null;
-export const SHYFT_RPC_ENDPOINT = SHYFT_KEY ? `https://rpc.shyft.to?api_key=${SHYFT_KEY}` : null;
-export const SHYFT_RPC_DEVNET_ENDPOINT = SHYFT_KEY ? `https://devnet-rpc.shyft.to?api_key=${SHYFT_KEY}` : null;
+export const SHYFT_RPC_ENDPOINT = SHYFT_KEY ? `https://rpc.shyft.to/?api_key=${SHYFT_KEY}` : null;
+export const SHYFT_RPC_DEVNET_ENDPOINT = SHYFT_KEY ? `https://devnet-rpc.shyft.to/?api_key=${SHYFT_KEY}` : null;
 export type AppCluster = 'mainnet' | 'devnet';
 
 const DEFAULT_RPC_ENDPOINTS: Record<AppCluster, string> = {
@@ -48,6 +48,7 @@ const PREFERRED_RPC_STORAGE_KEYS: Record<AppCluster, string> = {
   mainnet: 'preferred_rpc_mainnet',
   devnet: 'preferred_rpc_devnet',
 };
+const GOVERNANCE_GRAPHQL_STORAGE_KEY = 'governance_use_graphql';
 
 const normalizeCluster = (value: string | null | undefined): AppCluster => {
   const normalized = String(value || '').toLowerCase();
@@ -103,8 +104,18 @@ const isUsableRpcUrl = (url: string | null | undefined): url is string => {
 
 const getRpcStorageKey = (cluster: AppCluster): string => PREFERRED_RPC_STORAGE_KEYS[cluster];
 
-const getRpcOptionsForCluster = (cluster: AppCluster): Record<string, string | null | undefined> =>
-  RPC_OPTIONS_BY_CLUSTER[cluster];
+const getShyftRpcEndpointForCluster = (cluster: AppCluster): string | null => {
+  const shyftKey = getShyftKey();
+  if (!shyftKey) return null;
+  return cluster === 'devnet'
+    ? `https://devnet-rpc.shyft.to/?api_key=${shyftKey}`
+    : `https://rpc.shyft.to/?api_key=${shyftKey}`;
+};
+
+const getRpcOptionsForCluster = (cluster: AppCluster): Record<string, string | null | undefined> => ({
+  ...RPC_OPTIONS_BY_CLUSTER[cluster],
+  SHYFT: getShyftRpcEndpointForCluster(cluster) || RPC_OPTIONS_BY_CLUSTER[cluster].SHYFT,
+});
 
 const ENV_CLUSTER = normalizeCluster(process.env.REACT_APP_SOLANA_CLUSTER);
 
@@ -144,9 +155,9 @@ export const getPreferredRpc = (cluster: AppCluster = APP_CLUSTER) => {
   const clusterRpcOptions = getRpcOptionsForCluster(cluster);
   const candidates = [
     preferred,
+    clusterRpcOptions.SHYFT,
     clusterRpcOptions.QUICKNODE,
     clusterRpcOptions.ALCHEMY,
-    clusterRpcOptions.SHYFT,
     clusterRpcOptions.HELLO_MOON,
     clusterRpcOptions.HELIUS,
     clusterRpcOptions.FLUX,
@@ -182,6 +193,21 @@ export const setPreferredRpc = (url: string, cluster: AppCluster = APP_CLUSTER) 
   storage.setItem(rpcStorageKey, url);
   if (cluster === 'mainnet') {
     storage.setItem(LEGACY_PREFERRED_RPC_STORAGE_KEY, url);
+  }
+};
+
+export const isGovernanceGraphQLEnabled = (): boolean => {
+  const storage = getLocalStorage();
+  return storage?.getItem(GOVERNANCE_GRAPHQL_STORAGE_KEY) === 'true';
+};
+
+export const setGovernanceGraphQLEnabled = (enabled: boolean) => {
+  const storage = getLocalStorage();
+  if (!storage) return;
+  if (enabled) {
+    storage.setItem(GOVERNANCE_GRAPHQL_STORAGE_KEY, 'true');
+  } else {
+    storage.removeItem(GOVERNANCE_GRAPHQL_STORAGE_KEY);
   }
 };
 

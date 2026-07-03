@@ -508,32 +508,43 @@ export function GovernanceStatsView(props: any) {
                 setProposalsPerMonthArray(tproposalsPerMonthArray);
                 setLoadingMessage("Getting Participation...");
                 const allVoteRecords: any[] = [];
-
-                for (let i = 0; i < filteredGap.length; i++) {
-                const proposal = filteredGap[i];
-                setLoadingMessage(`${i + 1} of ${filteredGap.length} Proposal Participation...`);
-
-                // Skip drafts
-                if (Number(proposal?.account?.state) === 0) continue;
-
-                const voteRecords = await getVoteRecordsIndexed(
-                    proposal.pubkey.toBase58(),
-                    grealm?.owner,
-                    governanceAddress,
-                    true
+                const participationProposals = filteredGap.filter(
+                    (proposal: any) => Number(proposal?.account?.state) !== 0
                 );
+                const voteRecordBatchSize = 8;
 
-                // Attach to proposal if needed
-                proposal.voteRecords = voteRecords;
+                for (let i = 0; i < participationProposals.length; i += voteRecordBatchSize) {
+                    const batch = participationProposals.slice(i, i + voteRecordBatchSize);
+                    const batchEnd = Math.min(i + batch.length, participationProposals.length);
+                    setLoadingMessage(
+                        `Loading participation ${i + 1}-${batchEnd} of ${participationProposals.length} proposals...`
+                    );
 
-                let recordsArray: any[] = [];
-                if (Array.isArray(voteRecords)) {
-                    recordsArray = voteRecords;
-                } else if (voteRecords && typeof voteRecords === "object" && "value" in voteRecords) {
-                    recordsArray = (voteRecords as any).value ?? [];
-                }
+                    const batchResults = await Promise.all(
+                        batch.map(async (proposal: any) => {
+                            const voteRecords = await getVoteRecordsIndexed(
+                                proposal.pubkey.toBase58(),
+                                grealm?.owner,
+                                governanceAddress,
+                                true
+                            ).catch((error) => {
+                                console.log("Vote record fetch failed", proposal?.pubkey?.toBase58?.(), error);
+                                return [];
+                            });
 
-                allVoteRecords.push(...recordsArray);
+                            proposal.voteRecords = voteRecords;
+
+                            if (Array.isArray(voteRecords)) {
+                                return voteRecords;
+                            }
+                            if (voteRecords && typeof voteRecords === "object" && "value" in voteRecords) {
+                                return (voteRecords as any).value ?? [];
+                            }
+                            return [];
+                        })
+                    );
+
+                    allVoteRecords.push(...batchResults.flat());
                 }
 
                 setLoadingMessage("Processing Participation Data...");

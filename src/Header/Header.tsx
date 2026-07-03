@@ -22,6 +22,8 @@ import {
     getPreferredCluster,
     setPreferredCluster,
     setPreferredRpc,
+    isGovernanceGraphQLEnabled,
+    setGovernanceGraphQLEnabled,
     type AppCluster,
     RPC_OPTIONS,
 } from '../utils/grapeTools/constants';
@@ -73,6 +75,7 @@ import {
     ToggleButton,
     Chip,
     Stack,
+    Switch,
 } from '@mui/material';
 
 import ClickAwayListener from '@mui/material/ClickAwayListener';
@@ -316,6 +319,8 @@ export function Header(props: any) {
     const handleCloseRpcSettings = () => setRpcSettingsOpen(false);
     const [rpcSelectionMode, setRpcSelectionMode] =React.useState('predefined');
     const [customRpcInput, setCustomRpcInput] = React.useState('');
+    const [governanceGraphQLEnabled, setGovernanceGraphQLEnabledState] =
+        React.useState(isGovernanceGraphQLEnabled());
 
     const sectionCardSX = {
         border: "1px solid rgba(255,255,255,0.08)",
@@ -845,7 +850,7 @@ const rowSX = { display: "flex", alignItems: "center", gap: 1 };
           Settings
         </Typography>
         <Typography sx={{ fontSize: 12, opacity: 0.75, mt: 0.25 }}>
-          RPC endpoint & wallet tools
+          RPC endpoint, governance data & wallet tools
         </Typography>
       </Box>
     </Box>
@@ -1033,6 +1038,44 @@ const rowSX = { display: "flex", alignItems: "center", gap: 1 };
           })()}
         </Box>
       )}
+    </Box>
+
+    {/* ===== Governance Data ===== */}
+    <Box sx={{ ...sectionCardSX, mt: 2 }}>
+      <Box sx={sectionHeaderSX}>
+        <Typography sx={{ fontWeight: 700, fontSize: 14 }}>Governance Data</Typography>
+        <Chip
+          size="small"
+          variant="outlined"
+          label={governanceGraphQLEnabled ? "GraphQL" : "RPC"}
+          sx={{ opacity: 0.85 }}
+        />
+      </Box>
+
+      <FormControlLabel
+        sx={{ m: 0, width: "100%", justifyContent: "space-between" }}
+        label={
+          <Box>
+            <Typography sx={{ fontSize: 13, fontWeight: 600 }}>Use GraphQL indexer</Typography>
+            <Typography sx={{ fontSize: 11, opacity: 0.65, mt: 0.25 }}>
+              Off uses native Solana RPC account queries for governance reads.
+            </Typography>
+          </Box>
+        }
+        labelPlacement="start"
+        control={
+          <Switch
+            checked={governanceGraphQLEnabled}
+            onChange={(event) => {
+              const nextValue = event.target.checked;
+              setGovernanceGraphQLEnabled(nextValue);
+              setGovernanceGraphQLEnabledState(nextValue);
+              handleCloseRpcSettings();
+              window.location.reload();
+            }}
+          />
+        }
+      />
     </Box>
 
     {/* ===== Wallet Tools ===== */}
