@@ -37,6 +37,7 @@ import {
     Switch,
     ButtonGroup,
     Chip,
+    CircularProgress,
 } from '@mui/material/';
 
 import { Helmet } from 'react-helmet';
@@ -1560,6 +1561,7 @@ export function GovernanceCachedView(props: any) {
     const [votesForWallet, setVotesForWallet] = React.useState(null);
     const [gspl, setGSPL] = React.useState(null);
     const [gsplMetadata, setGSPLMetadata] = React.useState(null);
+    const [loadingMessage, setLoadingMessage] = React.useState<string | null>(null);
 
     const sharedProposalItem = React.useMemo(() => {
         if (!sharedProposalPk || !proposals || !Array.isArray(proposals)) {
@@ -1653,6 +1655,7 @@ export function GovernanceCachedView(props: any) {
 
             startTimer();
             setLoading(true);
+            setLoadingMessage("Loading realm...");
             try{
                     
                 console.log("SPL Governance: "+governanceAddress);
@@ -1660,6 +1663,7 @@ export function GovernanceCachedView(props: any) {
                 //console.log("cached_governance: "+JSON.stringify(cached_governance));
                 
                 const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
+                setLoadingMessage("Fetching realm account...");
                 grealm = await getRealmIndexed(governanceAddress);
                 
                 //if (!grealm)
@@ -1674,11 +1678,13 @@ export function GovernanceCachedView(props: any) {
                 //const governanceRules = await getAllGovernances(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
                 //console.log("all rules: "+JSON.stringify(governanceRules))
                 // setAllGovernances(governanceRules);
+                setLoadingMessage("Loading governance accounts...");
                 const governanceRulesIndexed = await getAllGovernancesIndexed(realmPk.toBase58(), grealm?.owner);
                 const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
                 //console.log("all rules indexed: "+JSON.stringify(governanceRulesIndexed))
                 setAllGovernances(governanceRulesIndexed);
                 //console.log("realmPk: "+realmPk)
+                setLoadingMessage("Loading members and voting power...");
                 const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), new PublicKey(grealm?.owner).toBase58())
                 //console.log("indexTokenOwnerRecords "+JSON.stringify(indexedTokenOwnerRecords));
                 //let rawTokenOwnerRecords = indexedTokenOwnerRecords;
@@ -1709,6 +1715,7 @@ export function GovernanceCachedView(props: any) {
                 
                 let gTD = 0;
                 
+                setLoadingMessage("Loading governing token metadata...");
                 let tokenDetails = await connection.getParsedAccountInfo(new PublicKey(grealm.account?.communityMint));
                 // do we need to use DAS for this to make it faster?
 
@@ -1752,7 +1759,7 @@ export function GovernanceCachedView(props: any) {
                         setGovernanceType(0);
                     }
                 }
-                
+                setLoadingMessage("Loading proposals...");
                 const gprops = await getAllProposalsIndexed(governanceRulesStrArr, grealm?.owner, governanceAddress);
                     //console.log("gprops: "+JSON.stringify(gprops));    
                     //console.log("B realm: "+JSON.stringify(grealm));
@@ -1762,6 +1769,7 @@ export function GovernanceCachedView(props: any) {
                     if (grealm?.account?.config?.useCommunityVoterWeightAddin){
                         
                         console.log("Getting Realm Config Address")
+                        setLoadingMessage("Loading realm plugin configuration...");
                         
                         const realmConfigPk = await getRealmConfigAddress(
                             programId,
@@ -1812,6 +1820,7 @@ export function GovernanceCachedView(props: any) {
                     
                     //const gprops = await getAllProposals(RPC_CONNECTION, grealm.owner, realmPk);
                     //const gprops = await getAllProposalsIndexed(governanceRulesStrArr, grealm?.owner);
+                    setLoadingMessage("Preparing proposal results...");
                     const allprops: any[] = [];
                     let passed = 0;
                     let defeated = 0;
@@ -1883,6 +1892,7 @@ export function GovernanceCachedView(props: any) {
             }catch(e){console.log("ERR: "+e)}
         }
 
+        setLoadingMessage("Loading DAO metadata...");
         const fetchedgspl = await initGrapeGovernanceDirectory();
         setGSPL(fetchedgspl);
         console.log("fetchedgspl: "+JSON.stringify(fetchedgspl));
@@ -1909,6 +1919,7 @@ export function GovernanceCachedView(props: any) {
         // filter for only this governance
         // setGSPLMetadata
 
+        setLoadingMessage(null);
         setLoading(false);
     }
 
@@ -2343,6 +2354,17 @@ export function GovernanceCachedView(props: any) {
     const defeatedProposalCount = safeMetricNumber(totalDefeated);
     const passRate = resolvedProposalCount > 0 ? (passedProposalCount / resolvedProposalCount) * 100 : 0;
     const participationCoverage = totalProposalCount > 0 ? (resolvedProposalCount / totalProposalCount) * 100 : 0;
+    const governanceLoadMessage =
+        loadingMessage ||
+        (!tokenMap
+            ? 'Loading token metadata...'
+            : !realm
+            ? 'Loading realm...'
+            : !memberMap
+            ? 'Loading members and voting power...'
+            : !proposals
+            ? 'Loading proposals...'
+            : 'Preparing governance...');
 
     //if (publicKey){
         if(loading){
@@ -2360,9 +2382,14 @@ export function GovernanceCachedView(props: any) {
                             alignItems: 'center', textAlign: 'center'
                         }} 
                     > 
-                        <Typography variant="caption" sx={{color:'white'}}>Loading Governance Proposals {governanceAddress}</Typography>
-                        
-                        <LinearProgress color="inherit" />
+                        <CircularProgress color="inherit" size={34} sx={{ mb: 2 }} />
+                        <Typography sx={{ color:'white', fontWeight: 700, fontSize: 16 }}>
+                            {governanceLoadMessage}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color:'rgba(255,255,255,0.72)', display: 'block', mt: 0.75, mb: 2 }}>
+                            {governanceAddress}
+                        </Typography>
+                        <LinearProgress color="inherit" sx={{ borderRadius: '10px', maxWidth: 520, mx: 'auto' }} />
                         
                     </Box>
                 </ThemeProvider>
@@ -2747,7 +2774,14 @@ export function GovernanceCachedView(props: any) {
                                 alignItems: 'center', textAlign: 'center'
                             }} 
                         > 
-                            <Typography variant="caption" sx={{color:'white'}}>Governance Proposals {governanceAddress}</Typography>
+                            <CircularProgress color="inherit" size={34} sx={{ mb: 2 }} />
+                            <Typography sx={{ color:'white', fontWeight: 700, fontSize: 16 }}>
+                                {governanceLoadMessage}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color:'rgba(255,255,255,0.72)', display: 'block', mt: 0.75, mb: 2 }}>
+                                {governanceAddress}
+                            </Typography>
+                            <LinearProgress color="inherit" sx={{ borderRadius: '10px', maxWidth: 520, mx: 'auto' }} />
                         </Box>
                     </ThemeProvider>
                 );

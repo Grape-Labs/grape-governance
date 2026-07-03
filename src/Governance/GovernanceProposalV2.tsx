@@ -1216,13 +1216,12 @@ export function GovernanceProposalV2View(props: any){
 
         setLoadingMessage("Loading Governances...");
 
-        //if (!vresults){
-            //const gp = await getProposal(RPC_CONNECTION, thisitem.pubkey);
-            const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, thisitem?.owner);
-            const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
-        
         setLoadingMessage("Loading Proposal...");
-            const gp = await getProposalIndexed(governanceRulesStrArr, null, governanceAddress, proposalPk);
+            const gp = await getProposalNewIndexed(
+                toBase58Safe(thisitem?.pubkey || proposalPk),
+                thisitem.owner || realm.owner,
+                governanceAddress
+            );
             //const gpiv2 = await getProposalNewIndexed(thisitem.pubkey);
             //console.log("gp: "+JSON.stringify(gp));
             //console.log("gpiv2: "+JSON.stringify(gpiv2));
@@ -1242,7 +1241,7 @@ export function GovernanceProposalV2View(props: any){
                 const signOff = Number(vresults.account.signingOffAt);
                 let cachedFetch = null;
                 let isFresh = true;
-                for (let glitem of governanceLookup){
+                for (let glitem of (governanceLookup || [])){
                     if (glitem.governanceAddress === governanceAddress){
                         cachedFetch = Number(glitem.lastTimestamp);
                         
@@ -3415,6 +3414,7 @@ export function GovernanceProposalV2View(props: any){
         setSolanaVotingResultRows(votingResults)
         //console.log("Vote Record: "+JSON.stringify(voteRecord));
         //console.log("This vote: "+JSON.stringify(thisitem));
+        setLoadingMessage(null);
         setLoadingParticipants(false);
     }
 
@@ -3550,12 +3550,16 @@ export function GovernanceProposalV2View(props: any){
 
     const getCachedSetup = async() => {
         if (!governanceLookup){
-            const fglf = await fetchGovernanceLookupFile(storagePool);
+            setLoadingMessage("Loading governance lookup...");
+            const fglf = await fetchGovernanceLookupFile(storagePool).catch((error) => {
+                console.log("Governance lookup unavailable, continuing with live RPC data", error);
+                return [];
+            });
             //console.log("fglf: "+JSON.stringify(fglf))
-            setGovernanceLookup(fglf);
+            setGovernanceLookup(Array.isArray(fglf) ? fglf : []);
             
             //console.log("cachedGovernance: "+JSON.stringify(fglf))
-            if (fglf){
+            if (Array.isArray(fglf) && fglf.length > 0){
                 await getCachedGovernanceFromLookup(fglf);
             }
         }
@@ -3566,7 +3570,9 @@ export function GovernanceProposalV2View(props: any){
     const validateGovernanceSetup = async() => {
         
         setLoadingValidation(true);
+        setLoadingMessage("Preparing proposal...");
         if (!tokenMap){
+            setLoadingMessage("Loading token metadata...");
             await getTokens();
         }
         var grealm = null;
@@ -3577,6 +3583,7 @@ export function GovernanceProposalV2View(props: any){
 
         //if (!realm){
         {
+            setLoadingMessage("Loading proposal realm...");
             grealm = await getRealmIndexed(governanceAddress);
             //if (!grealm)
             //    grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
@@ -3592,14 +3599,19 @@ export function GovernanceProposalV2View(props: any){
             realmPk = new PublicKey(realm.pubkey);
         }*/
 
+        setLoadingMessage("Loading governance accounts...");
         const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, realmOwner);
         setGovernanceRules(governanceRulesIndexed);
 
         if (!thisitem || reload){
             console.log("Calling Index/RPC");
             //const prop = await getProposal(RPC_CONNECTION, new PublicKey(proposalPk));
-            const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
-            const indexedProp = await getProposalIndexed(governanceRulesStrArr, realmOwner, governanceAddress, proposalPk);
+            setLoadingMessage("Loading proposal account...");
+            const indexedProp = await getProposalNewIndexed(
+                toBase58Safe(proposalPk),
+                realmOwner,
+                governanceAddress
+            );
 
             let prop = indexedProp;
             const liveProposal = await fetchLiveProposalFromRpc();
@@ -3625,6 +3637,7 @@ export function GovernanceProposalV2View(props: any){
         }
 
         if (!memberMap){
+            setLoadingMessage("Loading proposal member records...");
             let rawTokenOwnerRecords = null;
             let indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realmPk).toBase58(), grealm.owner || realm.owner.toBase58());
             
@@ -3655,6 +3668,7 @@ export function GovernanceProposalV2View(props: any){
     
         console.log("Completed Gov Prop setup")
 
+        setLoadingMessage(null);
         setLoadingValidation(false);
     } 
 
@@ -6157,13 +6171,26 @@ export function GovernanceProposalV2View(props: any){
                         }
                     </React.Fragment>
                     ) : (
-                        <Grid 
-                            xs={12}
-                            sx={{textAlign:'center'}}
+                        <Box
+                            sx={{
+                                width: '100%',
+                                mt: 6,
+                                p: { xs: 3, sm: 4 },
+                                borderRadius: '17px',
+                                background: 'rgba(0, 0, 0, 0.6)',
+                                border: '1px solid rgba(255,255,255,0.08)',
+                                textAlign: 'center',
+                            }}
                         >
-                            <CircularProgress color="inherit" /><br/>
-                            <small>{loadingMessage || 'Loading...'}</small>
-                        </Grid>
+                            <CircularProgress color="inherit" size={34} sx={{ mb: 2 }} />
+                            <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 16 }}>
+                                {loadingMessage || 'Loading proposal...'}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.72)', display: 'block', mt: 0.75, mb: 2 }}>
+                                {toBase58Safe(proposalPk)}
+                            </Typography>
+                            <LinearProgress color="inherit" sx={{ borderRadius: '10px', maxWidth: 520, mx: 'auto' }} />
+                        </Box>
                     )}
                 </Box>
             </ThemeProvider>

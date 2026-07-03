@@ -1,8 +1,10 @@
 import { ApolloClient, InMemoryCache, gql } from '@apollo/client';
-import { PublicKey, MemcmpFilter } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 //import gql from 'graphql-tag';
 import { 
-    RPC_CONNECTION } from '../../utils/grapeTools/constants';
+    RPC_CONNECTION,
+    isGovernanceGraphQLEnabled,
+} from '../../utils/grapeTools/constants';
 
 import { initGrapeGovernanceDirectory } from '../api/gspl_queries';
 
@@ -15,13 +17,13 @@ import {
     getRealms,
     getAllGovernances,
     getAllProposals, 
+    getProposalsByGovernance,
     getAllTokenOwnerRecords,
     getTokenOwnerRecordsByOwner, 
-    getRealmConfigAddress, 
+    getVoteRecordsByVoter,
     tryGetRealmConfig, 
     ProposalTransaction,
     getGovernanceAccounts,
-    getNativeTreasuryAddress,
     pubkeyFilter,
     SignatoryRecord,
     getRealmConfig  } from '@solana/spl-governance';
@@ -151,6 +153,130 @@ const client = new ApolloClient({
         'Accept-Encoding': 'gzip'
     }
 });
+
+const DEFAULT_GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+const RPC_PROPOSAL_FETCH_BATCH_SIZE = 8;
+
+export const shouldUseGovernanceGraphQL = () => isGovernanceGraphQLEnabled();
+
+const resolveGovernanceProgramId = (realmOwner?: any, realmPk?: any): string => {
+    const explicitOwner = resolvePublicKeyString(realmOwner);
+    if (explicitOwner) return explicitOwner;
+
+    const namespaceOwner = govOwners.find((owner) => owner.name === realmOwner || owner.owner === realmOwner)?.owner;
+    if (namespaceOwner) return namespaceOwner;
+
+    const resolvedRealm = resolvePublicKeyString(realmPk);
+    return findGovOwnerByDao(resolvedRealm)?.owner || DEFAULT_GOVERNANCE_PROGRAM_ID;
+};
+
+const fetchTokenOwnerRecordsByOwnerViaRpc = async (
+    filterRealm?: string,
+    realmOwner?: string,
+    tokenOwner?: string
+) => {
+    const resolvedTokenOwner = resolvePublicKeyString(tokenOwner);
+    if (!resolvedTokenOwner) return [];
+
+    const programId = resolveGovernanceProgramId(realmOwner, filterRealm);
+    const records = await getTokenOwnerRecordsByOwner(
+        RPC_CONNECTION,
+        new PublicKey(programId),
+        new PublicKey(resolvedTokenOwner)
+    );
+
+    const resolvedRealm = resolvePublicKeyString(filterRealm);
+    return resolvedRealm
+        ? records.filter((record) => record.account.realm.toBase58() === resolvedRealm)
+        : records;
+};
+
+const fetchAllTokenOwnerRecordsViaRpc = async (
+    filterRealm?: string,
+    realmOwner?: string,
+    tokenOwner?: string,
+    governingTokenMint?: string
+) => {
+    const resolvedRealm = resolvePublicKeyString(filterRealm);
+    if (!resolvedRealm) return [];
+
+    const programId = resolveGovernanceProgramId(realmOwner, resolvedRealm);
+    const records = await getAllTokenOwnerRecords(
+        RPC_CONNECTION,
+        new PublicKey(programId),
+        new PublicKey(resolvedRealm)
+    );
+
+    const resolvedTokenOwner = resolvePublicKeyString(tokenOwner);
+    const resolvedMint = resolvePublicKeyString(governingTokenMint);
+
+    return records.filter((record) => {
+        const matchesOwner = !resolvedTokenOwner ||
+            record.account.governingTokenOwner.toBase58() === resolvedTokenOwner ||
+            record.account.governanceDelegate?.toBase58?.() === resolvedTokenOwner;
+        const matchesMint = !resolvedMint || record.account.governingTokenMint.toBase58() === resolvedMint;
+        return matchesOwner && matchesMint;
+    });
+};
+
+const fetchProposalInstructionsViaRpc = async (proposalPk?: string, programId?: string) => {
+    const resolvedProposal = resolvePublicKeyString(proposalPk);
+    const resolvedProgram = resolveGovernanceProgramId(programId);
+    if (!resolvedProposal) return [];
+
+    return getGovernanceAccounts(
+        RPC_CONNECTION,
+        new PublicKey(resolvedProgram),
+        ProposalTransaction,
+        [pubkeyFilter(1, new PublicKey(resolvedProposal))!]
+    );
+};
+
+const fetchSignatoryRecordsViaRpc = async (proposalPk?: string, programId?: string) => {
+    const resolvedProposal = resolvePublicKeyString(proposalPk);
+    const resolvedProgram = resolveGovernanceProgramId(programId);
+    if (!resolvedProposal) return [];
+
+    return getGovernanceAccounts(
+        RPC_CONNECTION,
+        new PublicKey(resolvedProgram),
+        SignatoryRecord,
+        [pubkeyFilter(1, new PublicKey(resolvedProposal))!]
+    );
+};
+
+const fetchProposalsForGovernancesViaRpc = async (
+    programId: string,
+    governancePks: any[]
+) => {
+    const resolvedProgramId = new PublicKey(resolveGovernanceProgramId(programId));
+    const governanceKeys = Array.from(
+        new Set(
+            (governancePks || [])
+                .map((governancePk) => resolvePublicKeyString(governancePk))
+                .filter((governancePk): governancePk is string => !!governancePk)
+        )
+    );
+
+    if (governanceKeys.length === 0) return [];
+
+    const proposalBatches = [];
+    for (let index = 0; index < governanceKeys.length; index += RPC_PROPOSAL_FETCH_BATCH_SIZE) {
+        const governanceBatch = governanceKeys.slice(index, index + RPC_PROPOSAL_FETCH_BATCH_SIZE);
+        const batchResults = await Promise.all(
+            governanceBatch.map((governancePk) =>
+                getProposalsByGovernance(
+                    RPC_CONNECTION,
+                    resolvedProgramId,
+                    new PublicKey(governancePk)
+                ).catch(() => [])
+            )
+        );
+        proposalBatches.push(...batchResults);
+    }
+
+    return proposalBatches.flat();
+};
 
 function GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk?:string, realmOwner?:string){
 
@@ -799,55 +925,52 @@ export const getProposalInstructionsIndexed = async (filterRealm?: string, propo
     const programId =
         resolvedRealmOwner ||
         findGovOwnerByDao(filterRealm)?.owner ||
-        'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+        DEFAULT_GOVERNANCE_PROGRAM_ID;
     const allProposalIx: any[] = [];
     const rpcProposalIx: any[] = [];
 
-    try {
-        const { data } = await client.query({
-            query: GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk, programId),
-            fetchPolicy: 'no-cache',
-        });
+    if (shouldUseGovernanceGraphQL()) {
+        try {
+            const { data } = await client.query({
+                query: GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk, programId),
+                fetchPolicy: 'no-cache',
+            });
 
-        const gqlKey = `${programId}_ProposalTransactio`;
-        const indexedResults = data?.[gqlKey] || [];
+            const gqlKey = `${programId}_ProposalTransactio`;
+            const indexedResults = data?.[gqlKey] || [];
 
-        for (const item of indexedResults) {
-            if (item?.instructions) {
-                allProposalIx.push({
-                    pubkey: new PublicKey(item.pubkey), // Placeholder — actual pubkey not included in GraphQL result
-                    account: {
+            for (const item of indexedResults) {
+                if (item?.instructions) {
+                    allProposalIx.push({
                         pubkey: new PublicKey(item.pubkey),
-                        proposal: new PublicKey(proposalPk),
-                        executedAt: item.executedAt,
-                        executionStatus: item.executionStatus,
-                        instructionIndex: item.instructionIndex,
-                        optionIndex: item.optionIndex,
-                        holdUpTime: item.holdUpTime,
-                        instructions: item.instructions.map((ixn) => ({
-                            programId: new PublicKey(ixn.programId),
-                            accounts: ixn.accounts.map((acts) => ({
-                                pubkey: new PublicKey(acts.pubkey),
-                                isSigner: acts.isSigner,
-                                isWritable: acts.isWritable,
+                        account: {
+                            pubkey: new PublicKey(item.pubkey),
+                            proposal: new PublicKey(proposalPk),
+                            executedAt: item.executedAt,
+                            executionStatus: item.executionStatus,
+                            instructionIndex: item.instructionIndex,
+                            optionIndex: item.optionIndex,
+                            holdUpTime: item.holdUpTime,
+                            instructions: item.instructions.map((ixn) => ({
+                                programId: new PublicKey(ixn.programId),
+                                accounts: ixn.accounts.map((acts) => ({
+                                    pubkey: new PublicKey(acts.pubkey),
+                                    isSigner: acts.isSigner,
+                                    isWritable: acts.isWritable,
+                                })),
+                                data: ixn.data,
                             })),
-                            data: ixn.data,
-                        })),
-                    },
-                });
+                        },
+                    });
+                }
             }
+        } catch (e) {
+            console.warn("GraphQL error for ProposalInstructions. Will merge RPC results:", e);
         }
-    } catch (e) {
-        console.warn("GraphQL error for ProposalInstructions — will merge RPC results:", e);
     }
 
     try {
-        const rpcResults = await getGovernanceAccounts(
-            RPC_CONNECTION,
-            new PublicKey(programId),
-            ProposalTransaction,
-            [pubkeyFilter(1, new PublicKey(proposalPk))!]
-        );
+        const rpcResults = await fetchProposalInstructionsViaRpc(proposalPk, programId);
         rpcProposalIx.push(...rpcResults);
     } catch (e) {
         console.warn("RPC error for ProposalInstructions:", e);
@@ -874,6 +997,10 @@ export const getProposalInstructionsIndexed = async (filterRealm?: string, propo
 export const getRealmsIndexed = async (programId?:string) => {
     if (programId){
         const allRealms = new Array();
+
+        if (!shouldUseGovernanceGraphQL()) {
+            return getRealms(RPC_CONNECTION, new PublicKey(resolveGovernanceProgramId(programId)));
+        }
 
         try{
             console.log("getRealmsIndexed: "+programId);
@@ -949,10 +1076,15 @@ export const getRealmIndexed = async (filterRealm?:string, program?:string, disa
         const resolvedProgram =
             resolvePublicKeyString(program) ||
             findGovOwnerByDao(filterRealm)?.owner ||
-            'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+            DEFAULT_GOVERNANCE_PROGRAM_ID;
         const programId = resolvedProgram;
         
         const allRealms = new Array();
+
+        if (!shouldUseGovernanceGraphQL()) {
+            if (disableRpcFallback || !filterRealm) return null;
+            return getRealm(RPC_CONNECTION, new PublicKey(filterRealm));
+        }
 
         try{
             const { data } = await client.query({ query: GET_QUERY_REALM(filterRealm, programId), fetchPolicy: 'no-cache' });
@@ -1057,7 +1189,14 @@ export const getAllGovernancesIndexed = async (filterRealm?: string, realmOwner?
 
     const programId = realmOwner
         ? realmOwner
-        : findGovOwnerByDao(filterRealm)?.owner || 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+        : findGovOwnerByDao(filterRealm)?.owner || DEFAULT_GOVERNANCE_PROGRAM_ID;
+
+    const rpcProgramId = resolveGovernanceProgramId(realmOwner, filterRealm);
+
+    if (!shouldUseGovernanceGraphQL()) {
+        if (!filterRealm) return [];
+        return getAllGovernances(RPC_CONNECTION, new PublicKey(rpcProgramId), new PublicKey(filterRealm));
+    }
 
     try {
         const query = filterRealm
@@ -1115,7 +1254,7 @@ export const getAllGovernancesIndexed = async (filterRealm?: string, realmOwner?
         console.log("Error fetching governances from index, reverting to RPC", e);
 
         if (filterRealm) {
-            const rules = await getAllGovernances(RPC_CONNECTION, new PublicKey(programId), new PublicKey(filterRealm));
+            const rules = await getAllGovernances(RPC_CONNECTION, new PublicKey(rpcProgramId), new PublicKey(filterRealm));
             for (let item of rules)
                 allRules.push(item);
         }
@@ -1125,7 +1264,11 @@ export const getAllGovernancesIndexed = async (filterRealm?: string, realmOwner?
 };
 
 export const getTokenOwnerRecordsByOwnerIndexed = async (filterRealm?:string, realmOwner?:string, tokenOwner?:string) => {
-    const programId = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    if (!shouldUseGovernanceGraphQL()) {
+        return fetchTokenOwnerRecordsByOwnerViaRpc(filterRealm, realmOwner, tokenOwner);
+    }
+
+    const programId = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : realmOwner ? realmOwner : DEFAULT_GOVERNANCE_PROGRAM_ID;
     const { data } = await client.query({ query: GET_QUERY_ALL_TOKEN_OWNER_RECORDS(tokenOwner, realmOwner), fetchPolicy: 'no-cache' });
 
     const allResults = new Array();
@@ -1172,7 +1315,7 @@ export const getTokenOwnerRecordsByOwnerIndexed = async (filterRealm?:string, re
     //console.log("data results indexed: "+JSON.stringify(allResults));
     
     if (!allResults){
-        const allResultsRPC = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, new PublicKey(realmOwner), new PublicKey(tokenOwner));
+        const allResultsRPC = await fetchTokenOwnerRecordsByOwnerViaRpc(filterRealm, realmOwner, tokenOwner);
         return allResultsRPC;
     }
 
@@ -1198,6 +1341,30 @@ export const getTokenOwnerRecordsByOwnerAcrossProgramsIndexed = async (tokenOwne
 
     const mergedRecords: any[] = [];
     const seenRecordPks = new Set<string>();
+
+    if (!shouldUseGovernanceGraphQL()) {
+        await Promise.all(
+            programs.map(async (program) => {
+                try {
+                    const records = await getTokenOwnerRecordsByOwner(
+                        RPC_CONNECTION,
+                        new PublicKey(resolveGovernanceProgramId(program.owner)),
+                        new PublicKey(tokenOwner)
+                    );
+                    for (const record of records) {
+                        const recordPkString = record?.pubkey?.toBase58?.() || '';
+                        if (!recordPkString || seenRecordPks.has(recordPkString)) continue;
+                        seenRecordPks.add(recordPkString);
+                        mergedRecords.push(record);
+                    }
+                } catch (e) {
+                    console.log(`Error fetching owner records via RPC ${program.owner}`, e);
+                }
+            })
+        );
+
+        return mergedRecords;
+    }
 
     await Promise.all(
         programs.map(async (program) => {
@@ -1286,10 +1453,15 @@ export const getAllTokenOwnerRecordsIndexed = async (
     const resolvedRealmOwner = resolvePublicKeyString(realmOwner);
     const mappedOwner = findGovOwnerByDao(filterRealm)?.owner;
     const mappedName = findGovOwnerByDao(filterRealm)?.name;
-    const defaultProgram = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const defaultProgram = DEFAULT_GOVERNANCE_PROGRAM_ID;
     const programId = resolvedRealmOwner ? resolvedRealmOwner : mappedOwner ? mappedOwner : defaultProgram;
 
     if (filterRealm){
+        if (!shouldUseGovernanceGraphQL()) {
+            if (disableRpcFallback) return [];
+            return fetchAllTokenOwnerRecordsViaRpc(filterRealm, realmOwner, tokenOwner, governingTokenMint);
+        }
+
         const namespaces = Array.from(
             new Set(
                 [resolvedRealmOwner, mappedName, mappedOwner, defaultProgram]
@@ -1496,9 +1668,23 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
     
     //console.log("realmOwner: " +realmOwner);
     //const programName = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    const programName = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.owner ? findGovOwnerByDao(realmPk).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programName = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : DEFAULT_GOVERNANCE_PROGRAM_ID;
+    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.owner ? findGovOwnerByDao(realmPk).owner : DEFAULT_GOVERNANCE_PROGRAM_ID;
+    const rpcProgramId = resolveGovernanceProgramId(realmOwner, realmPk);
     const allProposals = new Array();
+
+    if (!shouldUseGovernanceGraphQL()) {
+        if (Array.isArray(filterGovernance) && filterGovernance.length > 0) {
+            return fetchProposalsForGovernancesViaRpc(rpcProgramId, filterGovernance);
+        }
+
+        if (realmPk) {
+            const proposalBatches = await getAllProposals(RPC_CONNECTION, new PublicKey(rpcProgramId), new PublicKey(realmPk));
+            return proposalBatches.flat();
+        }
+
+        return [];
+    }
 
     try{
 
@@ -1685,7 +1871,7 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
     }
     
     if ((!allProposals || allProposals.length <= 0) && realmPk){ // fallback to RPC call is governance not found in index
-        const allProps = await getAllProposals(RPC_CONNECTION, new PublicKey(programId), new PublicKey(realmPk));
+        const allProps = await getAllProposals(RPC_CONNECTION, new PublicKey(rpcProgramId), new PublicKey(realmPk));
         if (allProps && allProps.length > 0)
             return allProps;
     } else{
@@ -1696,10 +1882,15 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
 export const getProposalNewIndexed = async (proposalPk?:any, realmOwner?:any, realmPk?:any) => {
 
     //const programName = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    const programName = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.owner ? findGovOwnerByDao(realmPk).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programName = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : DEFAULT_GOVERNANCE_PROGRAM_ID;
+    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.owner ? findGovOwnerByDao(realmPk).owner : DEFAULT_GOVERNANCE_PROGRAM_ID;
     
     const indexedProp = new Array();
+
+    if (!shouldUseGovernanceGraphQL()) {
+        if (!proposalPk) return null;
+        return getProposal(RPC_CONNECTION, new PublicKey(proposalPk));
+    }
 
     try{
 
@@ -1802,10 +1993,17 @@ export const getProposalNewIndexed = async (proposalPk?:any, realmOwner?:any, re
 };
 
 export const getVoteRecordsByVoterIndexed = async (realmOwner?:any, realmPk?:any, tokenOwner?:any) => {
-    const programName = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.owner ? findGovOwnerByDao(realmPk).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programName = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : DEFAULT_GOVERNANCE_PROGRAM_ID;
+    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.owner ? findGovOwnerByDao(realmPk).owner : DEFAULT_GOVERNANCE_PROGRAM_ID;
+    const rpcProgramId = resolveGovernanceProgramId(realmOwner, realmPk);
     
     const indexedRecord = new Array();
+
+    if (!shouldUseGovernanceGraphQL()) {
+        const resolvedTokenOwner = resolvePublicKeyString(tokenOwner);
+        if (!resolvedTokenOwner) return [];
+        return getVoteRecordsByVoter(RPC_CONNECTION, new PublicKey(rpcProgramId), new PublicKey(resolvedTokenOwner));
+    }
 
     try{
        // const { data } = await client.query({ query: GET_QUERY_VOTERRECORDS(proposalPk, realmOwner), fetchPolicy: 'no-cache' });
@@ -1850,10 +2048,21 @@ export const getVoteRecordsByVoterIndexed = async (realmOwner?:any, realmPk?:any
 
 export const getVoteRecordsIndexed = async (proposalPk?:any, realmOwner?:any, realmPk?:any, donotfallback?:boolean) => {
     
-    const programName = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.owner ? findGovOwnerByDao(realmPk).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programName = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : DEFAULT_GOVERNANCE_PROGRAM_ID;
+    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.owner ? findGovOwnerByDao(realmPk).owner : DEFAULT_GOVERNANCE_PROGRAM_ID;
+    const rpcProgramId = resolveGovernanceProgramId(realmOwner, realmPk);
     
     const indexedRecord = new Array();
+
+    if (!shouldUseGovernanceGraphQL()) {
+        if (!proposalPk) return [];
+        const voteRecords = await getVoteRecords({
+            connection: RPC_CONNECTION,
+            programId: new PublicKey(rpcProgramId),
+            proposalPk: new PublicKey(proposalPk),
+        });
+        return voteRecords;
+    }
 
     try{
         
@@ -1896,7 +2105,7 @@ export const getVoteRecordsIndexed = async (proposalPk?:any, realmOwner?:any, re
             console.log("Using RPC getVoteRecords");
             const voteRecords = await getVoteRecords({
                 connection: RPC_CONNECTION,
-                programId: new PublicKey(programId),
+                programId: new PublicKey(rpcProgramId),
                 proposalPk: new PublicKey(proposalPk),
             });
             //console.log("RPC voteRecord: "+JSON.stringify(voteRecords));
@@ -1935,14 +2144,19 @@ function GET_QUERY_SIGNATORYRECORDS(proposalPk?: string, realmOwner?: string) {
 export const getSignatoryRecordsIndexed = async (proposalPk?: any, realmOwner?: any, realmPk?: any) => {
     const programName = findGovOwnerByDao(realmPk)?.name
         ? findGovOwnerByDao(realmPk).name
-        : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+        : DEFAULT_GOVERNANCE_PROGRAM_ID;
     const programId = realmOwner
         ? realmOwner
         : findGovOwnerByDao(realmPk)?.owner
         ? findGovOwnerByDao(realmPk).owner
-        : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+        : DEFAULT_GOVERNANCE_PROGRAM_ID;
 
     const indexedRecord = [];
+
+    if (!shouldUseGovernanceGraphQL()) {
+        return fetchSignatoryRecordsViaRpc(proposalPk, programId);
+    }
+
     try {
         const { data } = await client.query({
             query: GET_QUERY_SIGNATORYRECORDS(proposalPk, realmOwner),
@@ -1982,26 +2196,7 @@ export const getSignatoryRecordsIndexed = async (proposalPk?: any, realmOwner?: 
         }
     } catch (e) {
         console.log('Signatory Record Index Err. Falling back to RPC...');
-        const memcmpFilter = {
-                memcmp: {
-                    offset: 1,
-                    bytes: new PublicKey(proposalPk).toBase58(),
-                },
-            };
-        
-            const filters: MemcmpFilter[] = [
-                memcmpFilter,
-            ];
-        
-            const filter = pubkeyFilter(1, new PublicKey(proposalPk))
-            const signatoryResults = await getGovernanceAccounts(
-                RPC_CONNECTION,
-                programId,
-                SignatoryRecord,
-                [filter]
-            );
-
-            return signatoryResults;
+        return fetchSignatoryRecordsViaRpc(proposalPk, programId);
     }
 
     return indexedRecord;
@@ -2075,6 +2270,10 @@ export const getRealmConfigIndexed = async (realmConfigPk?: any, realmOwner?: an
         return null;
     };
 
+    if (!shouldUseGovernanceGraphQL()) {
+        return await fetchViaRpcFallback();
+    }
+
     try {
         const { data } = await client.query({
             query: GET_QUERY_REALMCONFIG(resolvedRealmPk, programId),
@@ -2107,8 +2306,10 @@ export const getRealmConfigIndexed = async (realmConfigPk?: any, realmOwner?: an
 
 export async function fetchRealmNameFromRulesWallet(
     rulesWallet: string,
-    realmOwner: string = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw'
+    realmOwner: string = DEFAULT_GOVERNANCE_PROGRAM_ID
 ): Promise<{ realm: string; name: string } | null> {
+    if (!shouldUseGovernanceGraphQL()) return null;
+
     try {
         const { data: governanceData } = await client.query({
             query: GET_QUERY_GOVERNANCE_BY_PUBKEY(rulesWallet, realmOwner),
@@ -2197,6 +2398,8 @@ function parseLatestProposalRows(data: any, programName: string): LightweightPro
 }
 
 async function getLatestProposalsFromAllPrograms(scanLimit: number): Promise<LightweightProposal[]> {
+  if (!shouldUseGovernanceGraphQL()) return [];
+
   const programNames = Array.from(
     new Set([
       'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw',
@@ -2296,6 +2499,10 @@ export async function buildDirectoryFromGraphQL(options?: {
   includeMembers?: boolean;
   proposalScanLimit?: number;
 }) {
+  if (!shouldUseGovernanceGraphQL()) {
+    return { directory: [], votingProposalsByGovernance: {} };
+  }
+
   const proposalScanLimit = options?.proposalScanLimit && options.proposalScanLimit > 0
     ? options.proposalScanLimit
     : 2000;
