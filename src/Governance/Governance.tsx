@@ -82,10 +82,12 @@ import IconButton from '@mui/material/IconButton';
 import PropTypes from 'prop-types';
 import { 
     PROXY, 
+    RPC_ENDPOINT,
     RPC_CONNECTION,
     GGAPI_STORAGE_POOL, 
     GGAPI_STORAGE_URI,
     SHYFT_KEY,
+    WS_ENDPOINT,
     HELIUS_API } from '../utils/grapeTools/constants';
 
 import {  
@@ -1562,6 +1564,11 @@ export function GovernanceCachedView(props: any) {
     const [gspl, setGSPL] = React.useState(null);
     const [gsplMetadata, setGSPLMetadata] = React.useState(null);
     const [loadingMessage, setLoadingMessage] = React.useState<string | null>(null);
+    const refreshInFlightRef = React.useRef(false);
+    const realtimeConnection = React.useMemo(
+        () => new Connection(RPC_ENDPOINT, { commitment: 'confirmed', wsEndpoint: WS_ENDPOINT }),
+        []
+    );
 
     const sharedProposalItem = React.useMemo(() => {
         if (!sharedProposalPk || !proposals || !Array.isArray(proposals)) {
@@ -1646,16 +1653,26 @@ export function GovernanceCachedView(props: any) {
         } catch(e){console.log("ERR: "+e)}
     }
 
-    const getGovernanceParameters = async () => {
-        let grealm = null;
-        if (!loading){
-            setRealm(null);
-            setRealmName(null);
-            setMemberMap(null);
+    const getGovernanceParameters = async (options?: { silent?: boolean }) => {
+        if (refreshInFlightRef.current) return;
 
-            startTimer();
-            setLoading(true);
-            setLoadingMessage("Loading realm...");
+        const silent = options?.silent === true;
+        const setProgressMessage = (message: string | null) => {
+            if (!silent) setLoadingMessage(message);
+        };
+
+        refreshInFlightRef.current = true;
+        let grealm = null;
+        try {
+            if (!silent) {
+                setRealm(null);
+                setRealmName(null);
+                setMemberMap(null);
+
+                startTimer();
+                setLoading(true);
+            }
+            setProgressMessage("Loading realm...");
             try{
                     
                 console.log("SPL Governance: "+governanceAddress);
@@ -1663,7 +1680,7 @@ export function GovernanceCachedView(props: any) {
                 //console.log("cached_governance: "+JSON.stringify(cached_governance));
                 
                 const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
-                setLoadingMessage("Fetching realm account...");
+                setProgressMessage("Fetching realm account...");
                 grealm = await getRealmIndexed(governanceAddress);
                 
                 //if (!grealm)
@@ -1678,13 +1695,13 @@ export function GovernanceCachedView(props: any) {
                 //const governanceRules = await getAllGovernances(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
                 //console.log("all rules: "+JSON.stringify(governanceRules))
                 // setAllGovernances(governanceRules);
-                setLoadingMessage("Loading governance accounts...");
+                setProgressMessage("Loading governance accounts...");
                 const governanceRulesIndexed = await getAllGovernancesIndexed(realmPk.toBase58(), grealm?.owner);
                 const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
                 //console.log("all rules indexed: "+JSON.stringify(governanceRulesIndexed))
                 setAllGovernances(governanceRulesIndexed);
                 //console.log("realmPk: "+realmPk)
-                setLoadingMessage("Loading members and voting power...");
+                setProgressMessage("Loading members and voting power...");
                 const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), new PublicKey(grealm?.owner).toBase58())
                 //console.log("indexTokenOwnerRecords "+JSON.stringify(indexedTokenOwnerRecords));
                 //let rawTokenOwnerRecords = indexedTokenOwnerRecords;
@@ -1715,7 +1732,7 @@ export function GovernanceCachedView(props: any) {
                 
                 let gTD = 0;
                 
-                setLoadingMessage("Loading governing token metadata...");
+                setProgressMessage("Loading governing token metadata...");
                 let tokenDetails = await connection.getParsedAccountInfo(new PublicKey(grealm.account?.communityMint));
                 // do we need to use DAS for this to make it faster?
 
@@ -1759,7 +1776,7 @@ export function GovernanceCachedView(props: any) {
                         setGovernanceType(0);
                     }
                 }
-                setLoadingMessage("Loading proposals...");
+                setProgressMessage("Loading proposals...");
                 const gprops = await getAllProposalsIndexed(governanceRulesStrArr, grealm?.owner, governanceAddress);
                     //console.log("gprops: "+JSON.stringify(gprops));    
                     //console.log("B realm: "+JSON.stringify(grealm));
@@ -1769,7 +1786,7 @@ export function GovernanceCachedView(props: any) {
                     if (grealm?.account?.config?.useCommunityVoterWeightAddin){
                         
                         console.log("Getting Realm Config Address")
-                        setLoadingMessage("Loading realm plugin configuration...");
+                        setProgressMessage("Loading realm plugin configuration...");
                         
                         const realmConfigPk = await getRealmConfigAddress(
                             programId,
@@ -1820,7 +1837,7 @@ export function GovernanceCachedView(props: any) {
                     
                     //const gprops = await getAllProposals(RPC_CONNECTION, grealm.owner, realmPk);
                     //const gprops = await getAllProposalsIndexed(governanceRulesStrArr, grealm?.owner);
-                    setLoadingMessage("Preparing proposal results...");
+                    setProgressMessage("Preparing proposal results...");
                     const allprops: any[] = [];
                     let passed = 0;
                     let defeated = 0;
@@ -1890,37 +1907,40 @@ export function GovernanceCachedView(props: any) {
 
                 
             }catch(e){console.log("ERR: "+e)}
-        }
 
-        setLoadingMessage("Loading DAO metadata...");
-        const fetchedgspl = await initGrapeGovernanceDirectory();
-        setGSPL(fetchedgspl);
-        console.log("fetchedgspl: "+JSON.stringify(fetchedgspl));
-        const resolvedMetadata = grealm
-            ? await resolveRealmMetadata(grealm, fetchedgspl).catch((error) => {
-                console.log('ERR(resolveRealmMetadata): ' + error);
-                return null;
-            })
-            : null;
+            setProgressMessage("Loading DAO metadata...");
+            const fetchedgspl = await initGrapeGovernanceDirectory();
+            setGSPL(fetchedgspl);
+            console.log("fetchedgspl: "+JSON.stringify(fetchedgspl));
+            const resolvedMetadata = grealm
+                ? await resolveRealmMetadata(grealm, fetchedgspl).catch((error) => {
+                    console.log('ERR(resolveRealmMetadata): ' + error);
+                    return null;
+                })
+                : null;
 
-        if (resolvedMetadata){
-            setGSPLMetadata(resolvedMetadata);
-        } else {
-            if (realm){
-                console.log("Fetch community mint if available and set token metadata accordingly");
-                if (realm.account?.communityMint){
-                    // use DAS to efficiently get the token metadata
-                    // only use this call if we do not have GSPL
-                    fetchTokenData(new PublicKey(realm.account.communityMint).toBase58());
+            if (resolvedMetadata){
+                setGSPLMetadata(resolvedMetadata);
+            } else {
+                if (realm){
+                    console.log("Fetch community mint if available and set token metadata accordingly");
+                    if (realm.account?.communityMint){
+                        // use DAS to efficiently get the token metadata
+                        // only use this call if we do not have GSPL
+                        fetchTokenData(new PublicKey(realm.account.communityMint).toBase58());
+                    }
                 }
             }
-        }
     
-        // filter for only this governance
-        // setGSPLMetadata
-
-        setLoadingMessage(null);
-        setLoading(false);
+            // filter for only this governance
+            // setGSPLMetadata
+        } finally {
+            refreshInFlightRef.current = false;
+            if (!silent) {
+                setLoadingMessage(null);
+                setLoading(false);
+            }
+        }
     }
 
     React.useEffect(() => {
@@ -2223,6 +2243,96 @@ export function GovernanceCachedView(props: any) {
         }
 
     }, [publicKey, governanceAddress]);
+
+    React.useEffect(() => {
+        if (!governanceAddress || !realm || !Array.isArray(allGovernances)) return;
+
+        const walletAddress = publicKey?.toBase58?.() || null;
+        const accountKeys = new Set<string>();
+        const addAccountKey = (value: any) => {
+            const key = normalizePkString(value);
+            if (key) accountKeys.add(key);
+        };
+
+        addAccountKey(realm?.pubkey);
+        for (const governance of allGovernances) {
+            addAccountKey(governance?.pubkey);
+        }
+
+        const proposalWatchList = [...(Array.isArray(allProposals) ? allProposals : [])]
+            .filter((proposal: any) => {
+                const state = Number(proposal?.account?.state);
+                return state === 0 || state === 1 || state === 2 || state === 3 || state === 4;
+            })
+            .sort((a: any, b: any) => Number(b?.account?.draftAt || 0) - Number(a?.account?.draftAt || 0))
+            .slice(0, 80);
+
+        for (const proposal of proposalWatchList) {
+            addAccountKey(proposal?.pubkey);
+        }
+        addAccountKey(sharedProposalItem?.pubkey);
+
+        if (walletAddress && Array.isArray(memberMap)) {
+            for (const member of memberMap) {
+                const owner = normalizePkString(member?.account?.governingTokenOwner);
+                const delegate = normalizePkString(member?.account?.governanceDelegate);
+                if (owner === walletAddress || delegate === walletAddress) {
+                    addAccountKey(member?.pubkey);
+                }
+            }
+        }
+
+        const publicKeys = Array.from(accountKeys)
+            .slice(0, 128)
+            .map((key) => {
+                try {
+                    return new PublicKey(key);
+                } catch {
+                    return null;
+                }
+            })
+            .filter((key): key is PublicKey => !!key);
+
+        if (!publicKeys.length) return;
+
+        let active = true;
+        let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+        const scheduleRealtimeRefresh = () => {
+            if (!active) return;
+            if (refreshTimer) clearTimeout(refreshTimer);
+            refreshTimer = setTimeout(async () => {
+                if (!active) return;
+                console.log("Realtime governance account change detected; refreshing governance data...");
+                await getGovernanceParameters({ silent: true });
+                if (walletAddress) {
+                    await getVotesForWallet();
+                }
+            }, 1200);
+        };
+
+        const subscriptionIds = publicKeys.map((publicKey) =>
+            realtimeConnection.onAccountChange(publicKey, scheduleRealtimeRefresh, 'confirmed')
+        );
+
+        return () => {
+            active = false;
+            if (refreshTimer) clearTimeout(refreshTimer);
+            subscriptionIds.forEach((subscriptionId) => {
+                realtimeConnection.removeAccountChangeListener(subscriptionId).catch((error) => {
+                    console.log("ERR(remove governance realtime listener): "+error);
+                });
+            });
+        };
+    }, [
+        governanceAddress,
+        realm,
+        allGovernances,
+        allProposals,
+        sharedProposalItem,
+        memberMap,
+        publicKey,
+        realtimeConnection,
+    ]);
 
     React.useEffect(() => {
         if (background)
