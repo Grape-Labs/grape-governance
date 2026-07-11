@@ -157,7 +157,7 @@ function DashboardContent() {
   const network = APP_CLUSTER === 'devnet' ? WalletAdapterNetwork.Devnet : WalletAdapterNetwork.Mainnet;
   // You can also provide a custom RPC endpoint
   //const endpoint =  useMemo(() => clusterApiUrl(network), [network]);
-  const endpoint =  RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
+  const endpoint = RPC_ENDPOINT;
   const wallets = useMemo(() => 
   //detectEmbeddedInSquadsIframe() ? 
   //[new SquadsEmbeddedWalletAdapter("https://iframe-preview.squads.so")] :
