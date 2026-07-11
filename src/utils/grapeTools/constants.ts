@@ -15,11 +15,16 @@ export const APP_ICON = APP_ICON_ASSET;
 export const GRAPE_LOGO = GRAPE_LOGO_ASSET;
 export const CREATOR_LOGO = STATIC_CREATOR_LOGO;
 export const VINE_LOGO = VINE_LOGO_ASSET;
-export const TX_RPC_ENDPOINT = process.env.REACT_APP_API_TX_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
+export const HELIUS_API = process.env.REACT_APP_API_HELIUS || null;
+export const HELIUS_RPC_ENDPOINT =
+  process.env.REACT_APP_API_HELIUS_RPC_ENDPOINT ||
+  (HELIUS_API ? `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API}` : null);
+export const HELIUS_RPC_DEVNET_ENDPOINT =
+  process.env.REACT_APP_API_HELIUS_RPC_DEVNET_ENDPOINT ||
+  (HELIUS_API ? `https://devnet.helius-rpc.com/?api-key=${HELIUS_API}` : null);
+export const TX_RPC_ENDPOINT = process.env.REACT_APP_API_TX_RPC_ENDPOINT || HELIUS_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
 export const QUICKNODE_RPC_ENDPOINT = process.env.REACT_APP_API_QUICKNODE_RPC_ENDPOINT;
 export const QUICKNODE_RPC_DEVNET_ENDPOINT = process.env.REACT_APP_API_QUICKNODE_RPC_DEVNET_ENDPOINT;
-export const HELIUS_RPC_ENDPOINT = 'https://mainnet.helius-rpc.com/?api-key='+process.env.REACT_APP_API_HELIUS;
-export const HELIUS_RPC_DEVNET_ENDPOINT = 'https://devnet.helius.xyz/?api-key='+process.env.REACT_APP_API_HELIUS;
 export const ALCHEMY_RPC_ENDPOINT = process.env.REACT_APP_API_ALCHEMY_RPC_ENDPOINT;
 export const ALCHEMY_RPC_DEVNET_ENDPOINT = process.env.REACT_APP_API_ALCHEMY_RPC_DEVNET_ENDPOINT;
 export const HELLO_MOON_BEARER = process.env.REACT_APP_API_HELLOMOON_API_KEY;
@@ -155,11 +160,11 @@ export const getPreferredRpc = (cluster: AppCluster = APP_CLUSTER) => {
   const clusterRpcOptions = getRpcOptionsForCluster(cluster);
   const candidates = [
     preferred,
+    clusterRpcOptions.HELIUS,
     clusterRpcOptions.SHYFT,
     clusterRpcOptions.QUICKNODE,
     clusterRpcOptions.ALCHEMY,
     clusterRpcOptions.HELLO_MOON,
-    clusterRpcOptions.HELIUS,
     clusterRpcOptions.FLUX,
     DEFAULT_RPC_ENDPOINTS[cluster],
   ];
@@ -241,7 +246,6 @@ export const ME_KEYBASE = process.env.REACT_APP_API_ME_KEYBASE || null;
 export const SOFLARE_NOTIFICATIONS_API_KEY = process.env.REACT_APP_API_KEY_SOLFLARE_NOTIFICATIONS || '';
 export const PROXY = process.env.REACT_APP_API_PROXY || '';
 export const CLOUDFLARE_IPFS_CDN = 'https://cloudflare-ipfs.com';
-export const HELIUS_API = process.env.REACT_APP_API_HELIUS || null;
 export const TWITTER_PROXY = process.env.REACT_APP_API_TWITTER_PROXY || null;
 export const GGAPI_STORAGE_POOL = process.env.REACT_APP_API_GGAPI_STORAGE_POOL || "EwMD4x7m2Hsay5KfyFwuDMUPtnvw4XmRFYhByorwdkL4";
 export const GGAPI_STORAGE_URI = (process.env.REACT_APP_API_GGAPI_STORAGE_URI || '').trim();
