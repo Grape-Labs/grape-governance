@@ -21,6 +21,7 @@ import {
     getTokenOwnerRecordsByOwner, 
     getVoteRecordsByVoter,
     tryGetRealmConfig, 
+    Proposal,
     ProposalTransaction,
     getGovernanceAccounts,
     pubkeyFilter,
@@ -155,6 +156,13 @@ const client = new ApolloClient({
 
 const DEFAULT_GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 const RPC_PROPOSAL_FETCH_BATCH_SIZE = 8;
+const RPC_GLOBAL_PROPOSAL_PROGRAM_CONCURRENCY = 3;
+const RPC_GLOBAL_PROPOSAL_LIMIT = 1500;
+const RPC_GLOBAL_PROPOSAL_CACHE_TTL_MS = 2 * 60 * 1000;
+let rpcGlobalProposalCache: { expiresAt: number; proposals: any[] } | null = null;
+let rpcGlobalProposalInflight: Promise<any[]> | null = null;
+const rpcRealmNameByGovernanceCache = new Map<string, { realm: string; name: string } | null>();
+const rpcRealmNameByGovernanceInflight = new Map<string, Promise<{ realm: string; name: string } | null>>();
 
 // Governance data is authoritative on-chain. Keep the legacy indexed helpers
 // RPC-only so callers (including proposal creation) cannot depend on GraphQL.
@@ -1592,40 +1600,49 @@ export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:stri
 }
 
 export const getAllProposalsFromAllPrograms = async () => {
-    const uniqueOwners = [];
-    govOwners.forEach(govOwner => {
-        const { owner, name, dao } = govOwner;
-        const uniqueOwner = { owner, name, dao };
-        if (!uniqueOwners.some(u => u.owner === owner)) {
-            uniqueOwners.push(uniqueOwner);
+    const now = Date.now();
+    if (rpcGlobalProposalCache && rpcGlobalProposalCache.expiresAt > now) {
+        return rpcGlobalProposalCache.proposals;
+    }
+    if (rpcGlobalProposalInflight) return rpcGlobalProposalInflight;
+
+    const programIds = Array.from(new Set([
+        DEFAULT_GOVERNANCE_PROGRAM_ID,
+        ...govOwners.map((owner) => owner.owner).filter(Boolean),
+    ]));
+
+    rpcGlobalProposalInflight = (async () => {
+        const proposals: any[] = [];
+        for (let index = 0; index < programIds.length; index += RPC_GLOBAL_PROPOSAL_PROGRAM_CONCURRENCY) {
+            const batch = programIds.slice(index, index + RPC_GLOBAL_PROPOSAL_PROGRAM_CONCURRENCY);
+            const results = await Promise.all(
+                batch.map((programId) =>
+                    getGovernanceAccounts(
+                        RPC_CONNECTION,
+                        new PublicKey(programId),
+                        Proposal
+                    ).catch((error) => {
+                        console.warn(`Failed to fetch proposals for governance program ${programId}`, error);
+                        return [];
+                    })
+                )
+            );
+            proposals.push(...results.flat());
         }
+
+        const recent = proposals
+            .sort((a, b) => Number(b?.account?.draftAt?.toString?.() || 0) - Number(a?.account?.draftAt?.toString?.() || 0))
+            .slice(0, RPC_GLOBAL_PROPOSAL_LIMIT);
+        rpcGlobalProposalCache = {
+            expiresAt: Date.now() + RPC_GLOBAL_PROPOSAL_CACHE_TTL_MS,
+            proposals: recent,
+        };
+        return recent;
+    })().finally(() => {
+        rpcGlobalProposalInflight = null;
     });
 
-    // default instance
-    console.log("Fetching proposals from default governance program");
-    const allProposals = await getAllProposalsIndexed (null, null, null);
-    console.log(`Default governance proposals fetched: ${allProposals?.length || 0}`);
-
-    // passing uniqueOwners array will do everything in a single call
-    console.log("Fetching proposals from custom governance deployments");
-    const batch_props = await getAllProposalsIndexed(null, null, null, uniqueOwners); 
-    allProposals.push(...batch_props);
-    console.log(`Custom governance proposals fetched: ${batch_props?.length || 0}`);
-    /*
-    for (var owner of uniqueOwners){
-        console.log("Fetching Proposals from ProgramID: "+owner.name);
-        const props = await getAllProposalsIndexed(null, owner.name, null);
-        allProposals.push(...props);
-    }
-    */
-    //console.log("allProposals: "+JSON.stringify(allProposals))
-
-    // show up to the latest 1k props
-    let resProps = allProposals;
-    //if (allProposals.length > 3000)
-    //    resProps = allProposals.slice(0, 3000);
-
-    return resProps;
+    return rpcGlobalProposalInflight;
 }
 
 export const getAllGovernancesFromAllPrograms = async () => {
@@ -2309,7 +2326,37 @@ export async function fetchRealmNameFromRulesWallet(
     rulesWallet: string,
     realmOwner: string = DEFAULT_GOVERNANCE_PROGRAM_ID
 ): Promise<{ realm: string; name: string } | null> {
-    if (!shouldUseGovernanceGraphQL()) return null;
+    if (!shouldUseGovernanceGraphQL()) {
+        if (rpcRealmNameByGovernanceCache.has(rulesWallet)) {
+            return rpcRealmNameByGovernanceCache.get(rulesWallet) || null;
+        }
+        const existing = rpcRealmNameByGovernanceInflight.get(rulesWallet);
+        if (existing) return existing;
+
+        const request = (async () => {
+            try {
+                const governance = await getGovernance(RPC_CONNECTION, new PublicKey(rulesWallet));
+                const realmPk = governance?.account?.realm;
+                if (!realmPk) return null;
+                const realm = await getRealm(RPC_CONNECTION, realmPk);
+                return {
+                    realm: realmPk.toBase58(),
+                    name: realm?.account?.name || realmPk.toBase58(),
+                };
+            } catch (error) {
+                console.warn(`Failed to resolve realm name for governance ${rulesWallet} via RPC`, error);
+                return null;
+            }
+        })().then((result) => {
+            rpcRealmNameByGovernanceCache.set(rulesWallet, result);
+            return result;
+        }).finally(() => {
+            rpcRealmNameByGovernanceInflight.delete(rulesWallet);
+        });
+
+        rpcRealmNameByGovernanceInflight.set(rulesWallet, request);
+        return request;
+    }
 
     try {
         const { data: governanceData } = await client.query({
