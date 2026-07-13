@@ -31,6 +31,7 @@ import {
     RPC_CONNECTION,
     SHYFT_KEY
 } from '../../../utils/grapeTools/constants';
+import { fetchStakeAccountsByAuthorityRpc } from '../../../utils/grapeTools/stakeAccounts';
 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
@@ -383,6 +384,22 @@ export default function StakeValidatorView(props: any){
 
             try {
                 let accounts: any[] = [];
+
+                // Helius/selected RPC is authoritative and supports parsed Stake Program accounts.
+                // Query both authority fields because governance treasuries are often withdrawers
+                // without also being the configured staker.
+                try {
+                    accounts = await fetchStakeAccountsByAuthorityRpc(
+                        RPC_CONNECTION,
+                        new PublicKey(walletKey)
+                    );
+                    stakeAccountsCacheRef.current = { wallet: walletKey, accounts };
+                    setStakeAccounts(accounts);
+                    return;
+                } catch (rpcError) {
+                    if (controller.signal.aborted) return;
+                    console.warn('RPC stake account lookup failed; trying legacy fallback:', rpcError);
+                }
 
                 // -------- SHYFT --------
                 try {
