@@ -10,6 +10,7 @@ import {
     LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
 import { Buffer } from 'buffer';
+import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import axios from "axios";
 import moment from 'moment';
@@ -164,6 +165,7 @@ import {
 } from '../../utils/web3/snsCompat';
 
 import { gistApi, resolveProposalDescription } from '../../utils/grapeTools/github';
+import { fetchStakeAccountsByAuthorityRpc } from '../../utils/grapeTools/stakeAccounts';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkImages from 'remark-images';
@@ -334,7 +336,11 @@ const fetchStakeAccountsByAuthorityShyft = async (wallet: PublicKey): Promise<an
 };
 
 const fetchStakeAccountsForWallet = async (wallet: PublicKey): Promise<any[]> => {
-    return await fetchStakeAccountsByAuthorityShyft(wallet);
+    return await withTimeout(
+        fetchStakeAccountsByAuthorityRpc(RPC_CONNECTION, wallet),
+        STAKE_LOOKUP_TIMEOUT_MS + 2_000,
+        'RPC stake lookup'
+    );
 };
 
 const getCachedStakeAccountsByAuthority = async (
@@ -1180,9 +1186,9 @@ export default function WalletCardView(props:any) {
       const getWalletNftBalance = async(tokenOwnerRecord: PublicKey) => {
         let das_success = false;
 
-        if (!das_success && QUICKNODE_RPC_ENDPOINT) {
+        if (!das_success && HELIUS_API) {
             try{
-                const uri = QUICKNODE_RPC_ENDPOINT;
+                const uri = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API}`;
                 
                 const response = await fetch(uri, {
                     method: 'POST',
@@ -1210,9 +1216,9 @@ export default function WalletCardView(props:any) {
                 das_success = false;
                 //return null;
             }
-        } else if (!das_success && HELIUS_API) {
+        } else if (!das_success && QUICKNODE_RPC_ENDPOINT) {
             try{
-                const uri = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API}`;
+                const uri = QUICKNODE_RPC_ENDPOINT;
                 const response = await fetch(uri, {
                     method: 'POST',
                     headers: {
@@ -1283,56 +1289,41 @@ export default function WalletCardView(props:any) {
     }
     
     const getWalletAllTokenBalance = async(tokenOwnerRecord: PublicKey) => {
-        const shyftKey = getShyftKey();
-        if (!shyftKey) return null;
-    
-        const uri = `https://api.shyft.to/sol/v1/wallet/all_tokens?network=mainnet-beta&wallet=${tokenOwnerRecord.toBase58()}`;
-    
-        return axios.get(uri, {
-            headers: {
-                'x-api-key': shyftKey,
-                'Accept-Encoding': 'gzip, deflate, br'
-            }
-            })
-            .then(response => {
-                if (response.data?.result){
-                    return response.data.result;
-                }
-                return null
-            })
-            .catch(error => 
-                {   
-                    // revert to RPC
-                    console.error(error);
-                    return null;
-                });
+        try {
+            const responses = await Promise.all([
+                RPC_CONNECTION.getParsedTokenAccountsByOwner(tokenOwnerRecord, { programId: TOKEN_PROGRAM_ID }),
+                RPC_CONNECTION.getParsedTokenAccountsByOwner(tokenOwnerRecord, { programId: TOKEN_2022_PROGRAM_ID }),
+            ]);
+
+            return responses.flatMap((response) => response.value).map((tokenAccount) => {
+                const parsed = (tokenAccount.account.data as any)?.parsed?.info;
+                const mint = String(parsed?.mint || '');
+                const registryInfo = typeof tokenMap?.get === 'function' ? tokenMap.get(mint) : tokenMap?.[mint];
+                return {
+                    address: mint,
+                    associated_account: tokenAccount.pubkey.toBase58(),
+                    balance: Number(parsed?.tokenAmount?.uiAmount ?? parsed?.tokenAmount?.uiAmountString ?? 0),
+                    info: {
+                        name: registryInfo?.name || registryInfo?.symbol || shortenString(mint, 5, 5),
+                        symbol: registryInfo?.symbol || '',
+                        image: registryInfo?.logoURI || registryInfo?.image || '',
+                    },
+                };
+            }).filter((token) => token.address && token.balance > 0);
+        } catch (error) {
+            console.error('RPC token account lookup failed', error);
+            return null;
+        }
     }
     
     const getWalletBalance = async(tokenOwnerRecord: PublicKey) => {
-        const shyftKey = getShyftKey();
-        if (!shyftKey) return null;
-        
-        const uri = `https://api.shyft.to/sol/v1/wallet/balance?network=mainnet-beta&wallet=${tokenOwnerRecord.toBase58()}`;
-        
-        return axios.get(uri, {
-                headers: {
-                    'x-api-key': shyftKey,
-                    'Accept-Encoding': 'gzip, deflate, br'
-                }
-                })
-            .then(response => {
-                if (response.data?.result){
-                    console.log("balance for "+tokenOwnerRecord.toBase58()+": "+response.data.result?.balance)
-                    return response.data.result?.balance;
-                }
-                return null
-            })
-            .catch(error => 
-                {   
-                    // revert to RPC
-                    console.error(error);
-                    return null;
-                });
+        try {
+            const lamports = await RPC_CONNECTION.getBalance(tokenOwnerRecord, 'confirmed');
+            return lamports / LAMPORTS_PER_SOL;
+        } catch (error) {
+            console.error('RPC wallet balance lookup failed', error);
+            return null;
+        }
     }
 
     const getWalletStakeAccounts = async(tokenOwnerRecord: PublicKey, options?: { force?: boolean }) => {
