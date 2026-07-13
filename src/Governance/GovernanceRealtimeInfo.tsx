@@ -1,10 +1,15 @@
 
 import React, { useCallback } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
-import axios from 'axios';
 import moment from 'moment';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { getProposal, getRealm, getTokenOwnerRecord } from '@solana/spl-governance';
+import {
+    getAllGovernances,
+    getProposal,
+    getProposalsByGovernance,
+    getRealm,
+    getTokenOwnerRecord,
+} from '@solana/spl-governance';
 import { getMint } from '@solana/spl-token';
 
 import {
@@ -29,13 +34,13 @@ import ExplorerView from '../utils/grapeTools/Explorer';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 
-import { 
-    SHYFT_KEY,
-    RPC_CONNECTION
-} from '../utils/grapeTools/constants';
+import { RPC_CONNECTION } from '../utils/grapeTools/constants';
 
-const REALTIME_MAINNET_CONNECTION = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
 const REALTIME_SEEN_STORAGE_PREFIX = 'governance-realtime-last-seen:';
+const REALTIME_RPC_CACHE_TTL_MS = 2 * 60 * 1000;
+const REALTIME_PROPOSAL_LIMIT = 20;
+const REALTIME_RPC_CONCURRENCY = 4;
+const realtimeRpcCache = new Map<string, { expiresAt: number; events: any[] }>();
 
 type ProposalInsight = {
     author: string;
@@ -221,12 +226,75 @@ function extractProposalContext(event: any): { proposalAddress: string; realmAdd
     return { proposalAddress, realmAddress, directCreator };
 }
 
+function proposalToRealtimeEvent(proposal: any, realmAddress: string) {
+    const proposalAddress = toBase58Safe(proposal?.pubkey);
+    const account = proposal?.account || {};
+    const draftAt = Number(account?.draftAt?.toString?.() || account?.draftAt || 0);
+    return {
+        signature: proposalAddress,
+        timestamp: draftAt > 0 ? new Date(draftAt * 1000).toISOString() : new Date(0).toISOString(),
+        actions: [{
+            type: 'CREATE_PROPOSAL',
+            info: {
+                proposal: proposalAddress,
+                proposal_name: account?.name || shortenAddress(proposalAddress),
+                realm_address: realmAddress,
+            },
+        }],
+    };
+}
+
+async function fetchRecentRealmProposalsViaRpc(realmAddress: string): Promise<any[]> {
+    const cacheKey = `realm:${realmAddress}`;
+    const cached = realtimeRpcCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.events;
+
+    const realm = await getRealm(RPC_CONNECTION as any, new PublicKey(realmAddress));
+    const programId = new PublicKey(toBase58Safe(realm?.owner));
+    const governances = await getAllGovernances(
+        RPC_CONNECTION as any,
+        programId,
+        new PublicKey(realmAddress)
+    );
+
+    const proposals: any[] = [];
+    for (let index = 0; index < governances.length; index += REALTIME_RPC_CONCURRENCY) {
+        const batch = governances.slice(index, index + REALTIME_RPC_CONCURRENCY);
+        const results = await Promise.all(
+            batch.map((governance) =>
+                getProposalsByGovernance(RPC_CONNECTION as any, programId, governance.pubkey).catch(() => [])
+            )
+        );
+        proposals.push(...results.flat());
+    }
+
+    const events = proposals
+        .sort((a, b) => Number(b?.account?.draftAt?.toString?.() || 0) - Number(a?.account?.draftAt?.toString?.() || 0))
+        .slice(0, REALTIME_PROPOSAL_LIMIT)
+        .map((proposal) => proposalToRealtimeEvent(proposal, realmAddress));
+
+    realtimeRpcCache.set(cacheKey, { expiresAt: Date.now() + REALTIME_RPC_CACHE_TTL_MS, events });
+    return events;
+}
+
+async function fetchProposalEventViaRpc(proposalAddress: string): Promise<any[]> {
+    const cacheKey = `proposal:${proposalAddress}`;
+    const cached = realtimeRpcCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.events;
+
+    const proposal = await getProposal(RPC_CONNECTION as any, new PublicKey(proposalAddress));
+    const events = [proposalToRealtimeEvent(proposal, '')];
+    realtimeRpcCache.set(cacheKey, { expiresAt: Date.now() + REALTIME_RPC_CACHE_TTL_MS, events });
+    return events;
+}
+
 export default function GovernanceRealtimeInfo(props: any){
     const governanceLookup = props?.governanceLookup;
     const address = props.governanceAddress;
     const title = props.title;
     const expanded = props?.expanded || false;
     const compact = props?.compact === true;
+    const resourceType: 'realm' | 'proposal' = props?.resourceType === 'proposal' ? 'proposal' : 'realm';
     const tokenMap = props?.tokenMap;
     const [showLive, setShowLive] = React.useState(expanded);
     const [realtimeEventsLoaded, setRealtimeEventsLoaded] = React.useState(false);
@@ -273,31 +341,26 @@ export default function GovernanceRealtimeInfo(props: any){
     }
 
     const fetchRealtimeEvents = React.useCallback(async () => {
-        if (!address || !SHYFT_KEY) {
+        if (!address) {
             setRealtimeEvents([]);
             setRealtimeEventsLoaded(true);
             return;
         }
 
-        const uri = `https://api.shyft.to/sol/v1/transaction/history?network=mainnet-beta&account=${address}&tx_num=20`;
         setLoadingRealtimeEvents(true);
         try {
-            const response = await axios.get(uri, {
-                headers: {
-                    'x-api-key': SHYFT_KEY
-                },
-                timeout: 12000,
-            });
-            const events = Array.isArray(response?.data?.result) ? response.data.result : [];
+            const events = resourceType === 'proposal'
+                ? await fetchProposalEventViaRpc(address)
+                : await fetchRecentRealmProposalsViaRpc(address);
             setRealtimeEvents(events);
         } catch (error) {
-            console.error('Failed to fetch realtime governance events', error);
+            console.error('Failed to fetch recent governance proposals via RPC', error);
             setRealtimeEvents([]);
         } finally {
             setLoadingRealtimeEvents(false);
             setRealtimeEventsLoaded(true);
         }
-    }, [address]);
+    }, [address, resourceType]);
 
     const resolveProposalInsight = React.useCallback(async (proposalAddress: string, _realmAddress?: string) => {
         if (!proposalAddress || proposalInsights[proposalAddress] || proposalAuthorInFlight.current.has(proposalAddress)) {
@@ -364,14 +427,6 @@ export default function GovernanceRealtimeInfo(props: any){
                 insight = await resolveFromConnection(RPC_CONNECTION as any);
             } catch {
                 insight = null;
-            }
-
-            if (!insight) {
-                try {
-                    insight = await resolveFromConnection(REALTIME_MAINNET_CONNECTION);
-                } catch {
-                    insight = null;
-                }
             }
 
             if (insight?.author) {
@@ -768,8 +823,8 @@ export default function GovernanceRealtimeInfo(props: any){
         setCurrentIndex(0);
         setRealtimeEvents([]);
         setProposalInsights({});
-        void fetchRealtimeEvents();
-    }, [address, fetchRealtimeEvents]);
+        if (openInstructions) void fetchRealtimeEvents();
+    }, [address, fetchRealtimeEvents, openInstructions]);
 
     React.useEffect(() => {
         if (typeof window === 'undefined') return;

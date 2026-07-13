@@ -47,7 +47,6 @@ import {
 
 import { getVotingPluginWithUpdate } from '../../utils/governanceTools/components/instructions/getVotePlugin';
 import { 
-  RPC_CONNECTION,
   BLACKLIST_WALLETS } from '../../utils/grapeTools/constants';  
 
 import { chunks } from '../../utils/governanceTools/helpers';
@@ -335,7 +334,7 @@ export async function createProposalInstructionsLegacy(
           hasMaxVoterWeight = true;
         }
 
-        const realmConfig = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(selectedRealmIndexed.owner), new PublicKey(selectedRealmIndexed.pubkey));
+        const realmConfig = await tryGetRealmConfig(connection, new PublicKey(selectedRealmIndexed.owner), new PublicKey(selectedRealmIndexed.pubkey));
         
         if (realmConfig){
           
@@ -410,7 +409,7 @@ export async function createProposalInstructionsLegacy(
         console.log("Signatory added: "+signatory.toBase58());
         
         // simulate this
-        const simulationResult = await simulateInstructions(RPC_CONNECTION, instructions, payer)
+        const simulationResult = await simulateInstructions(connection, instructions, payer)
         console.log("🔍 - Simulation result:", simulationResult);
 
       } else {
