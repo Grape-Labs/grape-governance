@@ -53,7 +53,6 @@ const PREFERRED_RPC_STORAGE_KEYS: Record<AppCluster, string> = {
   mainnet: 'preferred_rpc_mainnet',
   devnet: 'preferred_rpc_devnet',
 };
-const GOVERNANCE_GRAPHQL_STORAGE_KEY = 'governance_use_graphql';
 
 const normalizeCluster = (value: string | null | undefined): AppCluster => {
   const normalized = String(value || '').toLowerCase();
@@ -198,21 +197,6 @@ export const setPreferredRpc = (url: string, cluster: AppCluster = APP_CLUSTER) 
   storage.setItem(rpcStorageKey, url);
   if (cluster === 'mainnet') {
     storage.setItem(LEGACY_PREFERRED_RPC_STORAGE_KEY, url);
-  }
-};
-
-export const isGovernanceGraphQLEnabled = (): boolean => {
-  const storage = getLocalStorage();
-  return storage?.getItem(GOVERNANCE_GRAPHQL_STORAGE_KEY) === 'true';
-};
-
-export const setGovernanceGraphQLEnabled = (enabled: boolean) => {
-  const storage = getLocalStorage();
-  if (!storage) return;
-  if (enabled) {
-    storage.setItem(GOVERNANCE_GRAPHQL_STORAGE_KEY, 'true');
-  } else {
-    storage.removeItem(GOVERNANCE_GRAPHQL_STORAGE_KEY);
   }
 };
 

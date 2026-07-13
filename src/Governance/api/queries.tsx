@@ -3,7 +3,6 @@ import { PublicKey } from '@solana/web3.js';
 //import gql from 'graphql-tag';
 import { 
     RPC_CONNECTION,
-    isGovernanceGraphQLEnabled,
 } from '../../utils/grapeTools/constants';
 
 import { initGrapeGovernanceDirectory } from '../api/gspl_queries';
@@ -157,7 +156,9 @@ const client = new ApolloClient({
 const DEFAULT_GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 const RPC_PROPOSAL_FETCH_BATCH_SIZE = 8;
 
-export const shouldUseGovernanceGraphQL = () => isGovernanceGraphQLEnabled();
+// Governance data is authoritative on-chain. Keep the legacy indexed helpers
+// RPC-only so callers (including proposal creation) cannot depend on GraphQL.
+export const shouldUseGovernanceGraphQL = () => false;
 
 const resolveGovernanceProgramId = (realmOwner?: any, realmPk?: any): string => {
     const explicitOwner = resolvePublicKeyString(realmOwner);

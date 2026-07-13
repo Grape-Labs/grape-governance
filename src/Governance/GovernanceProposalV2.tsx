@@ -6076,7 +6076,7 @@ export function GovernanceProposalV2View(props: any){
 
                         <Box sx={{ mb: 2, ...panelSx, p: 1.1 }}>
                             <Typography sx={{ ...sectionLabelSx, mb: 0.7 }}>Realtime Feed</Typography>
-                            <GovernanceRealtimeInfo governanceAddress={proposalPk} title={'Latest Activity'} tokenMap={tokenMap} />
+                            <GovernanceRealtimeInfo governanceAddress={proposalPk} resourceType="proposal" title={'Latest Activity'} tokenMap={tokenMap} />
                         </Box>
 
                         <Box sx={{ mb: 2, ...panelSx }}>

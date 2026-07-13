@@ -40,7 +40,6 @@ import { chunks } from '../../utils/governanceTools/helpers'
 import { UiInstruction } from '../../utils/governanceTools/proposalCreationTypes'
 import { WalletSigner } from '../../utils/governanceTools/sendTransactions'
 import { sendSignAndConfirmTransactions } from '../../utils/governanceTools/v0_tools/modifiedMangolana'
-import { RPC_CONNECTION } from '../../utils/grapeTools/constants'
 import { getVotingPluginWithUpdate } from '../../utils/governanceTools/components/instructions/getVotePlugin'
 import { resolveProposalAuthorRecord } from './proposalAuthority'
 
@@ -230,7 +229,7 @@ export async function createProposalInstructionsV0(
       const selectedRealmIndexed = await getRealmIndexed(realmPk.toBase58())
       const realmConfig = selectedRealmIndexed
         ? await tryGetRealmConfig(
-            RPC_CONNECTION,
+            connection,
             new PublicKey(selectedRealmIndexed.owner),
             new PublicKey(selectedRealmIndexed.pubkey)
           )

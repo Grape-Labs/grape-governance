@@ -41,7 +41,6 @@ import CreateSplGovernanceDaoButton from './CreateNewDAO/CreateSplGovernanceDaoB
 import { initGrapeGovernanceDirectory } from './api/gspl_queries';
 import { fetchMythicRealmMetadata, mergeDaoMetadata } from './api/realmMetadata';
 import {
-  buildDirectoryFromGraphQL,
   getAllGovernancesFromAllPrograms,
   getRealmIndexed,
   getRealmsIndexed,
@@ -596,18 +595,15 @@ export function GovernanceDirectoryView(props: Props) {
           return flattened;
         };
 
-        const [gsplEntriesRaw, graphQLResult, cachedLookupRaw, masterMembersRaw] = await Promise.all([
+        const [gsplEntriesRaw, cachedLookupRaw, masterMembersRaw] = await Promise.all([
           initGrapeGovernanceDirectory().catch(() => []),
-          buildDirectoryFromGraphQL({ includeMembers: false, proposalScanLimit: 4000 }).catch(
-            () => ({ directory: [], votingProposalsByGovernance: {} })
-          ),
           fetchGovernanceLookupFile(GGAPI_STORAGE_POOL).catch(() => null),
           fetchGovernanceMasterMembersFile(GGAPI_STORAGE_POOL).catch(() => null),
         ]);
 
         const gsplEntries = Array.isArray(gsplEntriesRaw) ? gsplEntriesRaw : [];
-        const gqlDirectory = Array.isArray(graphQLResult?.directory) ? graphQLResult.directory : [];
-        const votingProposalsByGovernance = graphQLResult?.votingProposalsByGovernance || {};
+        const gqlDirectory: any[] = [];
+        const votingProposalsByGovernance = {};
         const cachedLookup = Array.isArray(cachedLookupRaw) ? cachedLookupRaw : [];
         const masterMembers = Array.isArray(masterMembersRaw) ? masterMembersRaw : [];
         const shouldLoadIndexedFallback = gqlDirectory.length === 0 && cachedLookup.length === 0;
@@ -657,7 +653,7 @@ export function GovernanceDirectoryView(props: Props) {
         setGovernanceTotalProposals(totalProposalsFromDirectory);
 
         if (!mergedDirectory.length) {
-          setError('No directory data available from GraphQL or cache.');
+          setError('No directory data available from RPC or cache.');
         }
       } catch (e) {
         console.error('Failed to load governance directory:', e);

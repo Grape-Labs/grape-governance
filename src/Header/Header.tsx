@@ -22,14 +22,11 @@ import {
     getPreferredCluster,
     setPreferredCluster,
     setPreferredRpc,
-    isGovernanceGraphQLEnabled,
-    setGovernanceGraphQLEnabled,
     type AppCluster,
     RPC_OPTIONS,
 } from '../utils/grapeTools/constants';
 
 import {
-    buildDirectoryFromGraphQL,
     getRealmsIndexed,
     govOwners,
 } from '../Governance/api/queries';
@@ -319,8 +316,6 @@ export function Header(props: any) {
     const handleCloseRpcSettings = () => setRpcSettingsOpen(false);
     const [rpcSelectionMode, setRpcSelectionMode] =React.useState('predefined');
     const [customRpcInput, setCustomRpcInput] = React.useState('');
-    const [governanceGraphQLEnabled, setGovernanceGraphQLEnabledState] =
-        React.useState(isGovernanceGraphQLEnabled());
 
     const sectionCardSX = {
         border: "1px solid rgba(255,255,255,0.08)",
@@ -439,7 +434,7 @@ const rowSX = { display: "flex", alignItems: "center", gap: 1 };
         navigate({pathname: "/"+fetchType+"/"+governanceAddress,},{ replace: true });
     }
 
-    const getGovernanceAutocompleteFromGraphQL = async () => {
+    const getGovernanceAutocompleteFromRpc = async () => {
         try {
             const realmProgramNames = Array.from(
                 new Set([
@@ -464,20 +459,8 @@ const rowSX = { display: "flex", alignItems: "center", gap: 1 };
                 return flattened;
             };
 
-            const [graphQLDirectoryResult, indexedRealmsRaw] = await Promise.all([
-                buildDirectoryFromGraphQL({ includeMembers: false, proposalScanLimit: 1500 }),
-                fetchAllIndexedRealms().catch(() => []),
-            ]);
-
-            const directory = Array.isArray(graphQLDirectoryResult?.directory)
-                ? graphQLDirectoryResult.directory
-                : [];
+            const indexedRealmsRaw = await fetchAllIndexedRealms().catch(() => []);
             const indexedRealms = Array.isArray(indexedRealmsRaw) ? indexedRealmsRaw : [];
-            const gqlByGovernance = new Map<string, any>();
-            for (const item of directory) {
-                const key = governanceKey(item?.governanceAddress);
-                if (key) gqlByGovernance.set(key, item);
-            }
 
             const dedupedAutocomplete = new Map<string, GovernanceAutocompleteOption>();
             for (const realmItem of indexedRealms) {
@@ -491,17 +474,6 @@ const rowSX = { display: "flex", alignItems: "center", gap: 1 };
                     totalProposals: 0,
                     totalProposalsVoting: 0,
                 });
-            }
-
-            if (dedupedAutocomplete.size === 0) {
-                for (const [governanceAddress, gqlEntry] of gqlByGovernance.entries()) {
-                    dedupedAutocomplete.set(governanceAddress, {
-                        label: `Governance ${governanceAddress.slice(0, 6)}...`,
-                        value: governanceAddress,
-                        totalProposals: Number(gqlEntry?.totalProposals || 0),
-                        totalProposalsVoting: Number(gqlEntry?.totalProposalsVoting || 0),
-                    });
-                }
             }
 
             const lookupAutocomplete = Array.from(dedupedAutocomplete.values()).sort((a, b) => {
@@ -520,13 +492,13 @@ const rowSX = { display: "flex", alignItems: "center", gap: 1 };
                 setGovernanceAutocomplete(null);
             }
         } catch (error) {
-            console.warn('Failed to load governance autocomplete from GraphQL', error);
+            console.warn('Failed to load governance autocomplete from RPC', error);
             setGovernanceAutocomplete(null);
         }
     }
 
     React.useEffect(() => {
-        void getGovernanceAutocompleteFromGraphQL();
+        void getGovernanceAutocompleteFromRpc();
     }, []);
 
     React.useEffect(() => {
@@ -1047,35 +1019,13 @@ const rowSX = { display: "flex", alignItems: "center", gap: 1 };
         <Chip
           size="small"
           variant="outlined"
-          label={governanceGraphQLEnabled ? "GraphQL" : "RPC"}
+          label="RPC"
           sx={{ opacity: 0.85 }}
         />
       </Box>
-
-      <FormControlLabel
-        sx={{ m: 0, width: "100%", justifyContent: "space-between" }}
-        label={
-          <Box>
-            <Typography sx={{ fontSize: 13, fontWeight: 600 }}>Use GraphQL indexer</Typography>
-            <Typography sx={{ fontSize: 11, opacity: 0.65, mt: 0.25 }}>
-              Off uses native Solana RPC account queries for governance reads.
-            </Typography>
-          </Box>
-        }
-        labelPlacement="start"
-        control={
-          <Switch
-            checked={governanceGraphQLEnabled}
-            onChange={(event) => {
-              const nextValue = event.target.checked;
-              setGovernanceGraphQLEnabled(nextValue);
-              setGovernanceGraphQLEnabledState(nextValue);
-              handleCloseRpcSettings();
-              window.location.reload();
-            }}
-          />
-        }
-      />
+      <Typography sx={{ fontSize: 12, opacity: 0.75 }}>
+        Governance reads and transactions use the selected Solana RPC provider.
+      </Typography>
     </Box>
 
     {/* ===== Wallet Tools ===== */}
