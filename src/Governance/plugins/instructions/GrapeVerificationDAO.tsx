@@ -33,7 +33,9 @@ import {
 } from '@mui/material/';
 
 import { 
-  getAllTokenOwnerRecords
+  getAllTokenOwnerRecords,
+  getRealm,
+  getTokenOwnerRecordsByOwner,
 } from '@solana/spl-governance';
 
 import { 
@@ -127,6 +129,8 @@ export function GrapeVerificationDAO(props: any){
   const setVerifiedDAODestinationWalletObjectArray = props?.setVerifiedDAODestinationWalletObjectArray;
   const governanceLookup = props?.governanceLookup;
   const governanceAddress = props?.governanceAddress;
+  const destinationWalletArray = props?.destinationWalletArray;
+  const { enqueueSnackbar } = useSnackbar();
   
   const [open, setOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -136,92 +140,78 @@ export function GrapeVerificationDAO(props: any){
       setExpanded(isExpanded ? panel : false);
   };
 
-  const getAndVerifyFromDAOMembers = async(address: string) => {
+  const getAndVerifyFromDAOMembers = async() => {
     setLoading(true);
-    
-    console.log("Fetching DAO Members "+governanceAddress+" (voter: "+address+")");
+    try {
+      if (!governanceAddress) throw new Error('No DAO realm address was provided');
 
-    const plt = new Array();
-    const plto = new Array();
-    if (governanceAddress){
-      let cached_members = new Array();
-      
-      let mfile = null;
-      let programId = null;
-      let realmPk = null;
-      for (let glitem of governanceLookup){
-        if (glitem.governanceAddress === governanceAddress){
-          mfile = glitem.memberFilename;
-          programId = new PublicKey(glitem.realm.owner);
-          //console.log("glitem: "+JSON.stringify(glitem));
+      const realmPk = new PublicKey(governanceAddress);
+      const realm = await getRealm(RPC_CONNECTION, realmPk);
+      const programId = realm.owner;
+      const destinations = Array.from(new Set<string>(
+        (Array.isArray(destinationWalletArray) ? destinationWalletArray : [])
+          .map((item: any) => String(item?.address || item || '').trim())
+          .filter(Boolean)
+      ));
+
+      let records: any[] = [];
+      if (destinations.length > 0 && destinations.length <= 20) {
+        const concurrency = 5;
+        for (let index = 0; index < destinations.length; index += concurrency) {
+          const batch = destinations.slice(index, index + concurrency);
+          const results = await Promise.all(
+            batch.map((destination) =>
+              getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, new PublicKey(destination)).catch(() => [])
+            )
+          );
+          records.push(...results.flat());
         }
+        records = records.filter((record: any) => record?.account?.realm?.equals?.(realmPk));
+      } else {
+        records = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, realmPk);
       }
-      //if (mfile){
-        //cached_members = await getFileFromLookup(mfile, GGAPI_STORAGE_POOL);
-        // const members = cached_members;
-        //const rpc_members = await getAllTokenOwnerRecords(RPC_CONNECTION, programId,new PublicKey(governanceAddress));
 
-        const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(governanceAddress, programId.toBase58())
-        
-        const members = JSON.parse(JSON.stringify(indexedTokenOwnerRecords));
-        
-        //if (cached_members){
-        if (members){
-          //console.log("members: "+JSON.stringify(members))
-
-          const simpleArray = members
-            .filter((item: any) => 
-                Number("0x"+item.account.governingTokenDepositAmount) > 0)  
-            .map((item: any, key: number) => {
-              return item.account.governingTokenOwner;
-            });
-
-          // use this object array to show their current holdings
-          const objectArray = members
-            .filter((item: any) => 
-                Number("0x"+item.account.governingTokenDepositAmount) > 0)  
-            .map((item: any, key: number) => {
-              return {
-                governingTokenOwner: item.account.governingTokenOwner,
-                governingTokenDepositAmount: item.account.governingTokenDepositAmount, 
-              }
-                ;
-            });
-          
-            //console.log("simpleArray: "+JSON.stringify(simpleArray));
-            //console.log("objectArray: "+JSON.stringify(objectArray));
-
-          plt.push({
-            pubkey: governanceAddress,
-            size: simpleArray.length,
-            info: simpleArray
-          });
-          plto.push({
-            pubkey: governanceAddress,
-            size: objectArray.length,
-            info: objectArray
-          });
-          
-        }
+      const verifiedByOwner = new Map<string, bigint>();
+      for (const record of records) {
+        const member = record?.account?.governingTokenOwner?.toBase58?.();
+        if (!member) continue;
+        let deposit = 0n;
+        try {
+          deposit = BigInt(record?.account?.governingTokenDepositAmount?.toString?.() || '0');
+        } catch {}
+        if (deposit <= 0n) continue;
+        verifiedByOwner.set(member, (verifiedByOwner.get(member) || 0n) + deposit);
       }
-    //}
 
-    
-    if (setVerifiedDAODestinationWalletArray){
-      setVerifiedDAODestinationWalletArray(plt);
-    }
+      const simpleArray = Array.from(verifiedByOwner.keys());
+      const objectArray = Array.from(verifiedByOwner.entries()).map(([member, deposit]) => ({
+        governingTokenOwner: member,
+        governingTokenDepositAmount: deposit.toString(),
+      }));
 
-    if (setVerifiedDAODestinationWalletObjectArray){
-      setVerifiedDAODestinationWalletObjectArray(plto);
+      setVerifiedDAODestinationWalletArray?.([
+        { pubkey: governanceAddress, size: simpleArray.length, info: simpleArray },
+      ]);
+      setVerifiedDAODestinationWalletObjectArray?.([
+        { pubkey: governanceAddress, size: objectArray.length, info: objectArray },
+      ]);
+      enqueueSnackbar(
+        `${simpleArray.length} destination${simpleArray.length === 1 ? '' : 's'} verified as active DAO members`,
+        { variant: simpleArray.length > 0 ? 'success' : 'warning' }
+      );
+    } catch (error: any) {
+      console.error('DAO member verification failed', error);
+      setVerifiedDAODestinationWalletArray?.([]);
+      setVerifiedDAODestinationWalletObjectArray?.([]);
+      enqueueSnackbar(error?.message || 'DAO member verification failed', { variant: 'error' });
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
-    return null;
   }
 
   const handleVerifyAllAddressBooks = () => {
-    if (!loading && ownerAddress){
-      getAndVerifyFromDAOMembers(ownerAddress);
+    if (!loading && governanceAddress){
+      void getAndVerifyFromDAOMembers();
     }
 };
 
