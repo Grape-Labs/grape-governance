@@ -140,6 +140,8 @@ import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import CloseIcon from '@mui/icons-material/Close';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 import { 
     PROXY, 
@@ -3964,17 +3966,185 @@ export function GovernanceProposalV2View(props: any){
     })();
     const proposalInstructionCount =
         proposalTransactionCount;
-    const isMobile = useMediaQuery('(max-width:600px)');
-    const isTablet = useMediaQuery('(max-width:900px)');
-    const detailsEmbedHeight = isMobile ? 420 : isTablet ? 560 : 750;
-    const votesTableHeight = isMobile ? 460 : isTablet ? 540 : 600;
     const hasProposalDescription = Boolean(
         irysUrl ||
         gist ||
         gDocs ||
         (thisitem?.account?.descriptionLink && `${thisitem.account.descriptionLink}`.trim().length > 0)
     );
+    const proposalTransactionRows = React.useMemo(() => {
+        if (!Array.isArray(proposalInstructions)) return [];
+        if (
+            proposalInstructions.length === 1 &&
+            Array.isArray(proposalInstructions?.[0]?.account?.instructions)
+        ) {
+            return proposalInstructions[0].account.instructions;
+        }
+        return proposalInstructions;
+    }, [proposalInstructions]);
+    const executionReadiness = React.useMemo(() => {
+        const state = Number(thisitem?.account?.state ?? -1);
+        const signedCount = Number(thisitem?.account?.signatoriesSignedOffCount || 0);
+        const requiredSigners = Number(thisitem?.account?.signatoriesCount || 0);
+        const completedAt = Number(thisitem?.account?.votingCompletedAt?.toString?.() || 0);
+        const now = moment().unix();
+        const pendingRows = proposalTransactionRows.filter(
+            (row: any) => Number(row?.account?.executionStatus ?? 0) !== 1
+        );
+        const failedRows = proposalTransactionRows.filter(
+            (row: any) => Number(row?.account?.executionStatus ?? 0) === 2
+        );
+        const unlockTimes = pendingRows
+            .map((row: any) => completedAt + Number(row?.account?.holdUpTime || 0))
+            .filter((value: number) => completedAt > 0 && value > 0);
+        const nextUnlockAt = unlockTimes.length ? Math.min(...unlockTimes) : null;
+        const holdUpSatisfied = !nextUnlockAt || nextUnlockAt <= now;
+        const votePassed = [3, 4, 5, 8].includes(state);
+        const executionComplete = state === 5 || (
+            proposalTransactionRows.length > 0 && pendingRows.length === 0
+        );
+        const ready = votePassed && signedCount >= requiredSigners && holdUpSatisfied &&
+            proposalTransactionRows.length > 0 && failedRows.length === 0 && !executionComplete;
 
+        return {
+            ready,
+            executionComplete,
+            failedCount: failedRows.length,
+            pendingCount: pendingRows.length,
+            nextUnlockAt,
+            checks: [
+                {
+                    label: 'Executable plan loaded',
+                    ok: proposalTransactionRows.length > 0,
+                    detail: proposalTransactionRows.length > 0
+                        ? `${proposalTransactionRows.length} transaction${proposalTransactionRows.length === 1 ? '' : 's'}`
+                        : 'No executable transactions found',
+                },
+                {
+                    label: 'Required signatories complete',
+                    ok: signedCount >= requiredSigners,
+                    detail: requiredSigners > 0 ? `${signedCount} of ${requiredSigners} signed` : 'No additional signatories',
+                },
+                {
+                    label: 'Voting outcome permits execution',
+                    ok: votePassed || executionComplete,
+                    detail: GOVERNANCE_STATE[state] || 'Unknown state',
+                },
+                {
+                    label: 'Hold-up period elapsed',
+                    ok: holdUpSatisfied,
+                    detail: nextUnlockAt && nextUnlockAt > now
+                        ? `Next transaction unlocks ${moment.unix(nextUnlockAt).fromNow()}`
+                        : 'No active hold-up blocker',
+                },
+                {
+                    label: 'No recorded execution errors',
+                    ok: failedRows.length === 0,
+                    detail: failedRows.length > 0
+                        ? `${failedRows.length} transaction${failedRows.length === 1 ? '' : 's'} failed`
+                        : 'No execution errors recorded',
+                },
+            ],
+        };
+    }, [proposalTransactionRows, thisitem]);
+    const proposalRiskAssessment = React.useMemo(() => {
+        type RiskSeverity = 'critical' | 'high' | 'medium' | 'info';
+        type RiskFinding = { severity: RiskSeverity; title: string; evidence: string };
+        const findings: RiskFinding[] = [];
+        const addFinding = (severity: RiskSeverity, title: string, evidence: string) => {
+            if (!findings.some((finding) => finding.title === title && finding.evidence === evidence)) {
+                findings.push({ severity, title, evidence });
+            }
+        };
+        const decodedDetails: any[] = [];
+        const programIds = new Set<string>();
+
+        proposalTransactionRows.forEach((row: any) => {
+            const instructions = Array.isArray(row?.account?.instructions)
+                ? row.account.instructions
+                : row?.account?.instruction
+                ? [row.account.instruction]
+                : [];
+            instructions.forEach((instruction: any) => {
+                const programId = instruction?.programId?.toBase58?.() || `${instruction?.programId || ''}`;
+                if (programId) programIds.add(programId);
+                if (instruction?.info) decodedDetails.push(instruction.info);
+            });
+        });
+
+        const allDetails = [...decodedDetails, ...(Array.isArray(instructionTransferDetails) ? instructionTransferDetails : [])];
+        const uniqueDetails = Array.from(new Map(allDetails.map((detail: any) => [
+            `${detail?.ix?.toBase58?.() || detail?.ix || ''}:${detail?.type || ''}:${detail?.description || ''}:${detail?.destinationAta?.toBase58?.() || detail?.destinationAta || ''}`,
+            detail,
+        ])).values()) as any[];
+        const detailText = uniqueDetails
+            .map((detail: any) => `${detail?.type || ''} ${detail?.op || ''} ${detail?.description || ''}`.toLowerCase())
+            .join('\n');
+        const transferDetails = uniqueDetails.filter((detail: any) =>
+            /transfer/.test(`${detail?.type || ''}`.toLowerCase()) && Number(detail?.amount || 0) > 0
+        );
+        const transferDestinations = new Set(
+            transferDetails
+                .map((detail: any) => detail?.tokenOwner || detail?.recipientWallet || detail?.destinationAta || detail?.pubkey)
+                .filter(Boolean)
+                .map((address: any) => address?.toBase58?.() || `${address}`)
+        );
+        const transferAssets = new Set(transferDetails.map((detail: any) => `${detail?.mint || detail?.name || 'asset'}`));
+
+        if (programIds.has('BPFLoaderUpgradeab1e11111111111111111111111') || /program upgrade|upgrade program|upgradeable/.test(detailText)) {
+            addFinding('critical', 'Program upgrade or loader action', 'The executable plan invokes the upgradeable program loader or a decoded program-upgrade action.');
+        }
+        if (/setauthority|set authority|transfer.*authority|authority.*to/.test(detailText)) {
+            addFinding('high', 'Authority change', 'A decoded instruction changes or transfers an account, mint, freeze, or upgrade authority.');
+        }
+        if (/token2022approve|tokenapprove|approve .*spend/.test(detailText)) {
+            const approvals = uniqueDetails.filter((detail: any) => /approve/i.test(`${detail?.type || ''} ${detail?.description || ''}`));
+            const allowance = approvals.reduce((sum: number, detail: any) => sum + Number(detail?.amount || 0), 0);
+            addFinding('high', 'Token delegate approval', allowance > 0
+                ? `The plan grants token spending authority with a decoded aggregate allowance of ${allowance.toLocaleString()}.`
+                : 'The plan grants a delegate authority to spend from a token account.');
+        }
+        if (/mintto|mint .* to/.test(detailText)) {
+            addFinding('high', 'Token supply increase', 'At least one decoded instruction mints new tokens.');
+        }
+        if (/freezeaccount|freeze token account/.test(detailText)) {
+            addFinding('high', 'Token account freeze', 'At least one decoded instruction freezes a token account.');
+        }
+        if (/withdraw .*stake|deactivate stake|stake.*withdraw|stake.*deactivate/.test(detailText)) {
+            addFinding('high', 'Stake account withdrawal or deactivation', 'The plan can reduce active stake or withdraw stake-account funds.');
+        }
+        if (transferDetails.length > 0) {
+            addFinding('medium', 'Treasury assets leave controlled accounts', `${transferDetails.length} decoded transfer${transferDetails.length === 1 ? '' : 's'} across ${transferAssets.size} asset${transferAssets.size === 1 ? '' : 's'} to ${transferDestinations.size} destination${transferDestinations.size === 1 ? '' : 's'}.`);
+            const verificationComplete = Array.isArray(verifiedDAODestinationWalletArray) && verifiedDAODestinationWalletArray.length > 0;
+            if (!verificationComplete) {
+                addFinding('medium', 'Destination verification pending', 'DAO-member destination verification has not returned a result for these transfers.');
+            }
+        }
+        if (/closeaccount|close token account|withdrawnonceaccount/.test(detailText)) {
+            addFinding('medium', 'Account closure or balance withdrawal', 'A decoded instruction closes an account or withdraws its remaining balance.');
+        }
+        if (!hasProposalDescription) addFinding('medium', 'Missing proposal description', 'No accessible description was found to compare with the executable plan.');
+        if (proposalTransactionCount > 10) addFinding('medium', 'Large executable plan', `${proposalTransactionCount} transactions increase review complexity.`);
+        if (isFlaggedMaliciousAuthor) addFinding('high', 'Author history requires review', 'The proposal author has multiple vetoed proposals.');
+        if (executionReadiness.failedCount > 0) addFinding('high', 'Recorded execution failure', `${executionReadiness.failedCount} transaction${executionReadiness.failedCount === 1 ? '' : 's'} recorded an execution error.`);
+
+        const rank: Record<RiskSeverity, number> = { critical: 4, high: 3, medium: 2, info: 1 };
+        findings.sort((a, b) => rank[b.severity] - rank[a.severity]);
+        const level: RiskSeverity | 'low' = findings.length ? findings[0].severity : 'low';
+        return { level, findings, decodedInstructionCount: uniqueDetails.length };
+    }, [
+        hasProposalDescription,
+        proposalTransactionCount,
+        proposalTransactionRows,
+        isFlaggedMaliciousAuthor,
+        executionReadiness.failedCount,
+        instructionTransferDetails,
+        verifiedDAODestinationWalletArray,
+    ]);
+    const isMobile = useMediaQuery('(max-width:600px)');
+    const isTablet = useMediaQuery('(max-width:900px)');
+    const detailsEmbedHeight = isMobile ? 420 : isTablet ? 560 : 750;
+    const votesTableHeight = isMobile ? 460 : isTablet ? 540 : 600;
     const panelSx = {
         background: 'rgba(16,22,34,0.86)',
         border: '1px solid rgba(255,255,255,0.1)',
@@ -5810,6 +5980,166 @@ export function GovernanceProposalV2View(props: any){
 
                         {(proposalInstructions && proposalInstructions.length > 0) &&
                             <>
+                            <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
+                                <Stack
+                                    direction={{ xs: 'column', sm: 'row' }}
+                                    justifyContent="space-between"
+                                    alignItems={{ xs: 'flex-start', sm: 'center' }}
+                                    spacing={0.8}
+                                    sx={{ mb: 1 }}
+                                >
+                                    <Box>
+                                        <Typography sx={sectionLabelSx}>Execution Readiness</Typography>
+                                        <Typography variant="subtitle1" sx={{ color: 'rgba(239,246,255,0.96)', mt: 0.25 }}>
+                                            {executionReadiness.executionComplete
+                                                ? 'Execution complete'
+                                                : executionReadiness.ready
+                                                ? 'Ready to execute'
+                                                : 'Execution has blockers'}
+                                        </Typography>
+                                    </Box>
+                                    <Chip
+                                        size="small"
+                                        icon={executionReadiness.executionComplete || executionReadiness.ready
+                                            ? <CheckCircleIcon />
+                                            : <AccessTimeIcon />}
+                                        label={executionReadiness.executionComplete
+                                            ? 'Complete'
+                                            : executionReadiness.ready
+                                            ? 'Ready'
+                                            : `${executionReadiness.checks.filter((check) => !check.ok).length} blocker${executionReadiness.checks.filter((check) => !check.ok).length === 1 ? '' : 's'}`}
+                                        sx={{
+                                            ...metaChipSx,
+                                            color: executionReadiness.executionComplete || executionReadiness.ready ? '#9be7b5' : '#ffd38a',
+                                            bgcolor: executionReadiness.executionComplete || executionReadiness.ready
+                                                ? 'rgba(72,187,120,0.12)'
+                                                : 'rgba(245,158,11,0.12)',
+                                        }}
+                                    />
+                                </Stack>
+
+                                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 0.75 }}>
+                                    {executionReadiness.checks.map((check) => (
+                                        <Box
+                                            key={check.label}
+                                            sx={{
+                                                display: 'flex',
+                                                alignItems: 'flex-start',
+                                                gap: 0.8,
+                                                borderRadius: '10px',
+                                                border: '1px solid rgba(255,255,255,0.07)',
+                                                bgcolor: 'rgba(255,255,255,0.025)',
+                                                p: 0.85,
+                                            }}
+                                        >
+                                            {check.ok
+                                                ? <CheckCircleIcon sx={{ color: '#72d69a', fontSize: 17, mt: 0.1 }} />
+                                                : <RadioButtonUncheckedIcon sx={{ color: '#f5c36b', fontSize: 17, mt: 0.1 }} />}
+                                            <Box>
+                                                <Typography variant="caption" sx={{ display: 'block', color: 'rgba(233,241,250,0.9)', lineHeight: 1.3 }}>
+                                                    {check.label}
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ display: 'block', color: 'rgba(171,185,204,0.68)', lineHeight: 1.35, mt: 0.15 }}>
+                                                    {check.detail}
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+                                    ))}
+                                </Box>
+
+                                <Typography variant="caption" sx={{ display: 'block', color: 'rgba(154,168,188,0.62)', mt: 0.9 }}>
+                                    Simulation is performed by the execution workflow immediately before submission; readiness reflects current on-chain proposal state.
+                                </Typography>
+                            </Box>
+
+                            <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
+                                <Stack
+                                    direction={{ xs: 'column', sm: 'row' }}
+                                    justifyContent="space-between"
+                                    alignItems={{ xs: 'flex-start', sm: 'center' }}
+                                    spacing={0.8}
+                                    sx={{ mb: 1 }}
+                                >
+                                    <Box>
+                                        <Typography sx={sectionLabelSx}>Proposal Risk Review</Typography>
+                                        <Typography variant="subtitle1" sx={{ color: 'rgba(239,246,255,0.96)', mt: 0.25 }}>
+                                            {proposalRiskAssessment.level === 'low'
+                                                ? 'No material decoded risks found'
+                                                : `${proposalRiskAssessment.level.charAt(0).toUpperCase()}${proposalRiskAssessment.level.slice(1)} review priority`}
+                                        </Typography>
+                                    </Box>
+                                    <Chip
+                                        size="small"
+                                        icon={proposalRiskAssessment.level === 'low' ? <CheckCircleIcon /> : <WarningAmberIcon />}
+                                        label={proposalRiskAssessment.level.toUpperCase()}
+                                        sx={{
+                                            ...metaChipSx,
+                                            color: proposalRiskAssessment.level === 'critical' || proposalRiskAssessment.level === 'high'
+                                                ? '#ffaaa3'
+                                                : proposalRiskAssessment.level === 'medium'
+                                                ? '#ffd38a'
+                                                : '#9be7b5',
+                                            bgcolor: proposalRiskAssessment.level === 'critical' || proposalRiskAssessment.level === 'high'
+                                                ? 'rgba(239,83,80,0.12)'
+                                                : proposalRiskAssessment.level === 'medium'
+                                                ? 'rgba(245,158,11,0.12)'
+                                                : 'rgba(72,187,120,0.12)',
+                                        }}
+                                    />
+                                </Stack>
+
+                                {proposalRiskAssessment.findings.length > 0 ? (
+                                    <Stack spacing={0.75}>
+                                        {proposalRiskAssessment.findings.map((finding) => (
+                                            <Box
+                                                key={`${finding.title}:${finding.evidence}`}
+                                                sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'flex-start',
+                                                    gap: 0.8,
+                                                    borderRadius: '10px',
+                                                    border: '1px solid rgba(255,255,255,0.07)',
+                                                    bgcolor: 'rgba(255,255,255,0.025)',
+                                                    p: 0.85,
+                                                }}
+                                            >
+                                                <WarningAmberIcon sx={{
+                                                    color: finding.severity === 'critical' || finding.severity === 'high' ? '#ff8d85' : '#f5c36b',
+                                                    fontSize: 18,
+                                                    mt: 0.1,
+                                                }} />
+                                                <Box sx={{ minWidth: 0 }}>
+                                                    <Stack direction="row" spacing={0.6} alignItems="center" flexWrap="wrap" useFlexGap>
+                                                        <Typography variant="caption" sx={{ color: 'rgba(233,241,250,0.94)', lineHeight: 1.3 }}>
+                                                            {finding.title}
+                                                        </Typography>
+                                                        <Chip
+                                                            size="small"
+                                                            label={finding.severity}
+                                                            sx={{ ...metaChipSx, height: 18, fontSize: '0.62rem' }}
+                                                        />
+                                                    </Stack>
+                                                    <Typography variant="caption" sx={{ display: 'block', color: 'rgba(171,185,204,0.7)', lineHeight: 1.35, mt: 0.2 }}>
+                                                        {finding.evidence}
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
+                                        ))}
+                                    </Stack>
+                                ) : (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                                        <CheckCircleIcon sx={{ color: '#72d69a', fontSize: 18 }} />
+                                        <Typography variant="caption" sx={{ color: 'rgba(205,221,213,0.86)' }}>
+                                            The decoded plan contains no recognized high-impact instruction patterns.
+                                        </Typography>
+                                    </Box>
+                                )}
+
+                                <Typography variant="caption" sx={{ display: 'block', color: 'rgba(154,168,188,0.62)', mt: 0.9 }}>
+                                    Static review of {proposalRiskAssessment.decodedInstructionCount} decoded instruction detail{proposalRiskAssessment.decodedInstructionCount === 1 ? '' : 's'}; this does not replace simulation or independent review.
+                                </Typography>
+                            </Box>
+
                             <Box
                                 sx={{
                                     mb: 1.5,
