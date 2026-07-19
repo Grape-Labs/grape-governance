@@ -399,6 +399,9 @@ export function GovernanceProposalV2View(props: any){
     const [castedYesVotes, setCastedYesVotes] = React.useState(null);
     const [excessVotes, setExcessVotes] = React.useState(null);
     const [openInstructions, setOpenInstructions] = React.useState(false);
+    const [openExecutionReadiness, setOpenExecutionReadiness] = React.useState(false);
+    const [openProposalRiskReview, setOpenProposalRiskReview] = React.useState(false);
+    const [openProposalSimulation, setOpenProposalSimulation] = React.useState(false);
     const [openDiscussion, setOpenDiscussion] = React.useState(false);
     const [expandInfo, setExpandInfo] = React.useState(false);
     const [reload, setReload] = React.useState(false);
@@ -4074,7 +4077,7 @@ export function GovernanceProposalV2View(props: any){
                 const simulationResult = await connection.simulateTransaction(
                     transaction,
                     undefined,
-                    writableAddresses.length ? writableAddresses : undefined
+                    writablePubkeys.length ? writablePubkeys : undefined
                 );
                 const value: any = simulationResult?.value || {};
                 const afterAccounts: any[] = Array.isArray(value.accounts) ? value.accounts : [];
@@ -4095,7 +4098,7 @@ export function GovernanceProposalV2View(props: any){
                             ? Buffer.isBuffer(afterDataValue)
                                 ? afterDataValue
                                 : Array.isArray(afterDataValue)
-                                ? Buffer.from(Array.isArray(afterDataValue[0]) ? afterDataValue[0] : afterDataValue[0], Array.isArray(afterDataValue[0]) ? undefined : 'base64')
+                                ? Buffer.from(afterDataValue[0], 'base64')
                                 : Buffer.from(afterDataValue)
                             : null;
                         if (beforeData?.length === AccountLayout.span && afterData?.length === AccountLayout.span) {
@@ -6217,11 +6220,12 @@ export function GovernanceProposalV2View(props: any){
                             <>
                             <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
                                 <Stack
-                                    direction={{ xs: 'column', sm: 'row' }}
+                                    direction="row"
                                     justifyContent="space-between"
-                                    alignItems={{ xs: 'flex-start', sm: 'center' }}
+                                    alignItems="center"
                                     spacing={0.8}
-                                    sx={{ mb: 1 }}
+                                    onClick={() => setOpenExecutionReadiness((open) => !open)}
+                                    sx={{ cursor: 'pointer' }}
                                 >
                                     <Box>
                                         <Typography sx={sectionLabelSx}>Execution Readiness</Typography>
@@ -6233,26 +6237,30 @@ export function GovernanceProposalV2View(props: any){
                                                 : 'Execution has blockers'}
                                         </Typography>
                                     </Box>
-                                    <Chip
-                                        size="small"
-                                        icon={executionReadiness.executionComplete || executionReadiness.ready
-                                            ? <CheckCircleIcon />
-                                            : <AccessTimeIcon />}
-                                        label={executionReadiness.executionComplete
-                                            ? 'Complete'
-                                            : executionReadiness.ready
-                                            ? 'Ready'
-                                            : `${executionReadiness.checks.filter((check) => !check.ok).length} blocker${executionReadiness.checks.filter((check) => !check.ok).length === 1 ? '' : 's'}`}
-                                        sx={{
-                                            ...metaChipSx,
-                                            color: executionReadiness.executionComplete || executionReadiness.ready ? '#9be7b5' : '#ffd38a',
-                                            bgcolor: executionReadiness.executionComplete || executionReadiness.ready
-                                                ? 'rgba(72,187,120,0.12)'
-                                                : 'rgba(245,158,11,0.12)',
-                                        }}
-                                    />
+                                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                                        <Chip
+                                            size="small"
+                                            icon={executionReadiness.executionComplete || executionReadiness.ready
+                                                ? <CheckCircleIcon />
+                                                : <AccessTimeIcon />}
+                                            label={executionReadiness.executionComplete
+                                                ? 'Complete'
+                                                : executionReadiness.ready
+                                                ? 'Ready'
+                                                : `${executionReadiness.checks.filter((check) => !check.ok).length} blocker${executionReadiness.checks.filter((check) => !check.ok).length === 1 ? '' : 's'}`}
+                                            sx={{
+                                                ...metaChipSx,
+                                                color: executionReadiness.executionComplete || executionReadiness.ready ? '#9be7b5' : '#ffd38a',
+                                                bgcolor: executionReadiness.executionComplete || executionReadiness.ready
+                                                    ? 'rgba(72,187,120,0.12)'
+                                                    : 'rgba(245,158,11,0.12)',
+                                            }}
+                                        />
+                                        {openExecutionReadiness ? <ExpandLess /> : <ExpandMoreIcon />}
+                                    </Stack>
                                 </Stack>
 
+                                <Collapse in={openExecutionReadiness} timeout="auto" unmountOnExit>
                                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 0.75 }}>
                                     {executionReadiness.checks.map((check) => (
                                         <Box
@@ -6285,15 +6293,17 @@ export function GovernanceProposalV2View(props: any){
                                 <Typography variant="caption" sx={{ display: 'block', color: 'rgba(154,168,188,0.62)', mt: 0.9 }}>
                                     Simulation is performed by the execution workflow immediately before submission; readiness reflects current on-chain proposal state.
                                 </Typography>
+                                </Collapse>
                             </Box>
 
                             <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
                                 <Stack
-                                    direction={{ xs: 'column', sm: 'row' }}
+                                    direction="row"
                                     justifyContent="space-between"
-                                    alignItems={{ xs: 'flex-start', sm: 'center' }}
+                                    alignItems="center"
                                     spacing={0.8}
-                                    sx={{ mb: 1 }}
+                                    onClick={() => setOpenProposalRiskReview((open) => !open)}
+                                    sx={{ cursor: 'pointer' }}
                                 >
                                     <Box>
                                         <Typography sx={sectionLabelSx}>Proposal Risk Review</Typography>
@@ -6303,6 +6313,7 @@ export function GovernanceProposalV2View(props: any){
                                                 : `${proposalRiskAssessment.level.charAt(0).toUpperCase()}${proposalRiskAssessment.level.slice(1)} review priority`}
                                         </Typography>
                                     </Box>
+                                    <Stack direction="row" alignItems="center" spacing={0.5}>
                                     <Chip
                                         size="small"
                                         icon={proposalRiskAssessment.level === 'low' ? <CheckCircleIcon /> : <WarningAmberIcon />}
@@ -6321,8 +6332,11 @@ export function GovernanceProposalV2View(props: any){
                                                 : 'rgba(72,187,120,0.12)',
                                         }}
                                     />
+                                    {openProposalRiskReview ? <ExpandLess /> : <ExpandMoreIcon />}
+                                    </Stack>
                                 </Stack>
 
+                                <Collapse in={openProposalRiskReview} timeout="auto" unmountOnExit>
                                 {proposalRiskAssessment.findings.length > 0 ? (
                                     <Stack spacing={0.75}>
                                         {proposalRiskAssessment.findings.map((finding) => (
@@ -6373,10 +6387,18 @@ export function GovernanceProposalV2View(props: any){
                                 <Typography variant="caption" sx={{ display: 'block', color: 'rgba(154,168,188,0.62)', mt: 0.9 }}>
                                     Static review of {proposalRiskAssessment.decodedInstructionCount} decoded instruction detail{proposalRiskAssessment.decodedInstructionCount === 1 ? '' : 's'}; this does not replace simulation or independent review.
                                 </Typography>
+                                </Collapse>
                             </Box>
 
                             <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
-                                <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1}>
+                                <Stack
+                                    direction="row"
+                                    justifyContent="space-between"
+                                    alignItems="center"
+                                    spacing={1}
+                                    onClick={() => setOpenProposalSimulation((open) => !open)}
+                                    sx={{ cursor: 'pointer' }}
+                                >
                                     <Box>
                                         <Typography sx={sectionLabelSx}>Simulation & Balance Diff</Typography>
                                         <Typography variant="subtitle1" sx={{ color: 'rgba(239,246,255,0.96)', mt: 0.25 }}>
@@ -6385,6 +6407,20 @@ export function GovernanceProposalV2View(props: any){
                                                 : 'Run an RPC preflight of the executable plan'}
                                         </Typography>
                                     </Box>
+                                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                                        {proposalSimulation && (
+                                            <Chip
+                                                size="small"
+                                                label={proposalSimulation.status === 'ok' ? 'Passed' : 'Review'}
+                                                sx={{ ...metaChipSx, color: proposalSimulation.status === 'ok' ? '#9be7b5' : '#ffaaa3' }}
+                                            />
+                                        )}
+                                        {openProposalSimulation ? <ExpandLess /> : <ExpandMoreIcon />}
+                                    </Stack>
+                                </Stack>
+
+                                <Collapse in={openProposalSimulation} timeout="auto" unmountOnExit>
+                                <Box sx={{ mt: 1 }}>
                                     <Button
                                         size="small"
                                         variant="outlined"
@@ -6394,8 +6430,7 @@ export function GovernanceProposalV2View(props: any){
                                     >
                                         {proposalSimulationLoading ? <><CircularProgress size={14} sx={{ mr: 0.7 }} /> Simulating</> : proposalSimulation ? 'Run Again' : 'Run Simulation'}
                                     </Button>
-                                </Stack>
-
+                                </Box>
                                 {proposalSimulation && (
                                     <Box sx={{ mt: 1 }}>
                                         <Stack direction="row" spacing={0.65} flexWrap="wrap" useFlexGap>
@@ -6436,6 +6471,7 @@ export function GovernanceProposalV2View(props: any){
                                         </Typography>
                                     </Box>
                                 )}
+                                </Collapse>
                             </Box>
 
                             {treasuryImpact.transferCount > 0 && (
