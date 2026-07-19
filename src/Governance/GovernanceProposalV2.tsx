@@ -47,7 +47,7 @@ import {
     getSetAndVerifyCollectionInstructionDataSerializer,
     getSetAndVerifySizedCollectionItemInstructionDataSerializer,
 } from "@metaplex-foundation/mpl-token-metadata";
-import { PublicKey, TokenAmount, Connection, TransactionInstruction, Transaction, SystemInstruction } from '@solana/web3.js';
+import { PublicKey, TokenAmount, Connection, TransactionInstruction, Transaction, SystemInstruction, ComputeBudgetProgram } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
 import React, { useCallback } from 'react';
@@ -408,6 +408,8 @@ export function GovernanceProposalV2View(props: any){
     const [verifiedDestinationWalletArray, setVerifiedDestinationWalletArray] = React.useState(null);
     const [verifiedDAODestinationWalletArray, setVerifiedDAODestinationWalletArray] = React.useState(null);
     const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
+    const [proposalSimulation, setProposalSimulation] = React.useState<any>(null);
+    const [proposalSimulationLoading, setProposalSimulationLoading] = React.useState(false);
     const [councilVoterRecord, setCouncilVoterRecord] = React.useState<any | null>(null);
 
     const [loadingMessage, setLoadingMessage] = React.useState(null);
@@ -3982,6 +3984,179 @@ export function GovernanceProposalV2View(props: any){
         }
         return proposalInstructions;
     }, [proposalInstructions]);
+    const normalizeProposalInstruction = React.useCallback((rawInstruction: any) => {
+        try {
+            const programId = new PublicKey(rawInstruction?.programId);
+            const keys = (rawInstruction?.keys || rawInstruction?.accounts || []).map((account: any) => ({
+                pubkey: new PublicKey(account?.pubkey || account),
+                isSigner: Boolean(account?.isSigner),
+                isWritable: Boolean(account?.isWritable),
+            }));
+            const rawData = rawInstruction?.data;
+            const data = Buffer.isBuffer(rawData)
+                ? rawData
+                : rawData instanceof Uint8Array
+                ? Buffer.from(rawData)
+                : Array.isArray(rawData)
+                ? Buffer.from(rawData)
+                : typeof rawData === 'string'
+                ? Buffer.from(rawData, 'base64')
+                : Buffer.alloc(0);
+            return new TransactionInstruction({ programId, keys, data });
+        } catch {
+            return null;
+        }
+    }, []);
+    const runProposalSimulation = React.useCallback(async (force = false) => {
+        if (!proposalTransactionRows.length || proposalSimulationLoading) return;
+        const proposalAddress = thisitem?.pubkey?.toBase58?.() || `${thisitem?.pubkey || proposalPk || ''}`;
+        const planFingerprint = proposalTransactionRows.map((row: any) => {
+            const instructions = Array.isArray(row?.account?.instructions) ? row.account.instructions : [];
+            return instructions.map((instruction: any) => {
+                const programId = instruction?.programId?.toBase58?.() || `${instruction?.programId || ''}`;
+                return `${programId}:${Buffer.from(instruction?.data || []).toString('base64')}`;
+            }).join('|');
+        }).join('::');
+        let planHash = 2166136261;
+        for (let index = 0; index < planFingerprint.length; index += 1) {
+            planHash ^= planFingerprint.charCodeAt(index);
+            planHash = Math.imul(planHash, 16777619);
+        }
+        const cacheKey = `grape_proposal_simulation_v1:${proposalAddress}:${(planHash >>> 0).toString(16)}:${proposalTransactionRows.length}`;
+        if (!force && typeof window !== 'undefined') {
+            try {
+                const cached = JSON.parse(window.sessionStorage.getItem(cacheKey) || 'null');
+                if (cached?.createdAt && Date.now() - cached.createdAt < 5 * 60 * 1000) {
+                    setProposalSimulation({ ...cached, cached: true });
+                    return;
+                }
+            } catch {
+                // Ignore invalid or unavailable browser cache entries.
+            }
+        }
+
+        setProposalSimulationLoading(true);
+        try {
+            const feePayer = governanceNativeWallet || publicKey || thisitem?.account?.governance;
+            if (!feePayer) throw new Error('No simulation fee payer is available');
+            const feePayerPk = new PublicKey(feePayer);
+            const latestBlockhash = await connection.getLatestBlockhash('confirmed');
+            const results: any[] = [];
+
+            for (let transactionIndex = 0; transactionIndex < proposalTransactionRows.length; transactionIndex += 1) {
+                const row = proposalTransactionRows[transactionIndex];
+                const rawInstructions = Array.isArray(row?.account?.instructions)
+                    ? row.account.instructions
+                    : row?.account?.instruction
+                    ? [row.account.instruction]
+                    : [];
+                const instructions = rawInstructions
+                    .map(normalizeProposalInstruction)
+                    .filter(Boolean) as TransactionInstruction[];
+                if (!instructions.length) {
+                    results.push({ transactionIndex, status: 'skipped', error: 'No decodable instructions', unitsConsumed: null, logs: [], balanceChanges: [] });
+                    continue;
+                }
+
+                const writableAddresses = Array.from(new Set(instructions.flatMap((instruction) =>
+                    instruction.keys.filter((key) => key.isWritable).map((key) => key.pubkey.toBase58())
+                ))).slice(0, 24);
+                const writablePubkeys = writableAddresses.map((address) => new PublicKey(address));
+                const beforeAccounts = writablePubkeys.length
+                    ? await connection.getMultipleAccountsInfo(writablePubkeys, 'confirmed')
+                    : [];
+                const transaction = new Transaction({
+                    feePayer: feePayerPk,
+                    blockhash: latestBlockhash.blockhash,
+                    lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+                });
+                transaction.add(ComputeBudgetProgram.setComputeUnitLimit({ units: 1_000_000 }), ...instructions);
+                const simulationResult = await connection.simulateTransaction(
+                    transaction,
+                    undefined,
+                    writableAddresses.length ? writableAddresses : undefined
+                );
+                const value: any = simulationResult?.value || {};
+                const afterAccounts: any[] = Array.isArray(value.accounts) ? value.accounts : [];
+                const balanceChanges = writableAddresses.flatMap((address, accountIndex) => {
+                    const before: any = beforeAccounts[accountIndex];
+                    const after: any = afterAccounts[accountIndex];
+                    if (!before && !after) return [];
+                    const changes: any[] = [];
+                    const beforeLamports = Number(before?.lamports || 0);
+                    const afterLamports = Number(after?.lamports || 0);
+                    if (beforeLamports !== afterLamports) {
+                        changes.push({ address, asset: 'SOL', before: beforeLamports / 1e9, after: afterLamports / 1e9, delta: (afterLamports - beforeLamports) / 1e9 });
+                    }
+                    try {
+                        const beforeData = before?.data ? Buffer.from(before.data) : null;
+                        const afterDataValue = after?.data;
+                        const afterData = afterDataValue
+                            ? Buffer.isBuffer(afterDataValue)
+                                ? afterDataValue
+                                : Array.isArray(afterDataValue)
+                                ? Buffer.from(Array.isArray(afterDataValue[0]) ? afterDataValue[0] : afterDataValue[0], Array.isArray(afterDataValue[0]) ? undefined : 'base64')
+                                : Buffer.from(afterDataValue)
+                            : null;
+                        if (beforeData?.length === AccountLayout.span && afterData?.length === AccountLayout.span) {
+                            const beforeToken: any = AccountLayout.decode(beforeData);
+                            const afterToken: any = AccountLayout.decode(afterData);
+                            const beforeAmount = BigInt(beforeToken.amount.toString());
+                            const afterAmount = BigInt(afterToken.amount.toString());
+                            if (beforeAmount !== afterAmount) {
+                                changes.push({
+                                    address,
+                                    asset: new PublicKey(afterToken.mint).toBase58(),
+                                    beforeRaw: beforeAmount.toString(),
+                                    afterRaw: afterAmount.toString(),
+                                    deltaRaw: (afterAmount - beforeAmount).toString(),
+                                });
+                            }
+                        }
+                    } catch {
+                        // Non-token writable accounts still retain their native balance diff.
+                    }
+                    return changes;
+                });
+                results.push({
+                    transactionIndex,
+                    status: value.err ? 'failed' : 'ok',
+                    error: value.err || null,
+                    unitsConsumed: value.unitsConsumed ?? null,
+                    logs: Array.isArray(value.logs) ? value.logs : [],
+                    balanceChanges,
+                    inspectedWritableAccounts: writableAddresses.length,
+                    writableAccountsTruncated: writableAddresses.length === 24,
+                });
+            }
+
+            const summary = {
+                createdAt: Date.now(),
+                cached: false,
+                status: results.some((result) => result.status === 'failed') ? 'failed' : 'ok',
+                results,
+                totalUnitsConsumed: results.reduce((sum, result) => sum + Number(result.unitsConsumed || 0), 0),
+                balanceChanges: results.flatMap((result) => result.balanceChanges || []),
+            };
+            setProposalSimulation(summary);
+            if (typeof window !== 'undefined') {
+                try { window.sessionStorage.setItem(cacheKey, JSON.stringify(summary)); } catch { /* Cache is optional. */ }
+            }
+        } catch (error: any) {
+            setProposalSimulation({ createdAt: Date.now(), status: 'failed', error: error?.message || `${error}`, results: [], balanceChanges: [] });
+        } finally {
+            setProposalSimulationLoading(false);
+        }
+    }, [
+        proposalTransactionRows,
+        proposalSimulationLoading,
+        governanceNativeWallet,
+        publicKey,
+        thisitem,
+        proposalPk,
+        connection,
+        normalizeProposalInstruction,
+    ]);
     const executionReadiness = React.useMemo(() => {
         const state = Number(thisitem?.account?.state ?? -1);
         const signedCount = Number(thisitem?.account?.signatoriesSignedOffCount || 0);
@@ -4140,6 +4315,66 @@ export function GovernanceProposalV2View(props: any){
         executionReadiness.failedCount,
         instructionTransferDetails,
         verifiedDAODestinationWalletArray,
+    ]);
+    const treasuryImpact = React.useMemo(() => {
+        const transfers = (Array.isArray(instructionTransferDetails) ? instructionTransferDetails : []).filter((detail: any) =>
+            /transfer/i.test(`${detail?.type || ''}`) && Number(detail?.amount || 0) > 0
+        );
+        const knownAddressBookAddresses = new Set<string>(
+            (Array.isArray(verifiedDestinationWalletArray) ? verifiedDestinationWalletArray : [])
+                .flatMap((entry: any) => entry?.info?.addresses || [])
+                .map((address: any) => `${address}`)
+        );
+        const daoMemberAddresses = new Set<string>(
+            (Array.isArray(verifiedDAODestinationWalletArray) ? verifiedDAODestinationWalletArray : [])
+                .flatMap((entry: any) => Array.isArray(entry?.info) ? entry.info : [])
+                .map((address: any) => `${address}`)
+        );
+        const controlledAddresses = new Set<string>([
+            governanceNativeWallet?.toBase58?.() || `${governanceNativeWallet || ''}`,
+            thisitem?.account?.governance?.toBase58?.() || `${thisitem?.account?.governance || ''}`,
+        ].filter(Boolean));
+        const destinations = new Map<string, any>();
+        const assets = new Map<string, any>();
+
+        transfers.forEach((detail: any) => {
+            const address = `${detail?.tokenOwner || detail?.recipientWallet || detail?.destinationAta || detail?.pubkey || ''}`;
+            const mint = `${detail?.mint || detail?.name || 'Unknown asset'}`;
+            const amount = Number(detail?.amount || 0);
+            const trust = controlledAddresses.has(address)
+                ? 'controlled'
+                : daoMemberAddresses.has(address)
+                ? 'dao_member'
+                : knownAddressBookAddresses.has(address)
+                ? 'address_book'
+                : 'unverified';
+            const currentDestination = destinations.get(address) || { address, trust, transferCount: 0, assets: new Map<string, number>() };
+            currentDestination.transferCount += 1;
+            currentDestination.assets.set(mint, (currentDestination.assets.get(mint) || 0) + amount);
+            if (currentDestination.trust === 'unverified' && trust !== 'unverified') currentDestination.trust = trust;
+            destinations.set(address, currentDestination);
+            const currentAsset = assets.get(mint) || { mint, name: detail?.name || null, logoURI: detail?.logoURI || null, amount: 0, destinations: new Set<string>() };
+            currentAsset.amount += amount;
+            currentAsset.destinations.add(address);
+            assets.set(mint, currentAsset);
+        });
+
+        return {
+            transferCount: transfers.length,
+            assets: Array.from(assets.values()).map((asset: any) => ({ ...asset, destinationCount: asset.destinations.size })),
+            destinations: Array.from(destinations.values()).map((destination: any) => ({
+                ...destination,
+                assets: Array.from(destination.assets.entries()).map(([mint, amount]) => ({ mint, amount })),
+            })),
+            unverifiedCount: Array.from(destinations.values()).filter((destination: any) => destination.trust === 'unverified').length,
+            verificationRan: Array.isArray(verifiedDAODestinationWalletArray) || Array.isArray(verifiedDestinationWalletArray),
+        };
+    }, [
+        instructionTransferDetails,
+        verifiedDestinationWalletArray,
+        verifiedDAODestinationWalletArray,
+        governanceNativeWallet,
+        thisitem,
     ]);
     const isMobile = useMediaQuery('(max-width:600px)');
     const isTablet = useMediaQuery('(max-width:900px)');
@@ -6139,6 +6374,124 @@ export function GovernanceProposalV2View(props: any){
                                     Static review of {proposalRiskAssessment.decodedInstructionCount} decoded instruction detail{proposalRiskAssessment.decodedInstructionCount === 1 ? '' : 's'}; this does not replace simulation or independent review.
                                 </Typography>
                             </Box>
+
+                            <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
+                                <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1}>
+                                    <Box>
+                                        <Typography sx={sectionLabelSx}>Simulation & Balance Diff</Typography>
+                                        <Typography variant="subtitle1" sx={{ color: 'rgba(239,246,255,0.96)', mt: 0.25 }}>
+                                            {proposalSimulation
+                                                ? proposalSimulation.status === 'ok' ? 'Simulation passed' : 'Simulation needs review'
+                                                : 'Run an RPC preflight of the executable plan'}
+                                        </Typography>
+                                    </Box>
+                                    <Button
+                                        size="small"
+                                        variant="outlined"
+                                        disabled={proposalSimulationLoading}
+                                        onClick={() => runProposalSimulation(Boolean(proposalSimulation))}
+                                        sx={{ borderRadius: '10px', textTransform: 'none' }}
+                                    >
+                                        {proposalSimulationLoading ? <><CircularProgress size={14} sx={{ mr: 0.7 }} /> Simulating</> : proposalSimulation ? 'Run Again' : 'Run Simulation'}
+                                    </Button>
+                                </Stack>
+
+                                {proposalSimulation && (
+                                    <Box sx={{ mt: 1 }}>
+                                        <Stack direction="row" spacing={0.65} flexWrap="wrap" useFlexGap>
+                                            <Chip size="small" label={`${proposalSimulation.results?.filter((result: any) => result.status === 'ok').length || 0}/${proposalTransactionRows.length} passed`} sx={metaChipSx} />
+                                            <Chip size="small" label={`${Number(proposalSimulation.totalUnitsConsumed || 0).toLocaleString()} compute units`} sx={metaChipSx} />
+                                            {proposalSimulation.cached && <Chip size="small" label="Cached result" sx={metaChipSx} />}
+                                        </Stack>
+                                        {proposalSimulation.error && (
+                                            <Typography variant="caption" sx={{ display: 'block', color: '#ffaaa3', mt: 0.8 }}>
+                                                {proposalSimulation.error}
+                                            </Typography>
+                                        )}
+                                        <Stack spacing={0.65} sx={{ mt: 0.85 }}>
+                                            {(proposalSimulation.results || []).map((result: any) => (
+                                                <Box key={result.transactionIndex} sx={{ border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', p: 0.8, bgcolor: 'rgba(255,255,255,0.025)' }}>
+                                                    <Stack direction="row" justifyContent="space-between" spacing={1}>
+                                                        <Typography variant="caption" sx={{ color: 'rgba(233,241,250,0.9)' }}>
+                                                            Transaction {result.transactionIndex + 1}
+                                                        </Typography>
+                                                        <Typography variant="caption" sx={{ color: result.status === 'ok' ? '#9be7b5' : '#ffaaa3' }}>
+                                                            {result.status === 'ok' ? 'Passed' : result.status === 'skipped' ? 'Skipped' : 'Failed'}{result.unitsConsumed ? ` · ${Number(result.unitsConsumed).toLocaleString()} CU` : ''}
+                                                        </Typography>
+                                                    </Stack>
+                                                    {result.error && <Typography variant="caption" sx={{ display: 'block', color: '#ffaaa3', mt: 0.35, wordBreak: 'break-word' }}>{JSON.stringify(result.error)}</Typography>}
+                                                    {(result.balanceChanges || []).map((change: any, changeIndex: number) => (
+                                                        <Typography key={`${change.address}:${change.asset}:${changeIndex}`} variant="caption" sx={{ display: 'block', color: 'rgba(171,185,204,0.76)', mt: 0.3 }}>
+                                                            {trimAddress(change.address)} · {change.asset === 'SOL'
+                                                                ? `${change.delta > 0 ? '+' : ''}${change.delta.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL`
+                                                                : `${BigInt(change.deltaRaw) > 0n ? '+' : ''}${change.deltaRaw} raw units · ${trimAddress(change.asset)}`}
+                                                        </Typography>
+                                                    ))}
+                                                    {result.writableAccountsTruncated && <Typography variant="caption" sx={{ display: 'block', color: '#ffd38a', mt: 0.3 }}>Balance inspection capped at 24 writable accounts.</Typography>}
+                                                </Box>
+                                            ))}
+                                        </Stack>
+                                        <Typography variant="caption" sx={{ display: 'block', color: 'rgba(154,168,188,0.62)', mt: 0.8 }}>
+                                            Each stored transaction is preflighted independently against current state. Results are cached in this browser for five minutes; simulation never submits transactions.
+                                        </Typography>
+                                    </Box>
+                                )}
+                            </Box>
+
+                            {treasuryImpact.transferCount > 0 && (
+                                <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
+                                    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={0.8} sx={{ mb: 1 }}>
+                                        <Box>
+                                            <Typography sx={sectionLabelSx}>Treasury Impact & Destination Trust</Typography>
+                                            <Typography variant="subtitle1" sx={{ color: 'rgba(239,246,255,0.96)', mt: 0.25 }}>
+                                                {treasuryImpact.transferCount} transfer{treasuryImpact.transferCount === 1 ? '' : 's'} to {treasuryImpact.destinations.length} destination{treasuryImpact.destinations.length === 1 ? '' : 's'}
+                                            </Typography>
+                                        </Box>
+                                        <Chip
+                                            size="small"
+                                            icon={treasuryImpact.unverifiedCount > 0 ? <WarningAmberIcon /> : <CheckCircleIcon />}
+                                            label={treasuryImpact.unverifiedCount > 0 ? `${treasuryImpact.unverifiedCount} unverified` : 'Destinations recognized'}
+                                            sx={{ ...metaChipSx, color: treasuryImpact.unverifiedCount > 0 ? '#ffd38a' : '#9be7b5' }}
+                                        />
+                                    </Stack>
+
+                                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 0.75 }}>
+                                        {treasuryImpact.assets.map((asset: any) => (
+                                            <Box key={asset.mint} sx={{ borderRadius: '10px', border: '1px solid rgba(255,255,255,0.07)', bgcolor: 'rgba(255,255,255,0.025)', p: 0.85 }}>
+                                                <Typography variant="caption" sx={{ display: 'block', color: 'rgba(233,241,250,0.92)' }}>
+                                                    {asset.amount.toLocaleString()} {asset.name || trimAddress(asset.mint)}
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ color: 'rgba(171,185,204,0.68)' }}>
+                                                    To {asset.destinationCount} unique destination{asset.destinationCount === 1 ? '' : 's'}
+                                                </Typography>
+                                            </Box>
+                                        ))}
+                                    </Box>
+
+                                    <Stack spacing={0.65} sx={{ mt: 0.85 }}>
+                                        {treasuryImpact.destinations.map((destination: any) => (
+                                            <Box key={destination.address} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, borderRadius: '10px', border: '1px solid rgba(255,255,255,0.07)', p: 0.8 }}>
+                                                <Box sx={{ minWidth: 0 }}>
+                                                    <ExplorerView address={destination.address} type="address" title={trimAddress(destination.address)} hideTitle={false} style="text" color="white" fontSize="12px" />
+                                                    <Typography variant="caption" sx={{ display: 'block', color: 'rgba(171,185,204,0.68)' }}>
+                                                        {destination.assets.map((asset: any) => `${Number(asset.amount).toLocaleString()} ${trimAddress(`${asset.mint}`)}`).join(' · ')}
+                                                    </Typography>
+                                                </Box>
+                                                <Chip
+                                                    size="small"
+                                                    label={destination.trust === 'controlled' ? 'DAO controlled' : destination.trust === 'dao_member' ? 'DAO member' : destination.trust === 'address_book' ? 'Address book' : 'Unverified'}
+                                                    sx={{ ...metaChipSx, flexShrink: 0, color: destination.trust === 'unverified' ? '#ffd38a' : '#9be7b5' }}
+                                                />
+                                            </Box>
+                                        ))}
+                                    </Stack>
+                                    {!treasuryImpact.verificationRan && (
+                                        <Typography variant="caption" sx={{ display: 'block', color: '#ffd38a', mt: 0.8 }}>
+                                            Run the destination verification tools in the executable-plan summary to check DAO membership and governed address books.
+                                        </Typography>
+                                    )}
+                                </Box>
+                            )}
 
                             <Box
                                 sx={{
