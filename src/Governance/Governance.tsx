@@ -668,8 +668,7 @@ function RenderGovernanceTable(props:any) {
                 return next;
             });
 
-            await Promise.all(
-                pendingProposalKeys.map(async (proposalPk) => {
+            const loadProposalVoters = async (proposalPk: string) => {
                     try {
                         const voteRecords = await getVoteRecordsIndexed(proposalPk, realmOwner, governanceAddress, true);
                         const votesByOwner = new Map<string, 'yes' | 'no'>();
@@ -716,8 +715,14 @@ function RenderGovernanceTable(props:any) {
                             }));
                         }
                     }
-                })
-            );
+            };
+
+            const concurrency = 3;
+            for (let index = 0; index < pendingProposalKeys.length; index += concurrency) {
+                await Promise.all(
+                    pendingProposalKeys.slice(index, index + concurrency).map(loadProposalVoters)
+                );
+            }
         };
 
         loadUniqueVoters();

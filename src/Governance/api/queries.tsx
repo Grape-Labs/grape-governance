@@ -2074,12 +2074,14 @@ export const getVoteRecordsIndexed = async (proposalPk?:any, realmOwner?:any, re
 
     if (!shouldUseGovernanceGraphQL()) {
         if (!proposalPk) return [];
-        const voteRecords = await getVoteRecords({
+        const voteRecordsOption = await getVoteRecords({
             connection: RPC_CONNECTION,
             programId: new PublicKey(rpcProgramId),
             proposalPk: new PublicKey(proposalPk),
         });
-        return voteRecords;
+        return voteRecordsOption?._tag === 'Some' && Array.isArray(voteRecordsOption.value)
+            ? voteRecordsOption.value
+            : [];
     }
 
     try{
@@ -2121,13 +2123,14 @@ export const getVoteRecordsIndexed = async (proposalPk?:any, realmOwner?:any, re
         
         if ((!indexedRecord || indexedRecord.length <= 0) && realmPk && !donotfallback){ // fallback to RPC call is governance not found in index
             console.log("Using RPC getVoteRecords");
-            const voteRecords = await getVoteRecords({
+            const voteRecordsOption = await getVoteRecords({
                 connection: RPC_CONNECTION,
                 programId: new PublicKey(rpcProgramId),
                 proposalPk: new PublicKey(proposalPk),
             });
-            //console.log("RPC voteRecord: "+JSON.stringify(voteRecords));
-            return voteRecords;
+            return voteRecordsOption?._tag === 'Some' && Array.isArray(voteRecordsOption.value)
+                ? voteRecordsOption.value
+                : [];
         } else{
             //console.log("VoteRecords: "+JSON.stringify(indexedRecord));
             return indexedRecord;
