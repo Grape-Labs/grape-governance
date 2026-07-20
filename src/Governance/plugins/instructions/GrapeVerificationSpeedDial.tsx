@@ -152,49 +152,38 @@ export function GrapeVerificationSpeedDial(props: any){
 
   const getAndVerifyFromAllLookupTables = async(address: string) => {
     setLoading(true);
-    const lookupTableProgramId = new PublicKey('AddressLookupTab1e1111111111111111111111111');
-    const addressPk = new PublicKey(address);
-
-    console.log("Fetching Speed Dial for "+address);
-
-    const size = 58;
-    const filters = [
-        /*
-        {
-            dataSize: size,
-        },*/
-        {
-          memcmp: {
-            offset: 22,
-            bytes: addressPk.toBase58()
-          },
-        },
-      ];
-    
-    const programAccounts = await RPC_CONNECTION.getParsedProgramAccounts( //.getProgramAccounts(
-        lookupTableProgramId, {
-            filters
-    });
-    
-    const plt = new Array();
-    for (var item of programAccounts){
-        if (item.account.data.parsed.info.authority === addressPk.toBase58()){
-            //console.log("programItem Found "+JSON.stringify(item));
-            // we can explore pushing the object later on
-            plt.push({
-                pubkey: item.pubkey,
-                size: item.account.data.parsed.info?.addresses ? item.account.data.parsed.info.addresses.length : 0,
-                info: item.account.data.parsed.info
-            })
+    try {
+      const lookupTableProgramId = new PublicKey('AddressLookupTab1e1111111111111111111111111');
+      const addressPk = new PublicKey(address);
+      const programAccounts = await RPC_CONNECTION.getProgramAccounts(lookupTableProgramId, {
+        filters: [{ memcmp: { offset: 22, bytes: addressPk.toBase58() } }],
+      });
+      const plt = programAccounts.flatMap((item) => {
+        try {
+          const state = AddressLookupTableAccount.deserialize(item.account.data);
+          if (!state.authority?.equals(addressPk)) return [];
+          return [{
+            pubkey: item.pubkey,
+            size: state.addresses.length,
+            info: {
+              authority: state.authority.toBase58(),
+              addresses: state.addresses.map((entry) => entry.toBase58()),
+            },
+          }];
+        } catch (error) {
+          console.warn('Unable to decode address lookup table', item.pubkey.toBase58(), error);
+          return [];
         }
+      });
+      setAddressBooks(plt);
+      setVerifiedDestinationWalletArray?.(plt);
+    } catch (error) {
+      console.error('Address-book verification failed', error);
+      setAddressBooks([]);
+      setVerifiedDestinationWalletArray?.([]);
+    } finally {
+      setLoading(false);
     }
-
-    setAddressBooks(plt);
-    if (setVerifiedDestinationWalletArray){
-      setVerifiedDestinationWalletArray(plt);
-    }
-
-    setLoading(false);
     return null;
   }
 
