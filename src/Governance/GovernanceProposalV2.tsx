@@ -4,6 +4,8 @@ import {
     ProposalTransaction,
     getNativeTreasuryAddress,
     getProposal,
+    getTokenOwnerRecordsByOwner,
+    getAllTokenOwnerRecords,
 } from '@solana/spl-governance';
 import { Buffer } from 'buffer';
 import DOMPurify from "dompurify";
@@ -404,6 +406,7 @@ export function GovernanceProposalV2View(props: any){
     const [openProposalSimulation, setOpenProposalSimulation] = React.useState(false);
     const [openGovernanceConfigDiff, setOpenGovernanceConfigDiff] = React.useState(false);
     const [openProposalTools, setOpenProposalTools] = React.useState(false);
+    const [openVotingPowerImpact, setOpenVotingPowerImpact] = React.useState(false);
     const [openDiscussion, setOpenDiscussion] = React.useState(false);
     const [expandInfo, setExpandInfo] = React.useState(false);
     const [reload, setReload] = React.useState(false);
@@ -416,6 +419,7 @@ export function GovernanceProposalV2View(props: any){
     const [proposalSimulation, setProposalSimulation] = React.useState<any>(null);
     const [proposalSimulationLoading, setProposalSimulationLoading] = React.useState(false);
     const [treasurySourceBalances, setTreasurySourceBalances] = React.useState<Record<string, number>>({});
+    const [votingPowerImpact, setVotingPowerImpact] = React.useState<any>({ loading: false, rows: [], error: null });
     const [councilVoterRecord, setCouncilVoterRecord] = React.useState<any | null>(null);
 
     const [loadingMessage, setLoadingMessage] = React.useState(null);
@@ -4540,15 +4544,110 @@ export function GovernanceProposalV2View(props: any){
         treasurySourceBalances,
         realm,
     ]);
+    React.useEffect(() => {
+        const changes = Array.isArray(treasuryImpact.votingPowerChanges) ? treasuryImpact.votingPowerChanges : [];
+        const grouped = new Map<string, any>();
+        changes.forEach((change: any) => {
+            if (!change?.recipient || !change?.mint) return;
+            const key = `${change.recipient}:${change.mint}`;
+            const current = grouped.get(key) || { ...change, proposedAmount: 0, proposedDepositAmount: 0, walletTransferAmount: 0 };
+            current.proposedAmount += Number(change.amount || 0);
+            if (change.action === 'transfer') current.walletTransferAmount += Number(change.amount || 0);
+            else current.proposedDepositAmount += Number(change.amount || 0);
+            grouped.set(key, current);
+        });
+        const beneficiaries = Array.from(grouped.values()).slice(0, 20);
+        if (!beneficiaries.length || !realm) {
+            setVotingPowerImpact({ loading: false, rows: [], error: null });
+            return;
+        }
+
+        let cancelled = false;
+        const loadImpact = async () => {
+            const realmAddress = realm?.pubkey?.toBase58?.() || `${realm?.pubkey || governanceAddress || ''}`;
+            const programAddress = realm?.owner?.toBase58?.() || `${realm?.owner || thisitem?.owner || ''}`;
+            const cacheKey = `grape_voting_power_impact_v1:${realmAddress}:${beneficiaries.map((item: any) => `${item.recipient}:${item.mint}:${item.proposedAmount}`).join(',')}`;
+            if (typeof window !== 'undefined') {
+                try {
+                    const cached = JSON.parse(window.sessionStorage.getItem(cacheKey) || 'null');
+                    if (cached?.createdAt && Date.now() - cached.createdAt < 5 * 60 * 1000) {
+                        setVotingPowerImpact({ loading: false, rows: cached.rows || [], error: null, cached: true });
+                        return;
+                    }
+                } catch { /* Cache is optional. */ }
+            }
+            setVotingPowerImpact((previous: any) => ({ ...previous, loading: true, error: null }));
+            try {
+                const realmPk = new PublicKey(realmAddress);
+                const programPk = new PublicKey(programAddress);
+                let records: any[] = [];
+                const uniqueRecipients = Array.from(new Set(beneficiaries.map((item: any) => item.recipient)));
+                if (uniqueRecipients.length <= 2) {
+                    const targeted = await Promise.all(uniqueRecipients.map((recipient: any) =>
+                        getTokenOwnerRecordsByOwner(connection, programPk, new PublicKey(recipient)).catch(() => [])
+                    ));
+                    records = targeted.flat();
+                } else {
+                    records = await getAllTokenOwnerRecords(connection, programPk, realmPk);
+                }
+                const rows = beneficiaries.map((beneficiary: any) => {
+                    const decimals = Number(tokenMap?.get?.(beneficiary.mint)?.decimals || 0);
+                    const divisor = Math.pow(10, decimals);
+                    const matchingRecords = records.filter((record: any) =>
+                        record?.account?.realm?.equals?.(realmPk) &&
+                        record?.account?.governingTokenOwner?.toBase58?.() === beneficiary.recipient &&
+                        record?.account?.governingTokenMint?.toBase58?.() === beneficiary.mint
+                    );
+                    const currentRaw = matchingRecords.reduce((sum: bigint, record: any) => {
+                        try { return sum + BigInt(record?.account?.governingTokenDepositAmount?.toString?.() || '0'); } catch { return sum; }
+                    }, 0n);
+                    const currentDeposit = Number(currentRaw) / divisor;
+                    const resultingDeposit = currentDeposit + beneficiary.proposedDepositAmount;
+                    const proposalMinimumRaw = beneficiary.kind === 'council'
+                        ? thisGovernance?.account?.config?.minCouncilWeightToCreateProposal
+                        : thisGovernance?.account?.config?.minCommunityWeightToCreateProposal;
+                    const proposalMinimum = Number(proposalMinimumRaw?.toString?.() || proposalMinimumRaw || 0) / divisor;
+                    const proposalMint = thisitem?.account?.governingTokenMint?.toBase58?.() || `${thisitem?.account?.governingTokenMint || ''}`;
+                    const eligibleSupply = beneficiary.mint === proposalMint && Number(totalSupply || 0) > 0 ? Number(totalSupply) : null;
+                    const thresholdValue = beneficiary.kind === 'council'
+                        ? Number(thisGovernance?.account?.config?.councilVoteThreshold?.value || 0)
+                        : Number(thisGovernance?.account?.config?.communityVoteThreshold?.value || 0);
+                    const thresholdWeight = eligibleSupply !== null && thresholdValue > 0 ? eligibleSupply * thresholdValue / 100 : null;
+                    return {
+                        ...beneficiary,
+                        currentDeposit,
+                        resultingDeposit,
+                        proposalMinimum,
+                        canCreateBefore: proposalMinimum > 0 ? currentDeposit >= proposalMinimum : null,
+                        canCreateAfter: proposalMinimum > 0 ? resultingDeposit >= proposalMinimum : null,
+                        eligibleSupply,
+                        supplyShareAfter: eligibleSupply ? resultingDeposit / eligibleSupply * 100 : null,
+                        thresholdValue,
+                        thresholdAloneAfter: thresholdWeight !== null ? resultingDeposit >= thresholdWeight : null,
+                    };
+                });
+                if (cancelled) return;
+                setVotingPowerImpact({ loading: false, rows, error: null, cached: false });
+                if (typeof window !== 'undefined') {
+                    try { window.sessionStorage.setItem(cacheKey, JSON.stringify({ createdAt: Date.now(), rows })); } catch { /* Cache is optional. */ }
+                }
+            } catch (error: any) {
+                if (!cancelled) setVotingPowerImpact({ loading: false, rows: [], error: error?.message || `${error}` });
+            }
+        };
+        void loadImpact();
+        return () => { cancelled = true; };
+    }, [treasuryImpact.votingPowerChanges, realm, governanceAddress, thisitem, connection, tokenMap, thisGovernance, totalSupply]);
     const isMobile = useMediaQuery('(max-width:600px)');
     const isTablet = useMediaQuery('(max-width:900px)');
     const detailsEmbedHeight = isMobile ? 420 : isTablet ? 560 : 750;
     const votesTableHeight = isMobile ? 460 : isTablet ? 540 : 600;
     const panelSx = {
-        background: 'rgba(16,22,34,0.86)',
+        background: 'linear-gradient(180deg, rgba(19,27,42,0.88) 0%, rgba(11,17,28,0.92) 100%)',
         border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '14px',
-        boxShadow: '0 6px 18px rgba(0,0,0,0.24)',
+        borderRadius: '16px',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.22)',
+        backdropFilter: 'blur(18px)',
     };
     const heroPanelSx = {
         ...panelSx,
@@ -4575,6 +4674,22 @@ export function GovernanceProposalV2View(props: any){
         '& .MuiChip-label': {
             px: 0.95,
             fontSize: '0.73rem',
+        },
+    };
+    const heroMetricSx = {
+        position: 'relative',
+        minWidth: 0,
+        px: { xs: 0.9, sm: 1.1 },
+        py: { xs: 0.85, sm: 1 },
+        borderRadius: '13px',
+        border: '1px solid rgba(255,255,255,0.075)',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.025) 100%)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.035)',
+        transition: 'transform 160ms ease, border-color 160ms ease, background 160ms ease',
+        '&:hover': {
+            transform: 'translateY(-1px)',
+            borderColor: 'rgba(255,255,255,0.14)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.075) 0%, rgba(255,255,255,0.035) 100%)',
         },
     };
     const sectionDividerSx = {
@@ -4834,8 +4949,14 @@ export function GovernanceProposalV2View(props: any){
                         width: '100%',
                         maxWidth: 1480,
                         mx: 'auto',
-                        px: { xs: 0.5, sm: 1 },
-                        pb: 1.5,
+                        px: { xs: 0.6, sm: 1.15 },
+                        pt: { xs: 0.4, sm: 0.75 },
+                        pb: 2,
+                        borderRadius: { xs: 0, sm: '24px' },
+                        background: `
+                            radial-gradient(circle at 8% 3%, ${proposalStateVisual.wash} 0%, rgba(0,0,0,0) 22%),
+                            radial-gradient(circle at 92% 28%, rgba(88,80,180,0.07) 0%, rgba(0,0,0,0) 24%)
+                        `,
                     }}
                 >
 
@@ -5144,6 +5265,63 @@ export function GovernanceProposalV2View(props: any){
                 </Grid>
                 )}
               </Grid>
+
+              <Box sx={{ position: 'relative', zIndex: 1, mt: 1.15, pt: 1.05, borderTop: '1px solid rgba(255,255,255,0.075)' }}>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' },
+                    gap: 0.7,
+                  }}
+                >
+                  <Box sx={heroMetricSx}>
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <Box sx={{ width: 28, height: 28, borderRadius: '9px', display: 'grid', placeItems: 'center', color: proposalStateVisual.accent, bgcolor: proposalStateVisual.wash }}>
+                        <CheckCircleIcon sx={{ fontSize: 16 }} />
+                      </Box>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography sx={{ ...sectionLabelSx, display: 'block' }}>Status</Typography>
+                        <Typography variant="subtitle2" noWrap sx={{ color: 'rgba(241,247,255,0.96)', mt: 0.18 }}>{proposalStateLabel}</Typography>
+                      </Box>
+                    </Stack>
+                  </Box>
+                  <Box sx={heroMetricSx}>
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <Box sx={{ width: 28, height: 28, borderRadius: '9px', display: 'grid', placeItems: 'center', color: '#8dc8ff', bgcolor: 'rgba(61,167,255,0.12)' }}>
+                        <HowToVoteIcon sx={{ fontSize: 16 }} />
+                      </Box>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography sx={{ ...sectionLabelSx, display: 'block' }}>Participation</Typography>
+                        <Typography variant="subtitle2" noWrap sx={{ color: 'rgba(241,247,255,0.96)', mt: 0.18 }}>{uniqueYes + uniqueNo} voter{uniqueYes + uniqueNo === 1 ? '' : 's'}</Typography>
+                      </Box>
+                    </Stack>
+                  </Box>
+                  <Box sx={heroMetricSx}>
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <Box sx={{ width: 28, height: 28, borderRadius: '9px', display: 'grid', placeItems: 'center', color: '#d5b6ff', bgcolor: 'rgba(168,112,255,0.12)' }}>
+                        <AccessTimeIcon sx={{ fontSize: 16 }} />
+                      </Box>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography sx={{ ...sectionLabelSx, display: 'block' }}>{votingCompletedAt ? 'Completed' : 'Voting window'}</Typography>
+                        <Typography variant="subtitle2" noWrap sx={{ color: 'rgba(241,247,255,0.96)', mt: 0.18 }}>{resolvedEndsRelative}</Typography>
+                      </Box>
+                    </Stack>
+                  </Box>
+                  <Box sx={heroMetricSx}>
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <Box sx={{ width: 28, height: 28, borderRadius: '9px', display: 'grid', placeItems: 'center', color: executionReadiness.ready ? '#91eab4' : '#ffd38a', bgcolor: executionReadiness.ready ? 'rgba(72,187,120,0.12)' : 'rgba(245,158,11,0.12)' }}>
+                        <CodeIcon sx={{ fontSize: 16 }} />
+                      </Box>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography sx={{ ...sectionLabelSx, display: 'block' }}>Execution</Typography>
+                        <Typography variant="subtitle2" noWrap sx={{ color: 'rgba(241,247,255,0.96)', mt: 0.18 }}>
+                          {executionReadiness.executionComplete ? 'Complete' : executionReadiness.ready ? 'Ready' : `${proposalInstructionCount} instruction${proposalInstructionCount === 1 ? '' : 's'}`}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Box>
+                </Box>
+              </Box>
             </Box>
 
 	            <Box sx={{ textAlign: "left" }}>
@@ -6391,14 +6569,14 @@ export function GovernanceProposalV2View(props: any){
                                     <Box>
                                         <Typography sx={sectionLabelSx}>Proposal Tools</Typography>
                                         <Typography variant="subtitle1" sx={{ color: 'rgba(239,246,255,0.96)', mt: 0.25 }}>
-                                            Readiness, risk, simulation{governanceConfigDiff.hasChanges ? ', configuration' : ''}{treasuryImpact.transferCount > 0 || treasuryImpact.votingPowerChanges.length > 0 ? ' and treasury impact' : ''}
+                                            Readiness, risk, simulation{governanceConfigDiff.hasChanges ? ', configuration' : ''}{treasuryImpact.votingPowerChanges.length > 0 ? ', voting power' : ''}{treasuryImpact.transferCount > 0 || treasuryImpact.votingPowerChanges.length > 0 ? ' and treasury impact' : ''}
                                         </Typography>
                                     </Box>
                                     <Stack direction="row" alignItems="center" spacing={0.5}>
                                         <Chip
                                             size="small"
                                             icon={proposalRiskAssessment.level === 'critical' || proposalRiskAssessment.level === 'high' ? <WarningAmberIcon /> : <CheckCircleIcon />}
-                                            label={`${3 + (governanceConfigDiff.hasChanges ? 1 : 0) + (treasuryImpact.transferCount > 0 || treasuryImpact.votingPowerChanges.length > 0 ? 1 : 0)} tools`}
+                                            label={`${3 + (governanceConfigDiff.hasChanges ? 1 : 0) + (treasuryImpact.votingPowerChanges.length > 0 ? 1 : 0) + (treasuryImpact.transferCount > 0 || treasuryImpact.votingPowerChanges.length > 0 ? 1 : 0)} tools`}
                                             sx={{
                                                 ...metaChipSx,
                                                 color: proposalRiskAssessment.level === 'critical' || proposalRiskAssessment.level === 'high' ? '#ffaaa3' : '#9be7b5',
@@ -6638,6 +6816,74 @@ export function GovernanceProposalV2View(props: any){
                                 </Typography>
                                 </Collapse>
                             </Box>
+
+                            {treasuryImpact.votingPowerChanges.length > 0 && (
+                                <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
+                                    <Stack
+                                        direction="row"
+                                        justifyContent="space-between"
+                                        alignItems="center"
+                                        spacing={0.8}
+                                        onClick={() => setOpenVotingPowerImpact((open) => !open)}
+                                        sx={{ cursor: 'pointer' }}
+                                    >
+                                        <Box>
+                                            <Typography sx={sectionLabelSx}>Voting Power Impact</Typography>
+                                            <Typography variant="subtitle1" sx={{ color: 'rgba(239,246,255,0.96)', mt: 0.25 }}>
+                                                {votingPowerImpact.loading
+                                                    ? 'Loading beneficiary governance records'
+                                                    : `${votingPowerImpact.rows.length || treasuryImpact.votingPowerChanges.length} beneficiar${(votingPowerImpact.rows.length || treasuryImpact.votingPowerChanges.length) === 1 ? 'y' : 'ies'}`}
+                                            </Typography>
+                                        </Box>
+                                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                                            {votingPowerImpact.loading
+                                                ? <CircularProgress size={16} />
+                                                : <Chip size="small" label={votingPowerImpact.cached ? 'Cached' : 'Governing tokens'} sx={{ ...metaChipSx, color: '#9dccff' }} />}
+                                            {openVotingPowerImpact ? <ExpandLess /> : <ExpandMoreIcon />}
+                                        </Stack>
+                                    </Stack>
+                                    <Collapse in={openVotingPowerImpact} timeout="auto" unmountOnExit>
+                                        {votingPowerImpact.error && (
+                                            <Typography variant="caption" sx={{ display: 'block', color: '#ffaaa3', mt: 0.8 }}>
+                                                Voting-power lookup failed: {votingPowerImpact.error}
+                                            </Typography>
+                                        )}
+                                        <Stack spacing={0.75} sx={{ mt: 1 }}>
+                                            {(votingPowerImpact.rows || []).map((row: any) => (
+                                                <Box key={`${row.recipient}:${row.mint}`} sx={{ border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', bgcolor: 'rgba(255,255,255,0.025)', p: 0.9 }}>
+                                                    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={0.7}>
+                                                        <Box>
+                                                            <Typography variant="caption" sx={{ display: 'block', color: 'rgba(233,241,250,0.94)' }}>
+                                                                {row.kind === 'council' ? 'Council' : 'Community'} beneficiary · {trimAddress(row.recipient)}
+                                                            </Typography>
+                                                            <Typography variant="caption" sx={{ display: 'block', color: 'rgba(171,185,204,0.72)', mt: 0.2 }}>
+                                                                Deposited power {row.currentDeposit.toLocaleString()} → {row.resultingDeposit.toLocaleString()}{row.proposedDepositAmount > 0 ? ` (+${row.proposedDepositAmount.toLocaleString()})` : ''}
+                                                            </Typography>
+                                                            {row.walletTransferAmount > 0 && (
+                                                                <Typography variant="caption" sx={{ display: 'block', color: '#9dccff', mt: 0.2 }}>
+                                                                    Wallet transfer: {row.walletTransferAmount.toLocaleString()} governing tokens; active voting power does not increase until deposited.
+                                                                </Typography>
+                                                            )}
+                                                        </Box>
+                                                        <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                                                            {row.supplyShareAfter !== null && <Chip size="small" label={`${row.supplyShareAfter.toLocaleString(undefined, { maximumFractionDigits: 2 })}% of eligible supply`} sx={metaChipSx} />}
+                                                            {row.thresholdAloneAfter !== null && <Chip size="small" label={row.thresholdAloneAfter ? `Can meet ${row.thresholdValue}% threshold alone` : `Below ${row.thresholdValue}% threshold`} sx={{ ...metaChipSx, color: row.thresholdAloneAfter ? '#ffaaa3' : '#9be7b5' }} />}
+                                                        </Stack>
+                                                    </Stack>
+                                                    {row.canCreateBefore !== null && (
+                                                        <Typography variant="caption" sx={{ display: 'block', color: !row.canCreateBefore && row.canCreateAfter ? '#ffd38a' : 'rgba(171,185,204,0.72)', mt: 0.45 }}>
+                                                            Create proposals: {row.canCreateBefore ? 'Yes' : 'No'} → {row.canCreateAfter ? 'Yes' : 'No'}{row.proposalMinimum > 0 ? ` · minimum ${row.proposalMinimum.toLocaleString()}` : ''}
+                                                        </Typography>
+                                                    )}
+                                                </Box>
+                                            ))}
+                                        </Stack>
+                                        <Typography variant="caption" sx={{ display: 'block', color: 'rgba(154,168,188,0.62)', mt: 0.8 }}>
+                                            Targeted lookups are used for up to two beneficiaries; larger grants use one realm-scoped record request. Results are cached for five minutes.
+                                        </Typography>
+                                    </Collapse>
+                                </Box>
+                            )}
 
                             <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
                                 <Stack
