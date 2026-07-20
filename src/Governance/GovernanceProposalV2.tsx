@@ -403,6 +403,7 @@ export function GovernanceProposalV2View(props: any){
     const [openProposalRiskReview, setOpenProposalRiskReview] = React.useState(false);
     const [openProposalSimulation, setOpenProposalSimulation] = React.useState(false);
     const [openGovernanceConfigDiff, setOpenGovernanceConfigDiff] = React.useState(false);
+    const [openProposalTools, setOpenProposalTools] = React.useState(false);
     const [openDiscussion, setOpenDiscussion] = React.useState(false);
     const [expandInfo, setExpandInfo] = React.useState(false);
     const [reload, setReload] = React.useState(false);
@@ -4434,9 +4435,19 @@ export function GovernanceProposalV2View(props: any){
     }, [instructionTransferDetails, connection, thisitem, proposalPk]);
 
     const treasuryImpact = React.useMemo(() => {
+        const toAddress = (value: any) => value?.toBase58?.() || `${value || ''}`;
+        const communityMint = toAddress(realm?.account?.communityMint || realm?.communityMint);
+        const councilMint = toAddress(realm?.account?.config?.councilMint || realm?.config?.councilMint);
+        const governingTokenKind = (mint: string) => mint === communityMint
+            ? 'community'
+            : mint === councilMint
+            ? 'council'
+            : null;
         const transfers = (Array.isArray(instructionTransferDetails) ? instructionTransferDetails : []).filter((detail: any) =>
             /transfer/i.test(`${detail?.type || ''}`) && Number(detail?.amount || 0) > 0
         );
+        const verificationRan = Array.isArray(verifiedDAODestinationWalletArray) || Array.isArray(verifiedDestinationWalletArray);
+        const verificationComplete = Array.isArray(verifiedDAODestinationWalletArray) && Array.isArray(verifiedDestinationWalletArray);
         const knownAddressBookAddresses = new Set<string>(
             (Array.isArray(verifiedDestinationWalletArray) ? verifiedDestinationWalletArray : [])
                 .flatMap((entry: any) => entry?.info?.addresses || [])
@@ -4464,14 +4475,18 @@ export function GovernanceProposalV2View(props: any){
                 ? 'dao_member'
                 : knownAddressBookAddresses.has(address)
                 ? 'address_book'
-                : 'unverified';
+                : verificationComplete
+                ? 'unverified'
+                : verificationRan
+                ? 'partially_checked'
+                : 'not_checked';
             const currentDestination = destinations.get(address) || { address, trust, transferCount: 0, assets: new Map<string, number>() };
             currentDestination.transferCount += 1;
             currentDestination.assets.set(mint, (currentDestination.assets.get(mint) || 0) + amount);
             if (currentDestination.trust === 'unverified' && trust !== 'unverified') currentDestination.trust = trust;
             destinations.set(address, currentDestination);
             const sourceAddress = detail?.sourcePubkey?.toBase58?.() || `${detail?.sourcePubkey || ''}`;
-            const currentAsset = assets.get(mint) || { mint, name: detail?.name || null, logoURI: detail?.logoURI || null, amount: 0, sourceBalance: 0, sources: new Set<string>(), destinations: new Set<string>() };
+            const currentAsset = assets.get(mint) || { mint, name: detail?.name || null, logoURI: detail?.logoURI || null, governingTokenKind: governingTokenKind(mint), amount: 0, sourceBalance: 0, sources: new Set<string>(), destinations: new Set<string>() };
             currentAsset.amount += amount;
             if (sourceAddress && !currentAsset.sources.has(sourceAddress)) {
                 currentAsset.sourceBalance += Number(treasurySourceBalances[sourceAddress] || 0);
@@ -4481,6 +4496,22 @@ export function GovernanceProposalV2View(props: any){
             assets.set(mint, currentAsset);
         });
 
+        const votingPowerChanges = (Array.isArray(instructionTransferDetails) ? instructionTransferDetails : [])
+            .filter((detail: any) => {
+                const mint = toAddress(detail?.mint);
+                const action = `${detail?.type || ''} ${detail?.description || ''}`;
+                return Boolean(governingTokenKind(mint)) && Number(detail?.amount || 0) > 0 && /transfer|grant|deposit/i.test(action);
+            })
+            .map((detail: any) => {
+                const mint = toAddress(detail?.mint);
+                return {
+                    kind: governingTokenKind(mint),
+                    mint,
+                    amount: Number(detail.amount || 0),
+                    recipient: toAddress(detail?.tokenOwner || detail?.recipientWallet || detail?.destinationAta || detail?.pubkey),
+                    action: /grant/i.test(`${detail?.description || ''}`) ? 'grant' : /deposit/i.test(`${detail?.description || ''}`) ? 'deposit' : 'transfer',
+                };
+            });
         return {
             transferCount: transfers.length,
             assets: Array.from(assets.values()).map((asset: any) => ({
@@ -4495,7 +4526,10 @@ export function GovernanceProposalV2View(props: any){
                 assets: Array.from(destination.assets.entries()).map(([mint, amount]) => ({ mint, amount })),
             })),
             unverifiedCount: Array.from(destinations.values()).filter((destination: any) => destination.trust === 'unverified').length,
-            verificationRan: Array.isArray(verifiedDAODestinationWalletArray) || Array.isArray(verifiedDestinationWalletArray),
+            pendingVerificationCount: Array.from(destinations.values()).filter((destination: any) => destination.trust === 'not_checked' || destination.trust === 'partially_checked').length,
+            verificationRan,
+            verificationComplete,
+            votingPowerChanges,
         };
     }, [
         instructionTransferDetails,
@@ -4504,6 +4538,7 @@ export function GovernanceProposalV2View(props: any){
         governanceNativeWallet,
         thisitem,
         treasurySourceBalances,
+        realm,
     ]);
     const isMobile = useMediaQuery('(max-width:600px)');
     const isTablet = useMediaQuery('(max-width:900px)');
@@ -6344,6 +6379,36 @@ export function GovernanceProposalV2View(props: any){
 
                         {(proposalInstructions && proposalInstructions.length > 0) &&
                             <>
+                            <Box sx={{ mb: 1.5, width: '100%', ...panelSx, overflow: 'hidden' }}>
+                                <Stack
+                                    direction="row"
+                                    justifyContent="space-between"
+                                    alignItems="center"
+                                    spacing={0.8}
+                                    onClick={() => setOpenProposalTools((open) => !open)}
+                                    sx={{ cursor: 'pointer', p: { xs: 1, sm: 1.25 }, bgcolor: 'rgba(255,255,255,0.025)' }}
+                                >
+                                    <Box>
+                                        <Typography sx={sectionLabelSx}>Proposal Tools</Typography>
+                                        <Typography variant="subtitle1" sx={{ color: 'rgba(239,246,255,0.96)', mt: 0.25 }}>
+                                            Readiness, risk, simulation{governanceConfigDiff.hasChanges ? ', configuration' : ''}{treasuryImpact.transferCount > 0 || treasuryImpact.votingPowerChanges.length > 0 ? ' and treasury impact' : ''}
+                                        </Typography>
+                                    </Box>
+                                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                                        <Chip
+                                            size="small"
+                                            icon={proposalRiskAssessment.level === 'critical' || proposalRiskAssessment.level === 'high' ? <WarningAmberIcon /> : <CheckCircleIcon />}
+                                            label={`${3 + (governanceConfigDiff.hasChanges ? 1 : 0) + (treasuryImpact.transferCount > 0 || treasuryImpact.votingPowerChanges.length > 0 ? 1 : 0)} tools`}
+                                            sx={{
+                                                ...metaChipSx,
+                                                color: proposalRiskAssessment.level === 'critical' || proposalRiskAssessment.level === 'high' ? '#ffaaa3' : '#9be7b5',
+                                            }}
+                                        />
+                                        {openProposalTools ? <ExpandLess /> : <ExpandMoreIcon />}
+                                    </Stack>
+                                </Stack>
+                                <Collapse in={openProposalTools} timeout="auto" unmountOnExit>
+                                <Box sx={{ p: { xs: 0.8, sm: 1 }, pb: '0 !important' }}>
                             <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
                                 <Stack
                                     direction="row"
@@ -6658,22 +6723,44 @@ export function GovernanceProposalV2View(props: any){
                                 </Collapse>
                             </Box>
 
-                            {treasuryImpact.transferCount > 0 && (
+                            {(treasuryImpact.transferCount > 0 || treasuryImpact.votingPowerChanges.length > 0) && (
                                 <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
                                     <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={0.8} sx={{ mb: 1 }}>
                                         <Box>
                                             <Typography sx={sectionLabelSx}>Treasury Impact & Destination Trust</Typography>
                                             <Typography variant="subtitle1" sx={{ color: 'rgba(239,246,255,0.96)', mt: 0.25 }}>
-                                                {treasuryImpact.transferCount} transfer{treasuryImpact.transferCount === 1 ? '' : 's'} to {treasuryImpact.destinations.length} destination{treasuryImpact.destinations.length === 1 ? '' : 's'}
+                                                {treasuryImpact.votingPowerChanges.length > 0
+                                                    ? `${treasuryImpact.votingPowerChanges.length} governing-token action${treasuryImpact.votingPowerChanges.length === 1 ? '' : 's'} detected`
+                                                    : `${treasuryImpact.transferCount} transfer${treasuryImpact.transferCount === 1 ? '' : 's'} to ${treasuryImpact.destinations.length} destination${treasuryImpact.destinations.length === 1 ? '' : 's'}`}
                                             </Typography>
                                         </Box>
                                         <Chip
                                             size="small"
-                                            icon={treasuryImpact.unverifiedCount > 0 ? <WarningAmberIcon /> : <CheckCircleIcon />}
-                                            label={treasuryImpact.unverifiedCount > 0 ? `${treasuryImpact.unverifiedCount} unverified` : 'Destinations recognized'}
-                                            sx={{ ...metaChipSx, color: treasuryImpact.unverifiedCount > 0 ? '#ffd38a' : '#9be7b5' }}
+                                            icon={treasuryImpact.unverifiedCount > 0 || treasuryImpact.pendingVerificationCount > 0 ? <WarningAmberIcon /> : <CheckCircleIcon />}
+                                            label={treasuryImpact.pendingVerificationCount > 0
+                                                ? `${treasuryImpact.pendingVerificationCount} not fully checked`
+                                                : treasuryImpact.unverifiedCount > 0
+                                                ? `${treasuryImpact.unverifiedCount} unverified`
+                                                : 'Destinations recognized'}
+                                            sx={{ ...metaChipSx, color: treasuryImpact.unverifiedCount > 0 || treasuryImpact.pendingVerificationCount > 0 ? '#ffd38a' : '#9be7b5' }}
                                         />
                                     </Stack>
+
+                                    {treasuryImpact.votingPowerChanges.length > 0 && (
+                                        <Box sx={{ mb: 0.85, borderRadius: '10px', border: '1px solid rgba(99,179,237,0.24)', bgcolor: 'rgba(61,167,255,0.08)', p: 0.9 }}>
+                                            <Typography variant="caption" sx={{ display: 'block', color: '#9dccff' }}>
+                                                Voting power affected
+                                            </Typography>
+                                            {treasuryImpact.votingPowerChanges.map((change: any, index: number) => (
+                                                <Typography key={`${change.mint}:${change.recipient}:${index}`} variant="caption" sx={{ display: 'block', color: 'rgba(220,235,250,0.88)', mt: 0.25 }}>
+                                                    {change.action === 'grant' ? 'Grant' : change.action === 'deposit' ? 'Deposit' : 'Transfer'} {change.amount.toLocaleString()} {change.kind === 'council' ? 'council' : 'community'} governing token{change.amount === 1 ? '' : 's'} to {trimAddress(change.recipient)}
+                                                </Typography>
+                                            ))}
+                                            <Typography variant="caption" sx={{ display: 'block', color: 'rgba(171,185,204,0.72)', mt: 0.4 }}>
+                                                Governing tokens can create or increase proposal and voting power when deposited into governance.
+                                            </Typography>
+                                        </Box>
+                                    )}
 
                                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 0.75 }}>
                                         {treasuryImpact.assets.map((asset: any) => (
@@ -6682,6 +6769,9 @@ export function GovernanceProposalV2View(props: any){
                                                     <Typography variant="caption" sx={{ display: 'block', color: 'rgba(233,241,250,0.92)' }}>
                                                         {asset.amount.toLocaleString()} {asset.name || trimAddress(asset.mint)}
                                                     </Typography>
+                                                    {asset.governingTokenKind && (
+                                                        <Chip size="small" label={`${asset.governingTokenKind} voting token`} sx={{ ...metaChipSx, color: '#9dccff' }} />
+                                                    )}
                                                     {asset.percentage !== null && (
                                                         <Chip
                                                             size="small"
@@ -6713,8 +6803,18 @@ export function GovernanceProposalV2View(props: any){
                                                 </Box>
                                                 <Chip
                                                     size="small"
-                                                    label={destination.trust === 'controlled' ? 'DAO controlled' : destination.trust === 'dao_member' ? 'DAO member' : destination.trust === 'address_book' ? 'Address book' : 'Unverified'}
-                                                    sx={{ ...metaChipSx, flexShrink: 0, color: destination.trust === 'unverified' ? '#ffd38a' : '#9be7b5' }}
+                                                    label={destination.trust === 'controlled'
+                                                        ? 'DAO controlled'
+                                                        : destination.trust === 'dao_member'
+                                                        ? 'DAO member'
+                                                        : destination.trust === 'address_book'
+                                                        ? 'Address book'
+                                                        : destination.trust === 'unverified'
+                                                        ? 'Unverified'
+                                                        : destination.trust === 'partially_checked'
+                                                        ? 'Partially checked'
+                                                        : 'Not checked'}
+                                                    sx={{ ...metaChipSx, flexShrink: 0, color: destination.trust === 'unverified' || destination.trust === 'partially_checked' || destination.trust === 'not_checked' ? '#ffd38a' : '#9be7b5' }}
                                                 />
                                             </Box>
                                         ))}
@@ -6726,6 +6826,9 @@ export function GovernanceProposalV2View(props: any){
                                     )}
                                 </Box>
                             )}
+                                </Box>
+                                </Collapse>
+                            </Box>
 
                             <Box
                                 sx={{
