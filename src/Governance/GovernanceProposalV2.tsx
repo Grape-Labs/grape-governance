@@ -402,6 +402,7 @@ export function GovernanceProposalV2View(props: any){
     const [openExecutionReadiness, setOpenExecutionReadiness] = React.useState(false);
     const [openProposalRiskReview, setOpenProposalRiskReview] = React.useState(false);
     const [openProposalSimulation, setOpenProposalSimulation] = React.useState(false);
+    const [openGovernanceConfigDiff, setOpenGovernanceConfigDiff] = React.useState(false);
     const [openDiscussion, setOpenDiscussion] = React.useState(false);
     const [expandInfo, setExpandInfo] = React.useState(false);
     const [reload, setReload] = React.useState(false);
@@ -413,6 +414,7 @@ export function GovernanceProposalV2View(props: any){
     const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
     const [proposalSimulation, setProposalSimulation] = React.useState<any>(null);
     const [proposalSimulationLoading, setProposalSimulationLoading] = React.useState(false);
+    const [treasurySourceBalances, setTreasurySourceBalances] = React.useState<Record<string, number>>({});
     const [councilVoterRecord, setCouncilVoterRecord] = React.useState<any | null>(null);
 
     const [loadingMessage, setLoadingMessage] = React.useState(null);
@@ -4319,6 +4321,118 @@ export function GovernanceProposalV2View(props: any){
         instructionTransferDetails,
         verifiedDAODestinationWalletArray,
     ]);
+    const governanceConfigDiff = React.useMemo(() => {
+        const decodedConfigUpdates: any[] = [];
+        proposalTransactionRows.forEach((row: any) => {
+            const instructions = Array.isArray(row?.account?.instructions) ? row.account.instructions : [];
+            instructions.forEach((instruction: any) => {
+                const decoded = instruction?.info?.decodedIx || instruction?.decodedIx;
+                if (decoded?.name === 'setGovernanceConfig' && decoded?.data?.config) {
+                    decodedConfigUpdates.push(decoded.data.config);
+                }
+            });
+        });
+        if (!decodedConfigUpdates.length) return { hasChanges: false, rows: [], level: 'low' as const };
+
+        const proposedConfig = decodedConfigUpdates[decodedConfigUpdates.length - 1];
+        const currentConfig = thisGovernance?.account?.config || {};
+        const toNumber = (value: any): number | null => {
+            if (value === null || value === undefined) return null;
+            const candidate = value?.value ?? value?.yesVotePercentage ?? value?.quorumPercentage ?? value;
+            const nested = candidate?.value ?? candidate;
+            const numberValue = Number(nested?.toString?.() ?? nested);
+            return Number.isFinite(numberValue) ? numberValue : null;
+        };
+        const thresholdLabel = (value: any) => {
+            if (value && typeof value === 'object' && ('disabled' in value || Number(value?.type) === 2)) return 'Disabled';
+            const numberValue = toNumber(value);
+            return numberValue === null ? 'Unknown' : `${numberValue}%`;
+        };
+        const secondsLabel = (value: any) => {
+            const seconds = toNumber(value);
+            if (seconds === null) return 'Unknown';
+            if (seconds === 0) return 'None';
+            if (seconds % 86400 === 0) return `${seconds / 86400}d`;
+            if (seconds % 3600 === 0) return `${seconds / 3600}h`;
+            if (seconds % 60 === 0) return `${seconds / 60}m`;
+            return `${seconds}s`;
+        };
+        const definitions = [
+            { key: 'communityVoteThreshold', label: 'Community approval threshold', format: thresholdLabel, direction: 'lower-risk' },
+            { key: 'councilVoteThreshold', label: 'Council approval threshold', format: thresholdLabel, direction: 'lower-risk' },
+            { key: 'minCommunityWeightToCreateProposal', label: 'Minimum community proposal weight', format: (value: any) => `${toNumber(value) ?? 'Unknown'}`, direction: 'lower-risk' },
+            { key: 'minCouncilWeightToCreateProposal', label: 'Minimum council proposal weight', format: (value: any) => `${toNumber(value) ?? 'Unknown'}`, direction: 'lower-risk' },
+            { key: 'minTransactionHoldUpTime', label: 'Minimum execution delay', format: secondsLabel, direction: 'lower-risk' },
+            { key: 'baseVotingTime', label: 'Base voting duration', format: secondsLabel, direction: 'lower-risk' },
+            { key: 'votingCoolOffTime', label: 'Voting cool-off period', format: secondsLabel, direction: 'lower-risk' },
+            { key: 'depositExemptProposalCount', label: 'Deposit-exempt proposals', format: (value: any) => `${toNumber(value) ?? 'Unknown'}`, direction: 'higher-risk' },
+        ];
+        const rows = definitions.flatMap((definition) => {
+            if (proposedConfig?.[definition.key] === undefined) return [];
+            const beforeNumber = toNumber(currentConfig?.[definition.key]);
+            const afterNumber = toNumber(proposedConfig?.[definition.key]);
+            const before = definition.format(currentConfig?.[definition.key]);
+            const after = definition.format(proposedConfig?.[definition.key]);
+            if (before === after) return [];
+            const weakens = beforeNumber !== null && afterNumber !== null && (
+                (definition.direction === 'lower-risk' && afterNumber < beforeNumber) ||
+                (definition.direction === 'higher-risk' && afterNumber > beforeNumber)
+            );
+            return [{ ...definition, before, after, weakens }];
+        });
+        return {
+            hasChanges: rows.length > 0,
+            rows,
+            level: rows.some((row) => row.weakens) ? 'high' as const : 'info' as const,
+        };
+    }, [proposalTransactionRows, thisGovernance, instructionTransferDetails]);
+
+    React.useEffect(() => {
+        const transfers = (Array.isArray(instructionTransferDetails) ? instructionTransferDetails : []).filter((detail: any) =>
+            /transfer/i.test(`${detail?.type || ''}`) && Number(detail?.amount || 0) > 0 && detail?.sourcePubkey
+        );
+        const sources = Array.from(new Set(transfers.map((detail: any) =>
+            detail.sourcePubkey?.toBase58?.() || `${detail.sourcePubkey}`
+        ))).filter(Boolean).slice(0, 24) as string[];
+        if (!sources.length) {
+            setTreasurySourceBalances({});
+            return;
+        }
+        const proposalAddress = thisitem?.pubkey?.toBase58?.() || `${thisitem?.pubkey || proposalPk || ''}`;
+        const cacheKey = `grape_treasury_source_balances_v1:${proposalAddress}:${sources.join(',')}`;
+        let cancelled = false;
+        const loadBalances = async () => {
+            if (typeof window !== 'undefined') {
+                try {
+                    const cached = JSON.parse(window.sessionStorage.getItem(cacheKey) || 'null');
+                    if (cached?.createdAt && Date.now() - cached.createdAt < 5 * 60 * 1000) {
+                        setTreasurySourceBalances(cached.balances || {});
+                        return;
+                    }
+                } catch { /* Cache is optional. */ }
+            }
+            try {
+                const response = await connection.getMultipleParsedAccounts(sources.map((source) => new PublicKey(source)), 'confirmed');
+                const balances: Record<string, number> = {};
+                response.value.forEach((account: any, index: number) => {
+                    const tokenAmount = account?.data?.parsed?.info?.tokenAmount?.uiAmount;
+                    balances[sources[index]] = tokenAmount !== undefined && tokenAmount !== null
+                        ? Number(tokenAmount)
+                        : Number(account?.lamports || 0) / 1e9;
+                });
+                if (cancelled) return;
+                setTreasurySourceBalances(balances);
+                if (typeof window !== 'undefined') {
+                    try { window.sessionStorage.setItem(cacheKey, JSON.stringify({ createdAt: Date.now(), balances })); } catch { /* Cache is optional. */ }
+                }
+            } catch (error) {
+                console.warn('Unable to load treasury source balances', error);
+            }
+        };
+        void loadBalances();
+        return () => { cancelled = true; };
+    }, [instructionTransferDetails, connection, thisitem, proposalPk]);
+
     const treasuryImpact = React.useMemo(() => {
         const transfers = (Array.isArray(instructionTransferDetails) ? instructionTransferDetails : []).filter((detail: any) =>
             /transfer/i.test(`${detail?.type || ''}`) && Number(detail?.amount || 0) > 0
@@ -4356,15 +4470,26 @@ export function GovernanceProposalV2View(props: any){
             currentDestination.assets.set(mint, (currentDestination.assets.get(mint) || 0) + amount);
             if (currentDestination.trust === 'unverified' && trust !== 'unverified') currentDestination.trust = trust;
             destinations.set(address, currentDestination);
-            const currentAsset = assets.get(mint) || { mint, name: detail?.name || null, logoURI: detail?.logoURI || null, amount: 0, destinations: new Set<string>() };
+            const sourceAddress = detail?.sourcePubkey?.toBase58?.() || `${detail?.sourcePubkey || ''}`;
+            const currentAsset = assets.get(mint) || { mint, name: detail?.name || null, logoURI: detail?.logoURI || null, amount: 0, sourceBalance: 0, sources: new Set<string>(), destinations: new Set<string>() };
             currentAsset.amount += amount;
+            if (sourceAddress && !currentAsset.sources.has(sourceAddress)) {
+                currentAsset.sourceBalance += Number(treasurySourceBalances[sourceAddress] || 0);
+                currentAsset.sources.add(sourceAddress);
+            }
             currentAsset.destinations.add(address);
             assets.set(mint, currentAsset);
         });
 
         return {
             transferCount: transfers.length,
-            assets: Array.from(assets.values()).map((asset: any) => ({ ...asset, destinationCount: asset.destinations.size })),
+            assets: Array.from(assets.values()).map((asset: any) => ({
+                ...asset,
+                destinationCount: asset.destinations.size,
+                sourceCount: asset.sources.size,
+                percentage: asset.sourceBalance > 0 ? (asset.amount / asset.sourceBalance) * 100 : null,
+                remainingBalance: asset.sourceBalance > 0 ? Math.max(0, asset.sourceBalance - asset.amount) : null,
+            })),
             destinations: Array.from(destinations.values()).map((destination: any) => ({
                 ...destination,
                 assets: Array.from(destination.assets.entries()).map(([mint, amount]) => ({ mint, amount })),
@@ -4378,6 +4503,7 @@ export function GovernanceProposalV2View(props: any){
         verifiedDAODestinationWalletArray,
         governanceNativeWallet,
         thisitem,
+        treasurySourceBalances,
     ]);
     const isMobile = useMediaQuery('(max-width:600px)');
     const isTablet = useMediaQuery('(max-width:900px)');
@@ -6296,6 +6422,64 @@ export function GovernanceProposalV2View(props: any){
                                 </Collapse>
                             </Box>
 
+                            {governanceConfigDiff.hasChanges && (
+                                <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
+                                    <Stack
+                                        direction="row"
+                                        justifyContent="space-between"
+                                        alignItems="center"
+                                        spacing={0.8}
+                                        onClick={() => setOpenGovernanceConfigDiff((open) => !open)}
+                                        sx={{ cursor: 'pointer' }}
+                                    >
+                                        <Box>
+                                            <Typography sx={sectionLabelSx}>Governance Configuration Diff</Typography>
+                                            <Typography variant="subtitle1" sx={{ color: 'rgba(239,246,255,0.96)', mt: 0.25 }}>
+                                                {governanceConfigDiff.rows.length} setting{governanceConfigDiff.rows.length === 1 ? '' : 's'} changed
+                                            </Typography>
+                                        </Box>
+                                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                                            <Chip
+                                                size="small"
+                                                icon={governanceConfigDiff.level === 'high' ? <WarningAmberIcon /> : <InfoIcon />}
+                                                label={governanceConfigDiff.level === 'high' ? 'Weakens controls' : 'Review changes'}
+                                                sx={{ ...metaChipSx, color: governanceConfigDiff.level === 'high' ? '#ffaaa3' : '#9dccff' }}
+                                            />
+                                            {openGovernanceConfigDiff ? <ExpandLess /> : <ExpandMoreIcon />}
+                                        </Stack>
+                                    </Stack>
+                                    <Collapse in={openGovernanceConfigDiff} timeout="auto" unmountOnExit>
+                                        <Stack spacing={0.65} sx={{ mt: 1 }}>
+                                            {governanceConfigDiff.rows.map((row: any) => (
+                                                <Box
+                                                    key={row.key}
+                                                    sx={{
+                                                        display: 'grid',
+                                                        gridTemplateColumns: { xs: '1fr', sm: 'minmax(0, 1fr) auto auto' },
+                                                        alignItems: 'center',
+                                                        gap: 0.75,
+                                                        border: '1px solid rgba(255,255,255,0.07)',
+                                                        borderRadius: '10px',
+                                                        bgcolor: 'rgba(255,255,255,0.025)',
+                                                        p: 0.85,
+                                                    }}
+                                                >
+                                                    <Box>
+                                                        <Typography variant="caption" sx={{ display: 'block', color: 'rgba(233,241,250,0.92)' }}>{row.label}</Typography>
+                                                        {row.weakens && <Typography variant="caption" sx={{ display: 'block', color: '#ffaaa3' }}>Reduces an existing governance safeguard</Typography>}
+                                                    </Box>
+                                                    <Typography variant="caption" sx={{ color: 'rgba(171,185,204,0.72)' }}>{row.before}</Typography>
+                                                    <Typography variant="caption" sx={{ color: row.weakens ? '#ffaaa3' : '#9be7b5' }}>→ {row.after}</Typography>
+                                                </Box>
+                                            ))}
+                                        </Stack>
+                                        <Typography variant="caption" sx={{ display: 'block', color: 'rgba(154,168,188,0.62)', mt: 0.8 }}>
+                                            Compared with the current configuration of the governance account targeted by this proposal.
+                                        </Typography>
+                                    </Collapse>
+                                </Box>
+                            )}
+
                             <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
                                 <Stack
                                     direction="row"
@@ -6494,12 +6678,26 @@ export function GovernanceProposalV2View(props: any){
                                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 0.75 }}>
                                         {treasuryImpact.assets.map((asset: any) => (
                                             <Box key={asset.mint} sx={{ borderRadius: '10px', border: '1px solid rgba(255,255,255,0.07)', bgcolor: 'rgba(255,255,255,0.025)', p: 0.85 }}>
-                                                <Typography variant="caption" sx={{ display: 'block', color: 'rgba(233,241,250,0.92)' }}>
-                                                    {asset.amount.toLocaleString()} {asset.name || trimAddress(asset.mint)}
-                                                </Typography>
+                                                <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={0.75}>
+                                                    <Typography variant="caption" sx={{ display: 'block', color: 'rgba(233,241,250,0.92)' }}>
+                                                        {asset.amount.toLocaleString()} {asset.name || trimAddress(asset.mint)}
+                                                    </Typography>
+                                                    {asset.percentage !== null && (
+                                                        <Chip
+                                                            size="small"
+                                                            label={`${asset.percentage.toLocaleString(undefined, { maximumFractionDigits: 2 })}% of source balance`}
+                                                            sx={{ ...metaChipSx, color: asset.percentage >= 25 ? '#ffaaa3' : asset.percentage >= 10 ? '#ffd38a' : '#9be7b5' }}
+                                                        />
+                                                    )}
+                                                </Stack>
                                                 <Typography variant="caption" sx={{ color: 'rgba(171,185,204,0.68)' }}>
                                                     To {asset.destinationCount} unique destination{asset.destinationCount === 1 ? '' : 's'}
                                                 </Typography>
+                                                {asset.sourceBalance > 0 && (
+                                                    <Typography variant="caption" sx={{ display: 'block', color: 'rgba(171,185,204,0.68)' }}>
+                                                        Balance {asset.sourceBalance.toLocaleString()} → {asset.remainingBalance.toLocaleString(undefined, { maximumFractionDigits: 6 })} across {asset.sourceCount} source account{asset.sourceCount === 1 ? '' : 's'}
+                                                    </Typography>
+                                                )}
                                             </Box>
                                         ))}
                                     </Box>
