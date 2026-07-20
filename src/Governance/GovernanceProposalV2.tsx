@@ -4676,27 +4676,6 @@ export function GovernanceProposalV2View(props: any){
             fontSize: '0.73rem',
         },
     };
-    const heroMetricSx = {
-        position: 'relative',
-        minWidth: 0,
-        px: { xs: 0.9, sm: 1.1 },
-        py: { xs: 0.85, sm: 1 },
-        borderRadius: '13px',
-        border: '1px solid rgba(255,255,255,0.075)',
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.025) 100%)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.035)',
-        transition: 'transform 160ms ease, border-color 160ms ease, background 160ms ease',
-        '&:hover': {
-            transform: 'translateY(-1px)',
-            borderColor: 'rgba(255,255,255,0.14)',
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.075) 0%, rgba(255,255,255,0.035) 100%)',
-        },
-    };
-    const sectionDividerSx = {
-        mt: 0.5,
-        mb: 1.3,
-        borderColor: 'rgba(255,255,255,0.08)',
-    };
     const sectionLabelSx = {
         display: 'inline-flex',
         px: 0,
@@ -4911,21 +4890,11 @@ export function GovernanceProposalV2View(props: any){
         totalQuorum && Number(totalQuorum) > 0
             ? Math.min((totalCastUi / Number(totalQuorum)) * 100, 100)
             : null;
-    const quorumRemainingUi =
-        totalQuorum && Number(totalQuorum) > 0
-            ? Math.max(Number(totalQuorum) - totalCastUi, 0)
-            : null;
     const formatMetricValue = (value: number) =>
         new Intl.NumberFormat('en-US', {
             minimumFractionDigits: 0,
             maximumFractionDigits: value >= 100 ? 0 : 2,
         }).format(Number.isFinite(value) ? value : 0);
-    const resolvedEndsRelative = resolvedEndsAt ? moment.unix(resolvedEndsAt).fromNow() : 'Awaiting voting';
-    const heroSummaryText = `${
-        proposalTargetLabel
-    } proposal with ${proposalInstructionCount} executable instruction${
-        proposalInstructionCount === 1 ? '' : 's'
-    }${resolvedEndsAt ? `, scheduled ${votingCompletedAt ? 'to finish' : 'to close'} ${resolvedEndsRelative}.` : '.'}`;
     const voteSummaryPanelSx = {
         ...panelSx,
         background: 'linear-gradient(180deg, rgba(17,24,38,0.94) 0%, rgba(11,17,27,0.96) 100%)',
@@ -4933,12 +4902,6 @@ export function GovernanceProposalV2View(props: any){
         boxShadow: '0 14px 34px rgba(0,0,0,0.22)',
     };
     const isMultiChoiceProposal = thisitem?.account?.voteType?.type === 1;
-    const quorumRemainingLabel =
-        quorumRemainingUi === null
-            ? 'Awaiting threshold'
-            : quorumRemainingUi > 0
-            ? `${formatMetricValue(quorumRemainingUi)} votes left to quorum`
-            : 'Quorum reached';
 
     return (
         <>
@@ -4989,10 +4952,10 @@ export function GovernanceProposalV2View(props: any){
                         {/* =========================
                Header: title + actions + power
                ========================= */}
-            <Box sx={{ mb: 1.15, p: { xs: 0.95, sm: 1.1 }, ...heroPanelStateSx }}>
+            <Box sx={{ mb: 0.7, p: { xs: 0.8, sm: 0.95 }, ...heroPanelStateSx }}>
               <Grid container spacing={1} alignItems="flex-start">
                 <Grid item xs={12} lg={realm ? 9 : 12}>
-                  <Stack spacing={0.9} sx={{ minWidth: 0, position: 'relative', zIndex: 1 }}>
+                  <Stack spacing={0.65} sx={{ minWidth: 0, position: 'relative', zIndex: 1 }}>
                     <Typography sx={sectionLabelSx}>Proposal Overview</Typography>
                     {showGovernanceTitle && realmName && (
                       <Typography
@@ -5024,18 +4987,6 @@ export function GovernanceProposalV2View(props: any){
                     >
                       {thisitem?.account?.name}
                     </Typography>
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        maxWidth: 720,
-                        color: 'rgba(205,220,239,0.76)',
-                        lineHeight: 1.58,
-                        fontSize: { xs: '0.88rem', sm: '0.94rem' },
-                      }}
-                    >
-                      {heroSummaryText}
-                    </Typography>
-
                     <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap">
                       {(proposalAuthorAddress || thisitem.account?.tokenOwnerRecord) && (
                         <Typography
@@ -5113,15 +5064,6 @@ export function GovernanceProposalV2View(props: any){
                       <Chip
                         size="small"
                         label={`${proposalTargetLabel} Proposal`}
-                        sx={{
-                          ...metaChipSx,
-                          bgcolor: 'rgba(255,255,255,0.05)',
-                        }}
-                      />
-                      <Chip
-                        size="small"
-                        icon={<CodeIcon sx={{ fontSize: '0.95rem !important' }} />}
-                        label={`${proposalInstructionCount} instruction${proposalInstructionCount === 1 ? '' : 's'}`}
                         sx={{
                           ...metaChipSx,
                           bgcolor: 'rgba(255,255,255,0.05)',
@@ -5266,66 +5208,9 @@ export function GovernanceProposalV2View(props: any){
                 )}
               </Grid>
 
-              <Box sx={{ position: 'relative', zIndex: 1, mt: 1.15, pt: 1.05, borderTop: '1px solid rgba(255,255,255,0.075)' }}>
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' },
-                    gap: 0.7,
-                  }}
-                >
-                  <Box sx={heroMetricSx}>
-                    <Stack direction="row" spacing={0.75} alignItems="center">
-                      <Box sx={{ width: 28, height: 28, borderRadius: '9px', display: 'grid', placeItems: 'center', color: proposalStateVisual.accent, bgcolor: proposalStateVisual.wash }}>
-                        <CheckCircleIcon sx={{ fontSize: 16 }} />
-                      </Box>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography sx={{ ...sectionLabelSx, display: 'block' }}>Status</Typography>
-                        <Typography variant="subtitle2" noWrap sx={{ color: 'rgba(241,247,255,0.96)', mt: 0.18 }}>{proposalStateLabel}</Typography>
-                      </Box>
-                    </Stack>
-                  </Box>
-                  <Box sx={heroMetricSx}>
-                    <Stack direction="row" spacing={0.75} alignItems="center">
-                      <Box sx={{ width: 28, height: 28, borderRadius: '9px', display: 'grid', placeItems: 'center', color: '#8dc8ff', bgcolor: 'rgba(61,167,255,0.12)' }}>
-                        <HowToVoteIcon sx={{ fontSize: 16 }} />
-                      </Box>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography sx={{ ...sectionLabelSx, display: 'block' }}>Participation</Typography>
-                        <Typography variant="subtitle2" noWrap sx={{ color: 'rgba(241,247,255,0.96)', mt: 0.18 }}>{uniqueYes + uniqueNo} voter{uniqueYes + uniqueNo === 1 ? '' : 's'}</Typography>
-                      </Box>
-                    </Stack>
-                  </Box>
-                  <Box sx={heroMetricSx}>
-                    <Stack direction="row" spacing={0.75} alignItems="center">
-                      <Box sx={{ width: 28, height: 28, borderRadius: '9px', display: 'grid', placeItems: 'center', color: '#d5b6ff', bgcolor: 'rgba(168,112,255,0.12)' }}>
-                        <AccessTimeIcon sx={{ fontSize: 16 }} />
-                      </Box>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography sx={{ ...sectionLabelSx, display: 'block' }}>{votingCompletedAt ? 'Completed' : 'Voting window'}</Typography>
-                        <Typography variant="subtitle2" noWrap sx={{ color: 'rgba(241,247,255,0.96)', mt: 0.18 }}>{resolvedEndsRelative}</Typography>
-                      </Box>
-                    </Stack>
-                  </Box>
-                  <Box sx={heroMetricSx}>
-                    <Stack direction="row" spacing={0.75} alignItems="center">
-                      <Box sx={{ width: 28, height: 28, borderRadius: '9px', display: 'grid', placeItems: 'center', color: executionReadiness.ready ? '#91eab4' : '#ffd38a', bgcolor: executionReadiness.ready ? 'rgba(72,187,120,0.12)' : 'rgba(245,158,11,0.12)' }}>
-                        <CodeIcon sx={{ fontSize: 16 }} />
-                      </Box>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography sx={{ ...sectionLabelSx, display: 'block' }}>Execution</Typography>
-                        <Typography variant="subtitle2" noWrap sx={{ color: 'rgba(241,247,255,0.96)', mt: 0.18 }}>
-                          {executionReadiness.executionComplete ? 'Complete' : executionReadiness.ready ? 'Ready' : `${proposalInstructionCount} instruction${proposalInstructionCount === 1 ? '' : 's'}`}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </Box>
-                </Box>
-              </Box>
             </Box>
 
 	            <Box sx={{ textAlign: "left" }}>
-		              <Divider sx={sectionDividerSx} />
 
               <Box sx={{ ...voteSummaryPanelSx, p: { xs: 0.95, sm: 1.05 }, mb: 0.45 }}>
                 <Typography sx={{ ...sectionLabelSx, mb: 0.55 }}>Voting Snapshot</Typography>
@@ -5363,23 +5248,18 @@ export function GovernanceProposalV2View(props: any){
                         background: hasVoted
                           ? 'linear-gradient(180deg, rgba(17,34,28,0.86) 0%, rgba(12,19,18,0.9) 100%)'
                           : 'linear-gradient(180deg, rgba(21,30,45,0.9) 0%, rgba(12,18,29,0.92) 100%)',
-                        px: { xs: 0.95, sm: 1.05 },
-                        py: { xs: 0.95, sm: 1.05 },
+                        px: { xs: 0.8, sm: 0.95 },
+                        py: { xs: 0.8, sm: 0.9 },
                       }}
                     >
                       <Grid container spacing={0.8} alignItems="center" sx={{ mb: 0.85 }}>
                         <Grid item xs={12} md={7}>
-                          <Stack spacing={0.35}>
+                          <Stack spacing={0.2}>
                             <Typography sx={{ ...sectionLabelSx, color: hasVoted ? 'rgba(147,230,177,0.82)' : 'rgba(180,192,208,0.74)' }}>
                               Vote Actions
                             </Typography>
                             <Typography variant="subtitle1" sx={{ color: 'rgba(244,249,255,0.98)', fontWeight: 700 }}>
                               {hasVoted ? 'Manage your vote' : 'Cast your vote'}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: 'rgba(190,204,223,0.76)', lineHeight: 1.55 }}>
-                              {hasVoted
-                                ? `You already voted ${hasVotedSide === 'yes' ? 'for' : hasVotedSide === 'no' ? 'against' : 'on'} this proposal. Use the controls below to review or update your position if governance rules allow it.`
-                                : 'Voting is the primary action on this page. Choose a side below to participate in the proposal outcome.'}
                             </Typography>
                           </Stack>
                         </Grid>
@@ -5397,15 +5277,6 @@ export function GovernanceProposalV2View(props: any){
                                   ? '1px solid rgba(82,190,128,0.32)'
                                   : '1px solid rgba(74,167,255,0.22)',
                               }}
-                            />
-                            <Chip
-                              size="small"
-                              label={
-                                totalQuorum
-                                  ? `${formatMetricValue(Number(totalQuorum))} quorum target`
-                                  : 'Quorum pending'
-                              }
-                              sx={{ ...metaChipSx, height: 24, bgcolor: 'rgba(255,255,255,0.05)' }}
                             />
                           </Stack>
                         </Grid>
@@ -5463,70 +5334,6 @@ export function GovernanceProposalV2View(props: any){
                           </Box>
                         </Grid>
                       </Grid>
-                    </Box>
-
-                    <Box
-                      sx={{
-                        display: 'grid',
-                        gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
-                        gap: 0.85,
-                        width: '100%',
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          borderRadius: '16px',
-                          border: '1px solid rgba(88, 195, 129, 0.2)',
-                          background: 'linear-gradient(180deg, rgba(24,48,36,0.78) 0%, rgba(13,26,20,0.88) 100%)',
-                          px: 1,
-                          py: 0.9,
-                          minHeight: 82,
-                        }}
-                      >
-                        <Typography sx={{ ...sectionLabelSx, color: 'rgba(147, 230, 177, 0.76)' }}>For</Typography>
-                        <Typography variant="h5" sx={{ mt: 0.35, color: '#b8ffd1', fontWeight: 800, fontSize: { xs: '1.55rem', sm: '1.75rem' } }}>
-                          {formatMetricValue(forUi)}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: 'rgba(185,233,202,0.76)' }}>
-                          {forPct.toFixed(1)}% of cast votes
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          borderRadius: '16px',
-                          border: '1px solid rgba(99, 175, 255, 0.2)',
-                          background: 'linear-gradient(180deg, rgba(17,37,59,0.82) 0%, rgba(11,20,31,0.9) 100%)',
-                          px: 1,
-                          py: 0.9,
-                          minHeight: 82,
-                        }}
-                      >
-                        <Typography sx={{ ...sectionLabelSx, color: 'rgba(154, 204, 255, 0.82)' }}>Quorum</Typography>
-                        <Typography variant="h5" sx={{ mt: 0.35, color: 'rgba(234,245,255,0.98)', fontWeight: 800, fontSize: { xs: '1.55rem', sm: '1.75rem' } }}>
-                          {quorumProgressPct !== null ? `${quorumProgressPct.toFixed(1)}%` : 'Pending'}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: 'rgba(193,214,236,0.76)' }}>
-                          {quorumRemainingLabel}
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          borderRadius: '16px',
-                          border: '1px solid rgba(240, 114, 114, 0.18)',
-                          background: 'linear-gradient(180deg, rgba(58,24,24,0.82) 0%, rgba(25,13,14,0.9) 100%)',
-                          px: 1,
-                          py: 0.9,
-                          minHeight: 82,
-                        }}
-                      >
-                        <Typography sx={{ ...sectionLabelSx, color: 'rgba(255, 174, 174, 0.8)' }}>Against</Typography>
-                        <Typography variant="h5" sx={{ mt: 0.35, color: '#ffd0d0', fontWeight: 800, fontSize: { xs: '1.55rem', sm: '1.75rem' } }}>
-                          {formatMetricValue(againstUi)}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: 'rgba(240,198,198,0.76)' }}>
-                          {againstPct.toFixed(1)}% of cast votes
-                        </Typography>
-                      </Box>
                     </Box>
 
                     <Box
@@ -5621,10 +5428,9 @@ export function GovernanceProposalV2View(props: any){
               </Box>
             </Box>
 
-	                        <Divider sx={sectionDividerSx} />
 
-                        <Grid container spacing={1.25} sx={{ mb: 1.25 }}>
-                            <Grid item md={8} sm={12} xs={12} sx={{ mt: { xs: 1, md: 1.5 } }}>
+                        <Grid container spacing={0.85} sx={{ mt: 0.7, mb: 0.85 }}>
+                            <Grid item md={8} sm={12} xs={12}>
                                 <Box sx={{
                                     p: { xs: 1, sm: 1.25 },
                                     ...panelSx,
@@ -5812,7 +5618,7 @@ export function GovernanceProposalV2View(props: any){
                                     </Box>
                                 </Box>
                             </Grid>
-                            <Grid item md={4} sm={12} xs={12} sx={{ mt: { xs: 0.5, md: 1.5 } }}>
+                            <Grid item md={4} sm={12} xs={12}>
                                 <Stack
                                     sx={{
                                         ml: { xs: 0, md: 1 },
@@ -5868,7 +5674,7 @@ export function GovernanceProposalV2View(props: any){
                                                                 display: 'grid',
                                                                 gridTemplateColumns: '20px minmax(0, 1fr)',
                                                                 columnGap: 1.25,
-                                                                minHeight: isLast ? 'auto' : 78,
+                                                                minHeight: isLast ? 'auto' : 56,
                                                             }}
                                                         >
                                                             <Box
@@ -5903,7 +5709,7 @@ export function GovernanceProposalV2View(props: any){
                                                                             mt: 0.45,
                                                                             width: 4,
                                                                             flex: 1,
-                                                                            minHeight: 42,
+                                                                            minHeight: 28,
                                                                             borderRadius: 999,
                                                                             bgcolor: 'rgba(118,145,188,0.26)',
                                                                             opacity: isFuture ? 0.55 : 1,
@@ -6587,7 +6393,7 @@ export function GovernanceProposalV2View(props: any){
                                 </Stack>
                                 <Collapse in={openProposalTools} timeout="auto" unmountOnExit>
                                 <Box sx={{ p: { xs: 0.8, sm: 1 }, pb: '0 !important' }}>
-                            <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
+                            <Box sx={{ mb: 0.7, width: '100%', ...panelSx, p: { xs: 0.8, sm: 0.95 } }}>
                                 <Stack
                                     direction="row"
                                     justifyContent="space-between"
@@ -6666,7 +6472,7 @@ export function GovernanceProposalV2View(props: any){
                             </Box>
 
                             {governanceConfigDiff.hasChanges && (
-                                <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
+                                <Box sx={{ mb: 0.7, width: '100%', ...panelSx, p: { xs: 0.8, sm: 0.95 } }}>
                                     <Stack
                                         direction="row"
                                         justifyContent="space-between"
@@ -6723,7 +6529,7 @@ export function GovernanceProposalV2View(props: any){
                                 </Box>
                             )}
 
-                            <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
+                            <Box sx={{ mb: 0.7, width: '100%', ...panelSx, p: { xs: 0.8, sm: 0.95 } }}>
                                 <Stack
                                     direction="row"
                                     justifyContent="space-between"
@@ -6818,7 +6624,7 @@ export function GovernanceProposalV2View(props: any){
                             </Box>
 
                             {treasuryImpact.votingPowerChanges.length > 0 && (
-                                <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
+                                <Box sx={{ mb: 0.7, width: '100%', ...panelSx, p: { xs: 0.8, sm: 0.95 } }}>
                                     <Stack
                                         direction="row"
                                         justifyContent="space-between"
@@ -6885,7 +6691,7 @@ export function GovernanceProposalV2View(props: any){
                                 </Box>
                             )}
 
-                            <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
+                            <Box sx={{ mb: 0.7, width: '100%', ...panelSx, p: { xs: 0.8, sm: 0.95 } }}>
                                 <Stack
                                     direction="row"
                                     justifyContent="space-between"
@@ -6970,7 +6776,7 @@ export function GovernanceProposalV2View(props: any){
                             </Box>
 
                             {(treasuryImpact.transferCount > 0 || treasuryImpact.votingPowerChanges.length > 0) && (
-                                <Box sx={{ mb: 1.5, width: '100%', ...panelSx, p: { xs: 1, sm: 1.25 } }}>
+                                <Box sx={{ mb: 0.7, width: '100%', ...panelSx, p: { xs: 0.8, sm: 0.95 } }}>
                                     <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={0.8} sx={{ mb: 1 }}>
                                         <Box>
                                             <Typography sx={sectionLabelSx}>Treasury Impact & Destination Trust</Typography>
