@@ -6819,10 +6819,34 @@ export function GovernanceProposalV2View(props: any){
                                             </Box>
                                         ))}
                                     </Stack>
-                                    {!treasuryImpact.verificationRan && (
-                                        <Typography variant="caption" sx={{ display: 'block', color: '#ffd38a', mt: 0.8 }}>
-                                            Run the destination verification tools in the executable-plan summary to check DAO membership and governed address books.
-                                        </Typography>
+                                    {treasuryImpact.pendingVerificationCount > 0 && governanceNativeWallet && destinationWalletArray && (
+                                        <Box sx={{ mt: 0.9, borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(255,255,255,0.025)', p: 0.85 }}>
+                                            <Typography variant="caption" sx={{ display: 'block', color: 'rgba(220,231,244,0.88)' }}>
+                                                Verify all {treasuryImpact.pendingVerificationCount} destination{treasuryImpact.pendingVerificationCount === 1 ? '' : 's'} together
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ display: 'block', color: 'rgba(154,168,188,0.68)', mt: 0.2, mb: 0.55 }}>
+                                                Run both checks to compare recipients with active DAO members and DAO-controlled on-chain address books.
+                                            </Typography>
+                                            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                                                {!Array.isArray(verifiedDAODestinationWalletArray) && (
+                                                    <GrapeVerificationDAO
+                                                        title="Members"
+                                                        governanceAddress={governanceAddress}
+                                                        governanceLookup={governanceLookup}
+                                                        address={governanceNativeWallet.toBase58()}
+                                                        destinationWalletArray={destinationWalletArray}
+                                                        setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray}
+                                                    />
+                                                )}
+                                                {!Array.isArray(verifiedDestinationWalletArray) && (
+                                                    <GrapeVerificationSpeedDial
+                                                        address={governanceNativeWallet.toBase58()}
+                                                        destinationWalletArray={destinationWalletArray}
+                                                        setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}
+                                                    />
+                                                )}
+                                            </Stack>
+                                        </Box>
                                     )}
                                 </Box>
                             )}
