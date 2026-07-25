@@ -39,11 +39,7 @@ import {
   ListItem, 
   ListItemText,
   OutlinedInput,
-  InputAdornment,
 } from '@mui/material/';
-
-import { Accordion, AccordionSummary, AccordionDetails } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 import { useSnackbar } from 'notistack';
 
@@ -51,7 +47,6 @@ import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import CancelIcon from '@mui/icons-material/Cancel';
-import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
 import DownloadIcon from '@mui/icons-material/Download';
 import UploadIcon from '@mui/icons-material/Upload';
@@ -1183,11 +1178,18 @@ export default function GovernancePower(props: any){
 
                 const proposalGovernancePk = toBase58Safe(proposal?.account?.governance);
                 if (!proposalGovernancePk) continue;
+                const proposalStateRaw = proposal?.account?.state;
+                const proposalState =
+                    typeof proposalStateRaw === 'string' &&
+                    proposalStateRaw.toLowerCase() === 'voting'
+                        ? 2
+                        : toNumberSafe(proposalStateRaw);
 
                 relevantVoteRecords.push({
                     voteRecordPk,
                     proposalPk,
                     proposalGovernancePk,
+                    proposalState,
                 });
                 seenVoteRecordPks.add(voteRecordPk);
             } catch (err) {
@@ -1209,11 +1211,17 @@ export default function GovernancePower(props: any){
 
         const relinquishInstructions: TransactionInstruction[] = [];
         let buildFailures = 0;
+        let activeVotes = 0;
 
         enqueueSnackbar(`Relinquishing ${relevantVoteRecords.length} vote(s)...`, { variant: 'info' });
 
         for (const item of relevantVoteRecords) {
             try {
+                // A live vote needs the wallet authority because relinquishing it
+                // changes the proposal result. Settled vote records are closed
+                // permissionlessly and must not require a wallet signature.
+                const isActiveVote = item.proposalState === 2;
+                if (isActiveVote) activeVotes += 1;
                 await withRelinquishVote(
                     relinquishInstructions,
                     programId,
@@ -1224,8 +1232,8 @@ export default function GovernancePower(props: any){
                     new PublicKey(toBase58Safe(tokenOwnerRecord.pubkey)),
                     withMint,
                     new PublicKey(item.voteRecordPk),
-                    publicKey,
-                    publicKey
+                    isActiveVote ? publicKey : undefined,
+                    isActiveVote ? publicKey : undefined
                 );
             } catch (e) {
                 console.log("Failed to build relinquish vote instruction", e);
@@ -1275,7 +1283,11 @@ export default function GovernancePower(props: any){
             enqueueSnackbar(`${proposalLookupFailures} proposal lookup(s) failed while scanning votes`, { variant: 'warning' });
         }
 
-        return { attempted: relevantVoteRecords.length, succeeded, failed };
+        if (succeeded > 0) {
+            setRefresh(true);
+        }
+
+        return { attempted: relevantVoteRecords.length, succeeded, failed, active: activeVotes };
     };
 
     const relinquishVotesAndWithdrawToWallet = async (mintAddress: string, isCouncilMint?: boolean) => {
@@ -1598,6 +1610,9 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
 
   const [delegatedStr, setDelegatedStr] = React.useState<string | null>(null);
   const [open, setOpen] = React.useState(false);
+  const [advancedView, setAdvancedView] = React.useState<'power' | 'delegation'>('power');
+  const [confirmRelinquishOpen, setConfirmRelinquishOpen] = React.useState(false);
+  const [isRelinquishing, setIsRelinquishing] = React.useState(false);
 
   const maxHuman = React.useMemo(() => {
     const v = Number(selectedMintAvailableAmount || 0) / Math.pow(10, walletDecimals);
@@ -1613,6 +1628,7 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
   const handleClickOpen = () => {
     setDelegatedStr(currentDelegate || null);
     setNewDepositAmount(Number(selectedMintAvailableAmount) > 0 ? maxHuman : 0);
+    setAdvancedView('power');
     setOpen(true);
   };
 
@@ -1658,10 +1674,29 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
     setOpen(false);
   }
 
+  async function handleRelinquishVotes() {
+    setIsRelinquishing(true);
+    try {
+      const result = await relinquishVotesForDaoMint(selectedMintAddress);
+      if (result.failed === 0 && result.succeeded > 0) {
+        setConfirmRelinquishOpen(false);
+      }
+    } catch (e: any) {
+      enqueueSnackbar(
+        e?.message ? `Unable to relinquish votes: ${e.message}` : 'Unable to relinquish votes',
+        { variant: 'error' }
+      );
+    } finally {
+      setIsRelinquishing(false);
+    }
+  }
+
   const deposited = fmtInt(selectedMintDepositedAmount, positionDecimals);
   const inWallet = fmt(selectedMintAvailableAmount, walletDecimals);
   const voterWeightDisplay = fmtInt(vsrVotingPower, votingPowerDecimals);
   const withdrawableDisplay = fmtInt(vsrWithdrawableAmount, positionDecimals);
+  const incomingDelegateAddress = isCouncil ? currentCouncilDelegateFrom : currentCommunityDelegateFrom;
+  const incomingDelegateAmount = isCouncil ? currentCouncilDelegateFromAmount : currentCommunityDelegateFromAmount;
 
   const afterDeposit = React.useMemo(() => {
     const base = Number(selectedMintDepositedAmount || 0) / Math.pow(10, positionDecimals);
@@ -1686,12 +1721,14 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
   // ---------- UI styles (less round, more “premium”) ----------
   const dialogSX = {
     "& .MuiDialog-paper": {
-      width: "min(760px, calc(100vw - 28px))",
-      maxWidth: "760px",
+      width: "min(700px, calc(100vw - 24px))",
+      maxWidth: "700px",
+      maxHeight: "min(820px, calc(100vh - 24px))",
       background: "linear-gradient(180deg, #13151C 0%, #10121A 100%)",
       border: "1px solid rgba(255,255,255,0.10)",
-      borderRadius: 6,
+      borderRadius: "18px",
       overflow: "hidden",
+      boxShadow: "0 28px 80px rgba(0,0,0,0.56)",
     },
   };
 
@@ -1704,13 +1741,13 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
     borderBottom: "1px solid rgba(255,255,255,0.06)",
   };
 
-  const contentSX = { px: 2, py: 2 };
+  const contentSX = { px: { xs: 1.25, sm: 2 }, py: 1.5 };
 
   const panelSX = {
     background: "rgba(255,255,255,0.03)",
     border: "1px solid rgba(255,255,255,0.06)",
-    borderRadius: 6,
-    p: 1.5,
+    borderRadius: "14px",
+    p: { xs: 1.1, sm: 1.35 },
   };
 
   const metricRowSX = {
@@ -1744,10 +1781,10 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
         <Box sx={topbarSX}>
           <Box>
             <Typography sx={{ fontSize: 18, fontWeight: 800, lineHeight: 1.1 }}>
-              Advanced
+              Manage governance power
             </Typography>
             <Typography sx={{ fontSize: 12, opacity: 0.7, mt: 0.25 }}>
-              Deposit, withdraw, and manage delegation
+              {isCouncil ? 'Council' : 'Community'} power · {selectedMintName || 'governing token'}
             </Typography>
           </Box>
 
@@ -1757,13 +1794,50 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
         </Box>
 
         <DialogContent sx={contentSX}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' },
+              gap: 0.75,
+              mb: 1.25,
+            }}
+          >
+            {[
+              { label: isVsrMode ? 'Staked' : 'Deposited power', value: deposited },
+              { label: 'Available in wallet', value: inWallet },
+              { label: 'Active vote records', value: unrelinquishedVotesCount.toLocaleString() },
+            ].map((metric) => (
+              <Box key={metric.label} sx={{ px: 1.1, py: 0.9, borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <Typography sx={{ fontSize: 11, opacity: 0.62 }}>{metric.label}</Typography>
+                <Typography sx={{ fontSize: 17, fontWeight: 800, mt: 0.2 }}>{metric.value}</Typography>
+              </Box>
+            ))}
+          </Box>
+
+          <ButtonGroup fullWidth size="small" sx={{ mb: 1.35, '& .MuiButton-root': { textTransform: 'none', py: 0.8 } }}>
+            <Button
+              variant={advancedView === 'power' ? 'contained' : 'outlined'}
+              color={advancedView === 'power' ? 'success' : 'inherit'}
+              onClick={() => setAdvancedView('power')}
+            >
+              Deposit &amp; withdraw
+            </Button>
+            <Button
+              variant={advancedView === 'delegation' ? 'contained' : 'outlined'}
+              color={advancedView === 'delegation' ? 'primary' : 'inherit'}
+              onClick={() => setAdvancedView('delegation')}
+            >
+              Delegation
+            </Button>
+          </ButtonGroup>
+
           <Grid container spacing={1.5}>
             {/* LEFT: Summary */}
-            <Grid item xs={12} md={5}>
+            {advancedView === 'power' && <Grid item xs={12}>
               <Box sx={panelSX}>
                 <Box sx={{ mb: 1 }}>
                     <Typography sx={{ fontSize: 13, fontWeight: 700, opacity: 0.9 }}>
-                    {isVsrMode ? "VSR position" : "Voting power"}
+                    Power details
                   </Typography>
                 </Box>
 
@@ -1785,25 +1859,19 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
 
                 <Box sx={metricRowSX}>
                   <Typography sx={metricLabelSX}>
-                    {isVsrMode ? "Staked" : "Deposited"}
+                    {isVsrMode ? "Unlocked stake" : "Deposited tokens"}
                   </Typography>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Typography sx={metricValueSX}>{deposited}</Typography>
-                    <Tooltip title={isVsrMode ? "Withdraw unlocked" : "Withdraw max"}>
-                      <IconButton
-                        size="small"
-                        onClick={isCouncil ? handleWithdrawCouncilMax : handleWithdrawCommunityMax}
-                        disabled={isVsrMode && vsrWithdrawableAmount <= 0}
-                        sx={{
-                          border: "1px solid rgba(255,255,255,0.10)",
-                          borderRadius: 10,
-                          p: 0.75,
-                        }}
-                      >
-                        <LogoutIcon fontSize="inherit" />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="inherit"
+                    onClick={isCouncil ? handleWithdrawCouncilMax : handleWithdrawCommunityMax}
+                    disabled={(isVsrMode && vsrWithdrawableAmount <= 0) || (!isVsrMode && unrelinquishedVotesCount > 0)}
+                    startIcon={<LogoutIcon fontSize="inherit" />}
+                    sx={{ borderRadius: '9px', textTransform: 'none' }}
+                  >
+                    Withdraw {isVsrMode ? withdrawableDisplay : deposited}
+                  </Button>
                 </Box>
 
                 {isVsrMode && (
@@ -1820,15 +1888,40 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                   </Box>
                 )}
 
-                <Box sx={metricRowSX}>
-                  <Typography sx={metricLabelSX}>Unrelinquished votes</Typography>
-                  <Typography sx={metricValueSX}>{unrelinquishedVotesCount.toLocaleString()}</Typography>
-                </Box>
-
-                {hasAvailable && (
-                  <Box sx={metricRowSX}>
-                    <Typography sx={metricLabelSX}>In wallet</Typography>
-                    <Typography sx={metricValueSX}>{inWallet}</Typography>
+                {!isVsrMode && unrelinquishedVotesCount > 0 && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: { xs: 'flex-start', sm: 'center' },
+                      justifyContent: 'space-between',
+                      flexDirection: { xs: 'column', sm: 'row' },
+                      gap: 1,
+                      mt: 1,
+                      px: 1.1,
+                      py: 1,
+                      borderRadius: '10px',
+                      bgcolor: 'rgba(255,184,77,0.055)',
+                      border: '1px solid rgba(255,184,77,0.18)',
+                    }}
+                  >
+                    <Box>
+                      <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,211,145,0.96)' }}>
+                        {unrelinquishedVotesCount.toLocaleString()} vote record{unrelinquishedVotesCount === 1 ? '' : 's'} lock withdrawal
+                      </Typography>
+                      <Typography sx={{ fontSize: 10.5, lineHeight: 1.4, opacity: 0.68, mt: 0.2 }}>
+                        Clear settled records and remove any votes still in progress.
+                      </Typography>
+                    </Box>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="warning"
+                      startIcon={<HowToVoteIcon fontSize="inherit" />}
+                      onClick={() => setConfirmRelinquishOpen(true)}
+                      sx={{ borderRadius: '9px', textTransform: 'none', whiteSpace: 'nowrap' }}
+                    >
+                      Relinquish votes
+                    </Button>
                   </Box>
                 )}
 
@@ -1853,10 +1946,10 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                   />
                 </Box>
               </Box>
-            </Grid>
+            </Grid>}
 
             {/* RIGHT: Delegation (everything in one cohesive block) */}
-            <Grid item xs={12} md={7}>
+            {advancedView === 'delegation' && <Grid item xs={12}>
               <Box sx={panelSX}>
                 <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
                   <Typography sx={{ fontSize: 13, fontWeight: 800 }}>Delegation</Typography>
@@ -1927,52 +2020,24 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                       placeholder="Enter delegate address"
                       onChange={handleSetDelegateStr}
                       sx={{
-                        borderRadius: 12,
+                        borderRadius: '10px',
                         width: "100%",
                         "& input": { fontSize: 13 },
                       }}
-                      endAdornment={
-                        <InputAdornment position="end">
-                          <Tooltip title={disableSave ? "Enter a valid new address" : "Save delegate"}>
-                            <span>
-                              <IconButton
-                                aria-label="Save Delegate"
-                                onClick={handleClickSetDelegate}
-                                edge="end"
-                                color="success"
-                                disabled={disableSave}
-                                sx={{
-                                  borderRadius: 10,
-                                  border: "1px solid rgba(255,255,255,0.10)",
-                                  ml: 0.5,
-                                }}
-                              >
-                                <SaveIcon />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        </InputAdornment>
-                      }
                     />
                   </Grid>
 
                   <Grid item xs={12}>
                     <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => setDelegatedStr(currentDelegate || null)}
-                        disabled={!currentDelegate}
-                        sx={{ borderRadius: 10, textTransform: "none" }}
-                      >
-                        Use current
+                      <Button size="small" variant="contained" color="primary" onClick={handleClickSetDelegate} disabled={disableSave} sx={{ borderRadius: '9px', textTransform: "none" }}>
+                        Save delegation
                       </Button>
                       <Button
                         size="small"
                         variant="outlined"
                         onClick={() => setDelegatedStr(null)}
                         disabled={!delegatedStr}
-                        sx={{ borderRadius: 10, textTransform: "none" }}
+                        sx={{ borderRadius: '9px', textTransform: "none" }}
                       >
                         Clear
                       </Button>
@@ -1987,75 +2052,62 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                   </Grid>
                 </Grid>
               </Box>
-            </Grid>
+            </Grid>}
 
-            {/* Incoming delegations (make it optional & compact) */}
-            {(currentCommunityDelegateFrom && !isCouncil) && (
+            {advancedView === 'delegation' && incomingDelegateAddress && (
               <Grid item xs={12}>
-                <Accordion
+                <Box
                   sx={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                    borderRadius: 6,
-                    "&:before": { display: "none" },
-                    overflow: "hidden",
+                    borderRadius: '14px',
+                    border: '1px solid rgba(96,165,250,0.16)',
+                    background: 'linear-gradient(135deg, rgba(38,74,112,0.2) 0%, rgba(255,255,255,0.025) 62%)',
+                    p: { xs: 1.1, sm: 1.35 },
                   }}
-                  defaultExpanded={false}
                 >
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
-                      Incoming delegations — Community
-                    </Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <ExplorerView
-                      address={currentCommunityDelegateFrom}
-                      title={`${fmt(currentCommunityDelegateFromAmount, walletDecimals)} — from: ${currentCommunityDelegateFrom.slice(0, 4)}...${currentCommunityDelegateFrom.slice(-4)}`}
-                      type="address"
-                      shorten={4}
-                      style="text"
-                      color="white"
-                      fontSize="12px"
-                    />
-                  </AccordionDetails>
-                </Accordion>
-              </Grid>
-            )}
-
-            {(currentCouncilDelegateFrom && isCouncil) && (
-              <Grid item xs={12}>
-                <Accordion
-                  sx={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                    borderRadius: 6,
-                    "&:before": { display: "none" },
-                    overflow: "hidden",
-                  }}
-                  defaultExpanded={false}
-                >
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
-                      Incoming delegations — Council
-                    </Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <ExplorerView
-                      address={currentCouncilDelegateFrom}
-                      title={`${fmt(currentCouncilDelegateFromAmount, walletDecimals)} — from: ${currentCouncilDelegateFrom.slice(0, 4)}...${currentCouncilDelegateFrom.slice(-4)}`}
-                      type="address"
-                      shorten={4}
-                      style="text"
-                      color="white"
-                      fontSize="12px"
-                    />
-                  </AccordionDetails>
-                </Accordion>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1, mb: 1 }}>
+                    <Box>
+                      <Typography sx={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.55, color: 'rgba(147,197,253,0.86)' }}>
+                        Incoming voting power
+                      </Typography>
+                      <Typography sx={{ fontSize: 13, fontWeight: 750, mt: 0.2 }}>
+                        Delegated to you
+                      </Typography>
+                    </Box>
+                    <Box sx={{ px: 0.85, py: 0.35, borderRadius: '8px', bgcolor: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.14)' }}>
+                      <Typography sx={{ fontSize: 11, color: 'rgba(191,219,254,0.9)' }}>
+                        {isCouncil ? 'Council' : 'Community'}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'minmax(0, 1fr) auto' }, alignItems: 'center', gap: 1, p: 1, borderRadius: '11px', bgcolor: 'rgba(0,0,0,0.16)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography sx={{ fontSize: 11, opacity: 0.58 }}>Delegated by</Typography>
+                      <ExplorerView
+                        address={incomingDelegateAddress}
+                        title={`${incomingDelegateAddress.slice(0, 6)}...${incomingDelegateAddress.slice(-6)}`}
+                        type="address"
+                        shorten={6}
+                        style="text"
+                        color="white"
+                        fontSize="12px"
+                      />
+                    </Box>
+                    <Box sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
+                      <Typography sx={{ fontSize: 11, opacity: 0.58 }}>Power received</Typography>
+                      <Typography sx={{ fontSize: 18, fontWeight: 800, color: 'rgba(219,234,254,0.98)' }}>
+                        {fmt(incomingDelegateAmount, walletDecimals)}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography sx={{ fontSize: 11, lineHeight: 1.45, opacity: 0.62, mt: 0.8 }}>
+                    This power is added when you vote, but the delegator keeps ownership of their deposited tokens.
+                  </Typography>
+                </Box>
               </Grid>
             )}
 
             {/* Amount + Deposit actions (compact single row) */}
-            {hasAvailable && (
+            {advancedView === 'power' && hasAvailable && (
               <Grid item xs={12}>
                 <Box
                   sx={{
@@ -2118,7 +2170,7 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
               </Grid>
             )}
 
-            {isVsrMode && vsrDeposits.length > 0 && (
+            {advancedView === 'power' && isVsrMode && vsrDeposits.length > 0 && (
               <Grid item xs={12}>
                 <Box sx={panelSX}>
                   <Typography sx={{ fontSize: 13, fontWeight: 800, mb: 1 }}>
@@ -2147,6 +2199,51 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
             )}
           </Grid>
         </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={confirmRelinquishOpen}
+        onClose={isRelinquishing ? undefined : () => setConfirmRelinquishOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            bgcolor: '#151821',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '14px',
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontSize: 17, fontWeight: 800, pb: 0.75 }}>
+          Relinquish {unrelinquishedVotesCount.toLocaleString()} vote{unrelinquishedVotesCount === 1 ? '' : 's'}?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ fontSize: 12.5, lineHeight: 1.55, color: 'rgba(255,255,255,0.7)' }}>
+            Finished proposal records will be safely closed. If any proposal is still voting,
+            your vote will be removed from its current result. This cannot be undone, although
+            you may be able to vote again while voting remains open.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.25 }}>
+          <Button
+            color="inherit"
+            disabled={isRelinquishing}
+            onClick={() => setConfirmRelinquishOpen(false)}
+            sx={{ textTransform: 'none' }}
+          >
+            Keep votes
+          </Button>
+          <Button
+            variant="contained"
+            color="warning"
+            disabled={isRelinquishing}
+            onClick={handleRelinquishVotes}
+            startIcon={isRelinquishing ? <CircularProgress size={14} color="inherit" /> : <HowToVoteIcon />}
+            sx={{ textTransform: 'none', borderRadius: '9px' }}
+          >
+            {isRelinquishing ? 'Relinquishing…' : 'Relinquish and unlock'}
+          </Button>
+        </DialogActions>
       </Dialog>
     </>
   );
