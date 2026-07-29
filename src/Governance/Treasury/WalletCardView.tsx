@@ -427,6 +427,10 @@ export default function WalletCardView(props:any) {
     const [proposals, setProposals] = React.useState(null);
     const [nativeStakeAccounts, setNativeStakeAccounts] = React.useState(null);
     const [rulesStakeAccounts, setRulesStakeAccounts] = React.useState(null);
+    const [loadingStake, setLoadingStake] = React.useState(false);
+    const [stakeLoaded, setStakeLoaded] = React.useState(false);
+    const [stakeFetchFailed, setStakeFetchFailed] = React.useState(false);
+    const stakeRequestId = React.useRef(0);
     const [totalStableWalletValue, setTotalStableWalletValue] = React.useState(null);
     const [totalWalletValue, setTotalWalletValue] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
@@ -2135,39 +2139,6 @@ export default function WalletCardView(props:any) {
     }
 
 const StakeAccountsView = () => {
-  const [loadingStake, setLoadingStake] = React.useState(false);
-  const [stakeLoaded, setStakeLoaded] = React.useState(false);
-  const [stakeFetchFailed, setStakeFetchFailed] = React.useState(false);
-
-  const fetchStakeAccounts = async (force = false) => {
-    if (!walletAddress) {
-      setNativeStakeAccounts([]);
-      setRulesStakeAccounts([]);
-      setStakeFetchFailed(true);
-      setStakeLoaded(true);
-      setLoadingStake(false);
-      return;
-    }
-    setLoadingStake(true);
-    setStakeLoaded(false);
-    setStakeFetchFailed(false);
-    try {
-      const primaryWalletPk = new PublicKey(walletAddress);
-      const primaryStake = await getWalletStakeAccounts(primaryWalletPk, { force });
-      const normalizedPrimaryStake = Array.isArray(primaryStake) ? primaryStake : [];
-
-      setNativeStakeAccounts(normalizedPrimaryStake);
-      setRulesStakeAccounts([]);
-    } catch (e) {
-      setNativeStakeAccounts([]);
-      setRulesStakeAccounts([]);
-      setStakeFetchFailed(true);
-    } finally {
-      setStakeLoaded(true);
-      setLoadingStake(false);
-    }
-  };
-
   const handleAddressCopy = () => setIsCopied(true);
   const nativeStake = Array.isArray(nativeStakeAccounts) ? nativeStakeAccounts : [];
   const rulesStake = Array.isArray(rulesStakeAccounts) ? rulesStakeAccounts : [];
@@ -2176,11 +2147,6 @@ const StakeAccountsView = () => {
     ...rulesStake.map((item: any) => ({ ...item, __walletSource: "Governance Wallet Fallback" })),
   ];
   const isStakeLoading = loadingStake || !stakeLoaded;
-
-  React.useEffect(() => {
-    fetchStakeAccounts(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <>
@@ -2568,8 +2534,12 @@ const StakeAccountsView = () => {
         if (!isLoading.current) {    
             if (walletAddress && rulesWalletAddress){
                 console.log("rulesWallet: "+JSON.stringify(rulesWallet))
+                stakeRequestId.current += 1;
                 setNativeStakeAccounts(null);
                 setRulesStakeAccounts(null);
+                setLoadingStake(false);
+                setStakeLoaded(false);
+                setStakeFetchFailed(false);
                 getWalletBalances();
             }
         }
@@ -2586,8 +2556,45 @@ const StakeAccountsView = () => {
         setExpandedNFTs(!expandedNFTs);
     }
 
+    const fetchTreasuryStakeAccounts = async (force = false) => {
+        const requestId = ++stakeRequestId.current;
+        if (!walletAddress) {
+            setNativeStakeAccounts([]);
+            setRulesStakeAccounts([]);
+            setStakeFetchFailed(true);
+            setStakeLoaded(true);
+            setLoadingStake(false);
+            return;
+        }
+
+        setLoadingStake(true);
+        setStakeFetchFailed(false);
+        try {
+            const primaryWalletPk = new PublicKey(walletAddress);
+            const primaryStake = await getWalletStakeAccounts(primaryWalletPk, { force });
+            if (requestId !== stakeRequestId.current) return;
+            setNativeStakeAccounts(Array.isArray(primaryStake) ? primaryStake : []);
+            setRulesStakeAccounts([]);
+        } catch (error) {
+            if (requestId !== stakeRequestId.current) return;
+            console.error('Stake account lookup failed', error);
+            setNativeStakeAccounts([]);
+            setRulesStakeAccounts([]);
+            setStakeFetchFailed(true);
+        } finally {
+            if (requestId === stakeRequestId.current) {
+                setStakeLoaded(true);
+                setLoadingStake(false);
+            }
+        }
+    };
+
     const handleExpandStakeClick = () => {
-        setExpandedStake(!expandedStake);
+        const willExpand = !expandedStake;
+        setExpandedStake(willExpand);
+        if (willExpand && !loadingStake && !stakeLoaded) {
+            void fetchTreasuryStakeAccounts(false);
+        }
     }
     const handleExpandPropsClick = () => {
         setExpandedProps(!expandedProps);
