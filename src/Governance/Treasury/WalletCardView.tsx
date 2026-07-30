@@ -39,6 +39,7 @@ import {
     getShyftKey,
     RPC_CONNECTION,
     HELIUS_API,
+    HELIUS_RPC_ENDPOINTS,
     QUICKNODE_RPC_ENDPOINT,
 } from '../../utils/grapeTools/constants';
 
@@ -336,11 +337,49 @@ const fetchStakeAccountsByAuthorityShyft = async (wallet: PublicKey): Promise<an
 };
 
 const fetchStakeAccountsForWallet = async (wallet: PublicKey): Promise<any[]> => {
-    return await withTimeout(
-        fetchStakeAccountsByAuthorityRpc(RPC_CONNECTION, wallet),
-        STAKE_LOOKUP_TIMEOUT_MS + 2_000,
-        'RPC stake lookup'
-    );
+    const endpoints = [
+        ...HELIUS_RPC_ENDPOINTS,
+        RPC_CONNECTION?.rpcEndpoint,
+        QUICKNODE_RPC_ENDPOINT,
+    ]
+        .map((endpoint) => String(endpoint || '').trim())
+        .filter(Boolean)
+        .filter((endpoint, index, all) => all.indexOf(endpoint) === index);
+
+    const failures: string[] = [];
+    for (const endpoint of endpoints) {
+        const provider =
+            endpoint === RPC_CONNECTION?.rpcEndpoint
+                ? RPC_CONNECTION
+                : new Connection(endpoint, 'confirmed');
+        try {
+            return await withTimeout(
+                fetchStakeAccountsByAuthorityRpc(provider, wallet),
+                STAKE_LOOKUP_TIMEOUT_MS + 2_000,
+                `Stake lookup via ${new URL(endpoint).hostname}`
+            );
+        } catch (error: any) {
+            const providerName = (() => {
+                try {
+                    return new URL(endpoint).hostname;
+                } catch {
+                    return 'configured RPC';
+                }
+            })();
+            failures.push(`${providerName}: ${error?.message || String(error)}`);
+            console.warn(`Stake lookup failed via ${providerName}`, error);
+        }
+    }
+
+    // Shyft's wallet endpoint does not rely on getProgramAccounts and is useful
+    // when every configured RPC provider rejects or times out on stake filters.
+    try {
+        return await fetchStakeAccountsByAuthorityShyft(wallet);
+    } catch (error: any) {
+        failures.push(`Shyft wallet API: ${error?.message || String(error)}`);
+    }
+
+    throw new Error(`All stake account sources failed. ${failures.join(' | ')}`);
 };
 
 const getCachedStakeAccountsByAuthority = async (

@@ -13,10 +13,23 @@ export async function fetchStakeAccountsByAuthorityRpc(
   ];
 
   // A treasury may be either the staker, withdrawer, or both.
-  const [stakerAccounts, withdrawerAccounts] = await Promise.all([
+  const [stakerResult, withdrawerResult] = await Promise.allSettled([
     connection.getParsedProgramAccounts(StakeProgram.programId, { filters: filtersForOffset(12) }),
     connection.getParsedProgramAccounts(StakeProgram.programId, { filters: filtersForOffset(44) }),
   ]);
+
+  if (stakerResult.status === 'rejected' && withdrawerResult.status === 'rejected') {
+    throw new Error(
+      `Stake authority queries failed: staker=${String(stakerResult.reason)}; withdrawer=${String(
+        withdrawerResult.reason
+      )}`
+    );
+  }
+
+  // A provider can reject one indexed query while successfully returning the other.
+  // Preserve those partial results and let the caller retry only when both fail.
+  const stakerAccounts = stakerResult.status === 'fulfilled' ? stakerResult.value : [];
+  const withdrawerAccounts = withdrawerResult.status === 'fulfilled' ? withdrawerResult.value : [];
 
   const deduped = new Map<string, any>();
   for (const account of [...stakerAccounts, ...withdrawerAccounts]) {
