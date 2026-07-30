@@ -16,9 +16,18 @@ export const GRAPE_LOGO = GRAPE_LOGO_ASSET;
 export const CREATOR_LOGO = STATIC_CREATOR_LOGO;
 export const VINE_LOGO = VINE_LOGO_ASSET;
 export const HELIUS_API = process.env.REACT_APP_API_HELIUS || null;
+export const HELIUS_BACKUP_APIS = [
+  process.env.REACT_APP_API_HELIUS_BKP2,
+  process.env.REACT_APP_API_HELIUS_BKP3,
+  process.env.REACT_APP_API_HELIUS_BKP4,
+].filter((key): key is string => !!key);
 export const HELIUS_RPC_ENDPOINT =
   process.env.REACT_APP_API_HELIUS_RPC_ENDPOINT ||
   (HELIUS_API ? `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API}` : null);
+export const HELIUS_RPC_ENDPOINTS = [
+  HELIUS_RPC_ENDPOINT,
+  ...HELIUS_BACKUP_APIS.map((key) => `https://mainnet.helius-rpc.com/?api-key=${key}`),
+].filter((endpoint, index, all): endpoint is string => !!endpoint && all.indexOf(endpoint) === index);
 export const HELIUS_RPC_DEVNET_ENDPOINT =
   process.env.REACT_APP_API_HELIUS_RPC_DEVNET_ENDPOINT ||
   (HELIUS_API ? `https://devnet.helius-rpc.com/?api-key=${HELIUS_API}` : null);
