@@ -338,8 +338,8 @@ const fetchStakeAccountsByAuthorityShyft = async (wallet: PublicKey): Promise<an
 
 const fetchStakeAccountsForWallet = async (wallet: PublicKey): Promise<any[]> => {
     const endpoints = [
-        ...HELIUS_RPC_ENDPOINTS,
         RPC_CONNECTION?.rpcEndpoint,
+        ...HELIUS_RPC_ENDPOINTS,
         QUICKNODE_RPC_ENDPOINT,
     ]
         .map((endpoint) => String(endpoint || '').trim())
