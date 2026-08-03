@@ -31,7 +31,6 @@ export const HELIUS_RPC_ENDPOINTS = [
 export const HELIUS_RPC_DEVNET_ENDPOINT =
   process.env.REACT_APP_API_HELIUS_RPC_DEVNET_ENDPOINT ||
   (HELIUS_API ? `https://devnet.helius-rpc.com/?api-key=${HELIUS_API}` : null);
-export const TX_RPC_ENDPOINT = process.env.REACT_APP_API_TX_RPC_ENDPOINT || HELIUS_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
 export const QUICKNODE_RPC_ENDPOINT = process.env.REACT_APP_API_QUICKNODE_RPC_ENDPOINT;
 export const QUICKNODE_RPC_DEVNET_ENDPOINT = process.env.REACT_APP_API_QUICKNODE_RPC_DEVNET_ENDPOINT;
 export const ALCHEMY_RPC_ENDPOINT = process.env.REACT_APP_API_ALCHEMY_RPC_ENDPOINT;
@@ -44,6 +43,11 @@ export const SHYFT_API_KEY_STORAGE_KEY = 'shyft_api_key';
 export const FLUX_RPC_ENDPOINT = process.env.REACT_APP_API_FLUX_RPC_ENDPOINT || null;
 export const SHYFT_RPC_ENDPOINT = SHYFT_KEY ? `https://rpc.shyft.to/?api_key=${SHYFT_KEY}` : null;
 export const SHYFT_RPC_DEVNET_ENDPOINT = SHYFT_KEY ? `https://devnet-rpc.shyft.to/?api_key=${SHYFT_KEY}` : null;
+export const TX_RPC_ENDPOINT =
+  process.env.REACT_APP_API_TX_RPC_ENDPOINT ||
+  SHYFT_RPC_ENDPOINT ||
+  HELIUS_RPC_ENDPOINT ||
+  'https://api.mainnet-beta.solana.com';
 export type AppCluster = 'mainnet' | 'devnet';
 
 const DEFAULT_RPC_ENDPOINTS: Record<AppCluster, string> = {
@@ -79,17 +83,17 @@ const getLocalStorage = (): Storage | null => {
 
 const RPC_OPTIONS_BY_CLUSTER: Record<AppCluster, Record<string, string | null | undefined>> = {
   mainnet: {
+    SHYFT: SHYFT_RPC_ENDPOINT,
     QUICKNODE: QUICKNODE_RPC_ENDPOINT,
     ALCHEMY: ALCHEMY_RPC_ENDPOINT,
-    SHYFT: SHYFT_RPC_ENDPOINT,
     HELLO_MOON: HELLO_MOON_ENDPOINT,
     HELIUS: HELIUS_RPC_ENDPOINT,
     FLUX: FLUX_RPC_ENDPOINT,
   },
   devnet: {
+    SHYFT: SHYFT_RPC_DEVNET_ENDPOINT,
     QUICKNODE: QUICKNODE_RPC_DEVNET_ENDPOINT,
     ALCHEMY: ALCHEMY_RPC_DEVNET_ENDPOINT,
-    SHYFT: SHYFT_RPC_DEVNET_ENDPOINT,
     HELLO_MOON: HELLO_MOON_DEVNET_ENDPOINT,
     HELIUS: HELIUS_RPC_DEVNET_ENDPOINT,
   },
@@ -168,8 +172,8 @@ export const getPreferredRpc = (cluster: AppCluster = APP_CLUSTER) => {
   const clusterRpcOptions = getRpcOptionsForCluster(cluster);
   const candidates = [
     preferred,
-    clusterRpcOptions.HELIUS,
     clusterRpcOptions.SHYFT,
+    clusterRpcOptions.HELIUS,
     clusterRpcOptions.QUICKNODE,
     clusterRpcOptions.ALCHEMY,
     clusterRpcOptions.HELLO_MOON,
