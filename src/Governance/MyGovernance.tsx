@@ -45,6 +45,7 @@ import {
   findGovOwnerByDao,
   getProposalNewIndexed,
   getRealmIndexed,
+  getAllTokenOwnerRecordsIndexed,
   getTokenOwnerRecordsByOwnerIndexed,
   getVoteRecordsByVoterIndexed,
 } from './api/queries';
@@ -62,6 +63,10 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import HowToVoteIcon from '@mui/icons-material/HowToVote';
+import EditNoteIcon from '@mui/icons-material/EditNote';
+import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import TaskAltIcon from '@mui/icons-material/TaskAlt';
 
 const DEFAULT_GOV_PROGRAM = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 const PROPOSAL_STATE_LABELS: Record<number, string> = {
@@ -278,6 +283,7 @@ export function MyGovernanceView(props: any) {
   const [governanceRecordRows, setGovernanceRecordRows] = React.useState<any[]>([]);
   const [tokenOwnerRecords, setTokenOwnerRecords] = React.useState<any[]>([]);
   const [createdProposals, setCreatedProposals] = React.useState<any[]>([]);
+  const [allRealmProposals, setAllRealmProposals] = React.useState<any[]>([]);
   const [voteHistoryRows, setVoteHistoryRows] = React.useState<any[]>([]);
   const [snsDomains, setSnsDomains] = React.useState<string[]>([]);
   const [primarySnsDomain, setPrimarySnsDomain] = React.useState('');
@@ -520,13 +526,15 @@ export function MyGovernanceView(props: any) {
         unrelinquishedVotesCount: toNumberSafe(record.account?.unrelinquishedVotesCount),
         outstandingProposalCount: toNumberSafe(record.account?.outstandingProposalCount),
         governanceDelegate: delegate,
+        authorityRole:
+          toBase58Safe(record?.account?.governingTokenOwner) === pubkey ? 'owner' : 'delegate',
         details: realmPk,
       };
     });
 
     rows.sort((a, b) => b.governingTokenDepositAmountRaw - a.governingTokenDepositAmountRaw);
     return rows;
-  }, []);
+  }, [pubkey]);
 
   const buildRealmProposalSet = React.useCallback(async (ownerRecords: any[]) => {
     const proposalByPk = new Map<string, any>();
@@ -553,7 +561,8 @@ export function MyGovernanceView(props: any) {
         .filter(Boolean) as string[];
 
       if (!governancePubkeys.length) return [];
-      return getAllProposalsIndexed(governancePubkeys, DEFAULT_GOV_PROGRAM, realmPk);
+      const proposals = await getAllProposalsIndexed(governancePubkeys, DEFAULT_GOV_PROGRAM, realmPk);
+      return (proposals || []).map((proposal: any) => ({ ...proposal, __realmPk: realmPk }));
     });
 
     const realmProposalBatches = await Promise.all(realmQueries);
@@ -583,14 +592,28 @@ export function MyGovernanceView(props: any) {
       }
     }
 
+    const recordByPk = new Map<string, any>();
+    ownerRecords.forEach((record) => {
+      const recordPk = toBase58Safe(record?.pubkey);
+      if (recordPk) recordByPk.set(recordPk, record);
+    });
+
     const authored = allProposals.filter((proposal) => {
       const tor = proposal?.account?.tokenOwnerRecord?.toBase58?.();
       return tor ? torPubkeySet.has(tor) : false;
+    }).map((proposal) => {
+      const tor = toBase58Safe(proposal?.account?.tokenOwnerRecord);
+      const record = recordByPk.get(tor);
+      return {
+        ...proposal,
+        __authorityRole:
+          toBase58Safe(record?.account?.governingTokenOwner) === pubkey ? 'owner' : 'delegate',
+      };
     });
 
     authored.sort((a, b) => toNumberSafe(b?.account?.draftAt) - toNumberSafe(a?.account?.draftAt));
     return authored;
-  }, []);
+  }, [pubkey]);
 
   const buildVoteHistoryRows = React.useCallback(
     async (walletPk: string, allProposals: any[], participationRows: any[]) => {
@@ -675,7 +698,35 @@ export function MyGovernanceView(props: any) {
         getTokenOwnerRecordsByOwnerIndexed(undefined, DEFAULT_GOV_PROGRAM, owner.toBase58()),
         fetchSnsDomains(owner),
       ]);
-      const normalizedOwnerRecords = ownerRecords || [];
+      const directOwnerRecords = ownerRecords || [];
+      const authorityRecordsByPk = new Map<string, any>();
+      directOwnerRecords.forEach((record: any) => {
+        const recordPk = toBase58Safe(record?.pubkey);
+        if (recordPk) authorityRecordsByPk.set(recordPk, record);
+      });
+
+      // Discover records delegated to this wallet in every realm already associated
+      // with the profile. This lets delegates manage drafts authored by those records.
+      const realmAuthorityTargets = new Map<string, { realmPk: string; programOwner: string }>();
+      directOwnerRecords.forEach((record: any) => {
+        const realmPk = toBase58Safe(record?.account?.realm);
+        const programOwner = toBase58Safe(record?.owner) || DEFAULT_GOV_PROGRAM;
+        if (realmPk) realmAuthorityTargets.set(`${programOwner}:${realmPk}`, { realmPk, programOwner });
+      });
+      const realmAuthorityQueries = Array.from(realmAuthorityTargets.values()).map(async ({ realmPk, programOwner }) => {
+        try {
+          return await getAllTokenOwnerRecordsIndexed(realmPk, programOwner, pubkey);
+        } catch (error) {
+          console.warn(`Delegated authority lookup failed for ${realmPk}`, error);
+          return [];
+        }
+      });
+      const delegatedBatches = await Promise.all(realmAuthorityQueries);
+      delegatedBatches.flat().forEach((record: any) => {
+        const recordPk = toBase58Safe(record?.pubkey);
+        if (recordPk) authorityRecordsByPk.set(recordPk, record);
+      });
+      const normalizedOwnerRecords = Array.from(authorityRecordsByPk.values());
       const domains = sns?.domains || [];
       const primary = sns?.primary || '';
 
@@ -692,6 +743,7 @@ export function MyGovernanceView(props: any) {
       setTokenOwnerRecords(normalizedOwnerRecords);
       setGovernanceRecordRows(rows);
       setCreatedProposals(authoredProposals);
+      setAllRealmProposals(allProposals);
       setVoteHistoryRows(votesCastRows);
       setSnsDomains(domains);
       setPrimarySnsDomain(primary);
@@ -701,6 +753,7 @@ export function MyGovernanceView(props: any) {
       setTokenOwnerRecords([]);
       setGovernanceRecordRows([]);
       setCreatedProposals([]);
+      setAllRealmProposals([]);
       setVoteHistoryRows([]);
       setSnsDomains([]);
       setPrimarySnsDomain('');
@@ -1156,6 +1209,86 @@ export function MyGovernanceView(props: any) {
     };
   }, [voteHistoryRows]);
 
+  const dashboardActions = React.useMemo(() => {
+    const actionByProposal = new Map<string, any>();
+    const managedByPk = new Map<string, any>();
+    createdProposals.forEach((proposal) => {
+      const proposalPk = toBase58Safe(proposal?.pubkey);
+      if (proposalPk) managedByPk.set(proposalPk, proposal);
+    });
+
+    const addAction = (proposal: any, type: 'vote' | 'draft' | 'execute' | 'repair') => {
+      const proposalPk = toBase58Safe(proposal?.pubkey);
+      if (!proposalPk || actionByProposal.has(proposalPk)) return;
+      const realmPk = proposal?.__realmPk || '';
+      const state = toNumberSafe(proposal?.account?.state);
+      const config = {
+        vote: {
+          label: 'Review & vote',
+          context: 'Voting is open',
+          priority: 0,
+          color: 'primary' as const,
+          icon: <HowToVoteIcon fontSize="small" />,
+        },
+        repair: {
+          label: 'Resolve errors',
+          context: 'Execution needs attention',
+          priority: 1,
+          color: 'error' as const,
+          icon: <WarningAmberIcon fontSize="small" />,
+        },
+        execute: {
+          label: 'Execute',
+          context: 'Approved and ready',
+          priority: 2,
+          color: 'success' as const,
+          icon: <PlayCircleOutlineIcon fontSize="small" />,
+        },
+        draft: {
+          label: 'Continue editing',
+          context: 'Draft you manage',
+          priority: 3,
+          color: 'warning' as const,
+          icon: <EditNoteIcon fontSize="small" />,
+        },
+      }[type];
+
+      actionByProposal.set(proposalPk, {
+        id: proposalPk,
+        proposal,
+        proposalPk,
+        realmPk,
+        title: proposal?.account?.name || shortenPk(proposalPk, 6),
+        state,
+        stateLabel: PROPOSAL_STATE_LABELS[state] || 'Unknown',
+        role: proposal?.__authorityRole || (managedByPk.has(proposalPk) ? 'owner' : 'voter'),
+        href: realmPk ? `/proposal/${realmPk}/${proposalPk}` : '',
+        ...config,
+      });
+    };
+
+    allRealmProposals.forEach((proposal) => {
+      if (toNumberSafe(proposal?.account?.state) === 2) addAction(proposal, 'vote');
+    });
+
+    createdProposals.forEach((proposal) => {
+      const state = toNumberSafe(proposal?.account?.state);
+      if (state === 8) addAction(proposal, 'repair');
+      else if (state === 3 || state === 4) addAction(proposal, 'execute');
+      else if (state === 0) addAction(proposal, 'draft');
+    });
+
+    return Array.from(actionByProposal.values()).sort((a, b) => {
+      if (a.priority !== b.priority) return a.priority - b.priority;
+      return toNumberSafe(b?.proposal?.account?.draftAt) - toNumberSafe(a?.proposal?.account?.draftAt);
+    });
+  }, [allRealmProposals, createdProposals]);
+
+  const delegatedManagementCount = React.useMemo(
+    () => createdProposals.filter((proposal) => proposal?.__authorityRole === 'delegate').length,
+    [createdProposals]
+  );
+
   const voteHistoryColumns = React.useMemo<GridColDef[]>(() => {
     return [
       {
@@ -1224,7 +1357,7 @@ export function MyGovernanceView(props: any) {
       },
       {
         field: 'memberType',
-        headerName: 'Role',
+        headerName: 'Membership',
         minWidth: 130,
         renderCell: (params) => {
           const role = params.value as 'council' | 'community' | 'unknown';
@@ -1232,6 +1365,19 @@ export function MyGovernanceView(props: any) {
           if (role === 'community') return <Chip size="small" label="Community" color="success" variant="outlined" />;
           return <Chip size="small" label="Unknown" variant="outlined" />;
         },
+      },
+      {
+        field: 'authorityRole',
+        headerName: 'Authority',
+        minWidth: 130,
+        renderCell: (params) => (
+          <Chip
+            size="small"
+            label={params.value === 'delegate' ? 'Delegate' : 'Owner'}
+            color={params.value === 'delegate' ? 'info' : 'default'}
+            variant="outlined"
+          />
+        ),
       },
       {
         field: 'governingTokenDepositAmount',
@@ -1318,7 +1464,7 @@ export function MyGovernanceView(props: any) {
 
                 <Box>
                   <Typography variant="h5" sx={{ lineHeight: 1.1 }}>
-                    Profile
+                    {isOwnProfile ? 'My Governance' : 'Governance Profile'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {!pubkey
@@ -1586,82 +1732,35 @@ export function MyGovernanceView(props: any) {
             ) : null}
 
             <Grid container spacing={1.5}>
-              <Grid item xs={12} sm={6} lg={4}>
+              <Grid item xs={12} md={4}>
                 <InsightCard
-                  title="DAO Participation"
-                  value={profileInsights.daoCount}
-                  hint={`${profileInsights.communityCount} community / ${profileInsights.councilCount} council`}
-                  tooltip="Number of DAOs this wallet currently participates in."
+                  title="Needs Your Action"
+                  value={dashboardActions.length}
+                  hint={`${allRealmProposals.filter((proposal) => toNumberSafe(proposal?.account?.state) === 2).length} open votes across ${profileInsights.daoCount} DAOs`}
+                  tooltip="Voting, draft management, and execution actions currently available to this wallet."
                   accent="#8ec5ff"
                   loading={loadingGovernance}
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6} lg={4}>
+              <Grid item xs={12} md={4}>
                 <InsightCard
-                  title="Deposited Vote Power"
-                  value={formatLocalNumber(profileInsights.totalDeposited, 2)}
-                  hint="Sum of token-owner deposits"
-                  tooltip="Current deposited voting power across all matched token owner records."
-                  accent="#72d38c"
-                  loading={loadingGovernance}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6} lg={4}>
-                <InsightCard
-                  title="Authored Proposals"
-                  value={proposalInsights.total}
-                  hint={`${proposalInsights.active} active / ${proposalInsights.draft} draft`}
-                  tooltip="Proposals authored by this wallet (via its token-owner records)."
+                  title="Drafts You Manage"
+                  value={proposalInsights.draft}
+                  hint={`${delegatedManagementCount} proposal${delegatedManagementCount === 1 ? '' : 's'} managed as delegate`}
+                  tooltip="Draft proposals this wallet can edit as the token owner or governance delegate."
                   accent="#f8bc72"
                   loading={loadingGovernance}
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6} lg={4}>
+              <Grid item xs={12} md={4}>
                 <InsightCard
-                  title="Votes Casted"
-                  value={voteInsights.total}
-                  hint={`Y ${voteInsights.yes} / N ${voteInsights.no} / A ${voteInsights.abstain} on ${voteInsights.uniqueProposals} proposals`}
-                  tooltip="Total recorded votes cast by this wallet and directional breakdown."
-                  progress={voteInsights.yesRate}
-                  accent="#66c7d9"
-                  loading={loadingGovernance}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6} lg={4}>
-                <InsightCard
-                  title="Author Outcomes"
-                  value={`P ${proposalInsights.passed} / D ${proposalInsights.defeated} / V ${proposalInsights.vetoed}`}
-                  hint={`${proposalInsights.cancelled} cancelled`}
-                  tooltip="Outcome breakdown for authored proposals."
-                  accent="#b5d58b"
-                  loading={loadingGovernance}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6} lg={4}>
-                <InsightCard
-                  title="Author Success Rate"
-                  value={proposalInsights.successRate === null ? 'n/a' : `${proposalInsights.successRate.toFixed(1)}%`}
-                  hint="Passed / finalized"
-                  tooltip="Success rate of authored proposals based on finalized proposals."
-                  progress={proposalInsights.successRate}
+                  title="Governance Power"
+                  value={formatLocalNumber(profileInsights.totalDeposited, 2)}
+                  hint={`${profileInsights.totalUnrelinquished} active vote record${profileInsights.totalUnrelinquished === 1 ? '' : 's'}`}
+                  tooltip="Deposited governance power across owner and delegated authority records."
                   accent="#72d38c"
-                  loading={loadingGovernance}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6} lg={4}>
-                <InsightCard
-                  title="Delegation & Commitments"
-                  value={`${profileInsights.delegatedRecords} delegated / ${profileInsights.uniqueDelegateTargets} delegate targets`}
-                  hint={`Unrelinquished ${profileInsights.totalUnrelinquished} | Outstanding ${profileInsights.totalOutstanding}`}
-                  tooltip="Delegation footprint and pending governance commitments."
-                  progress={profileInsights.delegationRate}
-                  accent="#d0a6ff"
                   loading={loadingGovernance}
                 />
               </Grid>
@@ -1670,10 +1769,17 @@ export function MyGovernanceView(props: any) {
         </CardContent>
 
         <Box sx={{ px: { xs: 1, md: 2 }, borderTop: '1px solid', borderColor: 'divider' }}>
-          <Tabs value={tab} onChange={(_, value) => setTab(value)} sx={{ minHeight: 48 }}>
-            <Tab label={`Participation (${profileInsights.daoCount})`} sx={{ minHeight: 48 }} />
-            <Tab label={`Created Proposals (${proposalInsights.total})`} sx={{ minHeight: 48 }} />
-            <Tab label={`Votes Casted (${voteInsights.total})`} sx={{ minHeight: 48 }} />
+          <Tabs
+            value={tab}
+            onChange={(_, value) => setTab(value)}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
+            sx={{ minHeight: 48 }}
+          >
+            <Tab label={`Needs Attention (${dashboardActions.length})`} sx={{ minHeight: 48 }} />
+            <Tab label={`Managed by Me (${proposalInsights.total})`} sx={{ minHeight: 48 }} />
+            <Tab label={`My Participation (${profileInsights.daoCount})`} sx={{ minHeight: 48 }} />
           </Tabs>
         </Box>
       </Card>
@@ -1682,68 +1788,104 @@ export function MyGovernanceView(props: any) {
         {loadingGovernance ? <LinearProgress sx={{ borderRadius: 99, mb: 2 }} /> : null}
 
         {tab === 0 ? (
-          <Card
-            elevation={0}
-            sx={{
-              mt: 2,
-              borderRadius: 4,
-              border: '1px solid',
-              borderColor: 'divider',
-            }}
-          >
-            <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
-              <Typography variant="h6" sx={{ mb: 1 }}>
-                DAO Participation Details
-              </Typography>
+          <Grid container spacing={2} sx={{ mt: 0 }}>
+            <Grid item xs={12} lg={8}>
+              <Card elevation={0} sx={{ borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+                <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.25 }}>
+                    <Box>
+                      <Typography variant="h6">Priority Actions</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Voting, drafts, and execution ordered by urgency
+                      </Typography>
+                    </Box>
+                    <Chip size="small" label={`${dashboardActions.length} open`} color="primary" variant="outlined" />
+                  </Stack>
 
-              <DataGrid
-                rows={governanceRecordRows}
-                columns={governanceColumns}
-                autoHeight
-                pageSizeOptions={[10, 25, 50]}
-                initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
-                disableRowSelectionOnClick
-                slots={{ toolbar: GridToolbar }}
-                slotProps={{
-                  toolbar: {
-                    showQuickFilter: true,
-                    quickFilterProps: { debounceMs: 300 },
-                  },
-                }}
-                sx={{
-                  border: 0,
-                  '& .MuiDataGrid-columnHeaders': {
-                    borderRadius: 2,
-                  },
-                  '& .MuiDataGrid-row': {
-                    borderBottom: '1px solid',
-                    borderColor: 'divider',
-                  },
-                  '& .MuiDataGrid-cell': {
-                    borderBottom: 'none',
-                  },
-                  '& .MuiDataGrid-virtualScroller': {
-                    borderRadius: 2,
-                  },
-                  '& .MuiDataGrid-footerContainer': {
-                    borderTop: '1px solid',
-                    borderColor: 'divider',
-                  },
-                  '& .MuiDataGrid-row:nth-of-type(odd)': {
-                    backgroundColor: 'rgba(255,255,255,0.02)',
-                  },
-                }}
-              />
+                  {loadingGovernance ? (
+                    <Stack spacing={1}><Skeleton height={64} /><Skeleton height={64} /><Skeleton height={64} /></Stack>
+                  ) : dashboardActions.length > 0 ? (
+                    <Stack divider={<Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }} />}>
+                      {dashboardActions.slice(0, 8).map((action) => (
+                        <Stack
+                          key={action.id}
+                          direction={{ xs: 'column', sm: 'row' }}
+                          alignItems={{ xs: 'stretch', sm: 'center' }}
+                          justifyContent="space-between"
+                          spacing={1.25}
+                          sx={{ py: 1.25 }}
+                        >
+                          <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
+                            <Avatar sx={{ width: 36, height: 36, bgcolor: 'rgba(91,155,213,0.14)', color: 'primary.light' }}>
+                              {action.icon}
+                            </Avatar>
+                            <Box sx={{ minWidth: 0 }}>
+                              <Typography sx={{ fontWeight: 700 }} noWrap>{action.title}</Typography>
+                              <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
+                                <Typography variant="caption" color="text.secondary">{action.context}</Typography>
+                                {action.role === 'delegate' ? <Chip size="small" label="Delegate" variant="outlined" /> : null}
+                                <Chip size="small" label={action.stateLabel} variant="outlined" />
+                              </Stack>
+                            </Box>
+                          </Stack>
+                          <Button
+                            href={action.href || undefined}
+                            variant={action.priority === 0 ? 'contained' : 'outlined'}
+                            color={action.color}
+                            disabled={!action.href}
+                            sx={{ borderRadius: 999, whiteSpace: 'nowrap', alignSelf: { xs: 'stretch', sm: 'center' } }}
+                          >
+                            {action.label}
+                          </Button>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Stack alignItems="center" spacing={1} sx={{ py: 5 }}>
+                      <TaskAltIcon color="success" />
+                      <Typography>No governance actions need attention.</Typography>
+                      <Typography variant="caption" color="text.secondary">You're all caught up.</Typography>
+                    </Stack>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
 
-              {!loadingGovernance && profileInsights.daoCount === 0 ? (
-                <Box sx={{ p: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    No DAO participation found for this wallet.
-                  </Typography>
-                </Box>
-              ) : null}
-            </CardContent>
-          </Card>
+            <Grid item xs={12} lg={4}>
+              <Card elevation={0} sx={{ borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+                <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                    <Typography variant="h6">Governance Power</Typography>
+                    <Chip size="small" label={`${profileInsights.daoCount} DAOs`} variant="outlined" />
+                  </Stack>
+                  <Stack divider={<Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }} />}>
+                    {governanceRecordRows.slice(0, 6).map((row) => (
+                      <Stack key={row.id} direction="row" justifyContent="space-between" spacing={1} sx={{ py: 1.1 }}>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>{row.governance}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {row.authorityRole === 'delegate' ? 'Governance delegate' : row.memberType}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ textAlign: 'right' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700 }}>{row.governingTokenDepositAmount}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {row.unrelinquishedVotesCount} active vote{row.unrelinquishedVotesCount === 1 ? '' : 's'}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    ))}
+                  </Stack>
+                  {governanceRecordRows.length === 0 && !loadingGovernance ? (
+                    <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>No governance positions found.</Typography>
+                  ) : null}
+                  <Button fullWidth variant="text" onClick={() => setTab(2)} sx={{ mt: 1, borderRadius: 999 }}>
+                    View participation details
+                  </Button>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
         ) : null}
 
         {tab === 1 ? (
@@ -1764,8 +1906,14 @@ export function MyGovernanceView(props: any) {
                 justifyContent="space-between"
                 sx={{ mb: 1.5 }}
               >
-                <Typography variant="h6">Created Proposals</Typography>
+                <Box>
+                  <Typography variant="h6">Proposals You Manage</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    As token owner or governance delegate
+                  </Typography>
+                </Box>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  <Chip size="small" variant="outlined" label={`Delegated: ${delegatedManagementCount}`} color="info" />
                   <Chip size="small" variant="outlined" label={`Passed: ${proposalInsights.passed}`} color="success" />
                   <Chip size="small" variant="outlined" label={`Defeated: ${proposalInsights.defeated}`} color="error" />
                   <Chip size="small" variant="outlined" label={`Vetoed: ${proposalInsights.vetoed}`} color="warning" />
@@ -1828,7 +1976,12 @@ export function MyGovernanceView(props: any) {
                 justifyContent="space-between"
                 sx={{ mb: 1.5 }}
               >
-                <Typography variant="h6">Vote Cast History</Typography>
+                <Box>
+                  <Typography variant="h6">My Participation</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Governance positions, delegation, and voting history
+                  </Typography>
+                </Box>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   <Chip size="small" variant="outlined" label={`Yes: ${voteInsights.yes}`} color="success" />
                   <Chip size="small" variant="outlined" label={`No: ${voteInsights.no}`} color="error" />
@@ -1836,6 +1989,24 @@ export function MyGovernanceView(props: any) {
                   <Chip size="small" variant="outlined" label={`Unique Proposals: ${voteInsights.uniqueProposals}`} />
                 </Stack>
               </Stack>
+
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Governance positions</Typography>
+              <DataGrid
+                rows={governanceRecordRows}
+                columns={governanceColumns}
+                autoHeight
+                pageSizeOptions={[10, 25, 50]}
+                initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
+                disableRowSelectionOnClick
+                sx={{
+                  border: 0,
+                  mb: 3,
+                  '& .MuiDataGrid-row': { borderBottom: '1px solid', borderColor: 'divider' },
+                  '& .MuiDataGrid-cell': { borderBottom: 'none' },
+                }}
+              />
+
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Vote history</Typography>
 
               <DataGrid
                 rows={voteHistoryRows}
