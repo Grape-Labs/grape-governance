@@ -268,10 +268,21 @@ export function InstructionTableView(props: any) {
     const [ataHelperLoading, setAtaHelperLoading] = React.useState(false);
     const [ataHelperSubmitting, setAtaHelperSubmitting] = React.useState(false);
     const [ataHelperError, setAtaHelperError] = React.useState<string | null>(null);
+    const [selectedInstructionIds, setSelectedInstructionIds] = React.useState<any[]>([]);
+    const [removeBatchDialogOpen, setRemoveBatchDialogOpen] = React.useState(false);
+    const [removingBatch, setRemovingBatch] = React.useState(false);
     const { publicKey, sendTransaction } = useWallet();
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const EXECUTE_ALL_MAX_BATCH_SIZE = 1100;
     const EXECUTE_ALL_MAX_BATCH_INSTRUCTIONS = 4;
+    const REMOVE_MAX_INSTRUCTIONS_PER_TRANSACTION = 6;
+    const canManageDraft = Boolean(
+        publicKey &&
+        state === 0 &&
+        (typeof hasProposalAuthority === 'boolean'
+            ? hasProposalAuthority
+            : proposalAuthor === publicKey.toBase58())
+    );
     
     const findPubkey = (address:string) => {
         try{
@@ -709,23 +720,42 @@ export function InstructionTableView(props: any) {
             )
         }
         
-        // with instructions run a transaction and make it rain!!!
+        // Submit bounded chunks so selecting many rows cannot create an oversized transaction.
         if (instructions && instructions.length > 0){
-            const signature = await createAndSendV0TxInline(instructions);
-            if (signature){
-                enqueueSnackbar(`Transaction Removed from Proposal - ${signature}`,{ variant: 'success' });
-                //pTransaction.add(lookupTableInst);
-                //pTransaction.feePayer = publicKey;
-                
-                if (setReload) 
-                    setReload(true);
-
-            } else{
-                enqueueSnackbar(`Error`,{ variant: 'error' });
+            const chunks: TransactionInstruction[][] = [];
+            for (let index = 0; index < instructions.length; index += REMOVE_MAX_INSTRUCTIONS_PER_TRANSACTION) {
+                chunks.push(instructions.slice(index, index + REMOVE_MAX_INSTRUCTIONS_PER_TRANSACTION));
             }
-            
-            return null;
+
+            let removedCount = 0;
+            try {
+                for (let index = 0; index < chunks.length; index += 1) {
+                    await createAndSendV0TxInline(chunks[index]);
+                    removedCount += chunks[index].length;
+                    if (chunks.length > 1) {
+                        enqueueSnackbar(
+                            `Removed batch ${index + 1} of ${chunks.length}`,
+                            { variant: 'success' }
+                        );
+                    }
+                }
+
+                enqueueSnackbar(
+                    `Removed ${removedCount} instruction${removedCount === 1 ? '' : 's'} from the proposal`,
+                    { variant: 'success' }
+                );
+                setSelectedInstructionIds([]);
+                if (setReload) setReload(true);
+                return removedCount;
+            } catch (error: any) {
+                if (setReload && removedCount > 0) setReload(true);
+                throw new Error(
+                    `${removedCount > 0 ? `${removedCount} instruction${removedCount === 1 ? '' : 's'} removed before the failure. ` : ''}${error?.message || 'Batch removal failed'}`
+                );
+            }
         }
+
+        return 0;
     }
 
 
@@ -1661,7 +1691,7 @@ export function InstructionTableView(props: any) {
             
             renderCell: (params) => {
                 return(// if this is still in draft state
-                    ((typeof hasProposalAuthority === 'boolean' ? hasProposalAuthority : (publicKey && proposalAuthor === publicKey.toBase58())) && state === 0) ?
+                    canManageDraft ?
                         <>
                             <Tooltip title="Remove Transaction &amp; Claim Rent Back">
                                 <IconButton 
@@ -1877,6 +1907,7 @@ export function InstructionTableView(props: any) {
 
     React.useEffect(() => {
         setFailedExecuteKeys([]);
+        setSelectedInstructionIds([]);
     }, [sentProp?.pubkey?.toBase58?.()]);
 
     React.useEffect(() => { 
@@ -1892,6 +1923,26 @@ export function InstructionTableView(props: any) {
     const instructionCsvFilename = `${
         sentProp?.pubkey?.toBase58?.() || 'proposal'
     }_instructions.csv`;
+    const selectedInstructionSets = React.useMemo(() => {
+        const selectedIds = new Set(selectedInstructionIds.map((id) => String(id)));
+        return (Array.isArray(ixRows) ? ixRows : [])
+            .filter((row: any) => selectedIds.has(String(row.id)))
+            .map((row: any) => row.manage)
+            .filter(Boolean);
+    }, [ixRows, selectedInstructionIds]);
+
+    const handleConfirmBatchRemove = async () => {
+        if (!selectedInstructionSets.length || removingBatch) return;
+        setRemovingBatch(true);
+        try {
+            await handleRemoveIx(selectedInstructionSets);
+            setRemoveBatchDialogOpen(false);
+        } catch (error: any) {
+            enqueueSnackbar(error?.message || 'Batch removal failed', { variant: 'error' });
+        } finally {
+            setRemovingBatch(false);
+        }
+    };
 
     return (
         <>
@@ -1907,7 +1958,28 @@ export function InstructionTableView(props: any) {
                 </Tooltip>
             :<></>}
             {ixRows &&
-                <div style={{ width: '100%', position: 'relative' }}>
+                <div
+                    style={{
+                        width: '100%',
+                        position: 'relative',
+                        paddingTop: instructionCsvHref || (canManageDraft && selectedInstructionSets.length > 0) ? 48 : 0,
+                    }}
+                >
+                    {canManageDraft && selectedInstructionSets.length > 0 && (
+                        <Box sx={{ position: 'absolute', top: 8, left: 8, zIndex: 3 }}>
+                            <Button
+                                size="small"
+                                color="error"
+                                variant="contained"
+                                disabled={removingBatch}
+                                onClick={() => setRemoveBatchDialogOpen(true)}
+                                sx={{ borderRadius: '17px', textTransform: 'none' }}
+                            >
+                                <DeleteIcon fontSize="small" sx={{ mr: 0.75 }} />
+                                Remove selected ({selectedInstructionSets.length})
+                            </Button>
+                        </Box>
+                    )}
                     {instructionCsvHref && (
                         <Box
                             sx={{
@@ -1958,12 +2030,55 @@ export function InstructionTableView(props: any) {
                                             sortModel: [{ field: 'index', sort: 'asc' }],
                                         },
                                     }}
+                                    checkboxSelection={canManageDraft}
+                                    disableSelectionOnClick
+                                    selectionModel={selectedInstructionIds}
+                                    onSelectionModelChange={(selection) =>
+                                        setSelectedInstructionIds(Array.from(selection || []))
+                                    }
+                                    isRowSelectable={() => canManageDraft}
                                 />
                         </div>
                     </div>
                     </div>
                 </div>
             }
+            <Dialog
+                open={removeBatchDialogOpen}
+                onClose={removingBatch ? undefined : () => setRemoveBatchDialogOpen(false)}
+                fullWidth
+                maxWidth="xs"
+            >
+                <DialogTitle>Remove selected instructions?</DialogTitle>
+                <DialogContent dividers>
+                    <Typography variant="body2">
+                        This will remove {selectedInstructionSets.length} instruction{selectedInstructionSets.length === 1 ? '' : 's'} from the draft proposal and return each instruction account's rent to your wallet.
+                    </Typography>
+                    {selectedInstructionSets.length > REMOVE_MAX_INSTRUCTIONS_PER_TRANSACTION && (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
+                            The removal will require {Math.ceil(selectedInstructionSets.length / REMOVE_MAX_INSTRUCTIONS_PER_TRANSACTION)} wallet approvals to keep each transaction within size limits.
+                        </Typography>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        color="inherit"
+                        disabled={removingBatch}
+                        onClick={() => setRemoveBatchDialogOpen(false)}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        color="error"
+                        variant="contained"
+                        disabled={removingBatch || selectedInstructionSets.length === 0}
+                        onClick={handleConfirmBatchRemove}
+                        startIcon={removingBatch ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
+                    >
+                        {removingBatch ? 'Removing…' : `Remove ${selectedInstructionSets.length}`}
+                    </Button>
+                </DialogActions>
+            </Dialog>
             <Dialog
                 open={ataHelperDialogOpen}
                 onClose={ataHelperSubmitting ? undefined : closeAtaHelperDialog}
