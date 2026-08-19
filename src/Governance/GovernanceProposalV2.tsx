@@ -171,6 +171,12 @@ function trimAddress(addr: string) {
 }
 
 const SUPPLY_FRACTION_BASE = new BN('10000000000');
+const GRAPE_DAO_REALM = 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip';
+const GRAPE_DAO_BLOCKED_PROPOSALS = new Set([
+    '8Yqk5bm4eapyD9hkTkqTbvFMdhQaV4k185EKqgTYU1aV',
+    '4NKKrvEQiXKrKWubvwcE883Wffsx38JV7bPckXMtamb1',
+]);
+const GRAPE_DAO_LARGE_TRANSFER_COUNT = 5;
 
 function toNumberOrNull(value: any): number | null {
     const n = Number(value);
@@ -604,6 +610,45 @@ export function GovernanceProposalV2View(props: any){
             : '';
         return `${powerLabel}${vetoLabel}`;
     }, [authorVotingMeta, isFlaggedMaliciousAuthor, authorVetoedProposalCount]);
+
+    const grapeDaoSafetySignals = React.useMemo(() => {
+        const realmAddress = normalizePkString(realm?.pubkey) || normalizePkString(governanceAddress);
+        const proposalAddress = normalizePkString(thisitem?.pubkey) || normalizePkString(proposalPk);
+        const isGrapeDao = realmAddress === GRAPE_DAO_REALM || governanceAddress === GRAPE_DAO_REALM;
+        const descriptionLink = `${thisitem?.account?.descriptionLink || ''}`.trim();
+        let descriptionHost = '';
+        try {
+            const descriptionUrl = descriptionLink.match(/https?:\/\/[^\s<>'\"]+/i)?.[0] || '';
+            descriptionHost = descriptionUrl ? new URL(descriptionUrl).hostname.toLowerCase() : '';
+        } catch {
+            descriptionHost = '';
+        }
+
+        const currentVoters = new Set<string>();
+        (Array.isArray(solanaVotingResultRows) ? solanaVotingResultRows : []).forEach((row: any) => {
+            const voter = normalizePkString(row?.governingTokenOwner);
+            if (voter) currentVoters.add(voter);
+        });
+        const historicalVoters = new Set<string>();
+        (Array.isArray(cachedGovernance) ? cachedGovernance : []).forEach((cachedProposal: any) => {
+            const cachedProposalAddress = normalizePkString(cachedProposal?.pubkey);
+            if (cachedProposalAddress && cachedProposalAddress === proposalAddress) return;
+            (Array.isArray(cachedProposal?.votingResults) ? cachedProposal.votingResults : []).forEach((vote: any) => {
+                const voter = normalizePkString(vote?.governingTokenOwner || vote?.account?.governingTokenOwner);
+                if (voter) historicalVoters.add(voter);
+            });
+        });
+        const firstTimeVoters = Array.from(currentVoters).filter((voter) => !historicalVoters.has(voter));
+
+        return {
+            isGrapeDao,
+            isBlockedProposal: isGrapeDao && !!proposalAddress && GRAPE_DAO_BLOCKED_PROPOSALS.has(proposalAddress),
+            usesIrysDescription: isGrapeDao && descriptionHost.endsWith('irys.xyz'),
+            descriptionHost,
+            firstTimeVoters,
+            hasComparableVoteHistory: isGrapeDao && Array.isArray(cachedGovernance) && cachedGovernance.length > 1,
+        };
+    }, [realm, governanceAddress, thisitem, proposalPk, solanaVotingResultRows, cachedGovernance, normalizePkString]);
 
 
     const [snack, setSnack] = React.useState({ open: false, msg: "" });
@@ -4305,6 +4350,18 @@ export function GovernanceProposalV2View(props: any){
                 addFinding('medium', 'Destination verification pending', 'DAO-member destination verification has not returned a result for these transfers.');
             }
         }
+        if (grapeDaoSafetySignals.isBlockedProposal) {
+            addFinding('critical', 'Known malicious Grape DAO proposal', 'This proposal has been explicitly blocked by Grape DAO maintainers. Do not vote for or execute it without independent verification from established DAO channels.');
+        }
+        if (grapeDaoSafetySignals.usesIrysDescription) {
+            addFinding('high', 'Unexpected Grape DAO description source', `The description is hosted on ${grapeDaoSafetySignals.descriptionHost || 'Irys'}, while established Grape DAO proposals use GitHub. Treat the text as untrusted and verify it against official DAO channels.`);
+        }
+        if (grapeDaoSafetySignals.isGrapeDao && transferDetails.length >= GRAPE_DAO_LARGE_TRANSFER_COUNT) {
+            addFinding('high', 'Unusually broad asset movement for Grape DAO', `${transferDetails.length} decoded transfers meet the Grape DAO large-plan warning threshold of ${GRAPE_DAO_LARGE_TRANSFER_COUNT}. Review every asset, amount, and destination before voting or executing.`);
+        }
+        if (grapeDaoSafetySignals.hasComparableVoteHistory && grapeDaoSafetySignals.firstTimeVoters.length > 0) {
+            addFinding('high', 'Voters with no prior Grape DAO history', `${grapeDaoSafetySignals.firstTimeVoters.length} current voter${grapeDaoSafetySignals.firstTimeVoters.length === 1 ? '' : 's'} do not appear in the loaded history of earlier Grape DAO proposals. This indicates new participation, but does not by itself prove when tokens were acquired.`);
+        }
         if (/closeaccount|close token account|withdrawnonceaccount/.test(detailText)) {
             addFinding('medium', 'Account closure or balance withdrawal', 'A decoded instruction closes an account or withdraws its remaining balance.');
         }
@@ -4325,7 +4382,20 @@ export function GovernanceProposalV2View(props: any){
         executionReadiness.failedCount,
         instructionTransferDetails,
         verifiedDAODestinationWalletArray,
+        grapeDaoSafetySignals,
     ]);
+    const showProminentSecurityWarning = grapeDaoSafetySignals.isGrapeDao && (
+        grapeDaoSafetySignals.isBlockedProposal ||
+        proposalRiskAssessment.level === 'critical' ||
+        proposalRiskAssessment.level === 'high'
+    );
+
+    React.useEffect(() => {
+        if (showProminentSecurityWarning) {
+            setOpenProposalTools(true);
+            setOpenProposalRiskReview(true);
+        }
+    }, [showProminentSecurityWarning]);
     const governanceConfigDiff = React.useMemo(() => {
         const decodedConfigUpdates: any[] = [];
         proposalTransactionRows.forEach((row: any) => {
@@ -6360,6 +6430,44 @@ export function GovernanceProposalV2View(props: any){
                             
 
                         </Grid>
+
+                        {showProminentSecurityWarning && (
+                            <Box
+                                role="alert"
+                                sx={{
+                                    mb: 1.5,
+                                    p: { xs: 1.15, sm: 1.4 },
+                                    borderRadius: '16px',
+                                    border: '1px solid rgba(255,82,82,0.72)',
+                                    bgcolor: 'rgba(95,20,28,0.76)',
+                                    boxShadow: '0 0 0 1px rgba(255,82,82,0.12) inset, 0 14px 34px rgba(0,0,0,0.28)',
+                                }}
+                            >
+                                <Stack direction="row" spacing={1} alignItems="flex-start">
+                                    <WarningAmberIcon sx={{ color: '#ff8d85', mt: 0.15 }} />
+                                    <Box>
+                                        <Typography variant="h6" sx={{ color: '#fff1f0', fontWeight: 800, lineHeight: 1.2 }}>
+                                            {grapeDaoSafetySignals.isBlockedProposal
+                                                ? 'Security warning: known malicious Grape DAO proposal'
+                                                : 'Security warning: this Grape DAO proposal requires careful review'}
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ color: 'rgba(255,232,230,0.86)', mt: 0.45 }}>
+                                            Do not rely on the proposal description alone. Verify every instruction, asset, amount, destination, and voter independently before voting or executing.
+                                        </Typography>
+                                        <Stack spacing={0.25} sx={{ mt: 0.75 }}>
+                                            {proposalRiskAssessment.findings
+                                                .filter((finding) => finding.severity === 'critical' || finding.severity === 'high')
+                                                .slice(0, 4)
+                                                .map((finding) => (
+                                                    <Typography key={`${finding.title}:${finding.evidence}`} variant="caption" sx={{ color: 'rgba(255,235,232,0.88)' }}>
+                                                        • {finding.title}: {finding.evidence}
+                                                    </Typography>
+                                                ))}
+                                        </Stack>
+                                    </Box>
+                                </Stack>
+                            </Box>
+                        )}
 
                         {(proposalInstructions && proposalInstructions.length > 0) &&
                             <>
