@@ -350,6 +350,7 @@ function RenderGovernanceTable(props:any) {
         let voting = 0;
         let draft = 0;
         let passed = 0;
+        let cancelled = 0;
         let defeated = 0;
         let polls = 0;
         let withInstructions = 0;
@@ -374,6 +375,7 @@ function RenderGovernanceTable(props:any) {
             if (state === 2) voting++;
             if (state === 0) draft++;
             if (state === 3 || state === 4 || state === 5) passed++;
+            if (state === 6) cancelled++;
             if (state === 7 || state === 9) defeated++;
             if (isPoll) polls++;
             if (hasInstructions) withInstructions++;
@@ -383,6 +385,7 @@ function RenderGovernanceTable(props:any) {
             voting,
             draft,
             passed,
+            cancelled,
             defeated,
             polls,
             withInstructions,
@@ -606,6 +609,7 @@ function RenderGovernanceTable(props:any) {
                 if (statusFilter === 'voting') return state === 2;
                 if (statusFilter === 'draft') return state === 0;
                 if (statusFilter === 'passed') return state === 3 || state === 4 || state === 5;
+                if (statusFilter === 'cancelled') return state === 6;
                 if (statusFilter === 'defeated') return state === 7 || state === 9;
                 if (statusFilter === 'polls') return isPoll;
                 if (statusFilter === 'instructions') {
@@ -1029,6 +1033,15 @@ function RenderGovernanceTable(props:any) {
                             sx={getFilterButtonSx('passed')}
                         >
                             Passed ({proposalCounters.passed})
+                        </Button>
+                        <Button
+                            size="small"
+                            color="inherit"
+                            variant="outlined"
+                            onClick={() => setStatusFilter('cancelled')}
+                            sx={getFilterButtonSx('cancelled')}
+                        >
+                            Cancelled ({proposalCounters.cancelled})
                         </Button>
                         <Button
                             size="small"
