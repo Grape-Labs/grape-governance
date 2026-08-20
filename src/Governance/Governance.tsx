@@ -338,7 +338,7 @@ function RenderGovernanceTable(props:any) {
     //const [filterState, setFilterState] = React.useState(true);
     const filterState = props.filterState;
     const setFilterState = props.setFilterState;
-    const [statusFilter, setStatusFilter] = React.useState('all');
+    const [statusFilter, setStatusFilter] = React.useState('overview');
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
     const [proposalUniqueVoterCounts, setProposalUniqueVoterCounts] = React.useState<Record<string, { yes: number; no: number; total: number }>>({});
@@ -381,6 +381,7 @@ function RenderGovernanceTable(props:any) {
             if (hasInstructions) withInstructions++;
         }
         return {
+            overview: list.filter((item: any) => ![6, 9].includes(Number(item?.account?.state))).length,
             all: list.length,
             voting,
             draft,
@@ -606,6 +607,7 @@ function RenderGovernanceTable(props:any) {
             scoped = proposals.filter((item: any) => {
                 const state = Number(item?.account?.state);
                 const isPoll = Number(item?.account?.voteType?.type) === 1;
+                if (statusFilter === 'overview') return state !== 6 && state !== 9;
                 if (statusFilter === 'voting') return state === 2;
                 if (statusFilter === 'draft') return state === 0;
                 if (statusFilter === 'passed') return state === 3 || state === 4 || state === 5;
@@ -998,6 +1000,15 @@ function RenderGovernanceTable(props:any) {
                     </Box>
 
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.65, mb: 0.7 }}>
+                        <Button
+                            size="small"
+                            color="inherit"
+                            variant="outlined"
+                            onClick={() => setStatusFilter('overview')}
+                            sx={getFilterButtonSx('overview')}
+                        >
+                            Overview ({proposalCounters.overview})
+                        </Button>
                         <Button
                             size="small"
                             color="inherit"
