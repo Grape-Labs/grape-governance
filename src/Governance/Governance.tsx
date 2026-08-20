@@ -1507,18 +1507,6 @@ function RenderGovernanceTable(props:any) {
                             
                         </StyledTable>
                     </Table>
-                    <Box
-                        display="flex"
-                        justifyContent="flex-end"
-                        sx={{
-                            alignItems:"right",
-                            m:1
-                        }}
-                    >
-                        <FormGroup row>
-                            <FormControlLabel control={<Switch onChange={handleFilterStateChange} size="small" />} label={<><Typography variant="caption">Show Cancelled Proposals</Typography></>} />
-                        </FormGroup>
-                    </Box>
                 </TableContainer>
             </>
         )
@@ -1966,22 +1954,11 @@ export function GovernanceCachedView(props: any) {
             const sortByDraftAtDesc = (a: any, b: any) =>
             ((b.account?.draftAt ?? 0) - (a.account?.draftAt ?? 0));
 
-            if (filterState) {
-            const tmpProps = allProposals
-                .filter((item) => ![6, 9].includes(item.account?.state))
-                .sort(sortByDraftAtDesc);
-
-            console.log("Showing only valid props (excluding executed + vetoed)");
-            setProposals(tmpProps);
-            } else {
             const tmpProps = allProposals
                 .sort(sortByDraftAtDesc);
-
-            console.log("Showing all props");
             setProposals(tmpProps);
-            }
         }
-    }, [cachedGovernance, allProposals, filterState]);
+    }, [cachedGovernance, allProposals]);
     
     // we should have a step 4 where we get the token used and set an icon with the token metadata if available
     /*
