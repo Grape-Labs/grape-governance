@@ -5004,10 +5004,19 @@ export function GovernanceProposalV2View(props: any){
     const totalCastUi = forUi + againstUi;
     const forPct = totalCastUi > 0 ? (forUi / totalCastUi) * 100 : 0;
     const againstPct = totalCastUi > 0 ? (againstUi / totalCastUi) * 100 : 0;
-    const quorumProgressPct =
+    const approvalProgressPct =
         totalQuorum && Number(totalQuorum) > 0
-            ? Math.min((totalCastUi / Number(totalQuorum)) * 100, 100)
+            ? Math.min((forUi / Number(totalQuorum)) * 100, 100)
             : null;
+    const approvalThresholdReached = !!totalQuorum && forUi >= Number(totalQuorum);
+    const forVoteLeads = forUi > againstUi;
+    const isCurrentlyPassing = approvalThresholdReached && forVoteLeads;
+    const minimumVotingUnit = 1 / Math.pow(10, Math.max(0, Number(votingDecimals || 0)));
+    const votesRequiredForThreshold = totalQuorum
+        ? Math.max(0, Number(totalQuorum) - forUi)
+        : 0;
+    const votesRequiredForLead = Math.max(0, againstUi - forUi + minimumVotingUnit);
+    const votesRequiredToPass = Math.max(votesRequiredForThreshold, votesRequiredForLead);
     const formatMetricValue = (value: number) =>
         new Intl.NumberFormat('en-US', {
             minimumFractionDigits: 0,
@@ -5506,10 +5515,10 @@ export function GovernanceProposalV2View(props: any){
                       <Box>
                         <Box sx={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(255,255,255,0.035)', px: 1, py: 0.95, height: '100%' }}>
                           <Typography variant="subtitle2" sx={{ color: 'rgba(234,243,252,0.96)' }}>
-                            Quorum progress
+                            Approval progress
                           </Typography>
                           <Typography variant="caption" sx={{ color: 'rgba(180,192,208,0.76)' }}>
-                            Cast votes compared with the passing threshold
+                            For votes compared with the approval threshold
                           </Typography>
                           <Box
                             sx={{
@@ -5524,20 +5533,42 @@ export function GovernanceProposalV2View(props: any){
                             <Box
                               sx={{
                                 height: '100%',
-                                width: `${Math.max(0, Math.min(quorumProgressPct || 0, 100))}%`,
+                                width: `${Math.max(0, Math.min(approvalProgressPct || 0, 100))}%`,
                                 borderRadius: 999,
-                                background: 'linear-gradient(90deg, rgba(74,167,255,0.98) 0%, rgba(130,211,255,0.98) 100%)',
+                                background: isCurrentlyPassing
+                                  ? 'linear-gradient(90deg, rgba(82,190,128,0.98) 0%, rgba(134,239,172,0.98) 100%)'
+                                  : 'linear-gradient(90deg, rgba(74,167,255,0.98) 0%, rgba(130,211,255,0.98) 100%)',
                               }}
                             />
                           </Box>
                           <Stack direction="row" justifyContent="space-between" sx={{ mt: 0.55 }}>
                             <Typography variant="caption" sx={{ color: 'rgba(194,205,222,0.76)' }}>
-                              {formatMetricValue(totalCastUi)} cast
+                              {formatMetricValue(forUi)} For
                             </Typography>
                             <Typography variant="caption" sx={{ color: 'rgba(194,205,222,0.76)' }}>
                               {totalQuorum ? `${formatMetricValue(Number(totalQuorum))} target` : 'Target pending'}
                             </Typography>
                           </Stack>
+                          {totalQuorum && (
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                display: 'block',
+                                mt: 0.45,
+                                color: isCurrentlyPassing
+                                  ? '#9af0bb'
+                                  : approvalThresholdReached && !forVoteLeads
+                                  ? '#ffb7b7'
+                                  : 'rgba(194,205,222,0.76)',
+                              }}
+                            >
+                              {isCurrentlyPassing
+                                ? 'Currently passing: threshold reached and For leads Against.'
+                                : approvalThresholdReached
+                                ? 'Threshold reached, but the proposal is currently losing to Against.'
+                                : `${formatMetricValue(votesRequiredToPass)} more For vote${votesRequiredToPass === 1 ? '' : 's'} needed to reach the threshold and lead Against.`}
+                            </Typography>
+                          )}
                         </Box>
                       </Box>
                     </Box>
@@ -6063,7 +6094,7 @@ export function GovernanceProposalV2View(props: any){
 
                                                     {governingMintInfo &&
                                                         <>
-                                                            {(totalQuorum && thisitem.account?.state === 2 && thisitem.account?.options && thisitem.account?.options.length === 1 && forVotes) ?
+                                                            {(totalQuorum && thisitem.account?.state === 2 && thisitem.account?.options && thisitem.account?.options.length === 1) ?
                                                                 <Box sx={{ my: 3, mx: 2 }}>
                                                                     <Grid container alignItems="center">
                                                                         <Grid item xs>
@@ -6073,28 +6104,18 @@ export function GovernanceProposalV2View(props: any){
                                                                         </Grid>
                                                                         <Grid item>
                                                                             <Typography gutterBottom variant="body1" component="div">
-                                                                                {(totalQuorum - (forVotes / 10 ** votingDecimals)) > 0 ?
-                                                                                    <>
-                                                                                        {(+(totalQuorum - (forVotes / 10 ** votingDecimals))
-                                                                                            .toFixed(0)).toLocaleString()}
-                                                                                    </>
-                                                                                    :
-                                                                                    <>Passing</>
-                                                                                }
+                                                                                {isCurrentlyPassing
+                                                                                    ? 'Passing'
+                                                                                    : formatMetricValue(votesRequiredToPass)}
                                                                             </Typography>
                                                                         </Grid>
                                                                     </Grid>
                                                                     <Typography color="text.secondary" variant="caption">
-                                                                        {(totalQuorum - (forVotes / 10 ** votingDecimals)) > 0 ?
-                                                                            <>
-                                                                                Remaining votes required for proposal to pass
-                                                                            </>
-                                                                            :
-                                                                            <>
-                                                                                Passing {(+((totalQuorum - (forVotes / 10 ** votingDecimals)) * -1)
-                                                                                    .toFixed(0)).toLocaleString()} over quorum
-                                                                            </>
-                                                                        }
+                                                                        {isCurrentlyPassing
+                                                                            ? `Approval threshold reached; For leads Against by ${formatMetricValue(forUi - againstUi)}.`
+                                                                            : approvalThresholdReached
+                                                                            ? 'Approval threshold reached, but more For votes are required to exceed Against.'
+                                                                            : 'More For votes are required to reach the approval threshold and exceed Against.'}
                                                                     </Typography>
                                                                 </Box>
                                                                 : <></>}
@@ -7305,12 +7326,14 @@ export function GovernanceProposalV2View(props: any){
                                                             {totalQuorum && totalQuorum > 0 &&
                                                                 <Box sx={{ width: '100%' }}>
                                                                     <BorderLinearProgress variant="determinate" 
-                                                                        value={quorumTargetPercentage < 100 ? 100-quorumTargetPercentage : 100} />
-                                                                    {quorumTarget ? 
-                                                                        <Typography variant='caption'>{getFormattedNumberToLocale(formatAmount(quorumTarget))} more votes remaining to reach quorum</Typography>
-                                                                    :
-                                                                        <Typography variant='caption'>Quorum Reached <CheckIcon sx={{fontSize:'10px'}} />  {exceededQuorumPercentage && `${exceededQuorumPercentage.toFixed(1)}% votes exceeded quorum`}</Typography>
-                                                                    }
+                                                                        value={Math.max(0, Math.min(approvalProgressPct || 0, 100))} />
+                                                                    <Typography variant='caption'>
+                                                                        {isCurrentlyPassing
+                                                                            ? <>Currently Passing <CheckIcon sx={{fontSize:'10px'}} /> For leads Against and the approval threshold is reached.</>
+                                                                            : approvalThresholdReached
+                                                                            ? 'Approval threshold reached, but the proposal is currently losing to Against.'
+                                                                            : `${formatMetricValue(votesRequiredToPass)} more For votes needed to reach the threshold and lead Against.`}
+                                                                    </Typography>
                                                                 </Box>
                                                             }
                                                         </>
