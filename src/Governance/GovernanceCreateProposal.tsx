@@ -543,7 +543,7 @@ export default function GovernanceCreateProposalView(props: any){
             null,
             instructionsDataWithHoldUpTime,
             true,
-            null,
+            true,
             editProposalAddress,
             undefined,
             undefined,

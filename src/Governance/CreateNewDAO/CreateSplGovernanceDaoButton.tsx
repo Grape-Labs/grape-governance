@@ -61,7 +61,7 @@ import {
 } from '@mui/material/';
 import { DEFAULT_NFT_VOTER_PLUGIN_V2 } from '../../utils/grapeTools/helpers';
 
-type DaoType = 'multisig' | 'community' | 'nft';
+type DaoType = 'multisig' | 'community' | 'membership' | 'nft';
 
 const GOVERNANCE_PROGRAM_ID = new PublicKey('GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw');
 const PROGRAM_VERSION = 3;
@@ -86,16 +86,22 @@ function parseUniquePublicKeys(input: string, label: string): PublicKey[] {
   return parsed;
 }
 
-export default function CreateSplGovernanceDaoButton() {
+export default function CreateSplGovernanceDaoButton(props: {
+  initialDaoType?: DaoType;
+  initialRealmName?: string;
+  buttonText?: string;
+} = {}) {
+  const initialDaoType = props.initialDaoType || 'multisig';
   const [open, setOpen] = React.useState(false);
-  const [daoType, setDaoType] = React.useState<DaoType>('multisig');
+  const [daoType, setDaoType] = React.useState<DaoType>(initialDaoType);
   const [submitting, setSubmitting] = React.useState(false);
 
-  const [realmName, setRealmName] = React.useState('');
+  const [realmName, setRealmName] = React.useState(props.initialRealmName || '');
   const [minCommunityTokens, setMinCommunityTokens] = React.useState('1');
   const [depositExemptProposalCount, setDepositExemptProposalCount] = React.useState(10);
 
   const [multisigMembers, setMultisigMembers] = React.useState('');
+  const [membershipMembers, setMembershipMembers] = React.useState('');
 
   const [communityMint, setCommunityMint] = React.useState('');
   const [useCouncil, setUseCouncil] = React.useState(false);
@@ -115,20 +121,24 @@ export default function CreateSplGovernanceDaoButton() {
     if (!multisigMembers.trim()) {
       setMultisigMembers(publicKey.toBase58());
     }
-  }, [publicKey, multisigMembers]);
+    if (!membershipMembers.trim()) {
+      setMembershipMembers(publicKey.toBase58());
+    }
+  }, [publicKey, multisigMembers, membershipMembers]);
 
   const resetState = React.useCallback(() => {
-    setDaoType('multisig');
-    setRealmName('');
+    setDaoType(initialDaoType);
+    setRealmName(props.initialRealmName || '');
     setMinCommunityTokens('1');
     setDepositExemptProposalCount(10);
+    setMembershipMembers('');
     setCommunityMint('');
     setUseCouncil(false);
     setCouncilMembers('');
     setNftPluginProgram(DEFAULT_NFT_VOTER_PLUGIN_V2);
     setNftCommunityMint('');
     setCreateInitialTreasury(true);
-  }, []);
+  }, [initialDaoType, props.initialRealmName]);
 
   const closeDialog = () => {
     if (submitting) return;
@@ -280,6 +290,31 @@ export default function CreateSplGovernanceDaoButton() {
       }
 
       await sendAndConfirm(lockIxs);
+    },
+    [publicKey, sendAndConfirm]
+  );
+
+  const transferMintAuthorities = React.useCallback(
+    async (mint: PublicKey, nextAuthority: PublicKey) => {
+      if (!publicKey) throw new Error('Wallet not connected');
+      await sendAndConfirm([
+        createSetAuthorityInstruction(
+          mint,
+          publicKey,
+          AuthorityType.MintTokens,
+          nextAuthority,
+          [],
+          TOKEN_PROGRAM_ID
+        ),
+        createSetAuthorityInstruction(
+          mint,
+          publicKey,
+          AuthorityType.FreezeAccount,
+          nextAuthority,
+          [],
+          TOKEN_PROGRAM_ID
+        ),
+      ]);
     },
     [publicKey, sendAndConfirm]
   );
@@ -439,6 +474,7 @@ export default function CreateSplGovernanceDaoButton() {
       let communityMintPk: PublicKey;
       let councilMintPk: PublicKey | undefined = undefined;
       let councilMembersPks: PublicKey[] = [];
+      let membershipMembersPks: PublicKey[] = [];
 
       let communityTokenConfig: GoverningTokenConfigAccountArgs;
       let councilTokenConfig: GoverningTokenConfigAccountArgs | undefined = undefined;
@@ -500,6 +536,27 @@ export default function CreateSplGovernanceDaoButton() {
           voterWeightAddin: undefined,
           maxVoterWeightAddin: undefined,
         });
+      } else if (daoType === 'membership') {
+        if (!createInitialTreasury) {
+          throw new Error('Membership DAO creation requires an initial governance wallet so mint authority can be transferred to realm governance.');
+        }
+        membershipMembersPks = parseUniquePublicKeys(membershipMembers, 'membership member');
+        if (createInitialTreasury && !membershipMembersPks.some((member) => member.equals(publicKey))) {
+          membershipMembersPks = [publicKey, ...membershipMembersPks];
+        }
+        if (!membershipMembersPks.length) {
+          throw new Error('At least one membership member is required.');
+        }
+        if (membershipMembersPks.length > MAX_MEMBERS) {
+          throw new Error(`Membership DAO currently supports up to ${MAX_MEMBERS} initial members per create flow.`);
+        }
+
+        communityMintPk = await appendNewMintCreation(setupInstructions, setupSigners, 0);
+        communityTokenConfig = new GoverningTokenConfigAccountArgs({
+          tokenType: GoverningTokenType.Membership,
+          voterWeightAddin: undefined,
+          maxVoterWeightAddin: undefined,
+        });
       } else {
         const nftPlugin = nftPluginProgram.trim();
         const nftPluginPk = nftPlugin ? new PublicKey(nftPlugin) : undefined;
@@ -518,7 +575,7 @@ export default function CreateSplGovernanceDaoButton() {
         });
       }
 
-      if (createInitialTreasury && !councilMintPk) {
+      if (createInitialTreasury && !councilMintPk && daoType !== 'membership') {
         const creatorCommunityAta = await getAssociatedTokenAddress(
           communityMintPk,
           publicKey,
@@ -568,6 +625,9 @@ export default function CreateSplGovernanceDaoButton() {
       if (councilMintPk && councilMembersPks.length > 0) {
         await mintMembershipTokens(councilMintPk, councilMembersPks);
       }
+      if (daoType === 'membership' && membershipMembersPks.length > 0) {
+        await mintMembershipTokens(communityMintPk, membershipMembersPks);
+      }
 
       let treasuryInfo: { governancePk: PublicKey; nativeTreasuryPk: PublicKey } | null = null;
       if (createInitialTreasury) {
@@ -578,6 +638,10 @@ export default function CreateSplGovernanceDaoButton() {
           daoType
         );
         await transferRealmAuthorityToGovernance(realmPk, treasuryInfo.governancePk);
+      }
+
+      if (daoType === 'membership' && treasuryInfo) {
+        await transferMintAuthorities(communityMintPk, treasuryInfo.governancePk);
       }
 
       if (createdMintsToLock.length > 0) {
@@ -616,6 +680,11 @@ export default function CreateSplGovernanceDaoButton() {
       caption: 'Use an existing community mint and optionally add a council layer.',
       accent: 'rgba(94,201,143,0.18)',
     },
+    membership: {
+      label: 'Membership DAO',
+      caption: 'Create a new realm with non-withdrawable, realm-controlled community membership tokens.',
+      accent: 'rgba(186,139,255,0.18)',
+    },
     nft: {
       label: 'NFT DAO',
       caption: 'Set up NFT-gated governance with the configured voter plugin.',
@@ -642,7 +711,7 @@ export default function CreateSplGovernanceDaoButton() {
         startIcon={<AddCircleOutlineIcon fontSize="small" />}
         onClick={() => setOpen(true)}
       >
-        Create DAO
+        {props.buttonText || 'Create DAO'}
       </Button>
 
       <Dialog
@@ -744,6 +813,12 @@ export default function CreateSplGovernanceDaoButton() {
                 iconPosition="start"
                 value="community"
                 label="Community"
+              />
+              <Tab
+                icon={<GroupsIcon fontSize="small" />}
+                iconPosition="start"
+                value="membership"
+                label="Membership"
               />
               <Tab
                 icon={<CollectionsBookmarkIcon fontSize="small" />}
@@ -872,6 +947,31 @@ export default function CreateSplGovernanceDaoButton() {
                       helperText={`Up to ${MAX_MEMBERS} members in this flow.`}
                     />
                   )}
+                </Stack>
+              </Box>
+            )}
+
+            {daoType === 'membership' && (
+              <Box sx={sectionCardSx}>
+                <Stack spacing={1.5}>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ color: '#f2f6fa', fontWeight: 700 }}>
+                      Initial Community Membership
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'rgba(186,197,210,0.72)', mt: 0.35 }}>
+                      A new zero-decimal community mint is created as Membership. Each listed wallet receives one initial membership token. Deposited membership tokens cannot be withdrawn and may be revoked by the realm authority.
+                    </Typography>
+                  </Box>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    multiline
+                    minRows={4}
+                    label="Initial Member Wallets (one per line)"
+                    value={membershipMembers}
+                    onChange={(e) => setMembershipMembers(e.target.value)}
+                    helperText={`Up to ${MAX_MEMBERS} initial members in this flow. The connected wallet is added when creating an initial treasury.`}
+                  />
                 </Stack>
               </Box>
             )}

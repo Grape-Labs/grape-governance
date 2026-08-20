@@ -52,6 +52,7 @@ import AdvancedProposalView from './AdvancedProposalView';
 import { getGrapeGovernanceProgramVersion } from '../../../utils/grapeTools/helpers';
 import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
 import { getAllTokenOwnerRecordsIndexed, getRealmConfigIndexed } from '../../api/queries';
+import CreateSplGovernanceDaoButton from '../../CreateNewDAO/CreateSplGovernanceDaoButton';
 
 const U64_MAX = '18446744073709551615';
 
@@ -323,6 +324,7 @@ export default function GovernanceConfigView(props: any) {
   const [councilMintDecimals, setCouncilMintDecimals] = React.useState<number>(0);
 
   const [communityTokenType, setCommunityTokenType] = React.useState<GoverningTokenType>(GoverningTokenType.Liquid);
+  const [originalCommunityTokenType, setOriginalCommunityTokenType] = React.useState<GoverningTokenType>(GoverningTokenType.Liquid);
   const [communityVoterWeightAddin, setCommunityVoterWeightAddin] = React.useState<string>('');
   const [communityMaxVoterWeightAddin, setCommunityMaxVoterWeightAddin] = React.useState<string>('');
 
@@ -471,6 +473,7 @@ export default function GovernanceConfigView(props: any) {
     setCouncilMint(council);
     setCommunityMintMaxVoteWeightPct(pct);
     setMinCommunityTokensToCreateGovernance(rawAmountToUiString(minCommunityToCreateGov, communityDecimals));
+    setOriginalCommunityTokenType(GoverningTokenType.Liquid);
 
     try {
       const config = await getRealmConfigIndexed(null, realm?.owner, realm?.pubkey);
@@ -478,7 +481,9 @@ export default function GovernanceConfigView(props: any) {
       const cCfg = config?.account?.councilTokenConfig;
 
       if (commCfg) {
-        setCommunityTokenType(tokenTypeFromConfig(commCfg?.tokenType, GoverningTokenType.Liquid));
+        const configuredCommunityTokenType = tokenTypeFromConfig(commCfg?.tokenType, GoverningTokenType.Liquid);
+        setCommunityTokenType(configuredCommunityTokenType);
+        setOriginalCommunityTokenType(configuredCommunityTokenType);
         setCommunityVoterWeightAddin(toBase58OrEmpty(commCfg?.voterWeightAddin));
         setCommunityMaxVoterWeightAddin(toBase58OrEmpty(commCfg?.maxVoterWeightAddin));
       }
@@ -1080,6 +1085,15 @@ export default function GovernanceConfigView(props: any) {
       const authorityPk = parseRequiredPublicKey(realmAuthority, 'Realm authority');
       const councilMintPk = parseOptionalPublicKey(councilMint);
 
+      if (
+        originalCommunityTokenType !== GoverningTokenType.Membership &&
+        communityTokenType === GoverningTokenType.Membership
+      ) {
+        throw new Error(
+          'SPL Governance does not allow an existing community token to change to Membership because that would give the realm authority power to revoke deposited community tokens.'
+        );
+      }
+
       const base = Number(MintMaxVoteWeightSource.SUPPLY_FRACTION_BASE.toString());
       const pct = Math.max(0, Math.min(100, Number(communityMintMaxVoteWeightPct || 0)));
       const sourceValue = Math.round((pct / 100) * base);
@@ -1115,7 +1129,7 @@ export default function GovernanceConfigView(props: any) {
         ),
         communityTokenConfig,
         councilTokenConfig,
-        undefined
+        authorityPk
       );
 
       const proposal = buildProposalObject(
@@ -1662,10 +1676,40 @@ export default function GovernanceConfigView(props: any) {
                   onChange={(e) => setCommunityTokenType(Number(e.target.value) as GoverningTokenType)}
                 >
                   <MenuItem value={GoverningTokenType.Liquid}>Liquid</MenuItem>
-                  <MenuItem value={GoverningTokenType.Membership}>Membership</MenuItem>
+                  <MenuItem
+                    value={GoverningTokenType.Membership}
+                    disabled={originalCommunityTokenType !== GoverningTokenType.Membership}
+                  >
+                    Membership
+                  </MenuItem>
                   <MenuItem value={GoverningTokenType.Dormant}>Dormant</MenuItem>
                 </TextField>
               </Grid>
+              {originalCommunityTokenType !== GoverningTokenType.Membership && (
+                <Grid item xs={12}>
+                  <Alert severity="info" sx={{ mb: 1 }}>
+                    SPL Governance permanently blocks changing an existing community token from Liquid or Dormant to Membership. Membership would let the realm authority revoke deposited tokens. Council token types are not subject to this restriction.
+                  </Alert>
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      borderRadius: '14px',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      bgcolor: 'rgba(255,255,255,0.035)',
+                    }}
+                  >
+                    <Typography variant="subtitle2">Safe migration paths</Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.75, mt: 0.5, mb: 1.25 }}>
+                      Create a replacement Membership realm with a new membership mint and initial member distribution, then migrate authorities and treasury through reviewed proposals. If the goal is locked or time-weighted voting while retaining the liquid mint, configure the voter-weight and max-voter-weight add-ins below instead.
+                    </Typography>
+                    <CreateSplGovernanceDaoButton
+                      initialDaoType="membership"
+                      initialRealmName={`${realm?.account?.name || 'DAO'} Membership`}
+                      buttonText="Create Membership Realm"
+                    />
+                  </Box>
+                </Grid>
+              )}
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth

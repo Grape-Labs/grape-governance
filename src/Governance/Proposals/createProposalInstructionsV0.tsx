@@ -2,15 +2,17 @@
 import {
   AddressLookupTableProgram,
   Keypair,
+  PACKET_DATA_SIZE,
   PublicKey,
+  TransactionMessage,
   TransactionInstruction,
+  VersionedTransaction,
 } from '@solana/web3.js'
 import { BN } from '@project-serum/anchor'
 
 import {
-  Governance,
-  ProgramAccount,
   VoteType,
+  getGovernance,
   tryGetRealmConfig,
   withCreateProposal,
   withAddSignatory,
@@ -26,7 +28,6 @@ import { getGrapeGovernanceProgramVersion } from '../../utils/grapeTools/helpers
 import {
   sendTransactionsV3,
   SequenceType,
-  txBatchesToInstructionSetWithSigners,
 } from '../../utils/governanceTools/sendTransactionsV3'
 
 import {
@@ -37,7 +38,6 @@ import {
 } from '../api/queries'
 
 import { chunks } from '../../utils/governanceTools/helpers'
-import { UiInstruction } from '../../utils/governanceTools/proposalCreationTypes'
 import { WalletSigner } from '../../utils/governanceTools/sendTransactions'
 import { sendSignAndConfirmTransactions } from '../../utils/governanceTools/v0_tools/modifiedMangolana'
 import { getVotingPluginWithUpdate } from '../../utils/governanceTools/components/instructions/getVotePlugin'
@@ -59,6 +59,80 @@ export interface InstructionDataWithHoldUpTime {
   prerequisiteInstructionsSigners?: (Keypair | null)[]
 }
 
+type ProposalV0Result = {
+  address: PublicKey
+  transactionSuccess: boolean
+  preview?: boolean
+  transactionInstructions?: ReturnType<typeof buildTransactionBatch>[]
+}
+
+const uniqueKeypairs = (signers: Array<Keypair | null | undefined>) => {
+  const byPublicKey = new Map<string, Keypair>()
+  signers.forEach((signer) => {
+    if (signer?.publicKey) byPublicKey.set(signer.publicKey.toBase58(), signer)
+  })
+  return Array.from(byPublicKey.values())
+}
+
+const requiredSignersForInstructions = (
+  instructions: TransactionInstruction[],
+  candidates: Array<Keypair | null | undefined>
+) => {
+  const required = new Set(
+    instructions.flatMap((instruction) =>
+      instruction.keys
+        .filter((key) => key.isSigner)
+        .map((key) => key.pubkey.toBase58())
+    )
+  )
+  return uniqueKeypairs(candidates).filter((signer) =>
+    required.has(signer.publicKey.toBase58())
+  )
+}
+
+function buildTransactionBatch(
+  instructions: TransactionInstruction[],
+  signerCandidates: Array<Keypair | null | undefined> = []
+) {
+  const signers = requiredSignersForInstructions(instructions, signerCandidates)
+  return {
+    instructionsSet: instructions.map((transactionInstruction, index) => ({
+      transactionInstruction,
+      signers: index === 0 ? signers : [],
+    })),
+    sequenceType: SequenceType.Sequential,
+  }
+}
+
+const uniquePublicKeys = (keys: PublicKey[]) => {
+  const byAddress = new Map<string, PublicKey>()
+  keys.forEach((key) => byAddress.set(key.toBase58(), key))
+  return Array.from(byAddress.values())
+}
+
+const normalizeHoldUpTime = (value: unknown, minimum: number) => {
+  const requested = Number(value)
+  return Number.isFinite(requested)
+    ? Math.max(minimum, Math.floor(requested))
+    : minimum
+}
+
+const transactionNeedsLookupTable = (
+  payer: PublicKey,
+  instructions: TransactionInstruction[]
+) => {
+  try {
+    const message = new TransactionMessage({
+      payerKey: payer,
+      recentBlockhash: PublicKey.default.toBase58(),
+      instructions,
+    }).compileToV0Message()
+    return new VersionedTransaction(message).serialize().length > PACKET_DATA_SIZE
+  } catch {
+    return true
+  }
+}
+
 /* -------------------------------------------------- */
 /* Main Entry                                         */
 /* -------------------------------------------------- */
@@ -73,12 +147,12 @@ export async function createProposalInstructionsV0(
   description: string,
   connection: any,
   _transactionInstr: any,
-  _authTransaction: any,
+  authTransaction: any,
   wallet: WalletSigner,
   _sendTransaction: any,
   instructionsData: InstructionDataWithHoldUpTime[],
   isDraft = false,
-  _returnTx?: boolean,
+  returnTx?: boolean,
   payer: PublicKey = walletPk,
   editAddress?: PublicKey,
   callbacks?: Parameters<typeof sendTransactionsV3>[0]['callbacks'],
@@ -100,7 +174,7 @@ export async function createProposalInstructionsV0(
     governanceAuthority?: PublicKey | null
     signatory?: PublicKey | null
   }
-): Promise<{ address: PublicKey; transactionSuccess: boolean }> {
+): Promise<ProposalV0Result> {
   const programId = new PublicKey(token_realm_program_id)
   const governanceAuthority =
     proposalAuthority?.governanceAuthority || walletPk
@@ -163,12 +237,15 @@ export async function createProposalInstructionsV0(
 
   if (!tokenOwnerRecordPk) throw new Error('TokenOwnerRecord not found')
 
-  const governance = await getGovernanceIndexed(
+  const indexedGovernance = await getGovernanceIndexed(
     realmPk.toBase58(),
     programId.toBase58(),
     governancePk.toBase58()
   )
-  const proposalIndex = governance?.account?.proposalCount ?? new BN(0)
+  const proposalIndex = indexedGovernance?.account?.proposalCount ?? new BN(0)
+  const governance = await getGovernance(connection, governancePk)
+  const minInstructionHoldUpTime =
+    governance?.account?.config?.minInstructionHoldUpTime ?? 0
 
   /* -------------------------------------------- */
   /* Proposal creation                            */
@@ -225,8 +302,8 @@ export async function createProposalInstructionsV0(
   let proposalAddress: PublicKey
 
   if (!editAddress) {
+    const selectedRealmIndexed = await getRealmIndexed(realmPk.toBase58())
     try {
-      const selectedRealmIndexed = await getRealmIndexed(realmPk.toBase58())
       const realmConfig = selectedRealmIndexed
         ? await tryGetRealmConfig(
             connection,
@@ -235,20 +312,30 @@ export async function createProposalInstructionsV0(
           )
         : null
 
-      if (selectedRealmIndexed && realmConfig?.account?.communityTokenConfig?.voterWeightAddin) {
+      const councilMint = selectedRealmIndexed?.account?.config?.councilMint
+      const isCouncilMint =
+        councilMint && new PublicKey(councilMint).equals(governingTokenMint)
+      const governingTokenConfig = isCouncilMint
+        ? realmConfig?.account?.councilTokenConfig
+        : realmConfig?.account?.communityTokenConfig
+      const voterWeightAddin = governingTokenConfig?.voterWeightAddin
+
+      if (selectedRealmIndexed && voterWeightAddin) {
         votePlugin = await getVotingPluginWithUpdate(
           selectedRealmIndexed,
           governingTokenMint,
           governanceAuthority,
-          realmConfig.account.communityTokenConfig.voterWeightAddin
+          voterWeightAddin
         )
 
-        if (votePlugin?.instructions?.length) {
-          baseInstructions.push(...votePlugin.instructions)
+        if (!votePlugin?.voterWeightPk) {
+          throw new Error('The realm requires a voter-weight plugin, but no voter-weight record could be prepared.')
         }
+        if (votePlugin.instructions?.length) baseInstructions.push(...votePlugin.instructions)
       }
     } catch (error) {
-      console.log('ERR(prepare voter weight proposal instructions): ' + error)
+      const message = error instanceof Error ? error.message : `${error}`
+      throw new Error(`Unable to prepare the required voter-weight plugin: ${message}`)
     }
 
     proposalAddress = await withCreateProposal(
@@ -297,6 +384,11 @@ export async function createProposalInstructionsV0(
   const insertInstructions: TransactionInstruction[] = []
   const prerequisiteInstructions: TransactionInstruction[] = []
   const prerequisiteSigners: (Keypair | null)[] = []
+  const instructionSigners: Keypair[] = []
+
+  if (authTransaction?.instructions?.length) {
+    prerequisiteInstructions.push(...authTransaction.instructions)
+  }
 
   const all = instructionsData.filter((x) => x.data)
   const optionInstructionIndexByOption = new Map<number, number>()
@@ -317,10 +409,14 @@ export async function createProposalInstructionsV0(
       if (item.prerequisiteInstructionsSigners?.length) {
         prerequisiteSigners.push(...item.prerequisiteInstructionsSigners)
       }
+      if (item.signers?.length) instructionSigners.push(...item.signers)
     })
 
     groupedCoreInstructions.push({
-      holdUpTime: current.holdUpTime ?? 0,
+      holdUpTime: normalizeHoldUpTime(
+        current.holdUpTime,
+        minInstructionHoldUpTime
+      ),
       items: chunk.map((item) => item.data).filter(Boolean),
     })
     idx += requestedChunk
@@ -369,7 +465,7 @@ export async function createProposalInstructionsV0(
         governanceAuthority,
         nextIndex,
         optionIndex,
-        Number.isFinite(set?.holdUpTime as number) ? (set?.holdUpTime as number) : 0,
+        normalizeHoldUpTime(set?.holdUpTime, minInstructionHoldUpTime),
         [instructionData],
         payer
       )
@@ -395,61 +491,78 @@ export async function createProposalInstructionsV0(
   /* Chunk + LUT creation                         */
   /* -------------------------------------------- */
 
+  const signerCandidates = uniqueKeypairs([
+    ...prerequisiteSigners,
+    ...instructionSigners,
+  ])
   const instructionChunks = [
     ...chunks(prerequisiteInstructions, chunkSize),
     baseInstructions,
     ...chunks(insertInstructions, chunkSize),
-  ]
+  ].filter((chunk) => chunk.length > 0)
 
-  const signerChunks = instructionChunks.map(() => [])
+  const txes = instructionChunks.map((chunk) =>
+    buildTransactionBatch(chunk, signerCandidates)
+  )
 
-  const txes = instructionChunks.map((chunk, i) => ({
-    instructionsSet: txBatchesToInstructionSetWithSigners(
-      chunk,
-      signerChunks,
-      i
-    ),
-    sequenceType: SequenceType.Sequential,
-  }))
+  // Preview/fee estimation must be read-only. In particular, do not create an
+  // address lookup table here because that is an on-chain state mutation.
+  if (returnTx) {
+    return {
+      address: proposalAddress,
+      transactionSuccess: false,
+      preview: true,
+      transactionInstructions: txes,
+    }
+  }
 
-  const keys = txes
+  const keys = uniquePublicKeys(txes
     .flatMap((x) =>
       x.instructionsSet.flatMap((y) =>
         y.transactionInstruction.keys.map((k) => k.pubkey)
       )
+    ))
+
+  const needsLookupTable = instructionChunks.some((chunk) =>
+    transactionNeedsLookupTable(payer, chunk)
+  )
+  let lookupTableAccounts = undefined
+
+  if (needsLookupTable) {
+    if (keys.length > 256) {
+      throw new Error(`Proposal transactions require ${keys.length} lookup-table addresses; the maximum is 256.`)
+    }
+
+    const slot = await connection.getSlot()
+    const [createLutIx, lutAddress] =
+      AddressLookupTableProgram.createLookupTable({
+        authority: payer,
+        payer,
+        recentSlot: slot,
+      })
+
+    const extendIxs = chunks(keys, 20).map((c) =>
+      AddressLookupTableProgram.extendLookupTable({
+        payer,
+        authority: payer,
+        lookupTable: lutAddress,
+        addresses: c,
+      })
     )
 
-  const slot = await connection.getSlot()
-  const [createLutIx, lutAddress] =
-    AddressLookupTableProgram.createLookupTable({
-      authority: payer,
-      payer,
-      recentSlot: slot,
+    await sendSignAndConfirmTransactions({
+      connection,
+      wallet,
+      transactionInstructions: [
+        buildTransactionBatch([createLutIx]),
+        ...extendIxs.map((ix) => buildTransactionBatch([ix])),
+      ],
     })
 
-  const extendIxs = chunks(keys, 20).map((c) =>
-    AddressLookupTableProgram.extendLookupTable({
-      payer,
-      authority: payer,
-      lookupTable: lutAddress,
-      addresses: c,
-    })
-  )
-
-  await sendSignAndConfirmTransactions({
-    connection,
-    wallet,
-    transactionInstructions: [
-      { instructionsSet: [{ transactionInstruction: createLutIx }], sequenceType: SequenceType.Sequential },
-      ...extendIxs.map((ix) => ({
-        instructionsSet: [{ transactionInstruction: ix }],
-        sequenceType: SequenceType.Sequential,
-      })),
-    ],
-  })
-
-  const lut = (await connection.getAddressLookupTable(lutAddress)).value
-  if (!lut) throw new Error('Lookup table not found')
+    const lut = (await connection.getAddressLookupTable(lutAddress)).value
+    if (!lut) throw new Error('Lookup table not found')
+    lookupTableAccounts = [lut]
+  }
 
   /* -------------------------------------------- */
   /* Final send                                   */
@@ -460,7 +573,7 @@ export async function createProposalInstructionsV0(
     connection,
     wallet,
     transactionInstructions: txes,
-    lookupTableAccounts: [lut],
+    lookupTableAccounts,
   })
 
   return {
