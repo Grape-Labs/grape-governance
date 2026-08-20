@@ -19,6 +19,7 @@ import {
         getAllGovernancesIndexed,
         getAllTokenOwnerRecordsIndexed,
         getProposalInstructionsIndexed,
+        getVoteRecordsByVoterIndexed,
 } from './api/queries';
 import { VoteKind } from "@solana/spl-governance";
 import {
@@ -432,6 +433,11 @@ export function GovernanceProposalV2View(props: any){
 
     const [vetoCount, setVetoCount] = React.useState<number | null>(null);
     const [vetoVoters, setVetoVoters] = React.useState<any[]>([]);
+    const [grapeVoterHistory, setGrapeVoterHistory] = React.useState<{
+        checked: boolean;
+        loading: boolean;
+        firstTimeVoters: string[];
+    }>({ checked: false, loading: false, firstTimeVoters: [] });
 
     const fetchLiveProposalFromRpc = React.useCallback(async () => {
         try {
@@ -629,26 +635,67 @@ export function GovernanceProposalV2View(props: any){
             const voter = normalizePkString(row?.governingTokenOwner);
             if (voter) currentVoters.add(voter);
         });
-        const historicalVoters = new Set<string>();
-        (Array.isArray(cachedGovernance) ? cachedGovernance : []).forEach((cachedProposal: any) => {
-            const cachedProposalAddress = normalizePkString(cachedProposal?.pubkey);
-            if (cachedProposalAddress && cachedProposalAddress === proposalAddress) return;
-            (Array.isArray(cachedProposal?.votingResults) ? cachedProposal.votingResults : []).forEach((vote: any) => {
-                const voter = normalizePkString(vote?.governingTokenOwner || vote?.account?.governingTokenOwner);
-                if (voter) historicalVoters.add(voter);
-            });
-        });
-        const firstTimeVoters = Array.from(currentVoters).filter((voter) => !historicalVoters.has(voter));
-
         return {
             isGrapeDao,
             isBlockedProposal: isGrapeDao && !!proposalAddress && GRAPE_DAO_BLOCKED_PROPOSALS.has(proposalAddress),
             usesIrysDescription: isGrapeDao && descriptionHost.endsWith('irys.xyz'),
             descriptionHost,
-            firstTimeVoters,
-            hasComparableVoteHistory: isGrapeDao && Array.isArray(cachedGovernance) && cachedGovernance.length > 1,
+            currentVoters: Array.from(currentVoters),
         };
     }, [realm, governanceAddress, thisitem, proposalPk, solanaVotingResultRows, cachedGovernance, normalizePkString]);
+
+    React.useEffect(() => {
+        let cancelled = false;
+        const verifyVoterHistory = async () => {
+            const voters = grapeDaoSafetySignals.currentVoters;
+            const currentProposal = normalizePkString(thisitem?.pubkey) || normalizePkString(proposalPk);
+            const realmPk = normalizePkString(realm?.pubkey) || normalizePkString(governanceAddress);
+            const realmOwner = normalizePkString(realm?.owner || thisitem?.owner);
+            const realmProposalKeys = new Set(
+                (Array.isArray(cachedGovernance) ? cachedGovernance : [])
+                    .map((item: any) => normalizePkString(item?.pubkey))
+                    .filter((key: string | null): key is string => !!key && key !== currentProposal)
+            );
+
+            if (!grapeDaoSafetySignals.isGrapeDao || !voters.length || !realmPk || !realmOwner || !realmProposalKeys.size) {
+                setGrapeVoterHistory({ checked: false, loading: false, firstTimeVoters: [] });
+                return;
+            }
+
+            setGrapeVoterHistory({ checked: false, loading: true, firstTimeVoters: [] });
+            try {
+                const results: Array<{ voter: string; hasPriorVote: boolean }> = [];
+                const concurrency = 4;
+                for (let index = 0; index < voters.length; index += concurrency) {
+                    const batch = voters.slice(index, index + concurrency);
+                    const batchResults = await Promise.all(batch.map(async (voter) => {
+                        const records = await getVoteRecordsByVoterIndexed(realmOwner, realmPk, voter);
+                        if (!Array.isArray(records)) throw new Error(`Vote history unavailable for ${voter}`);
+                        const hasPriorVote = records.some((record: any) => {
+                            const recordOwner = normalizePkString(record?.account?.governingTokenOwner);
+                            const recordProposal = normalizePkString(record?.account?.proposal || record?.proposal);
+                            return recordOwner === voter && !!recordProposal && realmProposalKeys.has(recordProposal);
+                        });
+                        return { voter, hasPriorVote };
+                    }));
+                    results.push(...batchResults);
+                }
+                if (!cancelled) {
+                    setGrapeVoterHistory({
+                        checked: true,
+                        loading: false,
+                        firstTimeVoters: results.filter((result) => !result.hasPriorVote).map((result) => result.voter),
+                    });
+                }
+            } catch (error) {
+                console.warn('Unable to verify Grape DAO voter history', error);
+                if (!cancelled) setGrapeVoterHistory({ checked: false, loading: false, firstTimeVoters: [] });
+            }
+        };
+
+        verifyVoterHistory();
+        return () => { cancelled = true; };
+    }, [grapeDaoSafetySignals, cachedGovernance, governanceAddress, proposalPk, realm, thisitem, normalizePkString]);
 
 
     const [snack, setSnack] = React.useState({ open: false, msg: "" });
@@ -4359,8 +4406,8 @@ export function GovernanceProposalV2View(props: any){
         if (grapeDaoSafetySignals.isGrapeDao && transferDetails.length >= GRAPE_DAO_LARGE_TRANSFER_COUNT) {
             addFinding('high', 'Unusually broad asset movement for Grape DAO', `${transferDetails.length} decoded transfers meet the Grape DAO large-plan warning threshold of ${GRAPE_DAO_LARGE_TRANSFER_COUNT}. Review every asset, amount, and destination before voting or executing.`);
         }
-        if (grapeDaoSafetySignals.hasComparableVoteHistory && grapeDaoSafetySignals.firstTimeVoters.length > 0) {
-            addFinding('high', 'Voters with no prior Grape DAO history', `${grapeDaoSafetySignals.firstTimeVoters.length} current voter${grapeDaoSafetySignals.firstTimeVoters.length === 1 ? '' : 's'} do not appear in the loaded history of earlier Grape DAO proposals. This indicates new participation, but does not by itself prove when tokens were acquired.`);
+        if (grapeVoterHistory.checked && grapeVoterHistory.firstTimeVoters.length > 0) {
+            addFinding('high', 'Token owners with no prior Grape DAO vote', `${grapeVoterHistory.firstTimeVoters.length} governing token owner${grapeVoterHistory.firstTimeVoters.length === 1 ? '' : 's'} have no vote record linked to an earlier loaded proposal in this realm. Vote-record account public keys are not used as voter identities.`);
         }
         if (/closeaccount|close token account|withdrawnonceaccount/.test(detailText)) {
             addFinding('medium', 'Account closure or balance withdrawal', 'A decoded instruction closes an account or withdraws its remaining balance.');
@@ -4383,6 +4430,7 @@ export function GovernanceProposalV2View(props: any){
         instructionTransferDetails,
         verifiedDAODestinationWalletArray,
         grapeDaoSafetySignals,
+        grapeVoterHistory,
     ]);
     const showProminentSecurityWarning = grapeDaoSafetySignals.isGrapeDao && (
         grapeDaoSafetySignals.isBlockedProposal ||
