@@ -206,7 +206,7 @@ function recurringNameSimilarity(left: any, right: any): number {
     return union ? intersection / union : 0;
 }
 
-function proposalInstructionCount(item: any): number | null {
+function getProposalInstructionCount(item: any): number | null {
     if (!Array.isArray(item?.instructions)) return null;
     return item.instructions.length;
 }
@@ -4523,7 +4523,7 @@ export function GovernanceProposalV2View(props: any){
             const nameSimilarity = recurringNameSimilarity(currentName, item?.account?.name);
             if (nameSimilarity < 0.8) return [];
 
-            const priorInstructionCount = proposalInstructionCount(item);
+            const priorInstructionCount = getProposalInstructionCount(item);
             const countTolerance = Math.max(2, Math.ceil(proposalTransactionCount * 0.2));
             const priorTransferShape = decodedTransferShape(item?.instructions || []);
             if (currentTransferShape.count > 0 && priorTransferShape.count > 0) {
