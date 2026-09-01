@@ -22,6 +22,7 @@ import {
         getVoteRecordsByVoterIndexed,
 } from './api/queries';
 import { VoteKind } from "@solana/spl-governance";
+import { fetchConfig as fetchReputationConfig, fetchReputation } from '@grapenpm/vine-reputation-client';
 import {
     fetchGovernanceLookupFile,
     getFileFromLookup
@@ -178,6 +179,68 @@ const GRAPE_DAO_BLOCKED_PROPOSALS = new Set([
     '4NKKrvEQiXKrKWubvwcE883Wffsx38JV7bPckXMtamb1',
 ]);
 const GRAPE_DAO_LARGE_TRANSFER_COUNT = 5;
+const RECURRING_PROPOSAL_MIN_AGE_DAYS = 21;
+const RECURRING_PROPOSAL_MAX_AGE_DAYS = 65;
+
+function normalizeRecurringProposalName(value: any): string {
+    const monthNames = /\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/gi;
+    return `${value || ''}`
+        .toLowerCase()
+        .replace(monthNames, ' ')
+        .replace(/\b20\d{2}\b/g, ' ')
+        .replace(/\b\d{1,2}(?:st|nd|rd|th)?\b/g, ' ')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim()
+        .replace(/\s+/g, ' ');
+}
+
+function recurringNameSimilarity(left: any, right: any): number {
+    const a = normalizeRecurringProposalName(left);
+    const b = normalizeRecurringProposalName(right);
+    if (!a || !b) return 0;
+    if (a === b) return 1;
+    const aTokens = new Set(a.split(' '));
+    const bTokens = new Set(b.split(' '));
+    const intersection = Array.from(aTokens).filter((token) => bTokens.has(token)).length;
+    const union = new Set([...Array.from(aTokens), ...Array.from(bTokens)]).size;
+    return union ? intersection / union : 0;
+}
+
+function proposalInstructionCount(item: any): number | null {
+    if (!Array.isArray(item?.instructions)) return null;
+    return item.instructions.length;
+}
+
+function decodedTransferShape(rows: any[], supplementalDetails: any[] = []) {
+    const details = [...supplementalDetails];
+    (Array.isArray(rows) ? rows : []).forEach((row: any) => {
+        const instructions = Array.isArray(row?.account?.instructions)
+            ? row.account.instructions
+            : row?.account?.instruction
+            ? [row.account.instruction]
+            : row?.info
+            ? [row]
+            : [];
+        instructions.forEach((instruction: any) => {
+            if (instruction?.info) details.push(instruction.info);
+        });
+    });
+    const transfers = details.filter((detail: any) =>
+        /transfer/.test(`${detail?.type || ''}`.toLowerCase()) && Number(detail?.amount || 0) > 0
+    );
+    const destinations = new Set(transfers
+        .map((detail: any) => detail?.tokenOwner || detail?.recipientWallet || detail?.destinationAta || detail?.pubkey)
+        .filter(Boolean)
+        .map((address: any) => address?.toBase58?.() || `${address}`));
+    const assets = new Set(transfers.map((detail: any) => `${detail?.mint || detail?.name || 'asset'}`));
+    return { count: transfers.length, destinations, assets };
+}
+
+function setSimilarity(left: Set<string>, right: Set<string>): number {
+    if (!left.size || !right.size) return 0;
+    const intersection = Array.from(left).filter((value) => right.has(value)).length;
+    return intersection / new Set([...Array.from(left), ...Array.from(right)]).size;
+}
 
 function toNumberOrNull(value: any): number | null {
     const n = Number(value);
@@ -438,6 +501,19 @@ export function GovernanceProposalV2View(props: any){
         loading: boolean;
         firstTimeVoters: string[];
     }>({ checked: false, loading: false, firstTimeVoters: [] });
+    const [proposalAuthorReputation, setProposalAuthorReputation] = React.useState<{
+        checked: boolean;
+        loading: boolean;
+        spaceExists: boolean;
+        season: number | null;
+        points: string;
+    }>({ checked: false, loading: false, spaceExists: false, season: null, points: '0' });
+    const [proposalRecipientReputation, setProposalRecipientReputation] = React.useState<{
+        checked: boolean;
+        loading: boolean;
+        spaceExists: boolean;
+        byWallet: Record<string, { found: boolean; season: number | null; points: string }>;
+    }>({ checked: false, loading: false, spaceExists: false, byWallet: {} });
 
     const fetchLiveProposalFromRpc = React.useCallback(async () => {
         try {
@@ -643,6 +719,95 @@ export function GovernanceProposalV2View(props: any){
             currentVoters: Array.from(currentVoters),
         };
     }, [realm, governanceAddress, thisitem, proposalPk, solanaVotingResultRows, cachedGovernance, normalizePkString]);
+
+    React.useEffect(() => {
+        let cancelled = false;
+        const loadProposalAuthorReputation = async () => {
+            const realmAddress = normalizePkString(realm?.pubkey) || normalizePkString(governanceAddress);
+            if (!grapeDaoSafetySignals.isGrapeDao || !realmAddress || !proposalAuthorAddress) {
+                setProposalAuthorReputation({ checked: false, loading: false, spaceExists: false, season: null, points: '0' });
+                return;
+            }
+
+            setProposalAuthorReputation((current) => ({ ...current, checked: false, loading: true }));
+            try {
+                const daoPk = new PublicKey(realmAddress);
+                const authorPk = new PublicKey(proposalAuthorAddress);
+                const config = await fetchReputationConfig(RPC_CONNECTION, daoPk);
+                if (!config || !config.daoId?.equals?.(daoPk)) {
+                    if (!cancelled) setProposalAuthorReputation({ checked: true, loading: false, spaceExists: false, season: null, points: '0' });
+                    return;
+                }
+
+                const reputation = await fetchReputation(RPC_CONNECTION, daoPk, authorPk, config.currentSeason);
+                if (!cancelled) {
+                    setProposalAuthorReputation({
+                        checked: true,
+                        loading: false,
+                        spaceExists: true,
+                        season: config.currentSeason,
+                        points: `${reputation?.points ?? 0n}`,
+                    });
+                }
+            } catch (error) {
+                console.warn('Unable to load proposal author reputation', error);
+                if (!cancelled) setProposalAuthorReputation({ checked: false, loading: false, spaceExists: false, season: null, points: '0' });
+            }
+        };
+
+        loadProposalAuthorReputation();
+        return () => { cancelled = true; };
+    }, [grapeDaoSafetySignals.isGrapeDao, governanceAddress, realm, proposalAuthorAddress, normalizePkString]);
+
+    React.useEffect(() => {
+        let cancelled = false;
+        const loadRecipientReputation = async () => {
+            const realmAddress = normalizePkString(realm?.pubkey) || normalizePkString(governanceAddress);
+            const recipients = Array.from(new Set(
+                (Array.isArray(destinationWalletArray) ? destinationWalletArray : [])
+                    .map((item: any) => normalizePkString(item?.address))
+                    .filter((address: string | null): address is string => !!address)
+            ));
+            if (!grapeDaoSafetySignals.isGrapeDao || !realmAddress || !recipients.length) {
+                setProposalRecipientReputation({ checked: false, loading: false, spaceExists: false, byWallet: {} });
+                return;
+            }
+
+            setProposalRecipientReputation((current) => ({ ...current, checked: false, loading: true }));
+            try {
+                const daoPk = new PublicKey(realmAddress);
+                const config = await fetchReputationConfig(RPC_CONNECTION, daoPk);
+                if (!config || !config.daoId?.equals?.(daoPk)) {
+                    if (!cancelled) setProposalRecipientReputation({ checked: true, loading: false, spaceExists: false, byWallet: {} });
+                    return;
+                }
+
+                const byWallet: Record<string, { found: boolean; season: number | null; points: string }> = {};
+                const concurrency = 4;
+                for (let index = 0; index < recipients.length; index += concurrency) {
+                    const batch = recipients.slice(index, index + concurrency);
+                    const results = await Promise.all(batch.map(async (address) => {
+                        const userPk = new PublicKey(address);
+                        const reputation = await fetchReputation(RPC_CONNECTION, daoPk, userPk, config.currentSeason);
+                        return reputation
+                            ? { address, found: true, season: config.currentSeason, points: `${reputation.points}` }
+                            : { address, found: false, season: config.currentSeason, points: '0' };
+                    }));
+                    results.forEach((result) => {
+                        byWallet[result.address] = { found: result.found, season: result.season, points: result.points };
+                    });
+                }
+
+                if (!cancelled) setProposalRecipientReputation({ checked: true, loading: false, spaceExists: true, byWallet });
+            } catch (error) {
+                console.warn('Unable to load proposal recipient reputation', error);
+                if (!cancelled) setProposalRecipientReputation({ checked: false, loading: false, spaceExists: false, byWallet: {} });
+            }
+        };
+
+        loadRecipientReputation();
+        return () => { cancelled = true; };
+    }, [destinationWalletArray, grapeDaoSafetySignals.isGrapeDao, governanceAddress, realm, normalizePkString]);
 
     React.useEffect(() => {
         let cancelled = false;
@@ -4324,6 +4489,77 @@ export function GovernanceProposalV2View(props: any){
             ],
         };
     }, [proposalTransactionRows, thisitem]);
+    const recurringProposalMatch = React.useMemo(() => {
+        if (!grapeDaoSafetySignals.isGrapeDao || !proposalAuthorAddress || !Array.isArray(cachedGovernance)) {
+            return null;
+        }
+
+        const currentProposal = normalizePkString(thisitem?.pubkey) || normalizePkString(proposalPk);
+        const currentCreatedAt = toPositiveUnix(thisitem?.account?.draftAt) || moment().unix();
+        const currentName = thisitem?.account?.name;
+        const currentMint = normalizePkString(thisitem?.account?.governingTokenMint);
+        const currentTransferShape = decodedTransferShape(
+            proposalTransactionRows,
+            Array.isArray(instructionTransferDetails) ? instructionTransferDetails : []
+        );
+        const secondsPerDay = 24 * 60 * 60;
+
+        const candidates = cachedGovernance.flatMap((item: any) => {
+            const itemProposal = normalizePkString(item?.pubkey);
+            if (!itemProposal || itemProposal === currentProposal) return [];
+            if (![3, 4, 5].includes(Number(item?.account?.state))) return [];
+            if (getProposalAuthorAddress(item) !== proposalAuthorAddress) return [];
+
+            const itemMint = normalizePkString(item?.account?.governingTokenMint);
+            if (currentMint && itemMint && currentMint !== itemMint) return [];
+
+            const itemCreatedAt = toPositiveUnix(item?.account?.draftAt)
+                || toPositiveUnix(item?.account?.signingOffAt)
+                || toPositiveUnix(item?.account?.votingAt);
+            if (!itemCreatedAt || itemCreatedAt >= currentCreatedAt) return [];
+            const ageDays = (currentCreatedAt - itemCreatedAt) / secondsPerDay;
+            if (ageDays < RECURRING_PROPOSAL_MIN_AGE_DAYS || ageDays > RECURRING_PROPOSAL_MAX_AGE_DAYS) return [];
+
+            const nameSimilarity = recurringNameSimilarity(currentName, item?.account?.name);
+            if (nameSimilarity < 0.8) return [];
+
+            const priorInstructionCount = proposalInstructionCount(item);
+            const countTolerance = Math.max(2, Math.ceil(proposalTransactionCount * 0.2));
+            const priorTransferShape = decodedTransferShape(item?.instructions || []);
+            if (currentTransferShape.count > 0 && priorTransferShape.count > 0) {
+                const transferCountTolerance = Math.max(2, Math.ceil(currentTransferShape.count * 0.2));
+                if (Math.abs(priorTransferShape.count - currentTransferShape.count) > transferCountTolerance) return [];
+                if (setSimilarity(currentTransferShape.destinations, priorTransferShape.destinations) < 0.8) return [];
+                if (setSimilarity(currentTransferShape.assets, priorTransferShape.assets) < 0.8) return [];
+            } else {
+                const planSizeMatches = priorInstructionCount === null
+                    ? nameSimilarity === 1
+                    : nameSimilarity === 1 && Math.abs(priorInstructionCount - proposalTransactionCount) <= countTolerance;
+                if (!planSizeMatches) return [];
+            }
+
+            return [{
+                proposal: itemProposal,
+                name: `${item?.account?.name || 'prior proposal'}`,
+                ageDays: Math.round(ageDays),
+                nameSimilarity,
+                priorInstructionCount,
+            }];
+        });
+
+        return candidates.sort((a, b) => b.nameSimilarity - a.nameSimilarity || a.ageDays - b.ageDays)[0] || null;
+    }, [
+        grapeDaoSafetySignals.isGrapeDao,
+        proposalAuthorAddress,
+        cachedGovernance,
+        thisitem,
+        proposalPk,
+        proposalTransactionCount,
+        proposalTransactionRows,
+        instructionTransferDetails,
+        normalizePkString,
+        getProposalAuthorAddress,
+    ]);
     const proposalRiskAssessment = React.useMemo(() => {
         type RiskSeverity = 'critical' | 'high' | 'medium' | 'info';
         type RiskFinding = { severity: RiskSeverity; title: string; evidence: string };
@@ -4403,8 +4639,35 @@ export function GovernanceProposalV2View(props: any){
         if (grapeDaoSafetySignals.usesIrysDescription) {
             addFinding('high', 'Unexpected Grape DAO description source', `The description is hosted on ${grapeDaoSafetySignals.descriptionHost || 'Irys'}, while established Grape DAO proposals use GitHub. Treat the text as untrusted and verify it against official DAO channels.`);
         }
-        if (grapeDaoSafetySignals.isGrapeDao && transferDetails.length >= GRAPE_DAO_LARGE_TRANSFER_COUNT) {
+        if (grapeDaoSafetySignals.isGrapeDao && transferDetails.length >= GRAPE_DAO_LARGE_TRANSFER_COUNT && !recurringProposalMatch) {
             addFinding('high', 'Unusually broad asset movement for Grape DAO', `${transferDetails.length} decoded transfers meet the Grape DAO large-plan warning threshold of ${GRAPE_DAO_LARGE_TRANSFER_COUNT}. Review every asset, amount, and destination before voting or executing.`);
+        }
+        if (grapeDaoSafetySignals.isGrapeDao && transferDetails.length >= GRAPE_DAO_LARGE_TRANSFER_COUNT && recurringProposalMatch) {
+            const reputationEvidence = proposalAuthorReputation.checked && proposalAuthorReputation.spaceExists && parseRawVoteWeight(proposalAuthorReputation.points) > 0n
+                ? ` The proposal author also has ${proposalAuthorReputation.points} reputation point${proposalAuthorReputation.points === '1' ? '' : 's'} in current season ${proposalAuthorReputation.season}.`
+                : '';
+            addFinding('info', 'Recurring proposal pattern recognized', `Matches successful proposal “${recurringProposalMatch.name}” from the same token owner ${recurringProposalMatch.ageDays} days earlier.${reputationEvidence} The unusual transfer-count warning is suppressed; review any changed recipients, assets, and amounts.`);
+        }
+        if (proposalAuthorReputation.checked && proposalAuthorReputation.spaceExists) {
+            const reputationPoints = parseRawVoteWeight(proposalAuthorReputation.points);
+            addFinding(
+                'info',
+                reputationPoints > 0n ? 'Proposal author has DAO reputation' : 'No current-season DAO reputation found',
+                reputationPoints > 0n
+                    ? `The token owner has ${proposalAuthorReputation.points} on-chain reputation point${proposalAuthorReputation.points === '1' ? '' : 's'} in season ${proposalAuthorReputation.season}. Reputation is supporting context, not proof that the proposal is safe.`
+                    : `A reputation space exists for this DAO, but the token owner has no reputation points in current season ${proposalAuthorReputation.season}.`
+            );
+        }
+        if (proposalRecipientReputation.checked && proposalRecipientReputation.spaceExists) {
+            const recipientEntries = Object.values(proposalRecipientReputation.byWallet);
+            const recipientsWithReputation = recipientEntries.filter((entry) => entry.found && parseRawVoteWeight(entry.points) > 0n);
+            if (recipientEntries.length > 0) {
+                addFinding(
+                    'info',
+                    'Recipient DAO reputation checked',
+                    `${recipientsWithReputation.length} of ${recipientEntries.length} unique proposal recipient${recipientEntries.length === 1 ? '' : 's'} have reputation points in the DAO's current season.`
+                );
+            }
         }
         if (grapeVoterHistory.checked && grapeVoterHistory.firstTimeVoters.length > 0) {
             addFinding('high', 'Token owners with no prior Grape DAO vote', `${grapeVoterHistory.firstTimeVoters.length} governing token owner${grapeVoterHistory.firstTimeVoters.length === 1 ? '' : 's'} have no vote record linked to an earlier loaded proposal in this realm. Vote-record account public keys are not used as voter identities.`);
@@ -4431,6 +4694,9 @@ export function GovernanceProposalV2View(props: any){
         verifiedDAODestinationWalletArray,
         grapeDaoSafetySignals,
         grapeVoterHistory,
+        recurringProposalMatch,
+        proposalAuthorReputation,
+        proposalRecipientReputation,
     ]);
     const showProminentSecurityWarning = grapeDaoSafetySignals.isGrapeDao && (
         grapeDaoSafetySignals.isBlockedProposal ||
@@ -5161,6 +5427,33 @@ export function GovernanceProposalV2View(props: any){
                       >
                         {authorInlineMeta}
                       </Typography>
+                      {proposalAuthorReputation.checked && proposalAuthorReputation.spaceExists && proposalAuthorAddress && (
+                        <Chip
+                          component="a"
+                          clickable
+                          href={`https://vine.governance.so/card/${GRAPE_DAO_REALM}/${proposalAuthorAddress}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          size="small"
+                          label={parseRawVoteWeight(proposalAuthorReputation.points) > 0n
+                            ? `REP ${formatCompactNumber(proposalAuthorReputation.points)} · S${proposalAuthorReputation.season}`
+                            : `No REP · S${proposalAuthorReputation.season}`}
+                          sx={{
+                            ...metaChipSx,
+                            height: 22,
+                            textDecoration: 'none',
+                            bgcolor: parseRawVoteWeight(proposalAuthorReputation.points) > 0n
+                              ? 'rgba(74,222,128,0.12)'
+                              : 'rgba(148,163,184,0.1)',
+                            color: parseRawVoteWeight(proposalAuthorReputation.points) > 0n
+                              ? '#86efac'
+                              : 'rgba(203,213,225,0.8)',
+                            border: parseRawVoteWeight(proposalAuthorReputation.points) > 0n
+                              ? '1px solid rgba(74,222,128,0.28)'
+                              : '1px solid rgba(148,163,184,0.2)',
+                          }}
+                        />
+                      )}
                       {isFlaggedMaliciousAuthor && (
                         <Chip
                           size="small"
@@ -7175,6 +7468,45 @@ export function GovernanceProposalV2View(props: any){
                                                             </Grid>
                                                         ))}
                                                     </Typography>
+                                                    {proposalRecipientReputation.loading && (
+                                                        <Typography variant="caption" sx={{ display: 'block', mt: 0.8, color: 'rgba(182,196,214,0.72)' }}>
+                                                            Checking current-season recipient reputation…
+                                                        </Typography>
+                                                    )}
+                                                    {proposalRecipientReputation.checked && proposalRecipientReputation.spaceExists && (
+                                                        <Box sx={{ mt: 0.9 }}>
+                                                            <Typography variant="caption" sx={{ display: 'block', mb: 0.55, color: 'rgba(182,196,214,0.78)' }}>
+                                                                Recipient reputation · current season
+                                                            </Typography>
+                                                            <Stack direction="row" spacing={0.55} useFlexGap flexWrap="wrap">
+                                                                {Object.entries(proposalRecipientReputation.byWallet).map(([address, reputation]) => {
+                                                                    const hasReputation = reputation.found && parseRawVoteWeight(reputation.points) > 0n;
+                                                                    return (
+                                                                        <Chip
+                                                                            key={address}
+                                                                            component="a"
+                                                                            clickable
+                                                                            href={`https://vine.governance.so/card/${GRAPE_DAO_REALM}/${address}`}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            size="small"
+                                                                            label={`${trimAddress(address)} · ${hasReputation ? `REP ${formatCompactNumber(reputation.points)}` : 'No REP'} · S${reputation.season}`}
+                                                                            sx={{
+                                                                                ...metaChipSx,
+                                                                                height: 22,
+                                                                                textDecoration: 'none',
+                                                                                bgcolor: hasReputation ? 'rgba(74,222,128,0.12)' : 'rgba(148,163,184,0.1)',
+                                                                                color: hasReputation ? '#86efac' : 'rgba(203,213,225,0.8)',
+                                                                                border: hasReputation
+                                                                                    ? '1px solid rgba(74,222,128,0.28)'
+                                                                                    : '1px solid rgba(148,163,184,0.2)',
+                                                                            }}
+                                                                        />
+                                                                    );
+                                                                })}
+                                                            </Stack>
+                                                        </Box>
+                                                    )}
                                                 </Box>
                                             )}
                                         </Box>
