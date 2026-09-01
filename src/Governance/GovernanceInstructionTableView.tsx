@@ -259,6 +259,8 @@ export function InstructionTableView(props: any) {
     const memberMap = props.memberMap;
     const verifiedDestinationWalletArray = props?.verifiedDestinationWalletArray;
     const verifiedDAODestinationWalletArray = props?.verifiedDAODestinationWalletArray;
+    const recipientReputationByWallet = props?.recipientReputationByWallet || {};
+    const recipientReputationChecked = Boolean(props?.recipientReputationChecked);
     
     const [instructionSet, setInstructionSet] = React.useState(null);
     const [failedExecuteKeys, setFailedExecuteKeys] = React.useState<string[]>([]);
@@ -285,25 +287,18 @@ export function InstructionTableView(props: any) {
     );
     
     const findPubkey = (address:string) => {
-        try{
-            const entry = verifiedDestinationWalletArray.find((item) => item.info.addresses.includes(address));
-            //console.log("checking: "+address+" vs "+entry)
-            if (entry) {
-                return entry.pubkey.toBase58();
-            }
-            return null; // Address not found
-        }catch(e){console.log("ERR: "+e)}
+        if (!Array.isArray(verifiedDestinationWalletArray)) return null;
+        const entry = verifiedDestinationWalletArray.find((item: any) =>
+            Array.isArray(item?.info?.addresses) && item.info.addresses.includes(address)
+        );
+        return entry?.pubkey?.toBase58?.() || (entry?.pubkey ? `${entry.pubkey}` : null);
     };
     const findDAOPubkey = (address:string) => {
-        try{
-            console.log("verifiedDAODestinationWalletArray: "+JSON.stringify(verifiedDAODestinationWalletArray))
-            const entry = verifiedDAODestinationWalletArray.find((item) => item.info.includes(address));
-            console.log("checking: "+address+" entry "+JSON.stringify(entry))
-            if (entry) {
-                return entry.pubkey;
-            }
-            return null; // Address not found
-        }catch(e){console.log("ERR: "+e)}
+        if (!Array.isArray(verifiedDAODestinationWalletArray)) return null;
+        const entry = verifiedDAODestinationWalletArray.find((item: any) =>
+            Array.isArray(item?.info) && item.info.includes(address)
+        );
+        return entry?.pubkey?.toBase58?.() || (entry?.pubkey ? `${entry.pubkey}` : null);
     };
 
     async function createAndSendLargeTransaction(txInstructions: TransactionInstruction[], chunkSize: number = 5) {
@@ -1614,66 +1609,64 @@ export function InstructionTableView(props: any) {
         { field: 'program', headerName: 'Program', minWidth: 120, resizable:true, hide: false},
         { field: 'verification', headerName: 'Verification', minWidth: 75, hide: state !== 0,
             renderCell: (params) => {
-                let destPK = (params?.value?.account?.instructions && params?.value?.account?.instructions[0]?.info?.tokenOwner) ?  new PublicKey(params.value.account.instructions[0].info.tokenOwner) : null;//new PublicKey("6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD");//new PublicKey("KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT");
-                if (!destPK){ // sol transfer?
-                    destPK = (params?.value?.account?.instructions && params?.value?.account?.instructions[0]?.accounts && params?.value?.account?.instructions[0]?.accounts.length > 1) ?  new PublicKey(params.value.account.instructions[0].accounts[1].pubkey) : null;
+                if (!publicKey || state !== 0) return <></>;
+                const instructions = Array.isArray(params?.value?.account?.instructions)
+                    ? params.value.account.instructions
+                    : [];
+                const transferInfo = instructions.find((instruction: any) =>
+                    instruction?.info?.tokenOwner || instruction?.info?.destinationAta
+                )?.info;
+                let destination = '';
+                try {
+                    if (transferInfo?.tokenOwner) {
+                        destination = new PublicKey(transferInfo.tokenOwner).toBase58();
+                    } else if (transferInfo?.destinationAta) {
+                        destination = findOwnerRecord(transferInfo.destinationAta);
+                    } else {
+                        const systemTransfer = instructions.find((instruction: any) =>
+                            Array.isArray(instruction?.accounts) && instruction.accounts.length > 1
+                        );
+                        const destinationAccount = systemTransfer?.accounts?.[1]?.pubkey;
+                        if (destinationAccount) destination = new PublicKey(destinationAccount).toBase58();
+                    }
+                } catch {
+                    destination = '';
                 }
+                if (!destination) return <></>;
 
-                    return(
-                        <>
-                            {(publicKey && state === 0 && destPK) ? 
-                                <>
-                                    {/*destPK.toBase58().trim()}{' '}*/}
-                                        {verifiedDestinationWalletArray ? (
-                                            findPubkey(destPK.toBase58()) ? (
-                                                <Tooltip title={`Grape Verified on ${findPubkey(destPK.toBase58())} via Speed Dial`}>
-                                                    <IconButton size="small" sx={{}}>
-                                                        <VerifiedIcon sx={{ color:'yellow', fontSize: '12px' }}/>
-                                                    </IconButton>
-                                                </Tooltip>
-                                            ) : (
-                                                <>
-                                                    {verifiedDestinationWalletArray.length > 0 &&
-                                                        <Tooltip title={`This address is not part of a Speed Dial`}>
-                                                            <IconButton
-                                                                size="small" sx={{}}
-                                                            >
-                                                                <WarningIcon color="error" sx={{ fontSize: '12px' }}/>
-                                                            </IconButton>
-                                                        </Tooltip>
-                                                    }
-                                                </>
-                                            )
-                                            ) : (
-                                            ''
-                                        )}
+                const speedDial = findPubkey(destination);
+                const daoRecord = findDAOPubkey(destination);
+                const reputation = recipientReputationByWallet[destination];
+                let hasReputation = false;
+                try {
+                    hasReputation = Boolean(reputation?.found && BigInt(reputation?.points || '0') > 0n);
+                } catch {}
+                const verifiedBy = [
+                    speedDial ? 'Speed Dial' : null,
+                    daoRecord ? 'active DAO deposit' : null,
+                    hasReputation ? `REP ${reputation.points} · season ${reputation.season}` : null,
+                ].filter(Boolean);
+                const verificationCompleted =
+                    Array.isArray(verifiedDestinationWalletArray) ||
+                    Array.isArray(verifiedDAODestinationWalletArray) ||
+                    recipientReputationChecked;
 
-                                        {verifiedDAODestinationWalletArray ? 
-                                            (
-                                                findDAOPubkey(destPK.toBase58()) ? (
-                                                    <Tooltip title={`DAO Verified on ${findDAOPubkey(destPK.toBase58())}`}>
-                                                        <IconButton
-                                                            size="small" sx={{}}
-                                                        >
-                                                            <CheckCircleIcon color='primary' sx={{ fontSize: '12px' }}/>
-                                                        </IconButton>
-                                                    </Tooltip>
-                                                ) : (
-                                                    <Tooltip title={`Could not find a voter record for this address, or voter has no voting power`}>
-                                                        <IconButton
-                                                            size="small" sx={{}}
-                                                        >
-                                                            <WarningIcon color="error" sx={{ fontSize: '12px' }}/>
-                                                        </IconButton>
-                                                    </Tooltip>
-                                                )
-                                                
-                                            ):<></>}
-                                </>
-                            :<></>}
-                        </>
-                        
-                    )
+                if (verifiedBy.length > 0) {
+                    return (
+                        <Tooltip title={`Verified via ${verifiedBy.join(', ')}`}>
+                            <IconButton size="small">
+                                <CheckCircleIcon color="success" sx={{ fontSize: '14px' }}/>
+                            </IconButton>
+                        </Tooltip>
+                    );
+                }
+                return verificationCompleted ? (
+                    <Tooltip title="No Speed Dial entry, active DAO deposit, or current-season reputation was found for this recipient">
+                        <IconButton size="small">
+                            <WarningIcon color="error" sx={{ fontSize: '12px' }}/>
+                        </IconButton>
+                    </Tooltip>
+                ) : <></>;
             }
         },
         { field: 'status', headerName: 'Status', minWidth: 75, hide: false,

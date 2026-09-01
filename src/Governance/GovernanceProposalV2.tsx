@@ -5427,32 +5427,28 @@ export function GovernanceProposalV2View(props: any){
                       >
                         {authorInlineMeta}
                       </Typography>
-                      {proposalAuthorReputation.checked && proposalAuthorReputation.spaceExists && proposalAuthorAddress && (
-                        <Chip
-                          component="a"
-                          clickable
-                          href={`https://vine.governance.so/card/${GRAPE_DAO_REALM}/${proposalAuthorAddress}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          size="small"
-                          label={parseRawVoteWeight(proposalAuthorReputation.points) > 0n
-                            ? `REP ${formatCompactNumber(proposalAuthorReputation.points)} · S${proposalAuthorReputation.season}`
-                            : `No REP · S${proposalAuthorReputation.season}`}
-                          sx={{
-                            ...metaChipSx,
-                            height: 22,
-                            textDecoration: 'none',
-                            bgcolor: parseRawVoteWeight(proposalAuthorReputation.points) > 0n
-                              ? 'rgba(74,222,128,0.12)'
-                              : 'rgba(148,163,184,0.1)',
-                            color: parseRawVoteWeight(proposalAuthorReputation.points) > 0n
-                              ? '#86efac'
-                              : 'rgba(203,213,225,0.8)',
-                            border: parseRawVoteWeight(proposalAuthorReputation.points) > 0n
-                              ? '1px solid rgba(74,222,128,0.28)'
-                              : '1px solid rgba(148,163,184,0.2)',
-                          }}
-                        />
+                      {proposalAuthorReputation.checked &&
+                        proposalAuthorReputation.spaceExists &&
+                        proposalAuthorAddress &&
+                        parseRawVoteWeight(proposalAuthorReputation.points) > 0n && (
+                        <Tooltip title="Current-season on-chain reputation · Open Vine profile">
+                          <Typography
+                            component="a"
+                            href={`https://vine.governance.so/card/${GRAPE_DAO_REALM}/${proposalAuthorAddress}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            variant="caption"
+                            sx={{
+                              color: 'rgba(134,239,172,0.78)',
+                              fontSize: '0.8rem',
+                              textDecoration: 'none',
+                              whiteSpace: 'nowrap',
+                              '&:hover': { color: '#86efac', textDecoration: 'underline' },
+                            }}
+                          >
+                            Reputation {formatCompactNumber(proposalAuthorReputation.points)} · Season {proposalAuthorReputation.season}
+                          </Typography>
+                        </Tooltip>
                       )}
                       {isFlaggedMaliciousAuthor && (
                         <Chip
@@ -7532,6 +7528,8 @@ export function GovernanceProposalV2View(props: any){
                                             //index={index} 
                                             verifiedDestinationWalletArray={verifiedDestinationWalletArray}
                                             verifiedDAODestinationWalletArray={verifiedDAODestinationWalletArray}
+                                            recipientReputationByWallet={proposalRecipientReputation.byWallet}
+                                            recipientReputationChecked={proposalRecipientReputation.checked && proposalRecipientReputation.spaceExists}
                                             instructionOwnerRecord={instructionOwnerRecord} 
                                             instructionOwnerRecordATA={instructionOwnerRecordATA}
                                         />
