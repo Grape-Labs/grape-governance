@@ -4651,11 +4651,11 @@ export function GovernanceProposalV2View(props: any){
         if (proposalAuthorReputation.checked && proposalAuthorReputation.spaceExists) {
             const reputationPoints = parseRawVoteWeight(proposalAuthorReputation.points);
             addFinding(
-                'info',
-                reputationPoints > 0n ? 'Proposal author has DAO reputation' : 'No current-season DAO reputation found',
+                reputationPoints > 0n ? 'info' : 'high',
+                reputationPoints > 0n ? 'Proposal author has DAO reputation' : 'Proposal author has no current-season Grape DAO reputation',
                 reputationPoints > 0n
                     ? `The token owner has ${proposalAuthorReputation.points} on-chain reputation point${proposalAuthorReputation.points === '1' ? '' : 's'} in season ${proposalAuthorReputation.season}. Reputation is supporting context, not proof that the proposal is safe.`
-                    : `A reputation space exists for this DAO, but the token owner has no reputation points in current season ${proposalAuthorReputation.season}.`
+                    : `The Grape DAO reputation space was found and checked, but this proposal's token owner has no reputation points in current season ${proposalAuthorReputation.season}. Verify the author's identity and standing before voting or executing.`
             );
         }
         if (proposalRecipientReputation.checked && proposalRecipientReputation.spaceExists) {
