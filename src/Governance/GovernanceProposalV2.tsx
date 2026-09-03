@@ -5686,16 +5686,17 @@ export function GovernanceProposalV2View(props: any){
                       )}
                       {proposalAuthorVerification.checked &&
                         proposalAuthorVerification.spaceExists &&
+                        proposalAuthorAddress &&
                         proposalAuthorVerification.matches.some((match) => match.active) && (
                         <Tooltip
                           title={`Active Grape Verification in this DAO · ${proposalAuthorVerification.matches
                             .filter((match) => match.active)
                             .map((match) => VERIFICATION_PLATFORM_LABELS[match.platform] || `Platform ${match.platform}`)
-                            .join(', ')} · Open verification space`}
+                            .join(', ')} · Open author verification profile`}
                         >
                           <Typography
                             component="a"
-                            href={`https://verification.governance.so/dao/${GRAPE_DAO_REALM}`}
+                            href={`https://verification.governance.so/dao/${GRAPE_DAO_REALM}/wallet/${proposalAuthorAddress}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             variant="caption"
