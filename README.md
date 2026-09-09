@@ -93,3 +93,29 @@ Optional env flags used by specific extensions:
 
 - `APP_SANCTUM_API_KEY` (enables Sanctum extension UI)
 - `REACT_APP_SOLANA_CLUSTER` (`mainnet` or `devnet`, defaults to `mainnet`)
+
+
+### Proposal link previews
+
+Vercel routes `/proposal/:realm/:proposal` and `/embedproposal/:realm/:proposal`
+through `api/proposal-preview.js`. It injects proposal metadata into the built
+app shell, so Discord and other crawlers receive it without running JavaScript.
+`api/proposal-image.js` renders a 1200 × 630 PNG with the title, DAO, and status.
+Both read Solana directly, including draft proposals that are not indexed yet.
+
+Set `SOCIAL_RPC_ENDPOINT` in the Vercel server environment to a working mainnet
+Solana RPC URL. Existing Helius, QuickNode, and Shyft environment settings are
+used in that priority order when this override is absent, with the public
+mainnet RPC as the final default. `SITE_ORIGIN` defaults to
+`https://governance.so`. Successful previews are cached for 60 seconds; missing
+accounts and RPC failures return an uncached address-only preview.
+
+Deploy the application to activate these routes. Previously shared Discord
+links may retain their cached preview; share a fresh URL (for example, append
+`?preview=2`) when verifying the deployment.
+
+Run the preview tests with Node 22.3+ or Node 24:
+
+```sh
+node --experimental-test-module-mocks --test tests/proposal-preview.test.mjs
+```

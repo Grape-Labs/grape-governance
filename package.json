@@ -132,6 +132,7 @@
         "@types/react-router-dom": "^5.1.6",
         "@vercel/analytics": "^1.2.2",
         "@vercel/edge-config": "^0.2.1",
+        "@vercel/og": "0.8.6",
         "@vercel/speed-insights": "^1.0.10",
         "@web3modal/wagmi": "^3.2.0",
         "add": "^2.0.6",
@@ -265,8 +266,9 @@
     "resolutions": {
         "@types/react": "17.0.40",
         "@expo/plist": "file:vendor/expo-plist",
-        "@xmldom/xmldom": "0.9.9",
+        "@xmldom/xmldom": "0.9.12",
         "brace-expansion": "2.1.4",
+        "browserslist": "4.28.7",
         "dompurify": "3.3.3",
         "linkify-it": "5.0.2",
         "node-forge": "1.4.0",
