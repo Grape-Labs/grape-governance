@@ -265,8 +265,9 @@
     "resolutions": {
         "@types/react": "17.0.40",
         "@expo/plist": "file:vendor/expo-plist",
-        "@xmldom/xmldom": "0.9.9",
+        "@xmldom/xmldom": "0.9.12",
         "brace-expansion": "2.1.4",
+        "browserslist": "4.28.7",
         "dompurify": "3.3.3",
         "linkify-it": "5.0.2",
         "node-forge": "1.4.0",
