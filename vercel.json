@@ -3,10 +3,15 @@
 
   "buildCommand": "yarn build:client",
   "outputDirectory": "dist",
+  "functions": {
+    "api/proposal-preview.js": { "includeFiles": "dist/index.html" }
+  },
   "crons": [
   ],
 
   "rewrites": [
+    { "source": "/proposal/:realm/:proposal", "destination": "/api/proposal-preview?realm=:realm&proposal=:proposal" },
+    { "source": "/embedproposal/:realm/:proposal", "destination": "/api/proposal-preview?realm=:realm&proposal=:proposal" },
     { "source": "/api/v1/:path*", "destination": "/api/v1?path=:path*" },
     { "source": "/api/:path*", "destination": "/api/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
