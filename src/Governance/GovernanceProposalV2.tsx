@@ -5565,13 +5565,13 @@ export function GovernanceProposalV2View(props: any){
                             <meta property="og:type" content="website"/>
                             <meta property="og:title" content={`${thisitem.account?.name} ${realmName ? ` | ${realmName}` : ``} `}/>
                             <meta property="og:description" content={`Proposal ${thisitem.account?.name} ${realmName ? ` | ${realmName}` : ``}  powered by Governance.so by Grape`}/>
-                            <meta property="og:image" content={`https://governance.so/api/proposal-image?realm=${governanceAddress}&proposal=${proposalPk}&v=1`}/>
+                            <meta property="og:image" content={`https://governance.so/api/proposal-image?realm=${governanceAddress}&proposal=${proposalPk}&v=2`}/>
                             
                             <meta name="twitter:card" content="summary_large_image"/>
                             <meta name="twitter:title" content={`${thisitem.account?.name} ${realmName ? ` | ${realmName}` : ``} `}/>
                             <meta name="twitter:site" content="@grapeprotocol"/>
                             <meta name="twitter:description" content={`Proposal ${thisitem.account?.name} ${realmName ? ` | ${realmName}` : ``}  powered by Governance.so by Grape`}/>
-                            <meta name="twitter:image" content={`https://governance.so/api/proposal-image?realm=${governanceAddress}&proposal=${proposalPk}&v=1`}/>
+                            <meta name="twitter:image" content={`https://governance.so/api/proposal-image?realm=${governanceAddress}&proposal=${proposalPk}&v=2`}/>
                             <meta name="twitter:image:alt" content={`${thisitem.account?.name} ${realmName ? ` | ${realmName}` : ``} `}/>
                         </Helmet>
                         
