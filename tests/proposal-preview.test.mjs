@@ -7,9 +7,14 @@ const proposal = 'GXXQU2JniSFa1QZqW2xRn3hwYoLFRhz83LjgR6VFVHK';
 const owner = new PublicKey('GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw');
 let fail = false;
 let wrongRealm = false;
+let failedProviderCalls = 0;
 mock.module('@solana/spl-governance', { namedExports: {
   ProposalState: { 0: 'Draft' },
-  getProposal: async () => {
+  getProposal: async (rpc) => {
+    if (rpc.rpcEndpoint === "https://unavailable.invalid") {
+      failedProviderCalls++;
+      throw new Error("403 Forbidden");
+    }
     if (fail) throw new Error('RPC unavailable');
     return { owner, account: { name: 'Approve <GRIP> & "August"', state: 0, governance: owner } };
   },
@@ -87,4 +92,21 @@ test('image endpoint serves PNG bytes and uncached fallback; invalid keys return
   const invalid=response();
   await handler({url:'/api/proposal-image',query:{realm,proposal:'invalid'}},invalid);
   assert.equal(invalid.statusCode,400);
+});
+
+
+test('failed primary RPC falls through to a working provider with proposal and DAO names', async () => {
+  const previous=process.env.SOCIAL_RPC_ENDPOINT;
+  process.env.SOCIAL_RPC_ENDPOINT='https://unavailable.invalid';
+  try {
+    const preview=await loadProposalPreview({realm,proposal});
+    assert.equal(failedProviderCalls,1);
+    assert.equal(preview.available,true);
+    assert.equal(preview.title,'Approve <GRIP> & "August"');
+    assert.equal(preview.dao,'Grape');
+    assert.equal(preview.state,'Draft');
+  } finally {
+    if(previous === undefined) delete process.env.SOCIAL_RPC_ENDPOINT;
+    else process.env.SOCIAL_RPC_ENDPOINT=previous;
+  }
 });

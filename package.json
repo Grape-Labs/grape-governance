@@ -256,7 +256,6 @@
         "prettier": "^2.5.1",
         "punycode": "^1.4.1",
         "querystring-es3": "^0.2.1",
-        "react-snap": "^1.23.0",
         "shx": "^0.3.4",
         "stream-http": "^3.2.0",
         "tslib": "^2.8.0",
@@ -270,13 +269,18 @@
         "brace-expansion": "2.1.4",
         "browserslist": "4.28.7",
         "dompurify": "3.3.3",
+        "**/@changesets/parse/js-yaml": "3.15.2",
+        "**/@istanbuljs/load-nyc-config/js-yaml": "3.15.2",
+        "**/load-yaml-file/js-yaml": "3.15.2",
+        "**/read-yaml-file/js-yaml": "3.15.2",
+        "js-yaml": "4.3.2",
         "linkify-it": "5.0.2",
         "node-forge": "1.4.0",
         "path-to-regexp": "0.1.12",
         "picomatch": "2.3.2",
         "shell-quote": "1.8.4",
         "serialize-javascript": "7.0.5",
-        "svgo": "2.8.3"
+        "svgo": "2.8.4"
     },
     "staticFiles": {
         "staticPath": [
@@ -284,10 +288,5 @@
             "public"
         ],
         "watcherGlob": "**"
-    },
-    "reactSnap": {
-        "source": "dist",
-        "inlineCss": true,
-        "minifyHtml": true
     }
 }

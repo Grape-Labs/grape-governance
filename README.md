@@ -104,9 +104,9 @@ app shell, so Discord and other crawlers receive it without running JavaScript.
 Both read Solana directly, including draft proposals that are not indexed yet.
 
 Set `SOCIAL_RPC_ENDPOINT` in the Vercel server environment to a working mainnet
-Solana RPC URL. Existing Helius, QuickNode, and Shyft environment settings are
-used in that priority order when this override is absent, with the public
-mainnet RPC as the final default. `SITE_ORIGIN` defaults to
+Solana RPC URL. Configured Shyft, Helius, QuickNode, Alchemy, and Flux endpoints are
+tried automatically if a provider fails, with the public mainnet RPC last.
+Each attempt has a two-second timeout within a 6.5-second total budget. `SITE_ORIGIN` defaults to
 `https://governance.so`. Successful previews are cached for 60 seconds; missing
 accounts and RPC failures return an uncached address-only preview.
 
