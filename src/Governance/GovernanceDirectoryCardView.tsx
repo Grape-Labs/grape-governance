@@ -73,38 +73,6 @@ const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardV
     [item?.governanceAddress, name]
   );
 
-  if (props.compact) {
-    return (
-      <Card
-        component={Link}
-        to={'/dao/' + item.governanceAddress}
-        aria-label={`Open ${name} DAO`}
-        sx={{
-          display: 'flex', flexDirection: 'column', height: '100%', minHeight: 174,
-          p: 2.5, borderRadius: 3, textDecoration: 'none', color: 'inherit',
-          background: 'rgba(255,255,255,0.025)', boxShadow: 'none',
-          border: '1px solid rgba(255,255,255,0.09)',
-          transition: 'background 120ms ease, border-color 120ms ease',
-          '&:hover': { background: 'rgba(255,255,255,0.055)', borderColor: 'rgba(255,255,255,0.22)' },
-          '&:focus-visible': { outline: '2px solid #b695ec', outlineOffset: 3 },
-        }}
-      >
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <Avatar src={ogSrc || undefined} alt="" sx={{ width: 40, height: 40, bgcolor: tint }}>{name[0]?.toUpperCase()}</Avatar>
-          <Typography component="h3" sx={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 17, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</Typography>
-          {item?.gspl && <VerifiedIcon titleAccess="Verified DAO" sx={{ fontSize: 17, color: 'rgba(255,255,255,0.5)' }} />}
-        </Stack>
-        <Typography variant="body2" sx={{ mt: 1.5, mb: 2, color: 'rgba(255,255,255,0.58)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-          {desc || 'Explore proposals and community governance.'}
-        </Typography>
-        <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="center" useFlexGap flexWrap="wrap" sx={{ mt: 'auto' }}>
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.48)' }}>{Number(item?.totalMembers || 0).toLocaleString()} members · {totalProposals.toLocaleString()} proposals</Typography>
-          {votingCount > 0 && <Typography variant="caption" sx={{ color: '#91d5b4', fontWeight: 600 }}>{votingCount} voting now</Typography>}
-        </Stack>
-      </Card>
-    );
-  }
-
   return (
     <Card
       onClick={() => navigate("/dao/" + item.governanceAddress)}
@@ -365,6 +333,6 @@ const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardV
       </CardActions>
     </Card>
   );
-}, (prevProps, nextProps) => prevProps.item === nextProps.item && prevProps.metadata === nextProps.metadata && prevProps.compact === nextProps.compact);
+}, (prevProps, nextProps) => prevProps.item === nextProps.item && prevProps.metadata === nextProps.metadata);
 
 export default GovernanceDirectoryCardView;
