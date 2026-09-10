@@ -23,16 +23,11 @@ import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import SearchIcon from '@mui/icons-material/Search';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import ViewListIcon from '@mui/icons-material/ViewList';
-import WhatshotIcon from '@mui/icons-material/Whatshot';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
-import GRAPE_LOGO_SQUARE from '../public/grape_logo_square.png';
-import OG_LOGO_SQUARE from '../public/og_logo_square.png';
-import GRAPE_DAO_LOGO from '../public/grape-dao-512.png';
 
 import GovernanceRealtimeInfo from './GovernanceRealtimeInfo';
 import GovernanceDirectoryCardView from './GovernanceDirectoryCardView';
@@ -183,12 +178,13 @@ export function GovernanceDirectoryView(props: Props) {
   const [error, setError] = React.useState<string | null>(null);
 
   const [searchFilter, setSearchFilter] = React.useState('');
+  const [showActivity, setShowActivity] = React.useState(false);
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
   const [filterVerified, setFilterVerified] = React.useState(false);
   const [filterActiveVoting, setFilterActiveVoting] = React.useState(false);
   const [filterOver100Proposals, setFilterOver100Proposals] = React.useState(false);
 
-  const [visibleCount, setVisibleCount] = React.useState(48);
+  const [visibleCount, setVisibleCount] = React.useState(12);
 
   const [gspl, setGSPL] = React.useState<any[]>([]);
   const [governanceTotalMembers, setGovernanceTotalMembers] = React.useState(0);
@@ -849,7 +845,7 @@ export function GovernanceDirectoryView(props: Props) {
   );
 
   React.useEffect(() => {
-    setVisibleCount(viewMode === 'grid' ? 48 : 80);
+    setVisibleCount(viewMode === 'grid' ? 12 : 20);
   }, [viewMode, searchFilter, filterVerified, filterActiveVoting, filterOver100Proposals]);
 
   React.useEffect(() => {
@@ -1026,332 +1022,64 @@ export function GovernanceDirectoryView(props: Props) {
   return (
     <Box
       sx={{
-        mt: 6,
+        mt: { xs: 2, md: 4 },
         borderRadius: '24px',
-        p: { xs: 2, md: 3 },
-        background:
-          'radial-gradient(1200px 600px at 18% 0%, rgba(16, 118, 255, 0.22), transparent 62%), radial-gradient(900px 480px at 90% 12%, rgba(0, 190, 135, 0.18), transparent 55%), radial-gradient(700px 350px at 50% 100%, rgba(255, 153, 0, 0.1), transparent 60%), rgba(0,0,0,0.55)',
+        p: { xs: 2, md: 4 },
+        background: 'rgba(16, 12, 24, 0.85)',
         border: '1px solid rgba(255,255,255,0.08)',
         backdropFilter: 'blur(10px)',
       }}
     >
-      <Typography
-        variant="caption"
-        sx={{
-          display: 'block',
-          mb: 1.35,
-          px: 0.25,
-          textAlign: 'left',
-          color: 'rgba(225,232,240,0.7)',
-          letterSpacing: '0.01em',
-        }}
-      >
-        Featured Grape tools from a broader stack of 6 on-chain programs, 4 APIs, 5 interfaces, and 5 Discord bots.
-      </Typography>
+      <Box id="back-to-top-anchor" sx={{ pt: { xs: 2, md: 4 }, pb: 4, maxWidth: 720 }}>
+        <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.55)', letterSpacing: 2 }}>
+          Governance on Solana
+        </Typography>
+        <Typography component="h1" sx={{ mt: 1, mb: 1.5, fontSize: { xs: '2rem', md: '3rem' }, fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.12 }}>
+          Find your DAO. Have your say.
+        </Typography>
+        <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontSize: { xs: 16, md: 18 } }}>
+          Explore communities, review proposals, and take part in the decisions that matter to you.
+        </Typography>
+      </Box>
 
-      <Grid container spacing={1.5} sx={{ mb: 2.25 }}>
-        <Grid item xs={12} md={4}>
-          <Box
-            component="a"
-            href="https://grapedao.org"
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-              p: 1.5,
-              borderRadius: '16px',
-              textDecoration: 'none',
-              color: 'inherit',
-              background:
-                'linear-gradient(120deg, rgba(120, 66, 255, 0.24), rgba(255, 97, 161, 0.18))',
-              border: '1px solid rgba(255,255,255,0.14)',
-              transition: 'transform 120ms ease, border-color 120ms ease, background 120ms ease',
-              '&:hover': {
-                transform: 'translateY(-1px)',
-                borderColor: 'rgba(255,255,255,0.24)',
-                background:
-                  'linear-gradient(120deg, rgba(120, 66, 255, 0.3), rgba(255, 97, 161, 0.24))',
-              },
-            }}
-          >
-            <Box
-              component="img"
-              src={GRAPE_DAO_LOGO}
-              alt="Grape DAO"
-              sx={{
-                width: 50,
-                height: 50,
-                borderRadius: '12px',
-                objectFit: 'cover',
-                border: '1px solid rgba(255,255,255,0.16)',
-              }}
-            />
-            <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, letterSpacing: 0.2 }}>
-                Grape DAO
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.84 }}>
-                Main hub for the Grape ecosystem
-              </Typography>
-            </Box>
-            <OpenInNewIcon fontSize="small" sx={{ opacity: 0.85 }} />
-          </Box>
-        </Grid>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ xs: 'stretch', md: 'center' }} sx={{ mb: 2 }}>
+        <TextField
+          fullWidth
+          label="Find a DAO"
+          placeholder="Search by name, address, or token mint"
+          value={searchFilter}
+          onChange={(e) => setSearchFilter(e.target.value)}
+          sx={{ maxWidth: 720, '& .MuiOutlinedInput-root': { borderRadius: 3, background: 'rgba(255,255,255,0.03)' } }}
+          InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }}
+        />
+        <Button
+          color="inherit"
+          variant={filterActiveVoting ? 'contained' : 'outlined'}
+          startIcon={<HowToVoteIcon />}
+          aria-pressed={filterActiveVoting}
+          onClick={() => setFilterActiveVoting(value => !value)}
+          sx={{ whiteSpace: 'nowrap', minWidth: 150, py: 1.5 }}
+        >Voting now</Button>
+      </Stack>
 
-        <Grid item xs={12} md={4}>
-          <Box
-            component="a"
-            href="https://vine.governance.so"
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-              p: 1.5,
-              borderRadius: '16px',
-              textDecoration: 'none',
-              color: 'inherit',
-              background:
-                'linear-gradient(120deg, rgba(18, 120, 255, 0.26), rgba(0, 178, 128, 0.18))',
-              border: '1px solid rgba(255,255,255,0.14)',
-              transition: 'transform 120ms ease, border-color 120ms ease, background 120ms ease',
-              '&:hover': {
-                transform: 'translateY(-1px)',
-                borderColor: 'rgba(255,255,255,0.24)',
-                background:
-                  'linear-gradient(120deg, rgba(18, 120, 255, 0.33), rgba(0, 178, 128, 0.24))',
-              },
-            }}
-          >
-            <Box
-              component="img"
-              src={OG_LOGO_SQUARE}
-              alt="OG Reputation Space"
-              sx={{
-                width: 50,
-                height: 50,
-                borderRadius: '12px',
-                objectFit: 'cover',
-                border: '1px solid rgba(255,255,255,0.16)',
-              }}
-            />
-            <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, letterSpacing: 0.2 }}>
-                OG Reputation Spaces
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.84 }}>
-                On-chain reputation by Grape
-              </Typography>
-            </Box>
-            <OpenInNewIcon fontSize="small" sx={{ opacity: 0.85 }} />
-          </Box>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <Box
-            component="a"
-            href="https://verification.governance.so"
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-              p: 1.5,
-              borderRadius: '16px',
-              textDecoration: 'none',
-              color: 'inherit',
-              background:
-                'linear-gradient(120deg, rgba(255, 170, 0, 0.24), rgba(255, 97, 61, 0.2))',
-              border: '1px solid rgba(255,255,255,0.14)',
-              transition: 'transform 120ms ease, border-color 120ms ease, background 120ms ease',
-              '&:hover': {
-                transform: 'translateY(-1px)',
-                borderColor: 'rgba(255,255,255,0.24)',
-                background:
-                  'linear-gradient(120deg, rgba(255, 170, 0, 0.3), rgba(255, 97, 61, 0.27))',
-              },
-            }}
-          >
-            <Box
-              component="img"
-              src={GRAPE_LOGO_SQUARE}
-              alt="Grape Verification"
-              sx={{
-                width: 50,
-                height: 50,
-                borderRadius: '12px',
-                objectFit: 'cover',
-                border: '1px solid rgba(255,255,255,0.16)',
-              }}
-            />
-            <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, letterSpacing: 0.2 }}>
-                Grape Verification
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.84 }}>
-                On-chain verification by Grape
-              </Typography>
-            </Box>
-            <OpenInNewIcon fontSize="small" sx={{ opacity: 0.85 }} />
-          </Box>
-        </Grid>
-      </Grid>
-
-      <Grid container spacing={2} alignItems="center" id="back-to-top-anchor">
-        <Grid item xs={12} md={7} sx={{ textAlign: 'left' }}>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }} useFlexGap flexWrap="wrap">
-            <Typography variant="h4" sx={{ fontWeight: 700, letterSpacing: -0.5 }}>
-              DAO Directory
-            </Typography>
-            <Chip
-              size="small"
-              icon={<VerifiedIcon />}
-              label={`${gspl?.length || 0} verified`}
-              variant="outlined"
-              sx={{ borderRadius: '999px' }}
-            />
-            <Chip
-              size="small"
-              icon={<WhatshotIcon />}
-              label={`${totalLiveProposals.toLocaleString()} live votes`}
-              variant="outlined"
-              sx={{ borderRadius: '999px' }}
-            />
-            <Chip
-              size="small"
-              label={syncSourceLabel}
-              variant="outlined"
-              color={syncSource === 'cache' ? 'warning' : 'success'}
-              sx={{ borderRadius: '999px' }}
-            />
+      <Box component="details" sx={{ mb: 3, color: 'rgba(255,255,255,0.7)', '& > summary': { cursor: 'pointer', py: 1, width: 'fit-content', fontSize: 14 } }}>
+        <Box component="summary">Directory options{filterVerified || filterOver100Proposals ? ' · filters active' : ''}</Box>
+        <Stack spacing={2} sx={{ pt: 2 }}>
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
+            <Chip icon={<VerifiedIcon />} label="Verified" clickable onClick={() => setFilterVerified(value => !value)} color={filterVerified ? 'primary' : 'default'} variant={filterVerified ? 'filled' : 'outlined'} />
+            <Chip label=">100 proposals" clickable onClick={() => setFilterOver100Proposals(value => !value)} color={filterOver100Proposals ? 'primary' : 'default'} variant={filterOver100Proposals ? 'filled' : 'outlined'} />
+            <ToggleButtonGroup exclusive size="small" value={viewMode} aria-label="Directory layout" onChange={(_,mode) => mode && setViewMode(mode)}>
+              <ToggleButton value="grid" aria-label="Grid layout"><ViewModuleIcon fontSize="small" /></ToggleButton>
+              <ToggleButton value="list" aria-label="List layout"><ViewListIcon fontSize="small" /></ToggleButton>
+            </ToggleButtonGroup>
+            <Button color="inherit" size="small" onClick={clearFilters}>Reset filters</Button>
           </Stack>
-
-          <Typography variant="body2" sx={{ opacity: 0.85 }}>
-            Proposal freshness and active voting are synced from GraphQL. Cache data is only used to enrich fields not available from GraphQL.
-          </Typography>
-
-          <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} useFlexGap flexWrap="wrap">
-            <Chip size="small" label={`${governanceLookup.length || 0} active DAOs`} />
-            <Chip
-              size="small"
-              label={`${governanceTotalMembers ? getFormattedNumberToLocale(governanceTotalMembers) : 0} unique voters`}
-            />
-            <Chip
-              size="small"
-              label={`${governanceTotalProposals ? getFormattedNumberToLocale(governanceTotalProposals) : 0} proposals`}
-            />
+          <Stack direction="row" spacing={2} alignItems="center" useFlexGap flexWrap="wrap">
+            <Typography variant="caption">Updated {syncTimeLabel}</Typography>
+            <Button color="inherit" size="small" startIcon={<RefreshIcon />} onClick={() => loadGovernanceDirectory(true)} disabled={refreshing}>{refreshing ? 'Refreshing…' : 'Refresh directory'}</Button>
           </Stack>
-        </Grid>
-
-        <Grid item xs={12} md={5}>
-          <Box
-            sx={{
-              position: { xs: 'static', md: 'sticky' },
-              top: 12,
-              zIndex: 10,
-              p: 1.5,
-              borderRadius: '18px',
-              background: 'rgba(0,0,0,0.35)',
-              border: '1px solid rgba(255,255,255,0.08)',
-            }}
-          >
-            <Stack spacing={1.25}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Search DAOs, governance address, mint..."
-                value={searchFilter}
-                onChange={(e) => setSearchFilter(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon fontSize="small" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-
-              <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={1}
-                alignItems={{ xs: 'stretch', sm: 'center' }}
-                justifyContent="space-between"
-              >
-                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                  <Chip
-                    icon={<VerifiedIcon />}
-                    label="Verified"
-                    color={filterVerified ? 'primary' : 'default'}
-                    variant={filterVerified ? 'filled' : 'outlined'}
-                    size="small"
-                    onClick={() => setFilterVerified((value) => !value)}
-                  />
-                  <Chip
-                    icon={<HowToVoteIcon />}
-                    label="Voting now"
-                    color={filterActiveVoting ? 'primary' : 'default'}
-                    variant={filterActiveVoting ? 'filled' : 'outlined'}
-                    size="small"
-                    onClick={() => setFilterActiveVoting((value) => !value)}
-                  />
-                  <Chip
-                    icon={<WhatshotIcon />}
-                    label=">100 proposals"
-                    color={filterOver100Proposals ? 'primary' : 'default'}
-                    variant={filterOver100Proposals ? 'filled' : 'outlined'}
-                    size="small"
-                    onClick={() => setFilterOver100Proposals((value) => !value)}
-                  />
-                </Stack>
-
-                <ToggleButtonGroup
-                  exclusive
-                  size="small"
-                  value={viewMode}
-                  onChange={(_, mode) => mode && setViewMode(mode)}
-                >
-                  <ToggleButton value="grid">
-                    <ViewModuleIcon fontSize="small" />
-                  </ToggleButton>
-                  <ToggleButton value="list">
-                    <ViewListIcon fontSize="small" />
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </Stack>
-
-              <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={1}
-                alignItems={{ xs: 'flex-start', sm: 'center' }}
-                justifyContent="space-between"
-              >
-                <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                  Last synced: {syncTimeLabel}
-                </Typography>
-
-                <Button
-                  color="inherit"
-                  size="small"
-                  variant="outlined"
-                  startIcon={<RefreshIcon fontSize="small" />}
-                  onClick={() => loadGovernanceDirectory(true)}
-                  disabled={refreshing}
-                >
-                  {refreshing ? 'Refreshing...' : 'Refresh'}
-                </Button>
-              </Stack>
-
-              <Stack direction="row" justifyContent="flex-end">
-                <CreateSplGovernanceDaoButton />
-              </Stack>
-            </Stack>
-          </Box>
-        </Grid>
-      </Grid>
+        </Stack>
+      </Box>
 
       {(refreshing || error) && (
         <Box sx={{ mt: 2 }}>
@@ -1371,12 +1099,12 @@ export function GovernanceDirectoryView(props: Props) {
           mb: 2.5,
           p: 2,
           borderRadius: '14px',
-          border: '2px solid rgba(132, 190, 255, 0.3)',
-          background: 'linear-gradient(135deg, rgba(77, 163, 255, 0.08) 0%, rgba(132, 190, 255, 0.04) 100%)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'transparent',
         }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.75 }} useFlexGap flexWrap="wrap">
             <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: -0.25 }}>
-              Participating DAOs
+              Your DAOs
             </Typography>
             <Chip
               size="small"
@@ -1413,7 +1141,7 @@ export function GovernanceDirectoryView(props: Props) {
                     sm={viewMode === 'grid' ? 6 : 12}
                     md={viewMode === 'grid' ? 4 : 12}
                   >
-                    <GovernanceDirectoryCardView item={item} metadata={metadata} />
+                    <GovernanceDirectoryCardView item={item} metadata={metadata} compact />
                   </Grid>
                 );
               })}
@@ -1435,22 +1163,9 @@ export function GovernanceDirectoryView(props: Props) {
         </Box>
       )}
 
-      {!searchFilter && filteredGovernances.length > 0 && (
-        <Box sx={{ mb: 1.5 }}>
-          <GovernanceRealtimeInfo
-            key={latestActivityAddress}
-            governanceLookup={governanceLookup}
-            governanceAddress={latestActivityAddress}
-            title={'Latest Activity'}
-            expanded={false}
-            compact={true}
-          />
-        </Box>
-      )}
-
       {nonFavoriteGovernances.length > 0 && (
         <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: -0.25, mt: 3, mb: 1.5 }}>
-          All Other DAOs
+          {walletAddress && favoriteGovernances.length ? 'Explore more DAOs' : 'Explore DAOs'}
         </Typography>
       )}
 
@@ -1470,7 +1185,7 @@ export function GovernanceDirectoryView(props: Props) {
                 sm={viewMode === 'grid' ? 6 : 12}
                 md={viewMode === 'grid' ? 4 : 12}
               >
-                <GovernanceDirectoryCardView item={item} metadata={metadata} />
+                <GovernanceDirectoryCardView item={item} metadata={metadata} compact />
               </Grid>
             );
           })}
@@ -1503,12 +1218,29 @@ export function GovernanceDirectoryView(props: Props) {
             size="small"
             variant="outlined"
             color="inherit"
-            onClick={() => setVisibleCount((current) => current + (viewMode === 'grid' ? 36 : 60))}
+            onClick={() => setVisibleCount((current) => current + (viewMode === 'grid' ? 12 : 20))}
           >
             Load More ({nonFavoriteGovernances.length - displayedGovernances.length} remaining)
           </Button>
         </Box>
       )}
+
+      <Divider sx={{ mt: 5, mb: 2, opacity: 0.15 }} />
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }}>
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+          <Button color="inherit" onClick={() => setShowActivity(value => !value)} aria-expanded={showActivity}>{showActivity ? 'Hide recent activity' : 'Recent activity'}</Button>
+          <CreateSplGovernanceDaoButton />
+        </Stack>
+        <Box component="details" sx={{ '& summary': { cursor: 'pointer', fontSize: 14, color: 'rgba(255,255,255,0.6)' } }}>
+          <Box component="summary">More from Grape</Box>
+          <Stack spacing={0.5} sx={{ pt: 1 }}>
+            <Button component="a" href="https://grapedao.org" target="_blank" rel="noopener noreferrer" color="inherit">Grape DAO</Button>
+            <Button component="a" href="https://vine.governance.so" target="_blank" rel="noopener noreferrer" color="inherit">OG Reputation Spaces</Button>
+            <Button component="a" href="https://verification.governance.so" target="_blank" rel="noopener noreferrer" color="inherit">Grape Verification</Button>
+          </Stack>
+        </Box>
+      </Stack>
+      {showActivity && <Box sx={{ mt: 2 }}><GovernanceRealtimeInfo key={latestActivityAddress} governanceLookup={governanceLookup} governanceAddress={latestActivityAddress} title="Recent activity" expanded={false} compact={true} /></Box>}
 
       <ScrollTop {...props}>
         <Fab size="small" aria-label="scroll back to top">

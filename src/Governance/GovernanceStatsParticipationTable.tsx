@@ -23,6 +23,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import ExplorerView from '../utils/grapeTools/Explorer';
+import { formatVoteWeight, voteProposalTitle } from './participationFormatting';
 
 function formatDate(ts) {
   if (!ts) return '-';
@@ -397,12 +398,10 @@ export default function ParticipationStatsTable({ proposals, members, participan
                 <TableBody>
                 {selectedWallet.voteHistory.map((v, i) => (
                     <TableRow key={i}>
-                    <TableCell>{v.proposalTitle || v.proposalId}</TableCell>
+                    <TableCell>{voteProposalTitle(v)}</TableCell>
                     <TableCell>{votingTypeToText(v.voteType)}</TableCell>
                     <TableCell align="right">
-                        {v.proposalMint === v.communityMint
-                            ? ((Number(v.voteWeight) / Math.pow(10, v.communityDecimals || 0)).toFixed(0)).toLocaleString()
-                            : v.voteWeight}
+                        {formatVoteWeight(v)}
                     </TableCell>
                     <TableCell>{formatDate(v.draftAt)}</TableCell>
                     </TableRow>
