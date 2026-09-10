@@ -119,3 +119,27 @@ Run the preview tests with Node 22.3+ or Node 24:
 ```sh
 node --experimental-test-module-mocks --test tests/proposal-preview.test.mjs
 ```
+
+### Grant tracking
+
+Open **DAO → Treasury → Grant tracking**. Grape defaults to the designated
+`6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD` distribution wallet. Choose
+**Find payments**, load older pages as needed, and select a recipient's
+**Activity** to inspect swaps, outgoing transfers, wallet balance, and transaction
+links. Standard SPL Governance deposits are attributed to the beneficiary named
+in the deposit instruction, including Grape's direct-to-governance distributions.
+
+This is an on-demand tracker, not a background index: each page scans up to 100
+provider transactions. Totals cover loaded history only. Payment purpose is not
+automatically linked to a proposal; confirm that a payment is a grant. Swap totals
+are wallet activity from the earliest loaded payment date, not proof that specific
+granted tokens were sold. Only decoded swaps with the recipient's community-token
+input count as confirmed swaps; other outgoing transfers stay separate. Balances
+exclude governance deposits, staking, escrow, and other wallets.
+
+Configure `GRANT_TRACKING_HELIUS_API_KEY` on the server, or use existing
+`REACT_APP_API_HELIUS` / `_BKP2` / `_BKP3` / `_BKP4` keys. The endpoint tries backups
+when a key is unavailable. Keys are never returned to the client. History coverage
+depends on the provider's parser and retained/indexed history.
+
+Run checks with `node --test tests/grant-tracking.test.mjs`.

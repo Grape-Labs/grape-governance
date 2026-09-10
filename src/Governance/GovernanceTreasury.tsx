@@ -26,6 +26,7 @@ import {
 } from '@mui/material/';
 
 import WalletCardView from './Treasury/WalletCardView';
+import GrantTrackingView from './Treasury/GrantTrackingView';
 import { GovernanceHeaderView } from './GovernanceHeaderView';
 import GovernanceNavigation from './GovernanceNavigation';
 
@@ -542,6 +543,15 @@ export function GovernanceTreasuryView(props: any) {
                 </Grid>
               </Grid>
             </Box>
+          )}
+
+          {realm?.account?.communityMint && (
+            <GrantTrackingView
+              key={governanceAddress}
+              grantors={governanceAddress === 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip' ? ['6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD'] : []}
+              mint={toBase58OrEmpty(realm.account.communityMint)}
+              wallets={sortedWallets.map((item: any) => toTreasuryBase58(item.nativeTreasuryAddress)).filter(Boolean)}
+            />
           )}
 
           <Box sx={{ mt: 2, mb: 2 }}>
