@@ -137,9 +137,15 @@ granted tokens were sold. Only decoded swaps with the recipient's community-toke
 input count as confirmed swaps; other outgoing transfers stay separate. Balances
 exclude governance deposits, staking, escrow, and other wallets.
 
-Configure `GRANT_TRACKING_HELIUS_API_KEY` on the server, or use existing
-`REACT_APP_API_HELIUS` / `_BKP2` / `_BKP3` / `_BKP4` keys. The endpoint tries backups
-when a key is unavailable. Keys are never returned to the client. History coverage
-depends on the provider's parser and retained/indexed history.
+Configure `REACT_APP_API_HELIUS` on the server. Grant tracking uses only this
+key for history and balance requests, with no alternate-key or RPC-URL fallback.
+The endpoint never returns the key to the client. History coverage depends on
+the provider's parser and retained/indexed history.
 
-Run checks with `node --test tests/grant-tracking.test.mjs`.
+Run checks with `node --test tests/grant-tracking.test.mjs tests/grant-provider.test.mjs`.
+
+If grant tracking fails on Vercel, check `REACT_APP_API_HELIUS` in the
+**Production** environment and redeploy. A working local `.env` does not configure
+a Vercel deployment. Error codes distinguish missing configuration, denied access,
+rate limits, timeouts, and upstream failures; no credentials are included in errors.
+Requests allow eight seconds; the Vercel function duration is set to 30 seconds.
