@@ -1872,27 +1872,7 @@ export default function GovernanceCreateProposalView(props: any){
       }
     };*/
 
-    React.useEffect(() => {
-      const handler = (e: KeyboardEvent) => {
-        // Allow typing in inputs, textareas, and editable divs
-        const el = document.activeElement;
-        const isTyping =
-          el?.tagName === 'INPUT' ||
-          el?.tagName === 'TEXTAREA' ||
-          el?.getAttribute('contenteditable') === 'true';
 
-        if (isTyping) return; // ✅ allow key through
-
-        if (e.key === 'g' || e.key === 'c') {
-          e.preventDefault();
-          console.log(`Global shortcut: ${e.key}`);
-          // Perform shortcut action
-        }
-      };
-
-      window.addEventListener('keydown', handler);
-      return () => window.removeEventListener('keydown', handler);
-    }, []);
 
     return (
         <>

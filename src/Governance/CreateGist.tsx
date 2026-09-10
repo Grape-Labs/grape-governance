@@ -158,10 +158,16 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
 
       <Dialog
         open={open}
-        onClose={handleClose}
+        onClose={(_event, reason) => {
+          if (reason === 'backdropClick' || loading) return;
+          handleClose();
+        }}
+        disableEscapeKeyDown
+        // Portaled dialogs still bubble React events to ancestor menus.
+        // Keep menu typeahead from stealing focus without cancelling native editing.
+        onKeyDown={(event) => event.stopPropagation()}
+        onKeyUp={(event) => event.stopPropagation()}
         fullWidth
-        disableEnforceFocus
-        disableRestoreFocus
       >
         <DialogTitle>Create GitHub Gist</DialogTitle>
         <DialogContent>
@@ -295,7 +301,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
               </Button>
             }
             <Box>
-            <Button onClick={handleClose}>Cancel</Button>
+            <Button onClick={handleClose} disabled={loading}>Cancel</Button>
             {githubToken && (
               <Button onClick={handleCreateGist} variant="contained" disabled={loading}>
                 {loading ? <CircularProgress size={20} /> : 'Create Gist'}
@@ -305,7 +311,12 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
         </DialogActions>
       </Dialog>
 
-      <Dialog open={verificationDialogOpen} onClose={() => setVerificationDialogOpen(false)}>
+      <Dialog
+        open={verificationDialogOpen}
+        onClose={() => setVerificationDialogOpen(false)}
+        onKeyDown={(event) => event.stopPropagation()}
+        onKeyUp={(event) => event.stopPropagation()}
+      >
         <DialogTitle>Authorize GitHub</DialogTitle>
         <DialogContent>
           <p>To proceed, authorize this app with GitHub.</p>
