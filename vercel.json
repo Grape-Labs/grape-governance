@@ -4,6 +4,7 @@
   "buildCommand": "yarn build:client",
   "outputDirectory": "dist",
   "functions": {
+    "api/grant-tracking.js": { "maxDuration": 30 },
     "api/proposal-preview.js": { "includeFiles": "dist/index.html" }
   },
   "crons": [

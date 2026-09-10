@@ -67,8 +67,8 @@ test('resolves governance deposits to members instead of the realm holding accou
 test('API preserves history pagination and reports provider failures instead of zero activity',async()=>{
  const {default:handler}=await import('../api/grant-tracking.js');
  const originalFetch=globalThis.fetch;
- const originalKey=process.env.GRANT_TRACKING_HELIUS_API_KEY;
- process.env.GRANT_TRACKING_HELIUS_API_KEY='test-key';
+ const originalKey=process.env.REACT_APP_API_HELIUS;
+ process.env.REACT_APP_API_HELIUS='test-key';
  const wallet='11111111111111111111111111111111';
  const signature='1'.repeat(88);
  const response=()=>({setHeader(){},status(code){this.code=code;return this},json(body){this.body=body;return this}});
@@ -86,7 +86,7 @@ test('API preserves history pagination and reports provider failures instead of 
    assert.equal(failed.code,502);assert.equal(failed.body.rows,undefined);
  } finally {
    globalThis.fetch=originalFetch;
-   if(originalKey===undefined) delete process.env.GRANT_TRACKING_HELIUS_API_KEY;
-   else process.env.GRANT_TRACKING_HELIUS_API_KEY=originalKey;
+   if(originalKey===undefined) delete process.env.REACT_APP_API_HELIUS;
+   else process.env.REACT_APP_API_HELIUS=originalKey;
  }
 });
