@@ -547,6 +547,7 @@ export function GovernanceTreasuryView(props: any) {
 
           {realm?.account?.communityMint && (
             <GrantTrackingView
+              realm={governanceAddress}
               key={governanceAddress}
               grantors={governanceAddress === 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip' ? ['6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD'] : []}
               mint={toBase58OrEmpty(realm.account.communityMint)}

@@ -139,12 +139,28 @@ granted tokens were sold. Only decoded swaps with the recipient's community-toke
 input count as confirmed swaps; other outgoing transfers stay separate. Balances
 exclude governance deposits, staking, escrow, and other wallets.
 
+The **≥10% swap review** compares each confirmed swap transaction with the
+member's native community-token deposit position in the selected DAO, not their
+liquid wallet balance. A withdrawal preserves the position immediately before
+withdrawal as the review basis until a subsequent deposit or revocation updates
+it. Transfers alone are never flagged. Percentages can exceed 100% and do not
+prove which tokens were sold.
+
+Opening recipient activity also scans the member's token-owner-record history,
+including third-party grants. The scan must finish and reconcile with a finalized
+on-chain deposit snapshot before percentages are shown. The initial scan loads up
+to five pages; use **Continue governance history scan** when more are needed.
+Incomplete, unreconciled, zero-basis, and ambiguous same-slot histories show an
+unavailable assessment. Voting-plugin positions and nonstandard governance/token
+programs are not supported by this review. Recipient badges reflect only inspected
+activity and are not a background scan of all members.
+
 Configure `REACT_APP_API_HELIUS` on the server. Grant tracking uses only this
 key for history and balance requests, with no alternate-key or RPC-URL fallback.
 The endpoint never returns the key to the client. History coverage depends on
 the provider's parser and retained/indexed history.
 
-Run checks with `node --test tests/grant-tracking.test.mjs tests/grant-provider.test.mjs`.
+Run checks with `node --test tests/grant-tracking.test.mjs tests/grant-provider.test.mjs tests/swap-threshold.test.mjs`.
 
 If grant tracking fails on Vercel, check `REACT_APP_API_HELIUS` in the
 **Production** environment and redeploy. A working local `.env` does not configure

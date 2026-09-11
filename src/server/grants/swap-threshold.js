@@ -1,51 +1,55 @@
 import BigNumber from 'bignumber.js';
 
-// Walk finalized history newest-first from an anchored wallet balance. Incoming
-// transfers must be reversed too, including deposits returned from governance.
-export function assessSwaps(transactions, rows, wallet, mint, snapshot) {
-  let balance = snapshot?.balance == null ? null : new BigNumber(snapshot.balance);
-  if (!balance?.isFinite() || balance.isNegative()) balance = null;
-  const assessed = new Map();
+// Governance history must be complete and reconcile to the finalized on-chain
+// deposit amount. A withdrawal preserves its prior position as the policy basis
+// until a later deposit/revocation changes the governance position.
+export function assessGovernanceSwaps(rows, changes, snapshot, complete) {
+  const unavailable = () => rows.map(row => row.type === 'swap' ? {...row,
+    governanceBasis:null, basisSignature:null, swapPercent:null, thresholdExceeded:null} : row);
+  if (!complete || !snapshot || !Number.isSafeInteger(snapshot.slot)) return unavailable();
+  let position = new BigNumber(0);
+  let basis = new BigNumber(0);
+  let basisSignature = null;
+  const timeline = [];
+  let priorSlot = 0;
   const seen = new Set();
-  let previousSlot = snapshot?.slot;
-  for (const tx of transactions) {
-    if (seen.has(tx.signature)) continue;
-    seen.add(tx.signature);
-    if (!Number.isSafeInteger(tx.slot) || tx.slot < 111491819 ||
-        !Number.isSafeInteger(previousSlot) || tx.slot > previousSlot) balance = null;
-    previousSlot = tx.slot;
-    if (tx.transactionError) continue;
-    if (!Array.isArray(tx.accountData)) balance = null;
-    const changes = (tx.accountData || []).flatMap(a => a.tokenBalanceChanges || [])
-      .filter(c => c.mint === mint && c.userAccount === wallet);
-    let delta = new BigNumber(0);
-    for (const change of changes) {
-      const raw = change.rawTokenAmount;
-      if (!raw || !/^-?\d+$/.test(raw.tokenAmount) || !Number.isInteger(raw.decimals) || raw.decimals < 0 || raw.decimals > 255) {
-        balance = null; break;
-      }
-      delta = delta.plus(new BigNumber(raw.tokenAmount).shiftedBy(-raw.decimals));
-    }
-    const relevantTransfer = (tx.tokenTransfers || []).some(t =>
-      t.mint === mint && (t.fromUserAccount === wallet || t.toUserAccount === wallet));
-    const swap = rows.find(r => r.signature === tx.signature && r.type === 'swap');
-    if ((relevantTransfer || swap) && !changes.length) balance = null;
-    if (balance) {
-      balance = balance.minus(delta);
-      if (balance.isNegative()) balance = null;
-    }
-    if (swap) {
-      const valid = balance?.gt(0) && new BigNumber(swap.amount).lte(balance);
-      assessed.set(tx.signature, {
-        holdingsBefore: valid ? balance.toFixed() : null,
-        swapPercent: valid ? new BigNumber(swap.amount).div(balance).times(100).toFixed() : null,
-        // Compare exact amounts; never compare a rounded display percentage.
-        thresholdExceeded: valid ? new BigNumber(swap.amount).times(10).gte(balance) : null,
-      });
-    }
+  // Changes arrive in descending transaction order; reverse preserves same-slot
+  // instruction order without guessing from timestamps.
+  for (const change of [...changes].reverse()) {
+    if (seen.has(change.id)) continue;
+    seen.add(change.id);
+    if (!Number.isSafeInteger(change.slot) || change.slot < priorSlot || change.slot > snapshot.slot || change.kind === 'unknown') return unavailable();
+    priorSlot = change.slot;
+    const amount = new BigNumber(change.amount ?? 0);
+    if (!amount.isFinite() || amount.isNegative()) return unavailable();
+    if (change.kind === 'deposit') {
+      position = position.plus(amount);
+      basis = position;
+    } else if (change.kind === 'withdraw') {
+      // SPL Governance withdraws the entire native token deposit.
+      if (position.gt(0)) basis = position;
+      position = new BigNumber(0);
+    } else if (change.kind === 'revoke') {
+      position = position.minus(amount);
+      basis = position;
+    } else if (change.kind !== 'create') return unavailable();
+    if (position.isNegative()) return unavailable();
+    basisSignature = change.signature;
+    timeline.push({...change, basis:basis.toFixed(), basisSignature});
   }
-  return {
-    rows: rows.map(row => row.type === 'swap' ? {...row, ...assessed.get(row.signature)} : row),
-    snapshot: {slot: snapshot?.slot ?? null, balance: balance?.toFixed() ?? null},
-  };
+  if (!position.eq(snapshot.position)) return unavailable();
+  return rows.map(row => {
+    if (row.type !== 'swap') return row;
+    // Same-slot transactions have no reliable inter-stream ordering. Do not
+    // invent a denominator, even if the swap and withdrawal share a transaction.
+    const ambiguous = timeline.some(c => c.slot === row.slot);
+    const preceding = timeline.filter(c => c.slot < row.slot).at(-1);
+    const denominator = new BigNumber(preceding?.basis ?? 0);
+    const amount = new BigNumber(row.amount);
+    const valid = !ambiguous && Number.isSafeInteger(row.slot) && row.slot <= snapshot.slot && denominator.gt(0) && amount.isFinite() && amount.gt(0);
+    return {...row, governanceBasis:valid?denominator.toFixed():null,
+      basisSignature:valid?preceding.basisSignature:null,
+      swapPercent:valid?amount.div(denominator).times(100).toFixed():null,
+      thresholdExceeded:valid?amount.times(10).gte(denominator):null};
+  });
 }
