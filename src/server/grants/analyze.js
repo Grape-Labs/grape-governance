@@ -67,9 +67,9 @@ export function analyzeRecipient(transactions, wallet, mint, since) {
       const raw = t.rawTokenAmount;
       return raw && Number.isInteger(raw.decimals) ? sum.plus(amount(raw.tokenAmount).shiftedBy(-raw.decimals)) : sum;
     }, new BigNumber(0));
-    if (swapped.gt(0)) events.push({signature:tx.signature,timestamp:tx.timestamp,type:'swap',amount:swapped.toFixed()});
+    if (swapped.gt(0)) events.push({signature:tx.signature,slot:tx.slot,timestamp:tx.timestamp,type:'swap',amount:swapped.toFixed()});
     const other = BigNumber.maximum(0, outgoing.minus(swapped));
-    if (other.gt(0)) events.push({signature:tx.signature,timestamp:tx.timestamp,type:'transfer',amount:other.toFixed()});
+    if (other.gt(0)) events.push({signature:tx.signature,slot:tx.slot,timestamp:tx.timestamp,type:'transfer',amount:other.toFixed()});
   }
   return events;
 }
