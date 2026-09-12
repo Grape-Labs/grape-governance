@@ -1,3 +1,5 @@
+import GrantTrackingView from './Members/GrantTrackingView';
+import { getNativeTreasuryAddress } from '@solana/spl-governance';
 import { PublicKey, TokenAmount, Connection, Transaction } from '@solana/web3.js';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { getMint } from '@solana/spl-token-v2';
@@ -2163,6 +2165,23 @@ export function GovernanceMembersView(props: any) {
                                     </Grid>
                                 </Box>
                             }
+
+                        {governingTokenMint && realm && (
+                            <GrantTrackingView
+                                key={governanceAddress}
+                                realm={governanceAddress}
+                                mint={governingTokenMint}
+                                grantors={governanceAddress === 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip' ? ['6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD'] : []}
+                                loadWallets={async () => {
+                                    const program = new PublicKey(realm.owner);
+                                    const governances = await getAllGovernancesIndexed(governanceAddress, program.toBase58());
+                                    if (!Array.isArray(governances)) throw new Error('Wallet suggestions unavailable');
+                                    return Promise.all(governances.map(async governance =>
+                                        (await getNativeTreasuryAddress(program, new PublicKey(governance.pubkey))).toBase58()
+                                    ));
+                                }}
+                            />
+                        )}
 
                         <RenderGovernanceMembersTable members={members} memberMap={null} participating={participating} tokenMap={tokenMap} pluginDao={isPluginPowerRealm} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} vsrTokenDecimals={vsrTokenDecimals} vsrVotingPowerDecimals={vsrVotingPowerDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />
                     

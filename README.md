@@ -122,7 +122,7 @@ node --experimental-test-module-mocks --test tests/proposal-preview.test.mjs
 
 ### Grant tracking
 
-Open **DAO → Treasury → Grant tracking**. Grape defaults to the designated
+Open **DAO → Members → Grant tracking**. Grape defaults to the designated
 `6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD` distribution wallet. Choose
 **Find grants**, load older pages as needed, and select a recipient's
 **Activity** to inspect swaps, outgoing transfers, wallet balance, and transaction
