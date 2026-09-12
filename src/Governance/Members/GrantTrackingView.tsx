@@ -125,7 +125,18 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment}
   </Box>;
 }
 
-export default function GrantTrackingView({mint,realm,wallets,grantors=[]}:{mint:string;realm:string;wallets:string[];grantors?:string[]}) {
+export default function GrantTrackingView({mint,realm,loadWallets,grantors=[]}:{mint:string;realm:string;loadWallets:()=>Promise<string[]>;grantors?:string[]}) {
+  const [wallets,setWallets]=React.useState<string[]>([]);
+  const [walletsLoading,setWalletsLoading]=React.useState(false);
+  const [walletsLoaded,setWalletsLoaded]=React.useState(false);
+  const [walletsError,setWalletsError]=React.useState(false);
+  const loadSuggestions=async()=>{
+    if(walletsLoading||walletsLoaded)return;
+    setWalletsLoading(true);setWalletsError(false);
+    try {setWallets(await loadWallets());setWalletsLoaded(true);}
+    catch {setWalletsError(true);}
+    finally {setWalletsLoading(false);}
+  };
   const [assessments,setAssessments]=React.useState<Record<string,string>>({});
   const [source,setSource]=React.useState(grantors[0] || '');
   const [active,setActive]=React.useState('');
@@ -153,18 +164,19 @@ export default function GrantTrackingView({mint,realm,wallets,grantors=[]}:{mint
   const assessmentKey=JSON.stringify([active,selected,mint,grants.filter(g=>g.recipient===selected).map(g=>g.id)]);
   const recordAssessment=React.useCallback((status:string)=>setAssessments(previous=>previous[assessmentKey]===status?previous:{...previous,[assessmentKey]:status}),[assessmentKey]);
   const since=recipientGrants.length?Math.min(...recipientGrants.map(p=>p.timestamp)):0;
-  return <Accordion sx={{my:2,background:'rgba(255,255,255,0.03)'}}>
+  return <Accordion onChange={(_,expanded)=>{if(expanded)void loadSuggestions();}} sx={{my:2,background:'rgba(255,255,255,0.03)'}}>
     <AccordionSummary expandIcon={<ExpandMoreIcon/>}><Typography variant="h6">Grant tracking</Typography></AccordionSummary>
     <AccordionDetails>
       <Typography sx={{mb:2}}>Choose the wallet that issued the grants, then select a recipient to review their tokens and activity.</Typography>
       <Box component="details" sx={{mb:2}}><Typography component="summary" sx={{cursor:'pointer'}}>How grant tracking works</Typography><Typography variant="body2" color="text.secondary" sx={{mt:1}}>Direct grants deliver tokens to a member’s wallet. Governance power grants deposit tokens into governance for the member. Later swaps may include previously owned tokens; transfers alone are not sales.</Typography></Box>
       <Stack direction={{xs:'column',sm:'row'}} spacing={1}>
-        <Autocomplete freeSolo fullWidth options={Array.from(new Set([...grantors,...wallets]))} inputValue={source} disabled={busy}
+        <Autocomplete freeSolo fullWidth loading={walletsLoading} options={Array.from(new Set([...grantors,...wallets]))} inputValue={source} disabled={busy}
           onInputChange={(_,value)=>setSource(value)}
           renderOption={(props,wallet)=><li {...props}><Box><Typography variant="body2">{grantors.includes(wallet)?'Grantor':'Treasury'}</Typography><Typography variant="caption" sx={{overflowWrap:'anywhere'}}>{wallet}</Typography></Box></li>}
           renderInput={params=><TextField {...params} label="Grantor wallet" helperText="Select a known wallet or paste an address"/>}/>
         <Button sx={{minWidth:140,alignSelf:'flex-start',minHeight:56}} variant="contained" disabled={busy||!mint||!source.trim()} onClick={()=>load()}>Find grants</Button>
       </Stack>
+      {walletsError && <Alert severity="info" sx={{my:1}} action={<Button color="inherit" size="small" disabled={walletsLoading} onClick={loadSuggestions}>Retry</Button>}>Wallet suggestions could not be loaded. You can still paste a grantor address.</Alert>}
       {busy && <LinearProgress sx={{my:2}}/>}{error && <Alert severity="error">{error}</Alert>}
       {loaded && !selected && <>
         <Typography variant="body2" sx={{my:2}}>{scanned} transactions scanned for {short(active)}{oldest?` back to ${new Date(oldest*1000).toLocaleString()}`:''}. {next?'Partial grant history—load older grants to extend coverage.':'Reached the end of provider history.'}</Typography>
