@@ -2,7 +2,7 @@ import React from 'react';
 import BigNumber from 'bignumber.js';
 import { assessGovernanceSwaps } from '../../server/grants/swap-threshold';
 import { PublicKey } from '@solana/web3.js';
-import { Accordion, AccordionSummary, AccordionDetails, Alert, Autocomplete, Box, Button, Chip, LinearProgress, Link, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
+import { Accordion, AccordionSummary, AccordionDetails, Alert, Autocomplete, Box, Button, Chip, Dialog, DialogContent, Tooltip, LinearProgress, Link, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 type Grant = {id:string;signature:string;timestamp:number;recipient:string;amount:string;kind?:string};
@@ -82,7 +82,7 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment}
   return <Box sx={{mt:3,p:2,border:'1px solid rgba(255,255,255,0.15)',borderRadius:2}}>
     <Stack direction="row" justifyContent="space-between" alignItems="center">
       <Typography variant="h6">Wallet activity</Typography>
-      <Button onClick={onClose}>Back to recipients</Button>
+      <Button onClick={onClose}>Close activity</Button>
     </Stack>
     <Link sx={{overflowWrap:'anywhere'}} href={`https://solscan.io/account/${wallet}`} target="_blank" rel="noopener noreferrer">{wallet}</Link>
     <Typography variant="body2" color="text.secondary" sx={{my:2}}>Activity since {new Date(since*1000).toLocaleDateString()} · earliest loaded grant</Typography>
@@ -125,7 +125,7 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment}
   </Box>;
 }
 
-export default function GrantTrackingView({mint,realm,loadWallets,grantors=[]}:{mint:string;realm:string;loadWallets:()=>Promise<string[]>;grantors?:string[]}) {
+export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],children}:{children:(renderGrantCell:(wallet:string)=>React.ReactNode)=>React.ReactNode;mint:string;realm:string;loadWallets:()=>Promise<string[]>;grantors?:string[]}) {
   const [wallets,setWallets]=React.useState<string[]>([]);
   const [walletsLoading,setWalletsLoading]=React.useState(false);
   const [walletsLoaded,setWalletsLoaded]=React.useState(false);
@@ -159,15 +159,26 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[]}:{
       setNext(data.next);setScanned(n=>(older?n:0)+data.scanned);setOldest(data.oldest);setLoaded(true);
     }catch(e){setError(e.message);}finally{setBusy(false);}
   };
-  const recipients=Array.from(new Set(grants.map(p=>p.recipient)));
+  const renderGrantCell=(wallet:string)=>{
+    if(!loaded) return <Typography variant="caption" color="text.secondary">{busy?'Loading grants…':'Not loaded'}</Typography>;
+    const rows=grants.filter(g=>g.recipient===wallet);
+    if(!rows.length) return <Typography variant="caption" color="text.secondary">None in loaded history</Typography>;
+    const status=assessments[JSON.stringify([active,wallet,mint,rows.map(g=>g.id)])];
+    return <Tooltip title={`Direct to wallet: ${sum(rows.filter(g=>g.kind!=='governance deposit').map(g=>g.amount))} · Into governance: ${sum(rows.filter(g=>g.kind==='governance deposit').map(g=>g.amount))}. Loaded grants only; these are not additional holdings.`}>
+      <Button color={status==='Swap ≥10% found'?'warning':'inherit'} onClick={event=>{event.stopPropagation();setSelected(wallet);}} sx={{textTransform:'none',display:'block',textAlign:'right',width:'100%'}} aria-label={`View grants and activity for ${wallet}`}>
+        <Typography sx={{fontVariantNumeric:'tabular-nums'}}>{sum(rows.map(g=>g.amount))}</Typography>
+        <Typography variant="caption">{status==='Swap ≥10% found'?'Swap ≥10% found':`${rows.length} grants · View activity`}</Typography>
+      </Button>
+    </Tooltip>;
+  };
   const recipientGrants=grants.filter(p=>p.recipient===selected);
   const assessmentKey=JSON.stringify([active,selected,mint,grants.filter(g=>g.recipient===selected).map(g=>g.id)]);
   const recordAssessment=React.useCallback((status:string)=>setAssessments(previous=>previous[assessmentKey]===status?previous:{...previous,[assessmentKey]:status}),[assessmentKey]);
   const since=recipientGrants.length?Math.min(...recipientGrants.map(p=>p.timestamp)):0;
-  return <Accordion onChange={(_,expanded)=>{if(expanded)void loadSuggestions();}} sx={{my:2,background:'rgba(255,255,255,0.03)'}}>
-    <AccordionSummary expandIcon={<ExpandMoreIcon/>}><Typography variant="h6">Grant tracking</Typography></AccordionSummary>
+  return <><Accordion onChange={(_,expanded)=>{if(expanded)void loadSuggestions();}} sx={{my:2,background:'rgba(255,255,255,0.03)'}}>
+    <AccordionSummary expandIcon={<ExpandMoreIcon/>}><Typography variant="h6">Load member grants</Typography></AccordionSummary>
     <AccordionDetails>
-      <Typography sx={{mb:2}}>Choose the wallet that issued the grants, then select a recipient to review their tokens and activity.</Typography>
+      <Typography sx={{mb:2}}>Choose a grantor to show granted tokens beside each member’s governance holdings. Select a grant amount in the member table to review its details and activity.</Typography>
       <Box component="details" sx={{mb:2}}><Typography component="summary" sx={{cursor:'pointer'}}>How grant tracking works</Typography><Typography variant="body2" color="text.secondary" sx={{mt:1}}>Direct grants deliver tokens to a member’s wallet. Governance power grants deposit tokens into governance for the member. Later swaps may include previously owned tokens; transfers alone are not sales.</Typography></Box>
       <Stack direction={{xs:'column',sm:'row'}} spacing={1}>
         <Autocomplete freeSolo fullWidth loading={walletsLoading} options={Array.from(new Set([...grantors,...wallets]))} inputValue={source} disabled={busy}
@@ -178,15 +189,17 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[]}:{
       </Stack>
       {walletsError && <Alert severity="info" sx={{my:1}} action={<Button color="inherit" size="small" disabled={walletsLoading} onClick={loadSuggestions}>Retry</Button>}>Wallet suggestions could not be loaded. You can still paste a grantor address.</Alert>}
       {busy && <LinearProgress sx={{my:2}}/>}{error && <Alert severity="error">{error}</Alert>}
-      {loaded && !selected && <>
+      {loaded && <>
         <Typography variant="body2" sx={{my:2}}>{scanned} transactions scanned for {short(active)}{oldest?` back to ${new Date(oldest*1000).toLocaleString()}`:''}. {next?'Partial grant history—load older grants to extend coverage.':'Reached the end of provider history.'}</Typography>
-        <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Recipient wallet</TableCell><TableCell align="right">Grants found</TableCell><TableCell align="right">Total tokens granted</TableCell><TableCell align="right">Granted to wallet</TableCell><TableCell align="right">Granted into governance</TableCell><TableCell>Swap review</TableCell><TableCell>Inspect</TableCell></TableRow></TableHead><TableBody>
-          {recipients.map(wallet=>{const rows=grants.filter(p=>p.recipient===wallet);return <TableRow key={wallet} hover><TableCell><Link href={`https://solscan.io/account/${wallet}`} target="_blank" rel="noopener noreferrer" title={wallet}>{short(wallet)}</Link></TableCell><TableCell align="right">{rows.length}</TableCell><TableCell align="right">{sum(rows.map(p=>p.amount))}</TableCell><TableCell align="right">{sum(rows.filter(p=>p.kind!=='governance deposit').map(p=>p.amount))}</TableCell><TableCell align="right">{sum(rows.filter(p=>p.kind==='governance deposit').map(p=>p.amount))}</TableCell><TableCell>{(()=>{const status=assessments[JSON.stringify([active,wallet,mint,rows.map(g=>g.id)])];return <Chip size="small" color={status==='Swap ≥10% found'?'warning':'default'} label={status||'Not scanned'}/>;})()}</TableCell><TableCell><Button onClick={()=>setSelected(wallet)}>View activity</Button></TableCell></TableRow>;})}
-          {!recipients.length && <TableRow><TableCell colSpan={7}>No community-token grants found in the loaded history.</TableCell></TableRow>}
-        </TableBody></Table></TableContainer>
         {next && <Button disabled={busy} onClick={()=>load(true)}>Load older grants</Button>}
       </>}
-      {selected && <RecipientActivity key={`${active}:${selected}:${since}:${mint}`} wallet={selected} mint={mint} realm={realm} since={since} grants={recipientGrants} onAssessment={recordAssessment} onClose={()=>setSelected('')}/>}
     </AccordionDetails>
-  </Accordion>;
+  </Accordion>
+  {children(renderGrantCell)}
+  <Dialog open={!!selected} onClose={()=>setSelected('')} fullWidth maxWidth="lg">
+    <DialogContent>
+      {selected && <RecipientActivity key={`${active}:${selected}:${since}:${mint}`} wallet={selected} mint={mint} realm={realm} since={since} grants={recipientGrants} onAssessment={recordAssessment} onClose={()=>setSelected('')}/>}
+    </DialogContent>
+  </Dialog>
+  </>;
 }
