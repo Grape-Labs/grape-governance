@@ -572,6 +572,11 @@ function RenderGovernanceMembersTable(props:any) {
                 )
             }
         },
+        { field: 'granted', headerName: 'Granted tokens', minWidth: 210, flex: 1, align: 'right', headerAlign: 'right',
+            sortable: false, filterable: false,
+            description: 'Historical grants from the selected grantor, not additional governance holdings.',
+            renderCell: (params) => props.renderGrantCell?.(params.row.address) || <Typography variant="caption">Not loaded</Typography>,
+        },
         { field: 'legacyDeposit', headerName: 'Legacy Deposit', minWidth: 170, flex: 1, headerAlign: 'center', align: 'right',
             hide: !pluginDao,
             sortable: true,
@@ -2166,7 +2171,7 @@ export function GovernanceMembersView(props: any) {
                                 </Box>
                             }
 
-                        {governingTokenMint && realm && (
+                        {governingTokenMint && realm ? (
                             <GrantTrackingView
                                 key={governanceAddress}
                                 realm={governanceAddress}
@@ -2180,10 +2185,12 @@ export function GovernanceMembersView(props: any) {
                                         (await getNativeTreasuryAddress(program, new PublicKey(governance.pubkey))).toBase58()
                                     ));
                                 }}
-                            />
-                        )}
+                            >
+                                {renderGrantCell => <RenderGovernanceMembersTable renderGrantCell={renderGrantCell} members={members} memberMap={null} participating={participating} tokenMap={tokenMap} pluginDao={isPluginPowerRealm} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} vsrTokenDecimals={vsrTokenDecimals} vsrVotingPowerDecimals={vsrVotingPowerDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />}
+                            </GrantTrackingView>
+                        ) : (<RenderGovernanceMembersTable members={members} memberMap={null} participating={participating} tokenMap={tokenMap} pluginDao={isPluginPowerRealm} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} vsrTokenDecimals={vsrTokenDecimals} vsrVotingPowerDecimals={vsrVotingPowerDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />)}
 
-                        <RenderGovernanceMembersTable members={members} memberMap={null} participating={participating} tokenMap={tokenMap} pluginDao={isPluginPowerRealm} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} vsrTokenDecimals={vsrTokenDecimals} vsrVotingPowerDecimals={vsrVotingPowerDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />
+
                     
                         {endTime &&
                             <Typography 

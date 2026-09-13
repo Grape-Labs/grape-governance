@@ -122,15 +122,17 @@ node --experimental-test-module-mocks --test tests/proposal-preview.test.mjs
 
 ### Grant tracking
 
-Open **DAO → Members → Grant tracking**. Grape defaults to the designated
+Open **DAO → Members → Load member grants**. Grape defaults to the designated
 `6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD` distribution wallet. Choose
-**Find grants**, load older pages as needed, and select a recipient's
+**Find grants**, load older pages as needed, and select a member's grant amount to open
 **Activity** to inspect swaps, outgoing transfers, wallet balance, and transaction
 links. Standard SPL Governance deposits are attributed to the beneficiary named
 in the deposit instruction, including Grape's direct-to-governance distributions.
-The recipient table separates tokens granted to wallets from tokens granted into
-governance. The latter grant governance power without crediting the member's
-liquid wallet balance; they are included once in total tokens granted.
+The member table shows granted tokens beside governance holdings. Hover over a
+grant amount for its direct-wallet and governance-grant breakdown, or select it
+to open activity. There is no separate recipient list. Governance grants provide
+voting power without crediting the member's liquid wallet balance and are counted
+once in total tokens granted.
 
 This is an on-demand tracker, not a background index: each page scans up to 100
 provider transactions. Totals cover loaded history only. Grant transactions are not automatically linked to their authorizing proposal. Swap totals
