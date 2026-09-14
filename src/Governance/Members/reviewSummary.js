@@ -43,3 +43,34 @@ export function governancePositionDrop(history, current) {
   }));
   return votingPowerDrop(references,current);
 }
+
+// Daily closing positions avoid counting a temporary full withdrawal followed
+// by redeposit on the same UTC day as a 100% lasting reduction. Cumulative
+// decreases can exceed the net loss because subsequent deposits restore power.
+export function governanceReductionHistory(history, current) {
+  const peak = governancePositionDrop(history,current);
+  if (!peak) return null;
+  const start = history.findIndex(c=>c.id===peak.reference.record);
+  const daily = new Map();
+  for (const change of history.slice(start)) {
+    if (!Number.isFinite(change.timestamp) || change.timestamp <= 0) return null;
+    daily.set(new Date(change.timestamp*1000).toISOString().slice(0,10),change);
+  }
+  let previous = new BigNumber(peak.reference.weight);
+  let low = previous;
+  let cumulative = new BigNumber(0);
+  const reductions=[];
+  for (const [date,change] of daily) {
+    const position=new BigNumber(change.position);
+    const decrease=previous.minus(position);
+    if(decrease.gt(0)) {
+      cumulative=cumulative.plus(decrease);
+      reductions.push({date,signature:change.signature,before:previous.toFixed(),after:position.toFixed(),amount:decrease.toFixed()});
+    }
+    low=BigNumber.minimum(low,position);
+    previous=position;
+  }
+  const basis=new BigNumber(peak.reference.weight);
+  return {reductions,cumulative:cumulative.toFixed(),cumulativePercent:cumulative.div(basis).times(100).toFixed(),
+    lowest:low.toFixed(),drawdown:basis.minus(low).toFixed(),drawdownPercent:basis.minus(low).div(basis).times(100).toFixed()};
+}

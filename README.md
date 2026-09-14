@@ -189,3 +189,10 @@ If grant tracking fails on Vercel, check `REACT_APP_API_HELIUS` in the
 a Vercel deployment. Error codes distinguish missing configuration, denied access,
 rate limits, timeouts, and upstream failures; no credentials are included in errors.
 Requests allow eight seconds; the Vercel function duration is set to 30 seconds.
+
+The member review also shows historical reductions since the verified governance
+peak: the largest peak-to-daily-close decline and the sum of downward changes in
+UTC daily closing positions. This nets same-day withdrawals/redeposits. Later
+deposits can restore the current position without erasing historical decreases.
+Cumulative decreases may count reductions of restored tokens again; they are not
+current missing tokens or proven sales. Exact values are retained for calculation.

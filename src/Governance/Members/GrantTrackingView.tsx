@@ -1,6 +1,6 @@
 import React from 'react';
 import BigNumber from 'bignumber.js';
-import { votingPowerDrop, governancePositionDrop, netTransferEvents } from './reviewSummary';
+import { votingPowerDrop, governancePositionDrop, governanceReductionHistory, netTransferEvents } from './reviewSummary';
 import { assessGovernanceSwaps, reconstructGovernanceTimeline } from '../../server/grants/swap-threshold';
 import { PublicKey } from '@solana/web3.js';
 import { Accordion, AccordionSummary, AccordionDetails, Alert, Autocomplete, Box, Button, Chip, Dialog, DialogContent, Tooltip, LinearProgress, Link, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
@@ -106,6 +106,7 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,
   ].filter(Boolean).join(' · ')||'No outgoing activity found';
   const history=React.useMemo(()=>reconstructGovernanceTimeline(positionChanges,positionSnapshot,positionComplete),[positionChanges,positionSnapshot,positionComplete]);
   const recentVotes=[...votes].sort((a,b)=>b.slot-a.slot).slice(0,10);
+  const reductions=governanceReductionHistory(history,positionSnapshot?.position);
   const peakDrop=governancePositionDrop(history,positionSnapshot?.position);
   const drop=referenceRecord ? votingPowerDrop(recentVotes,positionSnapshot?.position,referenceRecord==='votes'?undefined:referenceRecord) : peakDrop||votingPowerDrop(recentVotes,positionSnapshot?.position);
   const governanceReference=drop?.reference?.source==='governance';
@@ -134,7 +135,7 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,
           <Metric label={new BigNumber(drop.difference).gte(0)?'Position decrease':'Position increase'} value={new BigNumber(drop.difference).abs().toFormat()} detail={`${new BigNumber(drop.percent).abs().toFormat(2)}% of the selected reference`}/>
         </Stack>
         <Alert severity={new BigNumber(drop.difference).gt(0)?"warning":"info"} sx={{mt:2,fontSize:18,fontWeight:600}}>{new BigNumber(drop.difference).gt(0)?`Down ${new BigNumber(drop.difference).toFormat()} tokens (${new BigNumber(drop.percent).toFormat(2)}%). ${new BigNumber(drop.percent).gte(threshold)?'At or above':'Below'} the ${threshold}% review threshold.`:'No decrease against this reference.'}</Alert>
-        <TextField select fullWidth size="small" label="Comparison reference" value={referenceRecord} SelectProps={{native:true}} sx={{mt:2}} onChange={e=>setReferenceRecord(e.target.value)}>
+        <TextField select fullWidth size="small" label="Comparison reference" InputLabelProps={{shrink:true}} value={referenceRecord} SelectProps={{native:true}} sx={{mt:2}} onChange={e=>setReferenceRecord(e.target.value)}>
           <option value="">{peakDrop?"Highest verified governance position":"Highest loaded vote (governance scan pending)"}</option>
           <option value="votes">Highest voting power in the latest 10 loaded votes</option>
           {recentVotes.filter(v=>v.weight!=null).map(v=><option key={v.record} value={v.record}>{new Date(v.timestamp*1000).toLocaleDateString()} · {new BigNumber(v.weight).toFormat()} · {v.name||short(v.proposal)}</option>)}
@@ -143,6 +144,18 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,
       </> : <Typography>{positionBusy?'Loading governance position and recorded votes…':'A current position and an earlier recorded vote are needed for this comparison.'}</Typography>}
       <Typography variant="caption" color="text.secondary" display="block" sx={{mt:1}}>The governance peak uses completed transactions in reconciled history. Until that scan completes, the reference uses loaded votes. A position decline is separate from the per-swap threshold; it remains highlighted even below that threshold.</Typography>
     </Box>
+    {reductions && new BigNumber(reductions.cumulative).gt(0) && <Box sx={{p:2,mb:2,borderRadius:2,border:'1px solid rgba(255,167,38,0.65)',background:'rgba(255,167,38,0.06)'}}>
+      <Typography variant="h6">Earlier reductions, before later deposits</Typography>
+      <Stack direction={{xs:'column',md:'row'}} spacing={1.5} sx={{my:2}}>
+        <Metric label="Largest decline from peak at daily close" value={new BigNumber(reductions.drawdown).toFormat()} detail={`${new BigNumber(reductions.drawdownPercent).toFormat(2)}% · lowest daily closing position: ${new BigNumber(reductions.lowest).toFormat()}`}/>
+        <Metric label="Cumulative daily decreases" value={new BigNumber(reductions.cumulative).toFormat()} detail={`${new BigNumber(reductions.cumulativePercent).toFormat(2)}% of the verified peak`}/>
+      </Stack>
+      <Alert severity="warning">Later deposits reduce the current net decline but do not erase earlier reductions. Cumulative decreases add separate downward movements; they are not tokens currently missing or proof of sales.</Alert>
+      <Typography variant="caption" display="block" sx={{my:1}}>Based on UTC daily closing governance positions since the verified peak. Withdrawals and redeposits within the same day are netted. Repeated reductions of restored tokens may be counted more than once.</Typography>
+      <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Date (UTC)</TableCell><TableCell align="right">Before</TableCell><TableCell align="right">After</TableCell><TableCell align="right">Reduction</TableCell><TableCell>Evidence</TableCell></TableRow></TableHead><TableBody>
+        {reductions.reductions.map(r=><TableRow key={r.date}><TableCell>{r.date}</TableCell><TableCell align="right">{new BigNumber(r.before).toFormat()}</TableCell><TableCell align="right">{new BigNumber(r.after).toFormat()}</TableCell><TableCell align="right">{new BigNumber(r.amount).toFormat()}</TableCell><TableCell>{txLink(r.signature)}</TableCell></TableRow>)}
+      </TableBody></Table></TableContainer>
+    </Box>}
     <Box component="details" sx={{mb:2}}><Typography component="summary" sx={{cursor:'pointer'}}>Grant history and liquid wallet balance</Typography>
     <Stack direction={{xs:'column',md:'row'}} spacing={1.5}>
       <Metric label="Tokens granted" value={grantsLoaded?sum(grants.map(g=>g.amount)):'Not loaded'} detail={grantsLoaded?`${grants.length} grants in loaded history`:'Load a grantor’s history in Members to review grants'}/>
