@@ -72,3 +72,63 @@ export function governanceChanges(transactions, realm, mint, wallet, addresses, 
     return rows.reverse();
   });
 }
+
+// Vote records store the power actually used, including delegated votes. Missing
+// records are retained as unavailable rather than zero votes; relinquished votes are labeled.
+export async function governanceVotes(transactions, realm, mint, wallet, addresses, decimals) {
+  const casts=[];
+  const visit=(instructions,tx)=>{
+    for(const ix of instructions||[]){
+      try {
+        const a=ix.accounts||[];
+        if(ix.programId===GOVERNANCE_PROGRAM && bs58.decode(ix.data)[0]===13 &&
+            a[0]===realm && a[4]===addresses.record && a[7]===mint) {
+          casts.push({record:a[6],proposal:a[2],signature:tx.signature,timestamp:tx.timestamp,slot:tx.slot});
+        }
+      }catch{ /* Not a cast-vote instruction. */ }
+      visit(ix.innerInstructions,tx);
+    }
+  };
+  for(const tx of transactions)if(!tx.transactionError)visit(tx.instructions,tx);
+  const unique=Array.from(new Map([...casts].reverse().map(c=>[c.record,c])).values()).sort((a,b)=>b.slot-a.slot);
+  if(!unique.length)return [];
+  const {VoteRecord,Proposal}=await import('@solana/spl-governance');
+  const results=[];
+  // getMultipleAccounts accepts at most 100 addresses.
+  for(let offset=0;offset<unique.length;offset+=50){
+    const batch=unique.slice(offset,offset+50);
+    let values=[];
+    try {
+      const data=await providerRequest('balance',key=>`https://mainnet.helius-rpc.com/?api-key=${key}`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({jsonrpc:'2.0',id:1,method:'getMultipleAccounts',params:[batch.flatMap(c=>[c.record,c.proposal]),{encoding:'base64',commitment:'finalized'}]}),
+      });
+      values=data.result.value;
+    }catch{ /* Preserve cast evidence even when enrichment fails. */ }
+    for(const [i,cast] of batch.entries()){
+      let name=null, weight=null, choice=null, relinquished=null;
+      try{
+        const proposal=decode(Proposal,cast.proposal,values[i*2+1]);
+        if(proposal.governingTokenMint.toBase58()!==mint)throw new Error();
+        name=proposal.name;
+        const record=decode(VoteRecord,cast.record,values[i*2]);
+        if(record.proposal.toBase58()!==cast.proposal || record.governingTokenOwner.toBase58()!==wallet)throw new Error();
+        ({weight,choice,relinquished}=summarizeVote(record,proposal,decimals));
+      }catch{weight=null;choice=null;}
+      results.push({...cast,name,weight,choice,relinquished});
+    }
+  }
+  return results;
+}
+
+export function summarizeVote(record, proposal, decimals) {
+  const raw=record.voterWeight??record.voteWeight?.yes??record.voteWeight?.no;
+  const amount=raw!=null?new BigNumber(raw.toString()).shiftedBy(-decimals):null;
+  const weight=amount?.isFinite() && !amount.isNegative()?amount.toFixed():null;
+  let choice=record.vote ? (['Approve','Deny','Abstain','Veto'][record.vote.voteType]??'Unknown') :
+    record.voteWeight?.yes!=null?'Approve':record.voteWeight?.no!=null?'Deny':'Unknown';
+  if(record.vote?.choices?.length && choice==='Approve'){
+    choice=record.vote.choices.map((c,index)=>c.weightPercentage>0?`${proposal.options?.[index]?.label||`Option ${index+1}`}: ${c.weightPercentage}%`:null).filter(Boolean).join(', ');
+  }
+  return {weight,choice,relinquished:record.isRelinquished};
+}

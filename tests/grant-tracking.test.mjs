@@ -37,7 +37,7 @@ test('ignores prior activity, duplicate transactions, failed transactions, and i
  tx('self',[transfer('alice','alice',100)]),
  tx('incoming',[transfer('bob','alice',100)]),
  ],'alice','GRAPE',100);
- assert.deepEqual(result.map(r=>r.amount),['5']);
+ assert.deepEqual(result.map(r=>[r.type,r.amount]),[['transfer','5'],['incoming','100']]);
 });
 
 test('API validates addresses before querying providers',async()=>{
@@ -89,4 +89,11 @@ test('API preserves history pagination and reports provider failures instead of 
    if(originalKey===undefined) delete process.env.REACT_APP_API_HELIUS;
    else process.env.REACT_APP_API_HELIUS=originalKey;
  }
+});
+
+test('incoming transfer totals exclude decoded swap outputs',()=>{
+ const rows=analyzeRecipient([tx('return',[transfer('bob','alice',100)]),tx('buy',[transfer('pool','alice',50)],{
+   events:{swap:{tokenOutputs:[{mint:'GRAPE',userAccount:'alice',rawTokenAmount:{tokenAmount:'5000',decimals:2}}]}}
+ })],'alice','GRAPE',100);
+ assert.deepEqual(rows.map(r=>[r.type,r.amount]),[['incoming','100']]);
 });

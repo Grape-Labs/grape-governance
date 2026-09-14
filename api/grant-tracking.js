@@ -1,4 +1,4 @@
-import { governanceAddresses, governanceSnapshot, governanceChanges } from '../src/server/grants/governance-position.js';
+import { governanceAddresses, governanceSnapshot, governanceChanges, governanceVotes } from '../src/server/grants/governance-position.js';
 import { PublicKey } from '@solana/web3.js';
 import BigNumber from 'bignumber.js';
 import { analyzePayments, analyzeRecipient } from '../src/server/grants/analyze.js';
@@ -42,7 +42,8 @@ export default async function handler(req, res) {
       const transactions=await providerRequest('history',key=>`${url}&api-key=${key}`);
       const next=transactions.length===100?transactions.at(-1).signature:null;
       res.setHeader('Cache-Control','no-store');
-      return res.status(200).json({changes:governanceChanges(transactions,query.realm,mint,wallet,addresses,snapshot.decimals),snapshot,next});
+      const votes=await governanceVotes(transactions,query.realm,mint,wallet,addresses,snapshot.decimals);
+      return res.status(200).json({votes,changes:governanceChanges(transactions,query.realm,mint,wallet,addresses,snapshot.decimals),snapshot,next});
     }
     if (mode === 'balance') {
       const data = await providerRequest('balance', key => `https://mainnet.helius-rpc.com/?api-key=${key}`, {

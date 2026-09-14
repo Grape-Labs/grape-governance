@@ -141,3 +141,48 @@ test('a repeated zero withdrawal cannot erase the preserved governance position'
  assert.equal(rows[0].governanceBasis,'1000');
  assert.equal(rows[0].thresholdExceeded,true);
 });
+
+test('custom 30% threshold is inclusive and does not reuse the 10% result',()=>{
+ const changes=[change('deposit','1000',10)], snapshot={slot:100,position:'1000'};
+ const result=assessGovernanceSwaps([swap('299'),swap('300')],changes,snapshot,true,30);
+ assert.deepEqual(result.map(r=>r.thresholdExceeded),[false,true]);
+ for(const threshold of [0,-1,101,NaN])assert.equal(assessGovernanceSwaps([swap('300')],changes,snapshot,true,threshold)[0].thresholdExceeded,null);
+});
+
+test('governance timeline exposes reconciled position decreases',async()=>{
+ const {reconstructGovernanceTimeline}=await import('../src/server/grants/swap-threshold.js');
+ const history=reconstructGovernanceTimeline([change('withdraw','0',20),change('deposit','1000',10)],{slot:100,position:'0'},true);
+ assert.deepEqual(history.map(c=>c.position),['1000','0']);
+});
+
+test('voting history preserves missing records as unavailable and ignores other voters',async()=>{
+ const {governanceVotes}=await import('../src/server/grants/governance-position.js');
+ const originalFetch=global.fetch, originalKey=process.env.REACT_APP_API_HELIUS;
+ process.env.REACT_APP_API_HELIUS='test';
+ global.fetch=async()=>({ok:true,json:async()=>({result:{value:[null,null]}})});
+ try {
+   const casts=[{signature:'cast',slot:10,timestamp:100,instructions:[ix(13,['realm','gov','proposal','owner','record','authority','voteRecord','mint'])]},
+     {signature:'other',slot:11,instructions:[ix(13,['realm','gov','otherProposal','owner','otherRecord','authority','otherVote','mint'])]}];
+   const votes=await governanceVotes(casts,'realm','mint','member',addresses,0);
+   assert.equal(votes.length,1);
+   assert.equal(votes[0].proposal,'proposal');
+   assert.equal(votes[0].weight,null);
+ }finally{
+   global.fetch=originalFetch;
+   if(originalKey===undefined)delete process.env.REACT_APP_API_HELIUS;else process.env.REACT_APP_API_HELIUS=originalKey;
+ }
+});
+
+test('vote summaries retain recorded power precision and option choices',async()=>{
+ const {summarizeVote}=await import('../src/server/grants/governance-position.js');
+ const row=summarizeVote({voterWeight:'9007199254740993000',isRelinquished:false,vote:{voteType:0,choices:[{weightPercentage:60},{weightPercentage:40}]}},
+ {options:[{label:'Build'},{label:'Research'}]},3);
+ assert.equal(row.weight,'9007199254740993');
+ assert.equal(row.choice,'Build: 60%, Research: 40%');
+ assert.equal(row.relinquished,false);
+});
+test('vote summaries support legacy deny votes and do not invent missing power',async()=>{
+ const {summarizeVote}=await import('../src/server/grants/governance-position.js');
+ assert.deepEqual(summarizeVote({voteWeight:{no:'5000'},isRelinquished:true},{},2),{weight:'50',choice:'Deny',relinquished:true});
+ assert.equal(summarizeVote({vote:{voteType:1}},{},2).weight,null);
+});

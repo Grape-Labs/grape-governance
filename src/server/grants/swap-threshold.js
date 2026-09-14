@@ -3,10 +3,8 @@ import BigNumber from 'bignumber.js';
 // Governance history must be complete and reconcile to the finalized on-chain
 // deposit amount. A withdrawal preserves its prior position as the policy basis
 // until a later deposit/revocation changes the governance position.
-export function assessGovernanceSwaps(rows, changes, snapshot, complete) {
-  const unavailable = () => rows.map(row => row.type === 'swap' ? {...row,
-    governanceBasis:null, basisSignature:null, swapPercent:null, thresholdExceeded:null} : row);
-  if (!complete || !snapshot || !Number.isSafeInteger(snapshot.slot)) return unavailable();
+export function reconstructGovernanceTimeline(changes, snapshot, complete) {
+  if (!complete || !snapshot || !Number.isSafeInteger(snapshot.slot)) return null;
   let position = new BigNumber(0);
   let basis = new BigNumber(0);
   let basisSignature = null;
@@ -18,10 +16,10 @@ export function assessGovernanceSwaps(rows, changes, snapshot, complete) {
   for (const change of [...changes].reverse()) {
     if (seen.has(change.id)) continue;
     seen.add(change.id);
-    if (!Number.isSafeInteger(change.slot) || change.slot < priorSlot || change.slot > snapshot.slot || change.kind === 'unknown') return unavailable();
+    if (!Number.isSafeInteger(change.slot) || change.slot < priorSlot || change.slot > snapshot.slot || change.kind === 'unknown') return null;
     priorSlot = change.slot;
     const amount = new BigNumber(change.amount ?? 0);
-    if (!amount.isFinite() || amount.isNegative()) return unavailable();
+    if (!amount.isFinite() || amount.isNegative()) return null;
     if (change.kind === 'deposit') {
       position = position.plus(amount);
       basis = position;
@@ -32,12 +30,19 @@ export function assessGovernanceSwaps(rows, changes, snapshot, complete) {
     } else if (change.kind === 'revoke') {
       position = position.minus(amount);
       basis = position;
-    } else if (change.kind !== 'create') return unavailable();
-    if (position.isNegative()) return unavailable();
+    } else if (change.kind !== 'create') return null;
+    if (position.isNegative()) return null;
     basisSignature = change.signature;
-    timeline.push({...change, basis:basis.toFixed(), basisSignature});
+    timeline.push({...change, position:position.toFixed(), basis:basis.toFixed(), basisSignature});
   }
-  if (!position.eq(snapshot.position)) return unavailable();
+  if (!position.eq(snapshot.position)) return null;
+  return timeline;
+}
+export function assessGovernanceSwaps(rows, changes, snapshot, complete, threshold = 10) {
+  const timeline = reconstructGovernanceTimeline(changes,snapshot,complete);
+  const limit = new BigNumber(threshold);
+  if (!timeline || !limit.isFinite() || limit.lte(0) || limit.gt(100)) return rows.map(row => row.type === 'swap' ? {...row,
+    governanceBasis:null, basisSignature:null, swapPercent:null, thresholdExceeded:null} : row);
   return rows.map(row => {
     if (row.type !== 'swap') return row;
     // Same-slot transactions have no reliable inter-stream ordering. Do not
@@ -50,6 +55,6 @@ export function assessGovernanceSwaps(rows, changes, snapshot, complete) {
     return {...row, governanceBasis:valid?denominator.toFixed():null,
       basisSignature:valid?preceding.basisSignature:null,
       swapPercent:valid?amount.div(denominator).times(100).toFixed():null,
-      thresholdExceeded:valid?amount.times(10).gte(denominator):null};
+      thresholdExceeded:valid?amount.times(100).gte(denominator.times(limit)):null};
   });
 }

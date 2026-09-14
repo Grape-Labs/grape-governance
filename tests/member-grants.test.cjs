@@ -52,3 +52,25 @@ test('loads grants into existing member cells and opens activity without a secon
    assert.match(screen.getByRole('button',{name:`View grants and activity for ${wallet}`}).textContent,/150/);
  }finally{cleanup();global.fetch=originalFetch;}
 });
+
+test('reviews members without grants, changes the threshold, and expands the activity period',async()=>{
+ const originalFetch=global.fetch;
+ const periods=[];
+ global.fetch=async url=>{
+   const q=new URL(url,'https://governance.so').searchParams;
+   let body={balance:'0'};
+   if(q.get('mode')==='recipient'){periods.push(q.get('since'));body={rows:[],next:null,scanned:10};}
+   if(q.get('mode')==='governance')body={changes:[],snapshot:{slot:100,decimals:0,position:'0'},next:null};
+   return {ok:true,json:async()=>body};
+ };
+ try{
+   render(React.createElement(GrantTracking,{mint:wallet,realm:wallet,grantors:[wallet],loadWallets:async()=>[]},cell=>React.createElement('div',null,cell(wallet))));
+   fireEvent.change(screen.getByLabelText('Swap review threshold (%)'),{target:{value:'30'}});
+   fireEvent.click(screen.getByRole('button',{name:'Review activity'}));
+   await screen.findByText('Swaps ≥30%');
+   assert.ok(Number(periods[0])>1);
+   fireEvent.change(screen.getByLabelText('Activity period'),{target:{value:'1'}});
+   await waitFor(()=>assert.ok(periods.includes('1')));
+   assert.ok(screen.getByText('Recent voting · 0 recorded votes'));
+ }finally{cleanup();global.fetch=originalFetch;}
+});
