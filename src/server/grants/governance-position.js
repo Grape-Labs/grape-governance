@@ -62,7 +62,7 @@ export function governanceChanges(transactions, realm, mint, wallet, addresses, 
             else if (Number.isInteger(op) && op<=29 && ![1,2,23,26].includes(op)) kind=null;
             if (kind==='deposit'||kind==='revoke') amount=new BigNumber(Buffer.from(data).readBigUInt64LE(1).toString()).shiftedBy(-decimals).toFixed();
           } catch { /* Unknown records make the assessment unavailable. */ }
-          if(kind) rows.push({id,signature:tx.signature,slot:tx.slot,timestamp:tx.timestamp,kind,amount});
+          if(kind) rows.push({id,signature:tx.signature,slot:tx.slot,timestamp:tx.timestamp,kind,amount,...(kind==='deposit'?{grantAuthority:ix.accounts[4]}:{})});
         }
         visit(ix.innerInstructions);
       }

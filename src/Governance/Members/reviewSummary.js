@@ -74,3 +74,19 @@ export function governanceReductionHistory(history, current) {
   return {reductions,cumulative:cumulative.toFixed(),cumulativePercent:cumulative.div(basis).times(100).toFixed(),
     lowest:low.toFixed(),drawdown:basis.minus(low).toFixed(),drawdownPercent:basis.minus(low).div(basis).times(100).toFixed()};
 }
+
+// Peak position already includes deposits in the peak transaction. Only count
+// later instructions/transactions from explicitly identified grant authorities.
+export function governanceGrantsSincePeak(history, current, grantors, member) {
+  const peak=governancePositionDrop(history,current);
+  if(!peak || !grantors?.length)return null;
+  const authorities=new Set(grantors.filter(address=>address && address!==member));
+  if(!authorities.size)return null;
+  const start=history.findIndex(c=>c.id===peak.reference.record);
+  const deposits=history.slice(start+1).filter(c=>c.kind==='deposit');
+  const grants=deposits.filter(c=>authorities.has(c.grantAuthority));
+  const other=deposits.filter(c=>!authorities.has(c.grantAuthority));
+  const total=rows=>rows.reduce((n,c)=>n.plus(c.amount),new BigNumber(0)).toFixed();
+  return {grants,amount:total(grants),otherDeposits:total(other),reference:peak.reference,
+    grantors:[...authorities],unidentified:other.filter(c=>!c.grantAuthority).length};
+}

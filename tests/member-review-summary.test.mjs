@@ -81,3 +81,21 @@ test('earlier reductions remain visible after later deposits restore position',a
  assert.ok(Number(result.cumulativePercent)>67);
  assert.equal(result.reductions.length,2);
 });
+
+test('same-period grants exclude the peak grant, redeposits, and unrelated authorities',async()=>{
+ const {governanceGrantsSincePeak}=await import('../src/Governance/Members/reviewSummary.js');
+ const history=[
+ {id:'peak',signature:'a',kind:'deposit',amount:'1000',position:'1000',grantAuthority:'grantor'},
+ {id:'out',signature:'b',kind:'withdraw',amount:'0',position:'0'},
+ {id:'back',signature:'c',kind:'deposit',amount:'500',position:'500',grantAuthority:'member'},
+ {id:'grant',signature:'d',kind:'deposit',amount:'100',position:'600',grantAuthority:'grantor'},
+ {id:'unknown',signature:'e',kind:'deposit',amount:'20',position:'620'},
+ ];
+ const result=governanceGrantsSincePeak(history,'620',['grantor','member'],'member');
+ assert.equal(result.amount,'100');
+ assert.equal(result.otherDeposits,'520');
+ assert.equal(result.grants.length,1);
+ assert.equal(result.unidentified,1);
+ assert.equal(governanceGrantsSincePeak(null,'620',['grantor'],'member'),null);
+ assert.equal(governanceGrantsSincePeak(history,'620',[],'member'),null);
+});
