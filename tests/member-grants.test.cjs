@@ -74,3 +74,26 @@ test('reviews members without grants, changes the threshold, and expands the act
    assert.ok(screen.getByText('Recent voting · 0 recorded votes'));
  }finally{cleanup();global.fetch=originalFetch;}
 });
+
+
+test('flags loaded grant shortfalls and recalculates when older grants load',async()=>{
+ const originalFetch=global.fetch;
+ let page=0;
+ global.fetch=async()=>({ok:true,json:async()=>({rows:[{id:`grant${++page}`,recipient:wallet,amount:'100',timestamp:100}],next:page===1?'older':null,scanned:100,oldest:100})});
+ try{
+   render(React.createElement(GrantTracking,{mint:wallet,realm:wallet,grantors:[wallet],loadWallets:async()=>[]},cell=>
+     React.createElement('div',null,...[0,75,100,150,undefined,'99.999'].map((stake,i)=>React.createElement('div',{'data-testid':`stake${i}`,key:i},cell(wallet,stake))))));
+   assert.equal(screen.queryByText(/less staked/),null);
+   fireEvent.click(screen.getByText('Load member grants'));
+   fireEvent.click(screen.getByRole('button',{name:'Find grants'}));
+   await screen.findByText('25.00% less staked');
+   assert.match(screen.getByTestId('stake0').textContent,/100.00% less staked/);
+   for(const i of [2,3,4])assert.doesNotMatch(screen.getByTestId(`stake${i}`).textContent,/less staked/);
+   assert.match(screen.getByTestId('stake5').textContent,/<0.01% less staked/);
+   fireEvent.click(screen.getByRole('button',{name:'Load older grants'}));
+   await waitFor(()=>assert.match(screen.getByTestId('stake1').textContent,/62.50% less staked/));
+   assert.match(screen.getByTestId('stake2').textContent,/50.00% less staked/);
+   assert.match(screen.getByTestId('stake3').textContent,/25.00% less staked/);
+   assert.doesNotMatch(screen.getByTestId('stake4').textContent,/less staked/);
+ }finally{cleanup();global.fetch=originalFetch;}
+});
