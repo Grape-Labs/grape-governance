@@ -4,6 +4,7 @@ import { votingPowerDrop, governancePositionDrop, governanceReductionHistory, go
 import { assessGovernanceSwaps, reconstructGovernanceTimeline } from '../../server/grants/swap-threshold';
 import { PublicKey } from '@solana/web3.js';
 import { Accordion, AccordionSummary, AccordionDetails, Alert, Autocomplete, Box, Button, Chip, Dialog, DialogContent, Tooltip, LinearProgress, Link, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 type Grant = {id:string;signature:string;timestamp:number;recipient:string;amount:string;kind?:string};
@@ -240,7 +241,7 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,
   </Box>;
 }
 
-export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],children}:{children:(renderGrantCell:(wallet:string)=>React.ReactNode)=>React.ReactNode;mint:string;realm:string;loadWallets:()=>Promise<string[]>;grantors?:string[]}) {
+export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],children}:{children:(renderGrantCell:(wallet:string,staked?:string|number)=>React.ReactNode)=>React.ReactNode;mint:string;realm:string;loadWallets:()=>Promise<string[]>;grantors?:string[]}) {
   const [defaultSince]=React.useState(()=>Math.floor(Date.now()/1000)-90*86400);
   const [thresholdInput,setThresholdInput]=React.useState('10');
   const threshold=Number(thresholdInput);
@@ -278,7 +279,7 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
       setNext(data.next);setScanned(n=>(older?n:0)+data.scanned);setOldest(data.oldest);setLoaded(true);
     }catch(e){setError(e.message);}finally{setBusy(false);}
   };
-  const renderGrantCell=(wallet:string)=>{
+  const renderGrantCell=(wallet:string,staked?:string|number)=>{
     const rows=grants.filter(g=>g.recipient===wallet);
     const status=assessments[JSON.stringify([active,wallet,mint,threshold,rows.map(g=>g.id)])];
     if(!loaded || !rows.length) return <Box sx={{textAlign:'right'}}>
@@ -286,10 +287,16 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
       <Button size="small" color={status?.includes('Swap ≥')?'warning':'info'} title={status} onClick={event=>{event.stopPropagation();setSelected(wallet);}}>{status?'Activity reviewed · View':'Review activity'}</Button>
       {status && <Typography variant="caption" display="block" sx={{maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={status}>{status}</Typography>}
     </Box>;
-    return <Tooltip title={`Direct to wallet: ${sum(rows.filter(g=>g.kind!=='governance deposit').map(g=>g.amount))} · Into governance: ${sum(rows.filter(g=>g.kind==='governance deposit').map(g=>g.amount))}. Loaded grants only; these are not additional holdings.`}>
-      <Button color={status?.includes('Swap ≥')?'warning':status?.includes('Transfers found')||status?.includes('Swaps found')?'info':'inherit'} onClick={event=>{event.stopPropagation();setSelected(wallet);}} sx={{textTransform:'none',display:'block',textAlign:'right',width:'100%'}} aria-label={`View grants and activity for ${wallet}`}>
+    const granted=rows.reduce((total,grant)=>total.plus(grant.amount),new BigNumber(0));
+    const deposited=new BigNumber(staked ?? NaN);
+    const shortfall=granted.minus(deposited);
+    const belowGrant=granted.isFinite() && granted.gt(0) && deposited.isFinite() && deposited.gte(0) && shortfall.gt(0);
+    const percent=belowGrant?shortfall.dividedBy(granted).times(100):null;
+    const warning=percent?`${percent.lt(0.01)?'<0.01':percent.toFormat(2)}% less staked`:'';
+    return <Tooltip title={`${belowGrant?`${warning}: ${shortfall.toFormat()} fewer tokens staked than the ${granted.toFormat()} granted. `:''}${status?`${status}. `:''}${rows.length} grants. Direct to wallet: ${sum(rows.filter(g=>g.kind!=='governance deposit').map(g=>g.amount))} · Into governance: ${sum(rows.filter(g=>g.kind==='governance deposit').map(g=>g.amount))}. Loaded grants only; these are not additional holdings.`}>
+      <Button color={belowGrant||status?.includes('Swap ≥')?'warning':status?.includes('Transfers found')||status?.includes('Swaps found')?'info':'inherit'} onClick={event=>{event.stopPropagation();setSelected(wallet);}} sx={{textTransform:'none',display:'block',textAlign:'right',width:'100%',backgroundColor:belowGrant?'rgba(255,167,38,0.10)':undefined}} aria-label={`View grants and activity for ${wallet}`}>
         <Typography sx={{fontVariantNumeric:'tabular-nums'}}>{sum(rows.map(g=>g.amount))}</Typography>
-        <Typography variant="caption" component="div" sx={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={status}>{status?.includes('Swap ≥')?status:status||`${rows.length} grants · View activity`}</Typography>
+        <Typography variant="caption" component="div" sx={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={status}>{belowGrant?<Box component="span" sx={{display:'inline-flex',alignItems:'center',gap:0.5,fontWeight:600}}><WarningAmberIcon sx={{fontSize:16}}/>{warning}</Box>:status||`${rows.length} grants · View activity`}</Typography>
       </Button>
     </Tooltip>;
   };

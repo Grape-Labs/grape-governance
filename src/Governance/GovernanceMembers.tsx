@@ -1,3 +1,4 @@
+import BigNumber from 'bignumber.js';
 import GrantTrackingView from './Members/GrantTrackingView';
 import { getNativeTreasuryAddress } from '@solana/spl-governance';
 import { PublicKey, TokenAmount, Connection, Transaction } from '@solana/web3.js';
@@ -575,7 +576,7 @@ function RenderGovernanceMembersTable(props:any) {
         { field: 'granted', headerName: 'Granted tokens', minWidth: 210, flex: 1, align: 'right', headerAlign: 'right',
             sortable: false, filterable: false,
             description: 'Historical grants from the selected grantor, not additional governance holdings.',
-            renderCell: (params) => props.renderGrantCell?.(params.row.address) || <Typography variant="caption">Not loaded</Typography>,
+            renderCell: (params) => props.renderGrantCell?.(params.row.address, params.row.staked.depositedAmountExact) || <Typography variant="caption">Not loaded</Typography>,
         },
         { field: 'legacyDeposit', headerName: 'Legacy Deposit', minWidth: 170, flex: 1, headerAlign: 'center', align: 'right',
             hide: !pluginDao,
@@ -755,6 +756,7 @@ function RenderGovernanceMembersTable(props:any) {
                     },
                 staked:
                     {
+                        depositedAmountExact:new BigNumber(depositedVotesRaw).dividedBy(new BigNumber(10).pow(vsrTokenDecimals || 0)).toFixed(),
                         depositedAmount:(+((depositedVotesRaw)/Math.pow(10, vsrTokenDecimals || 0)).toFixed(0)),
                         lockedAmount:(+((lockedVotesRaw)/Math.pow(10, vsrTokenDecimals || 0)).toFixed(0)),
                         withdrawableAmount:(+((withdrawableVotesRaw)/Math.pow(10, vsrTokenDecimals || 0)).toFixed(0)),
