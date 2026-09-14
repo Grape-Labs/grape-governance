@@ -1,5 +1,6 @@
 import React from 'react';
 import BigNumber from 'bignumber.js';
+import { votingPowerDrop, netTransferEvents } from './reviewSummary';
 import { assessGovernanceSwaps, reconstructGovernanceTimeline } from '../../server/grants/swap-threshold';
 import { PublicKey } from '@solana/web3.js';
 import { Accordion, AccordionSummary, AccordionDetails, Alert, Autocomplete, Box, Button, Chip, Dialog, DialogContent, Tooltip, LinearProgress, Link, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
@@ -24,9 +25,11 @@ function Metric({label,value,detail}:{label:string;value:string;detail:string}) 
     <Typography variant="caption" color="text.secondary">{detail}</Typography>
   </Box>;
 }
-function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,threshold}:{threshold:number;wallet:string;mint:string;realm:string;since:number;grants:Grant[];onClose:()=>void;onAssessment:(status:string)=>void}) {
+function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,threshold,grantsLoaded}:{grantsLoaded:boolean;threshold:number;wallet:string;mint:string;realm:string;since:number;grants:Grant[];onClose:()=>void;onAssessment:(status:string)=>void}) {
   const alive=React.useRef(true);
   const [trackingSince,setTrackingSince]=React.useState(since);
+  const [referenceRecord,setReferenceRecord]=React.useState('');
+  const [positionScanned,setPositionScanned]=React.useState(0);
   const [votes,setVotes]=React.useState<any[]>([]);
   const [activityScanned,setActivityScanned]=React.useState(0);
   const [positionChanges,setPositionChanges]=React.useState<any[]>([]);
@@ -39,9 +42,10 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,
     setPositionBusy(true);setPositionError('');
     let cursor=positionNext, anchor=positionSnapshot, changes=positionChanges;
     try {
-      for(let page=0;page<5;page++){
+      for(let page=0;page<20;page++){
         const data=await request({mode:'governance',wallet,mint,realm,...(cursor?{before:cursor,positionSlot:String(anchor.slot),decimals:String(anchor.decimals)}:{})});
         if(!alive.current) return;
+        setPositionScanned(n=>n+(data.scanned||0));
         if(!anchor) anchor=data.snapshot;
         setVotes(previous=>Array.from(new Map([...(data.votes||[]),...previous].map(v=>[v.record,v])).values()));
         changes=Array.from(new Map([...changes,...data.changes].map(c=>[c.id,c])).values());
@@ -53,7 +57,7 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,
     }catch(e){if(alive.current)setPositionError(e.message);}
     finally{if(alive.current)setPositionBusy(false);}
   };
-  const [filter,setFilter]=React.useState('all');
+  const [filter,setFilter]=React.useState('swap');
   const [events,setEvents]=React.useState<Event[]>([]);
   const [next,setNext]=React.useState<string|null>(null);
   const [loaded,setLoaded]=React.useState(false);
@@ -102,24 +106,43 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,
   ].filter(Boolean).join(' · ')||'No outgoing activity found';
   const history=React.useMemo(()=>reconstructGovernanceTimeline(positionChanges,positionSnapshot,positionComplete),[positionChanges,positionSnapshot,positionComplete]);
   const recentVotes=[...votes].sort((a,b)=>b.slot-a.slot).slice(0,10);
-  const firstVote=recentVotes.at(-1), lastVote=recentVotes[0];
-  const voteChange=recentVotes.length>=2 && firstVote?.weight!=null && lastVote?.weight!=null && new BigNumber(firstVote.weight).gt(0)
-    ?new BigNumber(lastVote.weight).minus(firstVote.weight).div(firstVote.weight).times(100):null;
-  React.useEffect(()=>{if(loaded) onAssessment(assessment);},[loaded,assessment,onAssessment]);
-  const visibleEvents=assessedEvents.filter(e=>filter==='all'||(filter==='flagged'?e.thresholdExceeded===true:e.type===filter)).sort((a,b)=>b.timestamp-a.timestamp);
+  const drop=votingPowerDrop(recentVotes,positionSnapshot?.position,referenceRecord);
+  const movementEvents=netTransferEvents(assessedEvents);
+  const reviewAssessment=[drop && new BigNumber(drop.difference).gt(0)?`Position down ${new BigNumber(drop.percent).toFormat(2)}%`:'',assessment].filter(Boolean).join(' · ');
+  React.useEffect(()=>{if(loaded) onAssessment(reviewAssessment);},[loaded,reviewAssessment,onAssessment]);
+  const visibleEvents=movementEvents.filter(e=>filter==='all'||(filter==='flagged'?e.thresholdExceeded===true:e.type===filter)).sort((a,b)=>b.timestamp-a.timestamp);
   return <Box sx={{mt:3,p:2,border:'1px solid rgba(255,255,255,0.15)',borderRadius:2}}>
     <Stack direction="row" justifyContent="space-between" alignItems="center">
       <Typography variant="h6">Wallet activity</Typography>
       <Button onClick={onClose}>Close activity</Button>
     </Stack>
-    <Link sx={{overflowWrap:'anywhere'}} href={`https://solscan.io/account/${wallet}`} target="_blank" rel="noopener noreferrer">{wallet}</Link>
+    <Link sx={{display:'block',overflowWrap:'anywhere',mb:1}} href={`https://solscan.io/account/${wallet}`} target="_blank" rel="noopener noreferrer">{wallet}</Link>
     <TextField select size="small" label="Activity period" value={trackingSince} disabled={busy} SelectProps={{native:true}} sx={{my:2,minWidth:240}} onChange={e=>setTrackingSince(Number(e.target.value))}>
       <option value={since}>{grants.length?'Since earliest loaded grant':'Last 90 days'}</option>
       <option value={1}>Full available history</option>
     </TextField>
     <Typography variant="caption" display="block" sx={{mb:2}}>Scan coverage: {oldest?new Date(oldest*1000).toLocaleDateString():'not loaded'} to the latest loaded activity. {next?'More history available.':''}</Typography>
+    <Box sx={{p:2,mb:2,borderRadius:2,border:'1px solid rgba(255,255,255,0.15)'}}>
+      <Typography variant="h6">Change in governance position</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{mb:2}}>Current DAO deposit compared with voting power previously recorded on a proposal. A decrease is not automatically a sale.</Typography>
+      {drop ? <>
+        <Stack direction={{xs:'column',md:'row'}} spacing={1.5}>
+          <Metric label="Previously recorded voting power" value={new BigNumber(drop.reference.weight).toFormat()} detail={new Date(drop.reference.timestamp*1000).toLocaleDateString()}/>
+          <Metric label="Current governance position" value={new BigNumber(drop.current).toFormat()} detail="Community tokens deposited now"/>
+          <Metric label={new BigNumber(drop.difference).gte(0)?'Position decrease':'Position increase'} value={new BigNumber(drop.difference).abs().toFormat()} detail={`${new BigNumber(drop.percent).abs().toFormat(2)}% of the selected reference`}/>
+        </Stack>
+        <Typography sx={{mt:2}}>{new BigNumber(drop.difference).gt(0)?`Down ${new BigNumber(drop.difference).toFormat()} tokens (${new BigNumber(drop.percent).toFormat(2)}%). ${new BigNumber(drop.percent).gte(threshold)?'At or above':'Below'} the ${threshold}% review threshold.`:'No decrease against this reference.'}</Typography>
+        <TextField select fullWidth size="small" label="Compare with a recorded vote" value={referenceRecord} SelectProps={{native:true}} sx={{mt:2}} onChange={e=>setReferenceRecord(e.target.value)}>
+          <option value="">Highest voting power in the latest 10 loaded votes</option>
+          {recentVotes.filter(v=>v.weight!=null).map(v=><option key={v.record} value={v.record}>{new Date(v.timestamp*1000).toLocaleDateString()} · {new BigNumber(v.weight).toFormat()} · {v.name||short(v.proposal)}</option>)}
+        </TextField>
+        <Link href={`/proposal/${realm}/${drop.reference.proposal}`} target="_blank" rel="noopener noreferrer">View reference proposal</Link>
+      </> : <Typography>{positionBusy?'Loading governance position and recorded votes…':'A current position and an earlier recorded vote are needed for this comparison.'}</Typography>}
+      <Typography variant="caption" color="text.secondary" display="block" sx={{mt:1}}>Reference is limited to loaded vote records, not an all-time high. Net position change and cumulative swaps measure different things.</Typography>
+    </Box>
+    <Box component="details" sx={{mb:2}}><Typography component="summary" sx={{cursor:'pointer'}}>Grant history and liquid wallet balance</Typography>
     <Stack direction={{xs:'column',md:'row'}} spacing={1.5}>
-      <Metric label="Tokens granted" value={sum(grants.map(g=>g.amount))} detail={`${grants.length} grants in loaded history`}/>
+      <Metric label="Tokens granted" value={grantsLoaded?sum(grants.map(g=>g.amount)):'Not loaded'} detail={grantsLoaded?`${grants.length} grants in loaded history`:'Load a grantor’s history in Members to review grants'}/>
       <Metric label="Current governance position" value={positionSnapshot?new BigNumber(positionSnapshot.position).toFormat():positionBusy?'Loading…':'Unavailable'} detail="Community tokens deposited in this DAO"/>
       <Metric label="Current wallet balance" value={balance!==null?new BigNumber(balance).toFormat():balanceError?'Unavailable':'Loading…'} detail="For reference only · not used for the swap threshold"/>
     </Stack>
@@ -129,31 +152,34 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,
         {grants.map(g=><TableRow key={g.id}><TableCell>{new Date(g.timestamp*1000).toLocaleDateString()}</TableCell><TableCell>{g.kind==='governance deposit'?'Governance power':'Direct to wallet'}</TableCell><TableCell align="right">{new BigNumber(g.amount).toFormat()}</TableCell><TableCell>{txLink(g.signature)}</TableCell></TableRow>)}
       </TableBody></Table></TableContainer>
     </Box>
-    {positionBusy && <Typography variant="body2" sx={{my:1}}>Checking governance deposits and withdrawals…</Typography>}
+    </Box>
+    {positionBusy && <Typography variant="body2" sx={{my:1}}>Checking governance history… {positionScanned.toLocaleString()} transactions scanned.</Typography>}
     {positionError && <Alert severity="info">{positionError}</Alert>}
     {!positionBusy && !positionComplete && <Button onClick={loadPosition}>{positionError?'Retry governance history':'Continue governance history scan'}</Button>}
     {busy && <LinearProgress sx={{my:2}}/>}
     {error && <Alert severity="error">{error}</Alert>}
     {loaded && <>
-      <Alert severity={next?'info':'success'} sx={{my:2}}>{next?`Partial history: loaded back to ${oldest?new Date(oldest*1000).toLocaleString():'an unknown date'}. Load older activity before treating totals as complete.`:'Reached the tracking date or the end of provider history. Unrecognized swaps may remain classified as transfers.'}</Alert>
+      <Box component="details"><Typography component="summary" sx={{cursor:'pointer',fontWeight:600}}>Swap and transfer review · {swaps.length} swaps</Typography>
+      <Alert severity="info" sx={{my:2}}>{next?`Partial history: loaded back to ${oldest?new Date(oldest*1000).toLocaleString():'an unknown date'}. Load older activity before treating totals as complete.`:`Wallet activity scan reached its stopping point. Governance history is ${positionComplete?'loaded':'still incomplete'}; these are separate scans.`}</Alert>
       <Alert severity={flagged.length?'warning':'info'} sx={{mb:2}}>
-        {flagged.length ? `${flagged.length} swap transaction(s) equaled at least ${threshold}% of the governance position.` : unknown.length ? 'Some swaps cannot be assessed because their governance position could not be established.' : `No swaps of ${threshold}% or more found in the loaded activity.`}
+        {flagged.length ? `${flagged.length} swap transaction(s) equaled at least ${threshold}% of the governance position.` : unknown.length ? 'Swap percentages are pending: governance history is incomplete or could not be reconciled.' : `No swaps of ${threshold}% or more found in the loaded activity.`}
         {' '}Each swap is compared with community tokens deposited in this DAO. A withdrawal retains the position from before that withdrawal until a later deposit or revocation updates it. Wallet balances and transfers do not set the threshold.
         {unknown.length>0 && ` ${unknown.length} swap(s) have an unavailable percentage.`}
       </Alert>
       <Typography variant="body2" color="text.secondary" sx={{mb:1}}>{activityScanned.toLocaleString()} wallet transactions scanned · {swaps.length} swaps · {transfers.length} outgoing transfers</Typography>
-      <Typography variant="h6" sx={{mt:2,mb:1}}>Token activity {next?'· partial totals':''}</Typography>
+      <Typography variant="h6" sx={{mt:2,mb:1}}>Gross token movement {next?'· partial totals':''}</Typography>
       <Stack direction={{xs:'column',md:'row'}} spacing={1.5}>
         <Metric label="Swapped out" value={sum(events.filter(e=>e.type==='swap').map(e=>e.amount))} detail="Community tokens exchanged in confirmed swaps"/>
-        <Metric label="Transferred out" value={sum(events.filter(e=>e.type==='transfer').map(e=>e.amount))} detail="Other outgoing tokens · not confirmed sales"/>
-        <Metric label="Transferred in" value={sum(incoming.map(e=>e.amount))} detail="Incoming transfers · may include returned tokens"/>
+        <Metric label="Transferred out" value={sum(events.filter(e=>e.type==='transfer').map(e=>e.amount))} detail="Gross movements, including withdrawals/redeposits · not missing tokens"/>
+        <Metric label="Transferred in" value={sum(incoming.map(e=>e.amount))} detail="Gross incoming movements · may include the same tokens returning"/>
       </Stack>
       <Typography variant="body2" color="text.secondary" sx={{my:2}}>A highlight means the swap was at least {threshold}% of the governance position used for review; it does not prove which tokens were sold. Transfers are flagged separately for review, not classified as sales.</Typography>
-      <Stack direction="row" spacing={1} sx={{mb:2}}>{[['all','All activity'],['swap','Swaps'],['transfer','Transfers out'],['incoming','Transfers in'],['flagged',`Swaps ≥${threshold}%`]].map(([value,label])=><Chip key={value} label={label} clickable color={filter===value?'primary':'default'} variant={filter===value?'filled':'outlined'} aria-pressed={filter===value} onClick={()=>setFilter(value)}/>)}</Stack>
+      <Stack direction="row" spacing={1} sx={{mb:2}}>{[['all','All net activity'],['swap','Swaps'],['transfer','Transfers out'],['incoming','Transfers in'],['flagged',`Swaps ≥${threshold}%`]].map(([value,label])=><Chip key={value} label={label} clickable color={filter===value?'primary':'default'} variant={filter===value?'filled':'outlined'} aria-pressed={filter===value} onClick={()=>setFilter(value)}/>)}</Stack>
       <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Date</TableCell><TableCell>Activity</TableCell><TableCell align="right">Community tokens</TableCell><TableCell align="right">Governance position used</TableCell><TableCell align="right">% of governance position</TableCell><TableCell>Transaction</TableCell></TableRow></TableHead><TableBody>
-        {visibleEvents.map(e=><TableRow key={`${e.signature}:${e.type}`} sx={e.thresholdExceeded?{backgroundColor:'rgba(255,167,38,0.10)'}:undefined}><TableCell>{new Date(e.timestamp*1000).toLocaleString()}</TableCell><TableCell>{e.type==='swap'?'Swap':e.type==='incoming'?'Transfer in':'Transfer out'}</TableCell><TableCell align="right">{new BigNumber(e.amount).toFormat()}</TableCell><TableCell align="right">{e.type==='swap'?(e.governanceBasis?<><Typography variant="body2">{new BigNumber(e.governanceBasis).toFormat()}</Typography>{e.basisSignature && txLink(e.basisSignature)}</>:'Unavailable'):'—'}</TableCell><TableCell align="right">{e.type==='swap'?(e.swapPercent!=null?<Chip size="small" color={e.thresholdExceeded?'warning':'default'} label={`${new BigNumber(e.swapPercent).toFormat(2,BigNumber.ROUND_DOWN)}%${e.thresholdExceeded?` · ≥${threshold}%`:''}`}/>:'Unavailable'):'—'}</TableCell><TableCell>{txLink(e.signature)}</TableCell></TableRow>)}
+        {visibleEvents.map(e=><TableRow key={`${e.signature}:${e.type}`} sx={e.thresholdExceeded?{backgroundColor:'rgba(255,167,38,0.10)'}:undefined}><TableCell>{new Date(e.timestamp*1000).toLocaleString()}</TableCell><TableCell>{e.type==='swap'?'Swap':e.type==='incoming'?'Net transfer in':e.type==='roundtrip'?'Transfer out and back':'Net transfer out'}{e.grossIncoming && <Typography variant="caption" display="block">In {new BigNumber(e.grossIncoming).toFormat()} · Out {new BigNumber(e.grossOutgoing).toFormat()}</Typography>}</TableCell><TableCell align="right">{new BigNumber(e.amount).toFormat()}</TableCell><TableCell align="right">{e.type==='swap'?(e.governanceBasis?<><Typography variant="body2">{new BigNumber(e.governanceBasis).toFormat()}</Typography>{e.basisSignature && txLink(e.basisSignature)}</>:'Unavailable'):'—'}</TableCell><TableCell align="right">{e.type==='swap'?(e.swapPercent!=null?<Chip size="small" color={e.thresholdExceeded?'warning':'default'} label={`${new BigNumber(e.swapPercent).toFormat(2,BigNumber.ROUND_DOWN)}%${e.thresholdExceeded?` · ≥${threshold}%`:''}`}/>:'Unavailable'):'—'}</TableCell><TableCell>{txLink(e.signature)}</TableCell></TableRow>)}
         {!visibleEvents.length && <TableRow><TableCell colSpan={6}>No matching activity in the loaded history.</TableCell></TableRow>}
       </TableBody></Table></TableContainer>
+      </Box>
     </>}
     {next && <Button variant="outlined" disabled={busy} onClick={()=>load(next,5)}>Scan deeper · up to 500 transactions</Button>}
     {(next || error) && <Button disabled={busy} onClick={()=>load(next||undefined)}>{error?'Retry':'Load older activity'}</Button>}
@@ -170,7 +196,7 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,
     <Box component="details" sx={{mt:3}}>
       <Typography component="summary" sx={{cursor:'pointer',fontWeight:600}}>Recent voting · {recentVotes.length} recorded votes</Typography>
       <Typography variant="body2" sx={{my:1}}>Latest 10 votes found in loaded governance history, including delegated votes. This is not a participation rate across all recent proposals. Missing or closed vote records remain unavailable.</Typography>
-      {voteChange && <Typography sx={{my:1}}>Voting power used {voteChange.lt(0)?'decreased':voteChange.gt(0)?'increased':'changed'} by {voteChange.abs().toFormat(2)}% between the oldest and newest votes shown.</Typography>}
+
       <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Date</TableCell><TableCell>Proposal / choice</TableCell><TableCell align="right">Voting power used</TableCell><TableCell>Evidence</TableCell></TableRow></TableHead><TableBody>
         {recentVotes.map(v=><TableRow key={v.record}><TableCell>{v.timestamp?new Date(v.timestamp*1000).toLocaleDateString():'Unknown date'}</TableCell><TableCell><Link href={`/proposal/${realm}/${v.proposal}`} target="_blank" rel="noopener noreferrer">{v.name||short(v.proposal)}</Link><Typography variant="caption" display="block">{v.choice||'Choice unavailable'}{v.relinquished?' · Relinquished':''}</Typography></TableCell><TableCell align="right">{v.weight!=null?new BigNumber(v.weight).toFormat():'Unavailable'}</TableCell><TableCell>{txLink(v.signature)}</TableCell></TableRow>)}
         {!recentVotes.length&&<TableRow><TableCell colSpan={4}>{positionBusy?'Loading voting history…':'No recorded votes found in loaded history.'}</TableCell></TableRow>}
@@ -263,7 +289,7 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
   {children(renderGrantCell)}
   <Dialog open={!!selected} onClose={()=>setSelected('')} fullWidth maxWidth="lg">
     <DialogContent>
-      {selected && <RecipientActivity key={`${active}:${selected}:${since}:${mint}`} wallet={selected} mint={mint} realm={realm} since={since} grants={recipientGrants} threshold={threshold} onAssessment={recordAssessment} onClose={()=>setSelected('')}/>}
+      {selected && <RecipientActivity key={`${active}:${selected}:${since}:${mint}`} wallet={selected} mint={mint} realm={realm} since={since} grants={recipientGrants} threshold={threshold} grantsLoaded={loaded} onAssessment={recordAssessment} onClose={()=>setSelected('')}/>}
     </DialogContent>
   </Dialog>
   </>;

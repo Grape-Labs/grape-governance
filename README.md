@@ -153,7 +153,7 @@ prove which tokens were sold.
 Opening recipient activity also scans the member's token-owner-record history,
 including third-party grants. The scan must finish and reconcile with a finalized
 on-chain deposit snapshot before percentages are shown. The initial scan loads up
-to five pages; use **Continue governance history scan** when more are needed.
+to twenty pages; use **Continue governance history scan** when more are needed.
 Incomplete, unreconciled, zero-basis, and ambiguous same-slot histories show an
 unavailable assessment. Voting-plugin positions and nonstandard governance/token
 programs are not supported by this review. Member badges reflect only inspected activity and are not a background scan of
@@ -166,9 +166,13 @@ Members without loaded grants can also open a review, starting with 90 days.
 The expanded review includes a reconciled governance-position timeline and the
 latest 10 recorded votes found in loaded token-owner-record history. Vote power
 comes from available vote records, with choices, proposal links, relinquished
-status, and transaction evidence. Missing records remain unavailable. The change
-between oldest and newest displayed vote weights is not a measure of participation
-across all DAO proposals or proof of a continuous decline.
+status, and transaction evidence. Missing records remain unavailable. The review leads with current governance deposits compared with a selectable
+recorded vote, defaulting to the highest weight among the latest ten loaded votes.
+It shows both the token difference and percentage, including declines below the
+review threshold. This is an observed reference, not an all-time high or proof
+that tokens were sold. Unloaded grant history is labeled Not loaded. Gross
+transfer totals are secondary; same-transaction incoming/outgoing transfers are
+grouped by net movement with both gross amounts retained as evidence.
 
 Configure `REACT_APP_API_HELIUS` on the server. Grant tracking uses only this
 key for history and balance requests, with no alternate-key or RPC-URL fallback.
