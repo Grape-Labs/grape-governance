@@ -43,7 +43,7 @@ export default async function handler(req, res) {
       const next=transactions.length===100?transactions.at(-1).signature:null;
       res.setHeader('Cache-Control','no-store');
       const votes=await governanceVotes(transactions,query.realm,mint,wallet,addresses,snapshot.decimals);
-      return res.status(200).json({votes,changes:governanceChanges(transactions,query.realm,mint,wallet,addresses,snapshot.decimals),snapshot,next});
+      return res.status(200).json({scanned:transactions.length,votes,changes:governanceChanges(transactions,query.realm,mint,wallet,addresses,snapshot.decimals),snapshot,next});
     }
     if (mode === 'balance') {
       const data = await providerRequest('balance', key => `https://mainnet.helius-rpc.com/?api-key=${key}`, {
