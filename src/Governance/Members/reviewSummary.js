@@ -31,3 +31,15 @@ export function netTransferEvents(events) {
   }
   return result.sort((a,b)=>b.timestamp-a.timestamp);
 }
+
+// Only use a reconciled timeline. Compare completed transactions, excluding
+// temporary positions between instructions in a withdraw/redeposit transaction.
+export function governancePositionDrop(history, current) {
+  if (!history) return null;
+  const completed = new Map();
+  for (const change of history) completed.set(change.signature, change);
+  const references = [...completed.values()].map(change => ({
+    ...change, record:change.id, weight:change.position, source:'governance',
+  }));
+  return votingPowerDrop(references,current);
+}
