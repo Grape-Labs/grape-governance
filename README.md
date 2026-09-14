@@ -167,7 +167,10 @@ The expanded review includes a reconciled governance-position timeline and the
 latest 10 recorded votes found in loaded token-owner-record history. Vote power
 comes from available vote records, with choices, proposal links, relinquished
 status, and transaction evidence. Missing records remain unavailable. The review leads with current governance deposits compared with a selectable
-recorded vote, defaulting to the highest weight among the latest ten loaded votes.
+reference. It defaults to the highest completed-transaction governance position
+once history is reconciled, with the peak date and transaction linked. Until then
+it uses the highest weight among the latest ten loaded votes. Recorded votes
+remain selectable. Position declines are highlighted even below the swap threshold.
 It shows both the token difference and percentage, including declines below the
 review threshold. This is an observed reference, not an all-time high or proof
 that tokens were sold. Unloaded grant history is labeled Not loaded. Gross

@@ -37,3 +37,26 @@ test('zero-net and independent transactions are not combined into a claimed sale
  assert.equal(rows[1].amount,'0');
  assert.equal(rows[0].amount,'50');
 });
+
+test('governance peak captures the 437473.88224 decline missing from vote-only references',async()=>{
+ const {governancePositionDrop}=await import('../src/Governance/Members/reviewSummary.js');
+ const result=governancePositionDrop([
+ {id:'peak',signature:'peakTx',position:'4490216.91863'},
+ {id:'later',signature:'laterTx',position:'4300216.91863'},
+ {id:'now',signature:'nowTx',position:'4052743.03639'},
+ ],'4052743.03639');
+ assert.equal(result.difference,'437473.88224');
+ assert.ok(Number(result.percent)>9.74 && Number(result.percent)<10);
+ assert.equal(result.reference.source,'governance');
+ assert.equal(governancePositionDrop(null,'4052743.03639'),null);
+});
+test('governance peak excludes temporary intra-transaction positions',async()=>{
+ const {governancePositionDrop}=await import('../src/Governance/Members/reviewSummary.js');
+ const result=governancePositionDrop([
+ {id:'a',signature:'one',position:'1000'},
+ {id:'b',signature:'one',position:'100'},
+ {id:'c',signature:'two',position:'90'},
+ ],'90');
+ assert.equal(result.reference.weight,'100');
+ assert.equal(result.difference,'10');
+});

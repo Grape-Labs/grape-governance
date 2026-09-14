@@ -1,6 +1,6 @@
 import React from 'react';
 import BigNumber from 'bignumber.js';
-import { votingPowerDrop, netTransferEvents } from './reviewSummary';
+import { votingPowerDrop, governancePositionDrop, netTransferEvents } from './reviewSummary';
 import { assessGovernanceSwaps, reconstructGovernanceTimeline } from '../../server/grants/swap-threshold';
 import { PublicKey } from '@solana/web3.js';
 import { Accordion, AccordionSummary, AccordionDetails, Alert, Autocomplete, Box, Button, Chip, Dialog, DialogContent, Tooltip, LinearProgress, Link, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
@@ -106,7 +106,9 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,
   ].filter(Boolean).join(' · ')||'No outgoing activity found';
   const history=React.useMemo(()=>reconstructGovernanceTimeline(positionChanges,positionSnapshot,positionComplete),[positionChanges,positionSnapshot,positionComplete]);
   const recentVotes=[...votes].sort((a,b)=>b.slot-a.slot).slice(0,10);
-  const drop=votingPowerDrop(recentVotes,positionSnapshot?.position,referenceRecord);
+  const peakDrop=governancePositionDrop(history,positionSnapshot?.position);
+  const drop=referenceRecord ? votingPowerDrop(recentVotes,positionSnapshot?.position,referenceRecord==='votes'?undefined:referenceRecord) : peakDrop||votingPowerDrop(recentVotes,positionSnapshot?.position);
+  const governanceReference=drop?.reference?.source==='governance';
   const movementEvents=netTransferEvents(assessedEvents);
   const reviewAssessment=[drop && new BigNumber(drop.difference).gt(0)?`Position down ${new BigNumber(drop.percent).toFormat(2)}%`:'',assessment].filter(Boolean).join(' · ');
   React.useEffect(()=>{if(loaded) onAssessment(reviewAssessment);},[loaded,reviewAssessment,onAssessment]);
@@ -122,23 +124,24 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,
       <option value={1}>Full available history</option>
     </TextField>
     <Typography variant="caption" display="block" sx={{mb:2}}>Scan coverage: {oldest?new Date(oldest*1000).toLocaleDateString():'not loaded'} to the latest loaded activity. {next?'More history available.':''}</Typography>
-    <Box sx={{p:2,mb:2,borderRadius:2,border:'1px solid rgba(255,255,255,0.15)'}}>
+    <Box sx={{p:2,mb:2,borderRadius:2,border:drop && new BigNumber(drop.difference).gt(0)?'1px solid rgba(255,167,38,0.65)':'1px solid rgba(255,255,255,0.15)',backgroundColor:drop && new BigNumber(drop.difference).gt(0)?'rgba(255,167,38,0.06)':undefined}}>
       <Typography variant="h6">Change in governance position</Typography>
-      <Typography variant="body2" color="text.secondary" sx={{mb:2}}>Current DAO deposit compared with voting power previously recorded on a proposal. A decrease is not automatically a sale.</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{mb:2}}>Compare the current DAO deposit with its highest verified historical position or a recorded vote. A decrease is not automatically a sale.</Typography>
       {drop ? <>
         <Stack direction={{xs:'column',md:'row'}} spacing={1.5}>
-          <Metric label="Previously recorded voting power" value={new BigNumber(drop.reference.weight).toFormat()} detail={new Date(drop.reference.timestamp*1000).toLocaleDateString()}/>
+          <Metric label={governanceReference?"Highest verified governance position":"Previously recorded voting power"} value={new BigNumber(drop.reference.weight).toFormat()} detail={new Date(drop.reference.timestamp*1000).toLocaleDateString()}/>
           <Metric label="Current governance position" value={new BigNumber(drop.current).toFormat()} detail="Community tokens deposited now"/>
           <Metric label={new BigNumber(drop.difference).gte(0)?'Position decrease':'Position increase'} value={new BigNumber(drop.difference).abs().toFormat()} detail={`${new BigNumber(drop.percent).abs().toFormat(2)}% of the selected reference`}/>
         </Stack>
-        <Typography sx={{mt:2}}>{new BigNumber(drop.difference).gt(0)?`Down ${new BigNumber(drop.difference).toFormat()} tokens (${new BigNumber(drop.percent).toFormat(2)}%). ${new BigNumber(drop.percent).gte(threshold)?'At or above':'Below'} the ${threshold}% review threshold.`:'No decrease against this reference.'}</Typography>
-        <TextField select fullWidth size="small" label="Compare with a recorded vote" value={referenceRecord} SelectProps={{native:true}} sx={{mt:2}} onChange={e=>setReferenceRecord(e.target.value)}>
-          <option value="">Highest voting power in the latest 10 loaded votes</option>
+        <Alert severity={new BigNumber(drop.difference).gt(0)?"warning":"info"} sx={{mt:2,fontSize:18,fontWeight:600}}>{new BigNumber(drop.difference).gt(0)?`Down ${new BigNumber(drop.difference).toFormat()} tokens (${new BigNumber(drop.percent).toFormat(2)}%). ${new BigNumber(drop.percent).gte(threshold)?'At or above':'Below'} the ${threshold}% review threshold.`:'No decrease against this reference.'}</Alert>
+        <TextField select fullWidth size="small" label="Comparison reference" value={referenceRecord} SelectProps={{native:true}} sx={{mt:2}} onChange={e=>setReferenceRecord(e.target.value)}>
+          <option value="">{peakDrop?"Highest verified governance position":"Highest loaded vote (governance scan pending)"}</option>
+          <option value="votes">Highest voting power in the latest 10 loaded votes</option>
           {recentVotes.filter(v=>v.weight!=null).map(v=><option key={v.record} value={v.record}>{new Date(v.timestamp*1000).toLocaleDateString()} · {new BigNumber(v.weight).toFormat()} · {v.name||short(v.proposal)}</option>)}
         </TextField>
-        <Link href={`/proposal/${realm}/${drop.reference.proposal}`} target="_blank" rel="noopener noreferrer">View reference proposal</Link>
+        {governanceReference?<Box sx={{mt:1}}>Peak position recorded {new Date(drop.reference.timestamp*1000).toLocaleDateString()} · {txLink(drop.reference.signature)}</Box>:<Link href={`/proposal/${realm}/${drop.reference.proposal}`} target="_blank" rel="noopener noreferrer">View reference proposal</Link>}
       </> : <Typography>{positionBusy?'Loading governance position and recorded votes…':'A current position and an earlier recorded vote are needed for this comparison.'}</Typography>}
-      <Typography variant="caption" color="text.secondary" display="block" sx={{mt:1}}>Reference is limited to loaded vote records, not an all-time high. Net position change and cumulative swaps measure different things.</Typography>
+      <Typography variant="caption" color="text.secondary" display="block" sx={{mt:1}}>The governance peak uses completed transactions in reconciled history. Until that scan completes, the reference uses loaded votes. A position decline is separate from the per-swap threshold; it remains highlighted even below that threshold.</Typography>
     </Box>
     <Box component="details" sx={{mb:2}}><Typography component="summary" sx={{cursor:'pointer'}}>Grant history and liquid wallet balance</Typography>
     <Stack direction={{xs:'column',md:'row'}} spacing={1.5}>
@@ -188,7 +191,7 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,
       {!history?<Typography sx={{my:1}}>Complete and reconcile governance history to view position changes.</Typography>:<>
         <Typography variant="body2" sx={{my:1}}>Native community-token deposits, withdrawals and revocations. These amounts are separate from voting power recorded on proposals.</Typography>
         <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Date</TableCell><TableCell>Change</TableCell><TableCell align="right">Position after change</TableCell><TableCell>Evidence</TableCell></TableRow></TableHead><TableBody>
-          {[...history].reverse().map(c=><TableRow key={c.id}><TableCell>{c.timestamp?new Date(c.timestamp*1000).toLocaleDateString():'Unknown date'}</TableCell><TableCell>{c.kind}</TableCell><TableCell align="right">{new BigNumber(c.position).toFormat()}</TableCell><TableCell>{txLink(c.signature)}</TableCell></TableRow>)}
+          {[...history].reverse().map(c=><TableRow key={c.id} sx={c.id===peakDrop?.reference.record?{backgroundColor:'rgba(255,167,38,0.12)'}:undefined}><TableCell>{c.timestamp?new Date(c.timestamp*1000).toLocaleDateString():'Unknown date'}</TableCell><TableCell>{c.kind}</TableCell><TableCell align="right">{new BigNumber(c.position).toFormat()}{c.id===peakDrop?.reference.record && <Typography variant="caption" display="block" color="warning.main">Highest verified position</Typography>}</TableCell><TableCell>{txLink(c.signature)}</TableCell></TableRow>)}
           {!history.length&&<TableRow><TableCell colSpan={4}>No governance changes found.</TableCell></TableRow>}
         </TableBody></Table></TableContainer>
       </>}
