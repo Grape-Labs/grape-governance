@@ -68,6 +68,14 @@ export function analyzeRecipient(transactions, wallet, mint, since) {
       return raw && Number.isInteger(raw.decimals) ? sum.plus(amount(raw.tokenAmount).shiftedBy(-raw.decimals)) : sum;
     }, new BigNumber(0));
     if (swapped.gt(0)) events.push({signature:tx.signature,slot:tx.slot,timestamp:tx.timestamp,type:'swap',amount:swapped.toFixed()});
+    const incoming = total((tx.tokenTransfers || []).filter(t => t.mint === mint && t.toUserAccount === wallet && t.fromUserAccount !== wallet), 'tokenAmount');
+    const outputs = (tx.events?.swap?.tokenOutputs || []).filter(t => t.mint === mint && t.userAccount === wallet);
+    const bought = outputs.reduce((sum,t) => {
+      const raw=t.rawTokenAmount;
+      return raw && Number.isInteger(raw.decimals) ? sum.plus(amount(raw.tokenAmount).shiftedBy(-raw.decimals)) : sum;
+    },new BigNumber(0));
+    const transferredIn = BigNumber.maximum(0,incoming.minus(bought));
+    if (transferredIn.gt(0)) events.push({signature:tx.signature,slot:tx.slot,timestamp:tx.timestamp,type:'incoming',amount:transferredIn.toFixed()});
     const other = BigNumber.maximum(0, outgoing.minus(swapped));
     if (other.gt(0)) events.push({signature:tx.signature,slot:tx.slot,timestamp:tx.timestamp,type:'transfer',amount:other.toFixed()});
   }

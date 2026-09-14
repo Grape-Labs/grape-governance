@@ -141,11 +141,13 @@ granted tokens were sold. Only decoded swaps with the recipient's community-toke
 input count as confirmed swaps; other outgoing transfers stay separate. Balances
 exclude governance deposits, staking, escrow, and other wallets.
 
-The **≥10% swap review** compares each confirmed swap transaction with the
+The **swap review threshold** defaults to 10% and can be changed (for example,
+to 30%) in Members. It is a review preference, not an enforced DAO policy.
+Each confirmed swap transaction is compared with the
 member's native community-token deposit position in the selected DAO, not their
 liquid wallet balance. A withdrawal preserves the position immediately before
 withdrawal as the review basis until a subsequent deposit or revocation updates
-it. Transfers alone are never flagged. Percentages can exceed 100% and do not
+it. Transfers receive a separate activity flag and are not classified as sales. Percentages can exceed 100% and do not
 prove which tokens were sold.
 
 Opening recipient activity also scans the member's token-owner-record history,
@@ -154,8 +156,19 @@ on-chain deposit snapshot before percentages are shown. The initial scan loads u
 to five pages; use **Continue governance history scan** when more are needed.
 Incomplete, unreconciled, zero-basis, and ambiguous same-slot histories show an
 unavailable assessment. Voting-plugin positions and nonstandard governance/token
-programs are not supported by this review. Recipient badges reflect only inspected
-activity and are not a background scan of all members.
+programs are not supported by this review. Member badges reflect only inspected activity and are not a background scan of
+all members. Previously closed reviews must be reopened after changing the
+threshold. Incoming transfers are shown separately from confirmed swap outputs.
+
+**Scan deeper** loads up to 500 additional wallet transactions per click. Choose
+**Full available history** to extend the review beyond the first loaded grant.
+Members without loaded grants can also open a review, starting with 90 days.
+The expanded review includes a reconciled governance-position timeline and the
+latest 10 recorded votes found in loaded token-owner-record history. Vote power
+comes from available vote records, with choices, proposal links, relinquished
+status, and transaction evidence. Missing records remain unavailable. The change
+between oldest and newest displayed vote weights is not a measure of participation
+across all DAO proposals or proof of a continuous decline.
 
 Configure `REACT_APP_API_HELIUS` on the server. Grant tracking uses only this
 key for history and balance requests, with no alternate-key or RPC-URL fallback.
