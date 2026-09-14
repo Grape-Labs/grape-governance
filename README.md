@@ -196,3 +196,12 @@ UTC daily closing positions. This nets same-day withdrawals/redeposits. Later
 deposits can restore the current position without erasing historical decreases.
 Cumulative decreases may count reductions of restored tokens again; they are not
 current missing tokens or proven sales. Exact values are retained for calculation.
+
+**Governance power granted during this period** uses the same interval as the
+historical reduction summary: after the verified peak through the finalized
+current snapshot. It sums governance deposits whose issuing authority matches a
+configured grantor or the loaded grantor, excluding the member's own authority.
+The peak-setting deposit is already in the starting position and is not counted
+again. Other deposits and missing authority attribution remain separate. Each
+included grant has transaction evidence; direct wallet grants are not included,
+and issuing-authority attribution is not verification of a grant proposal.

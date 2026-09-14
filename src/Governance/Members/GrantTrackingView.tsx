@@ -1,6 +1,6 @@
 import React from 'react';
 import BigNumber from 'bignumber.js';
-import { votingPowerDrop, governancePositionDrop, governanceReductionHistory, netTransferEvents } from './reviewSummary';
+import { votingPowerDrop, governancePositionDrop, governanceReductionHistory, governanceGrantsSincePeak, netTransferEvents } from './reviewSummary';
 import { assessGovernanceSwaps, reconstructGovernanceTimeline } from '../../server/grants/swap-threshold';
 import { PublicKey } from '@solana/web3.js';
 import { Accordion, AccordionSummary, AccordionDetails, Alert, Autocomplete, Box, Button, Chip, Dialog, DialogContent, Tooltip, LinearProgress, Link, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
@@ -25,7 +25,7 @@ function Metric({label,value,detail}:{label:string;value:string;detail:string}) 
     <Typography variant="caption" color="text.secondary">{detail}</Typography>
   </Box>;
 }
-function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,threshold,grantsLoaded}:{grantsLoaded:boolean;threshold:number;wallet:string;mint:string;realm:string;since:number;grants:Grant[];onClose:()=>void;onAssessment:(status:string)=>void}) {
+function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,threshold,grantsLoaded,grantorWallets}:{grantorWallets:string[];grantsLoaded:boolean;threshold:number;wallet:string;mint:string;realm:string;since:number;grants:Grant[];onClose:()=>void;onAssessment:(status:string)=>void}) {
   const alive=React.useRef(true);
   const [trackingSince,setTrackingSince]=React.useState(since);
   const [referenceRecord,setReferenceRecord]=React.useState('');
@@ -106,6 +106,7 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,
   ].filter(Boolean).join(' · ')||'No outgoing activity found';
   const history=React.useMemo(()=>reconstructGovernanceTimeline(positionChanges,positionSnapshot,positionComplete),[positionChanges,positionSnapshot,positionComplete]);
   const recentVotes=[...votes].sort((a,b)=>b.slot-a.slot).slice(0,10);
+  const periodGrants=governanceGrantsSincePeak(history,positionSnapshot?.position,grantorWallets,wallet);
   const reductions=governanceReductionHistory(history,positionSnapshot?.position);
   const peakDrop=governancePositionDrop(history,positionSnapshot?.position);
   const drop=referenceRecord ? votingPowerDrop(recentVotes,positionSnapshot?.position,referenceRecord==='votes'?undefined:referenceRecord) : peakDrop||votingPowerDrop(recentVotes,positionSnapshot?.position);
@@ -156,6 +157,24 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,
         {reductions.reductions.map(r=><TableRow key={r.date}><TableCell>{r.date}</TableCell><TableCell align="right">{new BigNumber(r.before).toFormat()}</TableCell><TableCell align="right">{new BigNumber(r.after).toFormat()}</TableCell><TableCell align="right">{new BigNumber(r.amount).toFormat()}</TableCell><TableCell>{txLink(r.signature)}</TableCell></TableRow>)}
       </TableBody></Table></TableContainer>
     </Box>}
+    <Box sx={{p:2,mb:2,borderRadius:2,border:'1px solid rgba(255,255,255,0.15)'}}>
+      <Typography variant="h6">Governance power granted during this period</Typography>
+      {periodGrants ? <>
+        <Typography variant="body2" color="text.secondary" sx={{my:1}}>After the peak recorded {new Date(periodGrants.reference.timestamp*1000).toLocaleDateString()} through the current governance snapshot. The grant that established the peak is already included in the starting position.</Typography>
+        <Stack direction={{xs:'column',md:'row'}} spacing={1.5}>
+          <Metric label="Governance tokens granted" value={new BigNumber(periodGrants.amount).toFormat()} detail={`${periodGrants.grants.length} deposits issued by identified grantors`}/>
+          <Metric label="Other governance deposits" value={new BigNumber(periodGrants.otherDeposits).toFormat()} detail="Includes redeposits and deposits not attributed to identified grantors"/>
+        </Stack>
+        <Typography variant="caption" display="block" sx={{mt:1}}>Grant authorities: {periodGrants.grantors.map(short).join(', ')}. Counts direct-to-governance deposits only; wallet grants are separate. This identifies the issuing authority, not the authorizing proposal.</Typography>
+        {periodGrants.unidentified>0 && <Typography variant="caption" display="block">{periodGrants.unidentified} deposits have no identified authority and are excluded from the grant total.</Typography>}
+        <Box component="details" sx={{mt:2}}><Typography component="summary" sx={{cursor:'pointer'}}>Grant evidence · {periodGrants.grants.length}</Typography>
+          <TableContainer><Table size="small"><TableHead><TableRow><TableCell>Date</TableCell><TableCell>Grant authority</TableCell><TableCell align="right">Governance tokens</TableCell><TableCell>Evidence</TableCell></TableRow></TableHead><TableBody>
+            {periodGrants.grants.map(g=><TableRow key={g.id}><TableCell>{new Date(g.timestamp*1000).toLocaleDateString()}</TableCell><TableCell><Link href={`https://solscan.io/account/${g.grantAuthority}`} target="_blank" rel="noopener noreferrer">{short(g.grantAuthority)}</Link></TableCell><TableCell align="right">{new BigNumber(g.amount).toFormat()}</TableCell><TableCell>{txLink(g.signature)}</TableCell></TableRow>)}
+            {!periodGrants.grants.length && <TableRow><TableCell colSpan={4}>No deposits from the identified grantors in this period.</TableCell></TableRow>}
+          </TableBody></Table></TableContainer>
+        </Box>
+      </> : <Typography variant="body2" sx={{mt:1}}>{!history?'Finish the governance history scan to calculate grants over the same period.':'Select a grantor in Members to identify governance grants for this period.'}</Typography>}
+    </Box>
     <Box component="details" sx={{mb:2}}><Typography component="summary" sx={{cursor:'pointer'}}>Grant history and liquid wallet balance</Typography>
     <Stack direction={{xs:'column',md:'row'}} spacing={1.5}>
       <Metric label="Tokens granted" value={grantsLoaded?sum(grants.map(g=>g.amount)):'Not loaded'} detail={grantsLoaded?`${grants.length} grants in loaded history`:'Load a grantor’s history in Members to review grants'}/>
@@ -305,7 +324,7 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
   {children(renderGrantCell)}
   <Dialog open={!!selected} onClose={()=>setSelected('')} fullWidth maxWidth="lg">
     <DialogContent>
-      {selected && <RecipientActivity key={`${active}:${selected}:${since}:${mint}`} wallet={selected} mint={mint} realm={realm} since={since} grants={recipientGrants} threshold={threshold} grantsLoaded={loaded} onAssessment={recordAssessment} onClose={()=>setSelected('')}/>}
+      {selected && <RecipientActivity key={`${active}:${selected}:${since}:${mint}`} wallet={selected} mint={mint} realm={realm} since={since} grants={recipientGrants} threshold={threshold} grantsLoaded={loaded} grantorWallets={Array.from(new Set([...grantors,...(active?[active]:[])]))} onAssessment={recordAssessment} onClose={()=>setSelected('')}/>}
     </DialogContent>
   </Dialog>
   </>;
