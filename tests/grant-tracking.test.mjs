@@ -82,7 +82,7 @@ test('API preserves history pagination and reports provider failures instead of 
    assert.equal(recipient.body.next,null);
    globalThis.fetch=async()=>({ok:false});
    const failed=response();
-   await handler({method:'GET',query:{mode:'recipient',wallet,mint:wallet,since:'950'}},failed);
+   await handler({method:'GET',query:{mode:'recipient',wallet,mint:wallet,since:'949'}},failed);
    assert.equal(failed.code,502);assert.equal(failed.body.rows,undefined);
  } finally {
    globalThis.fetch=originalFetch;

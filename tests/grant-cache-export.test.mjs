@@ -1,0 +1,30 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {cacheGrantResponses} from '../src/server/grants/response-cache.js';
+import {membersCsv} from '../src/Governance/Members/membersCsv.js';
+const response=()=>({headers:{},setHeader(k,v){this.headers[k]=v;},status(code){this.code=code;return this;},json(body){this.body=body;return this;}});
+test('shared cache coalesces, expires, separates cursors, and never stores errors',async()=>{
+ let calls=0,time=0,fail=false;
+ const handler=cacheGrantResponses(async(req,res)=>{calls++;await Promise.resolve();res.status(fail?502:200).json({calls});},{now:()=>time});
+ const req={method:'GET',query:{mode:'payments',wallet:'a'}};
+ const a=response(),b=response();
+ await Promise.all([handler(req,a),handler(req,b)]);
+ assert.equal(calls,1);assert.deepEqual(a.body,b.body);assert.match(a.headers['Cache-Control'],/s-maxage=300/);
+ time=300001;await handler(req,response());assert.equal(calls,2);
+ const older={...req,query:{...req.query,before:'cursor'}};
+ const c=response();await handler(older,c);assert.equal(calls,3);assert.match(c.headers['Cache-Control'],/s-maxage=86400/);
+ fail=true;time+=86400001;
+ const error=response();await handler(req,error);await handler(req,response());
+ assert.equal(calls,5);assert.equal(error.headers['Cache-Control'],'no-store');
+});
+test('CSV exports all members, grant totals, shortfalls, threshold and coverage',()=>{
+ const rows=Array.from({length:30},(_,i)=>({address:`wallet${i}`,staked:{depositedAmountExact:'60'},votingPower:{votingPower:80}}));
+ const options={grants:[{recipient:'wallet0',amount:'70'},{recipient:'wallet0',amount:'30'}],loaded:true,grantor:'treasury',partial:true,threshold:30};
+ const csv=membersCsv(rows,options);
+ assert.equal(csv.split('\r\n').length,31);
+ assert.match(csv, /"wallet29"/);
+ assert.match(csv.split('\r\n')[1],/"60","100","2","80"/);
+ assert.match(csv.split('\r\n')[1],/"40","40.00","Below grant threshold","30","treasury","Partial loaded history"/);
+ assert.match(membersCsv(rows,{...options,loaded:false}),/"Not loaded"/);
+ assert.match(membersCsv([{...rows[0],address:'=FORMULA,"'}],options),/"'=FORMULA,"""/);
+});

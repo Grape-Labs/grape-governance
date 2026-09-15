@@ -1,3 +1,4 @@
+import { cacheGrantResponses } from '../src/server/grants/response-cache.js';
 import { governanceAddresses, governanceSnapshot, governanceChanges, governanceVotes } from '../src/server/grants/governance-position.js';
 import { PublicKey } from '@solana/web3.js';
 import BigNumber from 'bignumber.js';
@@ -5,7 +6,7 @@ import { analyzePayments, analyzeRecipient } from '../src/server/grants/analyze.
 
 import { providerRequest, ProviderError } from '../src/server/grants/provider.js';
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({error:'Method not allowed'});
   const query = req.query || {};
   const { wallet, mint, mode, before } = query;
@@ -82,3 +83,5 @@ export default async function handler(req, res) {
     return res.status(502).json({error:mode === 'governance' ? 'Governance position unavailable. The DAO may use an unsupported voting plugin, or its history could not be loaded.' : 'The transaction provider returned an unexpected response. Please retry.', code:'PROVIDER_RESPONSE_INVALID'});
   }
 }
+
+export default cacheGrantResponses(handler);

@@ -814,6 +814,7 @@ function RenderGovernanceMembersTable(props:any) {
     return (
         
         <>
+            <Button disabled={!memberVotingResults?.length} onClick={()=>props.exportMembers?.(memberVotingResults)}>Export all members CSV</Button>
             {memberVotingResults &&
                 <div style={{ height: 600, width: '100%' }}>
                     <div style={{ display: 'flex', height: '100%' }}>
@@ -2188,7 +2189,7 @@ export function GovernanceMembersView(props: any) {
                                     ));
                                 }}
                             >
-                                {renderGrantCell => <RenderGovernanceMembersTable renderGrantCell={renderGrantCell} members={members} memberMap={null} participating={participating} tokenMap={tokenMap} pluginDao={isPluginPowerRealm} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} vsrTokenDecimals={vsrTokenDecimals} vsrVotingPowerDecimals={vsrVotingPowerDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />}
+                                {(renderGrantCell,exportMembers) => <RenderGovernanceMembersTable exportMembers={exportMembers} renderGrantCell={renderGrantCell} members={members} memberMap={null} participating={participating} tokenMap={tokenMap} pluginDao={isPluginPowerRealm} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} vsrTokenDecimals={vsrTokenDecimals} vsrVotingPowerDecimals={vsrVotingPowerDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />}
                             </GrantTrackingView>
                         ) : (<RenderGovernanceMembersTable members={members} memberMap={null} participating={participating} tokenMap={tokenMap} pluginDao={isPluginPowerRealm} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} vsrTokenDecimals={vsrTokenDecimals} vsrVotingPowerDecimals={vsrVotingPowerDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />)}
 
