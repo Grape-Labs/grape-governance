@@ -65,7 +65,7 @@ test('reviews members without grants, changes the threshold, and expands the act
  };
  try{
    render(React.createElement(GrantTracking,{mint:wallet,realm:wallet,grantors:[wallet],loadWallets:async()=>[]},cell=>React.createElement('div',null,cell(wallet))));
-   fireEvent.change(screen.getByLabelText('Swap review threshold (%)'),{target:{value:'30'}});
+   fireEvent.change(screen.getByLabelText('Warning threshold (%)'),{target:{value:'30'}});
    fireEvent.click(screen.getByRole('button',{name:'Review activity'}));
    await screen.findByText('Swaps ≥30%');
    assert.ok(Number(periods[0])>1);
@@ -87,6 +87,10 @@ test('flags loaded grant shortfalls and recalculates when older grants load',asy
    fireEvent.click(screen.getByText('Load member grants'));
    fireEvent.click(screen.getByRole('button',{name:'Find grants'}));
    await screen.findByText('25.00% less staked');
+   assert.equal(screen.getByLabelText('Warning threshold (%)').value,'30');
+   assert.equal(screen.getByTestId('stake1').querySelector('[data-testid="WarningAmberIcon"]'),null);
+   fireEvent.change(screen.getByLabelText('Warning threshold (%)'),{target:{value:'25'}});
+   assert.ok(screen.getByTestId('stake1').querySelector('[data-testid="WarningAmberIcon"]'));
    assert.match(screen.getByTestId('stake0').textContent,/100.00% less staked/);
    for(const i of [2,3,4])assert.doesNotMatch(screen.getByTestId(`stake${i}`).textContent,/less staked/);
    assert.match(screen.getByTestId('stake5').textContent,/<0.01% less staked/);

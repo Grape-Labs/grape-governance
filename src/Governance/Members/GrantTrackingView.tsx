@@ -1,3 +1,4 @@
+import { membersCsv, downloadMembersCsv } from './membersCsv';
 import React from 'react';
 import BigNumber from 'bignumber.js';
 import { votingPowerDrop, governancePositionDrop, governanceReductionHistory, governanceGrantsSincePeak, netTransferEvents } from './reviewSummary';
@@ -241,11 +242,12 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,
   </Box>;
 }
 
-export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],children}:{children:(renderGrantCell:(wallet:string,staked?:string|number)=>React.ReactNode)=>React.ReactNode;mint:string;realm:string;loadWallets:()=>Promise<string[]>;grantors?:string[]}) {
+export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],children}:{children:(renderGrantCell:(wallet:string,staked?:string|number)=>React.ReactNode,exportMembers:(rows:any[])=>void)=>React.ReactNode;mint:string;realm:string;loadWallets:()=>Promise<string[]>;grantors?:string[]}) {
   const [defaultSince]=React.useState(()=>Math.floor(Date.now()/1000)-90*86400);
-  const [thresholdInput,setThresholdInput]=React.useState('10');
-  const threshold=Number(thresholdInput);
-  const thresholdValid=Number.isFinite(threshold)&&threshold>0&&threshold<=100;
+  const [thresholdInput,setThresholdInput]=React.useState('30');
+  const enteredThreshold=Number(thresholdInput);
+  const thresholdValid=Number.isFinite(enteredThreshold)&&enteredThreshold>0&&enteredThreshold<=100;
+  const threshold=thresholdValid?enteredThreshold:30;
   const [wallets,setWallets]=React.useState<string[]>([]);
   const [walletsLoading,setWalletsLoading]=React.useState(false);
   const [walletsLoaded,setWalletsLoaded]=React.useState(false);
@@ -292,11 +294,12 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
     const shortfall=granted.minus(deposited);
     const belowGrant=granted.isFinite() && granted.gt(0) && deposited.isFinite() && deposited.gte(0) && shortfall.gt(0);
     const percent=belowGrant?shortfall.dividedBy(granted).times(100):null;
+    const warningExceeded=percent?.gte(threshold);
     const warning=percent?`${percent.lt(0.01)?'<0.01':percent.toFormat(2)}% less staked`:'';
     return <Tooltip title={`${belowGrant?`${warning}: ${shortfall.toFormat()} fewer tokens staked than the ${granted.toFormat()} granted. `:''}${status?`${status}. `:''}${rows.length} grants. Direct to wallet: ${sum(rows.filter(g=>g.kind!=='governance deposit').map(g=>g.amount))} · Into governance: ${sum(rows.filter(g=>g.kind==='governance deposit').map(g=>g.amount))}. Loaded grants only; these are not additional holdings.`}>
-      <Button color={belowGrant||status?.includes('Swap ≥')?'warning':status?.includes('Transfers found')||status?.includes('Swaps found')?'info':'inherit'} onClick={event=>{event.stopPropagation();setSelected(wallet);}} sx={{textTransform:'none',display:'block',textAlign:'right',width:'100%',backgroundColor:belowGrant?'rgba(255,167,38,0.10)':undefined}} aria-label={`View grants and activity for ${wallet}`}>
+      <Button color={warningExceeded||status?.includes('Swap ≥')?'warning':status?.includes('Transfers found')||status?.includes('Swaps found')?'info':'inherit'} onClick={event=>{event.stopPropagation();setSelected(wallet);}} sx={{textTransform:'none',display:'block',textAlign:'right',width:'100%',backgroundColor:warningExceeded?'rgba(255,167,38,0.10)':undefined}} aria-label={`View grants and activity for ${wallet}`}>
         <Typography sx={{fontVariantNumeric:'tabular-nums'}}>{sum(rows.map(g=>g.amount))}</Typography>
-        <Typography variant="caption" component="div" sx={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={status}>{belowGrant?<Box component="span" sx={{display:'inline-flex',alignItems:'center',gap:0.5,fontWeight:600}}><WarningAmberIcon sx={{fontSize:16}}/>{warning}</Box>:status||`${rows.length} grants · View activity`}</Typography>
+        <Typography variant="caption" component="div" sx={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={status}>{belowGrant?<Box component="span" sx={{display:'inline-flex',alignItems:'center',gap:0.5,fontWeight:600}}>{warningExceeded && <WarningAmberIcon sx={{fontSize:16}}/>}{warning}</Box>:status||`${rows.length} grants · View activity`}</Typography>
       </Button>
     </Tooltip>;
   };
@@ -307,7 +310,7 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
   return <><Accordion onChange={(_,expanded)=>{if(expanded)void loadSuggestions();}} sx={{my:2,background:'rgba(255,255,255,0.03)'}}>
     <AccordionSummary expandIcon={<ExpandMoreIcon/>}><Typography variant="h6">Load member grants</Typography></AccordionSummary>
     <AccordionDetails>
-      <Typography sx={{mb:2}}>Choose a grantor to show granted tokens beside each member’s governance holdings. Select a grant amount in the member table to review its details and activity.</Typography>
+      <Typography sx={{mb:2}}>Choose a grantor to show granted tokens beside each member’s governance holdings. Recent data is shared and cached for up to 5 minutes; older history for up to 24 hours. Select a grant amount in the member table to review its details and activity.</Typography>
       <Box component="details" sx={{mb:2}}><Typography component="summary" sx={{cursor:'pointer'}}>How grant tracking works</Typography><Typography variant="body2" color="text.secondary" sx={{mt:1}}>Direct grants deliver tokens to a member’s wallet. Governance power grants deposit tokens into governance for the member. Later swaps may include previously owned tokens; transfers alone are not sales.</Typography></Box>
       <Stack direction={{xs:'column',sm:'row'}} spacing={1}>
         <Autocomplete freeSolo fullWidth loading={walletsLoading} options={Array.from(new Set([...grantors,...wallets]))} inputValue={source} disabled={busy}
@@ -325,10 +328,10 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
     </AccordionDetails>
   </Accordion>
   <Stack direction="row" spacing={2} alignItems="center" sx={{my:2}}>
-    <TextField label="Swap review threshold (%)" type="number" size="small" value={thresholdInput} error={!thresholdValid} helperText={thresholdValid?'Review setting · per swap, relative to governance position':'Enter a percentage greater than 0 and up to 100'} inputProps={{min:0.01,max:100,step:1}} onChange={e=>setThresholdInput(e.target.value)}/>
-    <Typography variant="caption" color="text.secondary">Transfers and swaps are marked separately after inspecting a member. Changing the threshold requires rechecking previously closed reviews.</Typography>
+    <TextField label="Warning threshold (%)" type="number" size="small" value={thresholdInput} error={!thresholdValid} helperText={thresholdValid?'Grant shortfall and per-swap warnings · default 30%':'Enter a percentage greater than 0 and up to 100'} inputProps={{min:0.01,max:100,step:1}} onChange={e=>setThresholdInput(e.target.value)}/>
+    <Typography variant="caption" color="text.secondary">Grant shortfalls at or above this threshold are highlighted. Transfers and swaps are marked separately after inspecting a member. Changing the threshold requires rechecking previously closed reviews.</Typography>
   </Stack>
-  {children(renderGrantCell)}
+  {children(renderGrantCell,rows=>downloadMembersCsv(membersCsv(rows,{grants,loaded,grantor:active,partial:!!next,threshold}),realm))}
   <Dialog open={!!selected} onClose={()=>setSelected('')} fullWidth maxWidth="lg">
     <DialogContent>
       {selected && <RecipientActivity key={`${active}:${selected}:${since}:${mint}`} wallet={selected} mint={mint} realm={realm} since={since} grants={recipientGrants} threshold={threshold} grantsLoaded={loaded} grantorWallets={Array.from(new Set([...grantors,...(active?[active]:[])]))} onAssessment={recordAssessment} onClose={()=>setSelected('')}/>}
