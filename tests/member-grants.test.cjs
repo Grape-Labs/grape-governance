@@ -101,3 +101,27 @@ test('flags loaded grant shortfalls and recalculates when older grants load',asy
    assert.doesNotMatch(screen.getByTestId('stake4').textContent,/less staked/);
  }finally{cleanup();global.fetch=originalFetch;}
 });
+
+test('batch loads at most ten pages and stops when history ends',async()=>{
+ const originalFetch=global.fetch;
+ let calls=0;
+ const cursors=[];
+ global.fetch=async url=>{
+   cursors.push(new URL(url,'https://governance.so').searchParams.get('before'));
+   const page=++calls;
+   return {ok:true,json:async()=>({rows:[{id:`g${page}`,recipient:wallet,amount:'10',timestamp:100}],next:page<13?`cursor${page}`:null,scanned:100,oldest:100})};
+ };
+ try{
+   render(React.createElement(GrantTracking,{mint:wallet,realm:wallet,grantors:[wallet],loadWallets:async()=>[]},cell=>React.createElement('div',null,cell(wallet,0))));
+   fireEvent.click(screen.getByText('Member grants'));
+   fireEvent.click(screen.getByRole('button',{name:'Load grants'}));
+   fireEvent.click(await screen.findByRole('button',{name:'Load next 10 pages'}));
+   await waitFor(()=>assert.match(screen.getByRole('button',{name:`View grants and activity for ${wallet}`}).textContent,/110/));
+   assert.equal(calls,11);
+   assert.deepEqual(cursors,[null,...Array.from({length:10},(_,i)=>`cursor${i+1}`)]);
+   fireEvent.click(screen.getByRole('button',{name:'Load next 10 pages'}));
+   await screen.findByText('History loaded');
+   assert.equal(calls,13);
+   assert.equal(screen.queryByRole('button',{name:'Load next 10 pages'}),null);
+ }finally{cleanup();global.fetch=originalFetch;}
+});

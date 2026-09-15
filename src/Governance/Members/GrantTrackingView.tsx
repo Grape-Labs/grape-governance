@@ -270,15 +270,27 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
   const [selected,setSelected]=React.useState('');
   const [scanned,setScanned]=React.useState(0);
   const [oldest,setOldest]=React.useState<number|null>(null);
-  const load=async(older=false)=>{
+  const [batchProgress,setBatchProgress]=React.useState('');
+  const load=async(older=false,pages=1)=>{
+    if(busy || (older&&!next))return;
     const wallet=older?active:source.trim();
     try {new PublicKey(wallet);} catch {setError('Enter a valid distribution wallet address.');return;}
-    setBusy(true);setError('');
+    setBusy(true);setError('');setBatchProgress('');
     if(!older){setGrants([]);setSelected('');setNext(null);setLoaded(false);setScanned(0);setActive(wallet);}
     try {
-      const data=await request({mode:'payments',wallet,mint,...(older&&next?{before:next}:{})});
-      setGrants(previous=>Array.from(new Map([...(older?previous:[]),...data.rows].map((p:Grant)=>[p.id,p])).values()));
-      setNext(data.next);setScanned(n=>(older?n:0)+data.scanned);setOldest(data.oldest);setLoaded(true);
+      let cursor=older?next:null;
+      const seen=new Set<string>();
+      if(cursor)seen.add(cursor);
+      for(let page=0;page<pages;page++){
+        if(pages>1)setBatchProgress(`Loading page ${page+1} of ${pages}…`);
+        const data=await request({mode:'payments',wallet,mint,...(cursor?{before:cursor}:{})});
+        if(data.next && seen.has(data.next))throw new Error('Grant history did not advance. Please retry.');
+        if(data.next)seen.add(data.next);
+        setGrants(previous=>Array.from(new Map([...(older||page>0?previous:[]),...data.rows].map((p:Grant)=>[p.id,p])).values()));
+        setNext(data.next);setScanned(n=>(older||page>0?n:0)+data.scanned);setOldest(data.oldest);setLoaded(true);
+        cursor=data.next;
+        if(!cursor)break;
+      }
     }catch(e){setError(e.message);}finally{setBusy(false);}
   };
   const renderGrantCell=(wallet:string,staked?:string|number)=>{
@@ -316,10 +328,10 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
           onInputChange={(_,value)=>setSource(value)}
           renderOption={(props,wallet)=><li {...props}><Box><Typography variant="body2">{grantors.includes(wallet)?'Grantor':'Treasury'}</Typography><Typography variant="caption" sx={{overflowWrap:'anywhere'}}>{wallet}</Typography></Box></li>}
           renderInput={params=><TextField {...params} label="Grantor wallet" helperText="Select a known wallet or paste an address"/>}/>
-        <Button sx={{minWidth:140,alignSelf:'flex-start',minHeight:56}} variant="contained" disabled={busy||!mint||!source.trim()} onClick={()=>load()}>{busy&&!loaded?'Loading grants…':loaded&&source.trim()===active?'Reload recent grants':'Load grants'}</Button>
+        <Button sx={{minWidth:140,alignSelf:'flex-start',height:56,flexShrink:0,whiteSpace:'nowrap',px:3,width:{xs:'100%',sm:'auto'}}} variant="contained" disabled={busy||!mint||!source.trim()} onClick={()=>load()}>{busy&&!loaded?'Loading grants…':loaded&&source.trim()===active?'Reload recent grants':'Load grants'}</Button>
       </Stack>
       {walletsError && <Alert severity="info" sx={{my:1}} action={<Button color="inherit" size="small" disabled={walletsLoading} onClick={loadSuggestions}>Retry</Button>}>Wallet suggestions could not be loaded. You can still paste a grantor address.</Alert>}
-      {busy && <LinearProgress sx={{my:2}}/>}{error && <Alert severity="error">{error}</Alert>}
+      {busy && <Box sx={{my:2}}><LinearProgress/>{batchProgress && <Typography variant="caption" role="status" sx={{mt:0.5,display:'block'}}>{batchProgress}</Typography>}</Box>}{error && <Alert severity="error">{error}</Alert>}
       {loaded && <Box role="status" sx={{mt:2,p:2,borderRadius:2,border:'1px solid rgba(255,255,255,0.12)',backgroundColor:'rgba(255,255,255,0.03)'}}>
         <Stack direction={{xs:'column',sm:'row'}} spacing={2} justifyContent="space-between" alignItems={{xs:'stretch',sm:'center'}}>
           <Box>
@@ -330,7 +342,10 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
             <Typography variant="body2" color="text.secondary">{oldest?'From '+new Date(oldest*1000).toLocaleDateString()+' · ':''}{scanned.toLocaleString()} transactions checked</Typography>
             <Typography variant="caption" color="text.secondary">Grantor {short(active)} · {next?'Totals cover loaded history only.':'Reached the end of available provider history.'}</Typography>
           </Box>
-          {next && <Button variant="outlined" color="inherit" disabled={busy||source.trim()!==active} onClick={()=>load(true)} sx={{flexShrink:0,minHeight:40}}>{busy?'Loading history…':'Load more history'}</Button>}
+          <Stack direction={{xs:'column',md:'row'}} spacing={1} sx={{flexShrink:0}}>{next && <>
+            <Button variant="outlined" color="inherit" disabled={busy||source.trim()!==active} onClick={()=>load(true)} sx={{minHeight:40}}>Load more history</Button>
+            <Button variant="outlined" disabled={busy||source.trim()!==active} onClick={()=>load(true,10)} sx={{minHeight:40}}>Load next 10 pages</Button>
+          </>}</Stack>
         </Stack>
         {source.trim()!==active && <Typography variant="caption" color="warning.main" display="block" sx={{mt:1}}>Load grants to apply the new grantor. The table still shows {short(active)}.</Typography>}
         <Typography variant="caption" display="block" color="text.secondary" sx={{mt:1}}>Select a grant total in the table to view its transactions and wallet activity.</Typography>
