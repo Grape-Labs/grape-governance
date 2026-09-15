@@ -37,12 +37,12 @@ test('loads grants into existing member cells and opens activity without a secon
      React.createElement('table',{'aria-label':'Members'},React.createElement('tbody',null,React.createElement('tr',null,
        React.createElement('td',null,'Member'),React.createElement('td',null,'1,000 governance tokens'),React.createElement('td',null,cell(wallet)))))));
    assert.ok(screen.getByText('Not loaded'));
-   fireEvent.click(screen.getByText('Load member grants'));
-   fireEvent.click(screen.getByRole('button',{name:'Find grants'}));
+   fireEvent.click(screen.getByText('Member grants'));
+   fireEvent.click(screen.getByRole('button',{name:'Load grants'}));
    const action=await screen.findByRole('button',{name:`View grants and activity for ${wallet}`});
    assert.match(action.textContent,/100/);
    assert.equal(screen.getAllByRole('table').length,1);
-   fireEvent.click(screen.getByRole('button',{name:'Load older grants'}));
+   fireEvent.click(screen.getByRole('button',{name:'Load more history'}));
    await waitFor(()=>assert.match(action.textContent,/150/));
    fireEvent.click(action);
    assert.ok(await screen.findByRole('dialog'));
@@ -84,8 +84,8 @@ test('flags loaded grant shortfalls and recalculates when older grants load',asy
    render(React.createElement(GrantTracking,{mint:wallet,realm:wallet,grantors:[wallet],loadWallets:async()=>[]},cell=>
      React.createElement('div',null,...[0,75,100,150,undefined,'99.999'].map((stake,i)=>React.createElement('div',{'data-testid':`stake${i}`,key:i},cell(wallet,stake))))));
    assert.equal(screen.queryByText(/less staked/),null);
-   fireEvent.click(screen.getByText('Load member grants'));
-   fireEvent.click(screen.getByRole('button',{name:'Find grants'}));
+   fireEvent.click(screen.getByText('Member grants'));
+   fireEvent.click(screen.getByRole('button',{name:'Load grants'}));
    await screen.findByText('25.00% less staked');
    assert.equal(screen.getByLabelText('Warning threshold (%)').value,'30');
    assert.equal(screen.getByTestId('stake1').querySelector('[data-testid="WarningAmberIcon"]'),null);
@@ -94,7 +94,7 @@ test('flags loaded grant shortfalls and recalculates when older grants load',asy
    assert.match(screen.getByTestId('stake0').textContent,/100.00% less staked/);
    for(const i of [2,3,4])assert.doesNotMatch(screen.getByTestId(`stake${i}`).textContent,/less staked/);
    assert.match(screen.getByTestId('stake5').textContent,/<0.01% less staked/);
-   fireEvent.click(screen.getByRole('button',{name:'Load older grants'}));
+   fireEvent.click(screen.getByRole('button',{name:'Load more history'}));
    await waitFor(()=>assert.match(screen.getByTestId('stake1').textContent,/62.50% less staked/));
    assert.match(screen.getByTestId('stake2').textContent,/50.00% less staked/);
    assert.match(screen.getByTestId('stake3').textContent,/25.00% less staked/);

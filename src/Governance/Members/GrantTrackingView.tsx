@@ -308,28 +308,39 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
   const recordAssessment=React.useCallback((status:string)=>setAssessments(previous=>previous[assessmentKey]===status?previous:{...previous,[assessmentKey]:status}),[assessmentKey]);
   const since=recipientGrants.length?Math.min(...recipientGrants.map(p=>p.timestamp)):defaultSince;
   return <><Accordion onChange={(_,expanded)=>{if(expanded)void loadSuggestions();}} sx={{my:2,background:'rgba(255,255,255,0.03)'}}>
-    <AccordionSummary expandIcon={<ExpandMoreIcon/>}><Typography variant="h6">Load member grants</Typography></AccordionSummary>
+    <AccordionSummary expandIcon={<ExpandMoreIcon/>}><Box><Typography variant="h6">Member grants</Typography><Typography variant="body2" color="text.secondary">Compare grants with tokens staked</Typography></Box></AccordionSummary>
     <AccordionDetails>
-      <Typography sx={{mb:2}}>Choose a grantor to show granted tokens beside each member’s governance holdings. Recent data is shared and cached for up to 5 minutes; older history for up to 24 hours. Select a grant amount in the member table to review its details and activity.</Typography>
-      <Box component="details" sx={{mb:2}}><Typography component="summary" sx={{cursor:'pointer'}}>How grant tracking works</Typography><Typography variant="body2" color="text.secondary" sx={{mt:1}}>Direct grants deliver tokens to a member’s wallet. Governance power grants deposit tokens into governance for the member. Later swaps may include previously owned tokens; transfers alone are not sales.</Typography></Box>
-      <Stack direction={{xs:'column',sm:'row'}} spacing={1}>
+      <Typography variant="body2" color="text.secondary" sx={{mb:2}}>Select a grantor to add grant totals and staking shortfalls to the members table.</Typography>
+      <Stack direction={{xs:'column',sm:'row'}} spacing={1.5}>
         <Autocomplete freeSolo fullWidth loading={walletsLoading} options={Array.from(new Set([...grantors,...wallets]))} inputValue={source} disabled={busy}
           onInputChange={(_,value)=>setSource(value)}
           renderOption={(props,wallet)=><li {...props}><Box><Typography variant="body2">{grantors.includes(wallet)?'Grantor':'Treasury'}</Typography><Typography variant="caption" sx={{overflowWrap:'anywhere'}}>{wallet}</Typography></Box></li>}
           renderInput={params=><TextField {...params} label="Grantor wallet" helperText="Select a known wallet or paste an address"/>}/>
-        <Button sx={{minWidth:140,alignSelf:'flex-start',minHeight:56}} variant="contained" disabled={busy||!mint||!source.trim()} onClick={()=>load()}>Find grants</Button>
+        <Button sx={{minWidth:140,alignSelf:'flex-start',minHeight:56}} variant="contained" disabled={busy||!mint||!source.trim()} onClick={()=>load()}>{busy&&!loaded?'Loading grants…':loaded&&source.trim()===active?'Reload recent grants':'Load grants'}</Button>
       </Stack>
       {walletsError && <Alert severity="info" sx={{my:1}} action={<Button color="inherit" size="small" disabled={walletsLoading} onClick={loadSuggestions}>Retry</Button>}>Wallet suggestions could not be loaded. You can still paste a grantor address.</Alert>}
       {busy && <LinearProgress sx={{my:2}}/>}{error && <Alert severity="error">{error}</Alert>}
-      {loaded && <>
-        <Typography variant="body2" sx={{my:2}}>{scanned} transactions scanned for {short(active)}{oldest?` back to ${new Date(oldest*1000).toLocaleString()}`:''}. {next?'Partial grant history—load older grants to extend coverage.':'Reached the end of provider history.'}</Typography>
-        {next && <Button disabled={busy} onClick={()=>load(true)}>Load older grants</Button>}
-      </>}
+      {loaded && <Box role="status" sx={{mt:2,p:2,borderRadius:2,border:'1px solid rgba(255,255,255,0.12)',backgroundColor:'rgba(255,255,255,0.03)'}}>
+        <Stack direction={{xs:'column',sm:'row'}} spacing={2} justifyContent="space-between" alignItems={{xs:'stretch',sm:'center'}}>
+          <Box>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{mb:0.5,flexWrap:'wrap'}}>
+              <Typography variant="subtitle2">{grants.length.toLocaleString()} grants loaded</Typography>
+              <Chip size="small" variant="outlined" color={next?'warning':'success'} label={next?'More history available':'History loaded'}/>
+            </Stack>
+            <Typography variant="body2" color="text.secondary">{oldest?'From '+new Date(oldest*1000).toLocaleDateString()+' · ':''}{scanned.toLocaleString()} transactions checked</Typography>
+            <Typography variant="caption" color="text.secondary">Grantor {short(active)} · {next?'Totals cover loaded history only.':'Reached the end of available provider history.'}</Typography>
+          </Box>
+          {next && <Button variant="outlined" color="inherit" disabled={busy||source.trim()!==active} onClick={()=>load(true)} sx={{flexShrink:0,minHeight:40}}>{busy?'Loading history…':'Load more history'}</Button>}
+        </Stack>
+        {source.trim()!==active && <Typography variant="caption" color="warning.main" display="block" sx={{mt:1}}>Load grants to apply the new grantor. The table still shows {short(active)}.</Typography>}
+        <Typography variant="caption" display="block" color="text.secondary" sx={{mt:1}}>Select a grant total in the table to view its transactions and wallet activity.</Typography>
+      </Box>}
+      <Box component="details" sx={{mt:2}}><Typography component="summary" variant="caption" color="text.secondary" sx={{cursor:'pointer'}}>About grant totals</Typography><Typography variant="body2" color="text.secondary" sx={{mt:1}}>Includes direct wallet grants and deposits into governance. Totals reflect the history loaded so far. Reloading recent grants starts a new scan. Recent results may be cached for 5 minutes; older history for 24 hours.</Typography></Box>
     </AccordionDetails>
   </Accordion>
-  <Stack direction="row" spacing={2} alignItems="center" sx={{my:2}}>
-    <TextField label="Warning threshold (%)" type="number" size="small" value={thresholdInput} error={!thresholdValid} helperText={thresholdValid?'Grant shortfall and per-swap warnings · default 30%':'Enter a percentage greater than 0 and up to 100'} inputProps={{min:0.01,max:100,step:1}} onChange={e=>setThresholdInput(e.target.value)}/>
-    <Typography variant="caption" color="text.secondary">Grant shortfalls at or above this threshold are highlighted. Transfers and swaps are marked separately after inspecting a member. Changing the threshold requires rechecking previously closed reviews.</Typography>
+  <Stack direction={{xs:'column',sm:'row'}} spacing={2} alignItems={{xs:'stretch',sm:'center'}} sx={{my:2,p:2,border:'1px solid rgba(255,255,255,0.12)',borderRadius:2}}>
+    <TextField sx={{minWidth:210}} label="Warning threshold (%)" type="number" size="small" value={thresholdInput} error={!thresholdValid} helperText={thresholdValid?'Shortfall percentage · default 30%':'Enter a percentage greater than 0 and up to 100'} inputProps={{min:0.01,max:100,step:1}} onChange={e=>setThresholdInput(e.target.value)}/>
+    <Box><Typography variant="body2">Warn when staked tokens are {Number((100-threshold).toFixed(2))}% or less of loaded grants.</Typography><Typography variant="caption" color="text.secondary">Also applies to individual swaps in activity reviews. Reopen previous reviews after changing this setting.</Typography></Box>
   </Stack>
   {children(renderGrantCell,rows=>downloadMembersCsv(membersCsv(rows,{grants,loaded,grantor:active,partial:!!next,threshold}),realm))}
   <Dialog open={!!selected} onClose={()=>setSelected('')} fullWidth maxWidth="lg">
