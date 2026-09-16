@@ -24,6 +24,26 @@ export function cssBaseline(theme) {
           width: '100%',
           height: '100%',
         },
+        // Native Windows menus may otherwise combine a white popup with light text.
+        select: {
+          colorScheme: theme.palette.mode,
+        },
+        'select option, select optgroup': {
+          color: theme.palette.text.primary,
+          backgroundColor: theme.palette.background.paper,
+        },
+        'select option:disabled, select optgroup:disabled': {
+          color: theme.palette.text.disabled,
+        },
+        '@media (forced-colors: active)': {
+          'select option, select optgroup': {
+            color: 'CanvasText',
+            backgroundColor: 'Canvas',
+          },
+          'select option:disabled, select optgroup:disabled': {
+            color: 'GrayText',
+          },
+        },
         input: {
           '&[type=number]': {
             MozAppearance: 'textfield',

@@ -11,17 +11,21 @@ async function handler(req, res) {
   const query = req.query || {};
   const { wallet, mint, mode, before } = query;
   try {
-    for (const key of [wallet, mint, ...(mode === 'governance' ? [query.realm] : [])]) {
+    for (const key of [wallet, mint, ...(['governance','position'].includes(mode) ? [query.realm] : [])]) {
       if (typeof key !== 'string' || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(key)) throw new Error();
       new PublicKey(key);
     }
-    if (!['payments','recipient','balance','governance'].includes(mode)) throw new Error();
+    if (!['payments','recipient','balance','governance','position'].includes(mode)) throw new Error();
     if (before && (typeof before !== 'string' || !/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(before))) throw new Error();
     if (mode === 'recipient' && (!/^\d+$/.test(query.since) || Number(query.since) <= 0)) throw new Error();
   } catch {
     return res.status(400).json({error:'Enter valid wallet and mint addresses and a valid tracking date.'});
   }
   try {
+    if (mode === 'position') {
+      const snapshot=await governanceSnapshot(query.realm,mint,wallet,governanceAddresses(query.realm,mint,wallet));
+      return res.status(200).json(snapshot);
+    }
     if (mode === 'governance') {
       const addresses = governanceAddresses(query.realm,mint,wallet);
       let snapshot;

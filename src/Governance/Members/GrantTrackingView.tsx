@@ -1,3 +1,4 @@
+import { grantQualification } from './qualification';
 import { membersCsv, downloadMembersCsv } from './membersCsv';
 import React from 'react';
 import BigNumber from 'bignumber.js';
@@ -242,7 +243,7 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,
   </Box>;
 }
 
-export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],children}:{children:(renderGrantCell:(wallet:string,staked?:string|number)=>React.ReactNode,exportMembers:(rows:any[])=>void)=>React.ReactNode;mint:string;realm:string;loadWallets:()=>Promise<string[]>;grantors?:string[]}) {
+export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],children}:{children:(renderGrantCell:(wallet:string,staked?:string|number)=>React.ReactNode,exportMembers:(rows:any[])=>void,qualify:(wallet:string,staked?:string)=>string)=>React.ReactNode;mint:string;realm:string;loadWallets:()=>Promise<string[]>;grantors?:string[]}) {
   const [defaultSince]=React.useState(()=>Math.floor(Date.now()/1000)-90*86400);
   const [thresholdInput,setThresholdInput]=React.useState('30');
   const enteredThreshold=Number(thresholdInput);
@@ -357,7 +358,7 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
     <TextField sx={{minWidth:210}} label="Warning threshold (%)" type="number" size="small" value={thresholdInput} error={!thresholdValid} helperText={thresholdValid?'Shortfall percentage · default 30%':'Enter a percentage greater than 0 and up to 100'} inputProps={{min:0.01,max:100,step:1}} onChange={e=>setThresholdInput(e.target.value)}/>
     <Box><Typography variant="body2">Warn when staked tokens are {Number((100-threshold).toFixed(2))}% or less of loaded grants.</Typography><Typography variant="caption" color="text.secondary">Also applies to individual swaps in activity reviews. Reopen previous reviews after changing this setting.</Typography></Box>
   </Stack>
-  {children(renderGrantCell,rows=>downloadMembersCsv(membersCsv(rows,{grants,loaded,grantor:active,partial:!!next,threshold}),realm))}
+  {children(renderGrantCell,rows=>downloadMembersCsv(membersCsv(rows,{grants,loaded,grantor:active,partial:!!next,threshold}),realm),(wallet,staked)=>grantQualification(grants,wallet,staked,loaded,!!next,threshold))}
   <Dialog open={!!selected} onClose={()=>setSelected('')} fullWidth maxWidth="lg">
     <DialogContent>
       {selected && <RecipientActivity key={`${active}:${selected}:${since}:${mint}`} wallet={selected} mint={mint} realm={realm} since={since} grants={recipientGrants} threshold={threshold} grantsLoaded={loaded} grantorWallets={Array.from(new Set([...grantors,...(active?[active]:[])]))} onAssessment={recordAssessment} onClose={()=>setSelected('')}/>}

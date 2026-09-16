@@ -1,3 +1,4 @@
+import ProposalGrantReview from './Members/ProposalGrantReview';
 import { 
     getGovernanceAccounts,
     pubkeyFilter,
@@ -2979,6 +2980,7 @@ export function GovernanceProposalV2View(props: any){
 
                                                 const newObject = {
                                                     type:"SPL Governance Program by Solana",
+                                                    grantRecipientWallet: accountInstruction.data?.length===9 && accountInstruction.data[0]===1 ? resolvePubkeyString(accountInstruction.accounts[3]?.pubkey) : null,
                                                     ix: instructionItem.pubkey,
                                                     decodedIx:decodedIx,
                                                     amount: amount ? parseFloat(amount.replace(/,/g, '')) : null, //amount,
@@ -7774,6 +7776,13 @@ export function GovernanceProposalV2View(props: any){
                                         </Box>
                                         
                                             
+                                        {instructionTransferDetails?.length>0 && realm && <ProposalGrantReview
+                                            key={String(proposalPk)+JSON.stringify(instructionTransferDetails.map(d=>[String(d.destinationAta),String(d.tokenOwner),d.amount]))}
+                                            details={instructionTransferDetails}
+                                            realm={normalizePkString(realm?.pubkey)||normalizePkString(governanceAddress)}
+                                            mint={normalizePkString(realm?.account?.communityMint)||normalizePkString(thisitem.account.governingTokenMint)}
+                                            grantor={governanceAddress==='By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip'?'6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD':normalizePkString(governanceNativeWallet)}
+                                        />}
                                         <InstructionTableView   
                                             proposalInstructions={proposalInstructions}
                                             proposal={thisitem} 
