@@ -10,6 +10,7 @@
     "files": [
         "src",
         "vendor/expo-plist",
+        "vendor/decompress",
         ".editorconfig",
         ".eslintignore",
         ".eslintrc.json",
@@ -269,6 +270,7 @@
         "brace-expansion": "2.1.4",
         "browserslist": "4.28.7",
         "dompurify": "3.3.3",
+        "decompress": "file:vendor/decompress",
         "**/@changesets/parse/js-yaml": "3.15.2",
         "**/@istanbuljs/load-nyc-config/js-yaml": "3.15.2",
         "**/load-yaml-file/js-yaml": "3.15.2",

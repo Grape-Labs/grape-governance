@@ -1,0 +1,11 @@
+{
+    "name": "decompress",
+    "version": "4.2.2",
+    "private": true,
+    "description": "CommonJS compatibility adapter for the maintained archive extractor",
+    "main": "index.cjs",
+    "engines": { "node": ">=18" },
+    "dependencies": {
+        "@xhmikosr/decompress": "10.2.2"
+    }
+}

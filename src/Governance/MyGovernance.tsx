@@ -26,6 +26,7 @@ import {
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useSnackbar } from 'notistack';
 import moment from 'moment';
+import BigNumber from 'bignumber.js';
 
 import ExplorerView from '../utils/grapeTools/Explorer';
 import { RPC_CONNECTION } from '../utils/grapeTools/constants';
@@ -45,11 +46,10 @@ import {
   findGovOwnerByDao,
   getProposalNewIndexed,
   getRealmIndexed,
-  getAllTokenOwnerRecordsIndexed,
-  getTokenOwnerRecordsByOwnerIndexed,
+  getTokenOwnerRecordsByOwnerAcrossProgramsIndexed,
   getVoteRecordsByVoterIndexed,
 } from './api/queries';
-import { withRelinquishVote } from '@solana/spl-governance';
+import { withRelinquishVote, getRealmConfigAddress, GovernanceAccountParser, RealmConfigAccount } from '@solana/spl-governance';
 import { getGrapeGovernanceProgramVersion } from '../utils/grapeTools/helpers';
 import { getUnrelinquishedVoteRecords } from '../utils/governanceTools/models/api';
 import GetGovernanceFromRulesView from './GetGovernanceFromRules';
@@ -483,7 +483,7 @@ export function MyGovernanceView(props: any) {
 
     const [mintAccounts, realms] = await Promise.all([
       mintPubkeys.length > 0 ? RPC_CONNECTION.getMultipleParsedAccounts(mintPubkeys) : null,
-      Promise.all(realmPks.map((realmPk) => getRealmIndexed(realmPk, DEFAULT_GOV_PROGRAM))),
+      Promise.all(realmPks.map((realmPk) => getRealmIndexed(realmPk))),
     ]);
 
     const mintDecimalsByMint = new Map<string, number>();
@@ -499,6 +499,12 @@ export function MyGovernanceView(props: any) {
     realms.forEach((realm, idx) => {
       realmByPk.set(realmPks[idx], realm);
     });
+    const configs = await Promise.all(realms.map(async (realm) => {
+      const address = await getRealmConfigAddress(realm.owner, realm.pubkey);
+      const info = await RPC_CONNECTION.getAccountInfo(address);
+      return info ? GovernanceAccountParser(RealmConfigAccount)(address, info) : null;
+    }));
+    const configByRealm = new Map(realmPks.map((realmPk, index) => [realmPk, configs[index]?.account]));
 
     const rows = ownerRecords.map((record, index) => {
       const realmPk = new PublicKey(record.account.realm).toBase58();
@@ -509,6 +515,13 @@ export function MyGovernanceView(props: any) {
 
       const baseUnits = toNumberSafe(record.account.governingTokenDepositAmount);
       const uiVotes = baseUnits / Math.pow(10, decimals);
+      const memberType = getMemberType(realm, governingMint);
+      const config = configByRealm.get(realmPk);
+      const usesPlugin = memberType === 'council'
+        ? config?.councilTokenConfig?.voterWeightAddin
+        : config?.communityTokenConfig?.voterWeightAddin || realm?.account?.config?.useCommunityVoterWeightAddin;
+      const exactDeposits = new BigNumber(record.account.governingTokenDepositAmount.toString())
+        .shiftedBy(-decimals).toFormat();
 
       const delegate = record.account?.governanceDelegate
         ? new PublicKey(record.account.governanceDelegate).toBase58()
@@ -517,12 +530,16 @@ export function MyGovernanceView(props: any) {
       return {
         id: `${realmPk}-${governingMint}-${index}`,
         realmPk,
+        programOwner: toBase58Safe(record.owner) || findGovOwnerByDao(realmPk).owner,
+        governingTokenOwner: toBase58Safe(record.account.governingTokenOwner),
         governance: getRealmName(realm, realmPk),
         memberType: getMemberType(realm, governingMint),
         governingTokenMint: governingMint,
         governingMintDecimals: decimals,
         governingTokenDepositAmountRaw: uiVotes,
-        governingTokenDepositAmount: formatLocalNumber(uiVotes, 3),
+        governingTokenDepositAmount: exactDeposits,
+        votingPower: usesPlugin ? 'Check DAO voting plugin' : exactDeposits,
+        usesVoterWeightPlugin: Boolean(usesPlugin),
         unrelinquishedVotesCount: toNumberSafe(record.account?.unrelinquishedVotesCount),
         outstandingProposalCount: toNumberSafe(record.account?.outstandingProposalCount),
         governanceDelegate: delegate,
@@ -545,24 +562,29 @@ export function MyGovernanceView(props: any) {
       };
     }
 
-    const realmPubkeys = new Set<string>();
+    const realmPubkeys = new Map<string, string>();
     for (const record of ownerRecords) {
       try {
-        realmPubkeys.add(new PublicKey(record.account?.realm).toBase58());
+        const realmPk = new PublicKey(record.account?.realm).toBase58();
+        realmPubkeys.set(realmPk, toBase58Safe(record.owner) || findGovOwnerByDao(realmPk).owner);
       } catch {
         // ignore malformed record
       }
     }
 
-    const realmQueries = Array.from(realmPubkeys).map(async (realmPk) => {
-      const realmGovernances = await getAllGovernancesIndexed(realmPk, DEFAULT_GOV_PROGRAM);
+    const realmQueries = Array.from(realmPubkeys).map(async ([realmPk, programOwner]) => {
+      const realmGovernances = await getAllGovernancesIndexed(realmPk, programOwner);
       const governancePubkeys = realmGovernances
         .map((item) => item?.pubkey?.toBase58?.())
         .filter(Boolean) as string[];
 
       if (!governancePubkeys.length) return [];
-      const proposals = await getAllProposalsIndexed(governancePubkeys, DEFAULT_GOV_PROGRAM, realmPk);
-      return (proposals || []).map((proposal: any) => ({ ...proposal, __realmPk: realmPk }));
+      const proposals = await getAllProposalsIndexed(governancePubkeys, programOwner, realmPk);
+      return (proposals || []).map((proposal: any) => ({
+        ...proposal,
+        __realmPk: realmPk,
+        __governance: realmGovernances.find((item) => item.pubkey.equals(proposal.account.governance))?.account,
+      }));
     });
 
     const realmProposalBatches = await Promise.all(realmQueries);
@@ -619,7 +641,13 @@ export function MyGovernanceView(props: any) {
     async (walletPk: string, allProposals: any[], participationRows: any[]) => {
       if (!walletPk) return [];
 
-      const allVotes = (await getVoteRecordsByVoterIndexed(DEFAULT_GOV_PROGRAM, '', walletPk)) || [];
+      const voters = Array.from(new Map(participationRows.map((row) => [
+        `${row.programOwner}:${row.governingTokenOwner}`,
+        { program: row.programOwner, owner: row.governingTokenOwner },
+      ])).values());
+      const allVotes = (await Promise.all(voters.map(({ program, owner }) =>
+        getVoteRecordsByVoterIndexed(program, '', owner)
+      ))).flat();
       if (!Array.isArray(allVotes) || allVotes.length === 0) return [];
 
       const proposalByPk = new Map<string, any>();
@@ -666,6 +694,7 @@ export function MyGovernanceView(props: any) {
         rows.push({
           id: votePk || `${proposalPk}-${rows.length}`,
           proposalPk,
+          governingTokenOwner: toBase58Safe(voteRecord.account.governingTokenOwner),
           proposalTitle: proposal?.account?.name || shortenPk(proposalPk, 6),
           proposalState,
           proposalStateLabel: PROPOSAL_STATE_LABELS[proposalState] || 'Unknown',
@@ -695,38 +724,10 @@ export function MyGovernanceView(props: any) {
     try {
       const owner = new PublicKey(pubkey);
       const [ownerRecords, sns] = await Promise.all([
-        getTokenOwnerRecordsByOwnerIndexed(undefined, DEFAULT_GOV_PROGRAM, owner.toBase58()),
-        fetchSnsDomains(owner),
+        getTokenOwnerRecordsByOwnerAcrossProgramsIndexed(owner.toBase58()),
+        fetchSnsDomains(owner).catch(() => ({ domains: [], primary: '' })),
       ]);
-      const directOwnerRecords = ownerRecords || [];
-      const authorityRecordsByPk = new Map<string, any>();
-      directOwnerRecords.forEach((record: any) => {
-        const recordPk = toBase58Safe(record?.pubkey);
-        if (recordPk) authorityRecordsByPk.set(recordPk, record);
-      });
-
-      // Discover records delegated to this wallet in every realm already associated
-      // with the profile. This lets delegates manage drafts authored by those records.
-      const realmAuthorityTargets = new Map<string, { realmPk: string; programOwner: string }>();
-      directOwnerRecords.forEach((record: any) => {
-        const realmPk = toBase58Safe(record?.account?.realm);
-        const programOwner = toBase58Safe(record?.owner) || DEFAULT_GOV_PROGRAM;
-        if (realmPk) realmAuthorityTargets.set(`${programOwner}:${realmPk}`, { realmPk, programOwner });
-      });
-      const realmAuthorityQueries = Array.from(realmAuthorityTargets.values()).map(async ({ realmPk, programOwner }) => {
-        try {
-          return await getAllTokenOwnerRecordsIndexed(realmPk, programOwner, pubkey);
-        } catch (error) {
-          console.warn(`Delegated authority lookup failed for ${realmPk}`, error);
-          return [];
-        }
-      });
-      const delegatedBatches = await Promise.all(realmAuthorityQueries);
-      delegatedBatches.flat().forEach((record: any) => {
-        const recordPk = toBase58Safe(record?.pubkey);
-        if (recordPk) authorityRecordsByPk.set(recordPk, record);
-      });
-      const normalizedOwnerRecords = Array.from(authorityRecordsByPk.values());
+      const normalizedOwnerRecords = ownerRecords || [];
       const domains = sns?.domains || [];
       const primary = sns?.primary || '';
 
@@ -1267,8 +1268,23 @@ export function MyGovernanceView(props: any) {
       });
     };
 
+    const votedProposals = new Set(voteHistoryRows.filter((vote) => !vote.isRelinquished)
+      .map((vote) => `${vote.proposalPk}:${vote.governingTokenOwner}`));
     allRealmProposals.forEach((proposal) => {
-      if (toNumberSafe(proposal?.account?.state) === 2) addAction(proposal, 'vote');
+      const membership = governanceRecordRows.some((row) =>
+        row.realmPk === proposal.__realmPk &&
+        row.governingTokenMint === toBase58Safe(proposal.account.governingTokenMint) &&
+        !votedProposals.has(`${toBase58Safe(proposal.pubkey)}:${row.governingTokenOwner}`) &&
+        (row.governingTokenDepositAmountRaw > 0 || row.usesVoterWeightPlugin)
+      );
+      const config = proposal.__governance?.config;
+      const votingAt = toNumberSafe(proposal.account.votingAt);
+      const duration = proposal.account.maxVotingTime ?? config?.baseVotingTime;
+      const ended = votingAt > 0 && duration != null &&
+        votingAt + toNumberSafe(duration) + toNumberSafe(config?.votingCoolOffTime) <= Date.now() / 1000;
+      if (membership && !ended && toNumberSafe(proposal?.account?.state) === 2) {
+        addAction(proposal, 'vote');
+      }
     });
 
     createdProposals.forEach((proposal) => {
@@ -1282,7 +1298,7 @@ export function MyGovernanceView(props: any) {
       if (a.priority !== b.priority) return a.priority - b.priority;
       return toNumberSafe(b?.proposal?.account?.draftAt) - toNumberSafe(a?.proposal?.account?.draftAt);
     });
-  }, [allRealmProposals, createdProposals]);
+  }, [allRealmProposals, createdProposals, voteHistoryRows, governanceRecordRows]);
 
   const delegatedManagementCount = React.useMemo(
     () => createdProposals.filter((proposal) => proposal?.__authorityRole === 'delegate').length,
@@ -1381,8 +1397,13 @@ export function MyGovernanceView(props: any) {
       },
       {
         field: 'governingTokenDepositAmount',
-        headerName: 'Deposited Votes',
+        headerName: 'Deposited Tokens',
         minWidth: 150,
+      },
+      {
+        field: 'votingPower',
+        headerName: 'Voting Power',
+        minWidth: 190,
       },
       {
         field: 'unrelinquishedVotesCount',
@@ -1736,7 +1757,7 @@ export function MyGovernanceView(props: any) {
                 <InsightCard
                   title="Needs Your Action"
                   value={dashboardActions.length}
-                  hint={`${allRealmProposals.filter((proposal) => toNumberSafe(proposal?.account?.state) === 2).length} open votes across ${profileInsights.daoCount} DAOs`}
+                  hint={`${dashboardActions.filter((action) => action.priority === 0).length} votes to review across ${profileInsights.daoCount} DAOs`}
                   tooltip="Voting, draft management, and execution actions currently available to this wallet."
                   accent="#8ec5ff"
                   loading={loadingGovernance}
@@ -1756,10 +1777,10 @@ export function MyGovernanceView(props: any) {
 
               <Grid item xs={12} md={4}>
                 <InsightCard
-                  title="Governance Power"
-                  value={formatLocalNumber(profileInsights.totalDeposited, 2)}
+                  title="Governance Memberships"
+                  value={governanceRecordRows.length}
                   hint={`${profileInsights.totalUnrelinquished} active vote record${profileInsights.totalUnrelinquished === 1 ? '' : 's'}`}
-                  tooltip="Deposited governance power across owner and delegated authority records."
+                  tooltip="Community and council memberships. Deposits are shown separately below; voter-weight plugins can change effective voting power."
                   accent="#72d38c"
                   loading={loadingGovernance}
                 />
