@@ -26,6 +26,7 @@ import {
     getGovernanceAccounts,
     pubkeyFilter,
     SignatoryRecord,
+    TokenOwnerRecord,
     getRealmConfig  } from '@solana/spl-governance';
 
 import { getVoteRecords } from '../../utils/governanceTools/getVoteRecords';
@@ -1331,105 +1332,28 @@ export const getTokenOwnerRecordsByOwnerIndexed = async (filterRealm?:string, re
     return allResults;
 }
 
+// Wallet discovery only uses filtered RPC reads, including delegate-only memberships.
 export const getTokenOwnerRecordsByOwnerAcrossProgramsIndexed = async (tokenOwner?: string) => {
-    if (!tokenOwner) {
-        return [];
+    if (!tokenOwner) return [];
+    const wallet = new PublicKey(tokenOwner);
+    const programs = Array.from(new Set([DEFAULT_GOVERNANCE_PROGRAM_ID, ...govOwners.map((program) => program.owner)]));
+    const records = new Map<string, any>();
+    for (let index = 0; index < programs.length; index += 3) {
+        const batches = await Promise.all(programs.slice(index, index + 3).map(async (program) => {
+            const programId = new PublicKey(program);
+            const [owned, delegated] = await Promise.all([
+                getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, wallet),
+                getGovernanceAccounts(RPC_CONNECTION, programId, TokenOwnerRecord, [
+                    // The optional delegate pubkey follows the 121-byte fixed prefix
+                    // and its one-byte Some discriminator in both V1 and V2 records.
+                    pubkeyFilter(122, wallet)!,
+                ]),
+            ]);
+            return [...owned, ...delegated.filter((record) => record.account.governanceDelegate?.equals(wallet))];
+        }));
+        for (const record of batches.flat()) records.set(record.pubkey.toBase58(), record);
     }
-
-    const programs = Array.from(
-        new Map(
-            [
-                {
-                    owner: 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw',
-                    name: 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw',
-                },
-                ...govOwners,
-            ].map((program) => [program.name, program])
-        ).values()
-    );
-
-    const mergedRecords: any[] = [];
-    const seenRecordPks = new Set<string>();
-
-    if (!shouldUseGovernanceGraphQL()) {
-        await Promise.all(
-            programs.map(async (program) => {
-                try {
-                    const records = await getTokenOwnerRecordsByOwner(
-                        RPC_CONNECTION,
-                        new PublicKey(resolveGovernanceProgramId(program.owner)),
-                        new PublicKey(tokenOwner)
-                    );
-                    for (const record of records) {
-                        const recordPkString = record?.pubkey?.toBase58?.() || '';
-                        if (!recordPkString || seenRecordPks.has(recordPkString)) continue;
-                        seenRecordPks.add(recordPkString);
-                        mergedRecords.push(record);
-                    }
-                } catch (e) {
-                    console.log(`Error fetching owner records via RPC ${program.owner}`, e);
-                }
-            })
-        );
-
-        return mergedRecords;
-    }
-
-    await Promise.all(
-        programs.map(async (program) => {
-            const namespaces = Array.from(
-                new Set([program.name, program.owner].filter((value): value is string => !!value))
-            );
-
-            for (const namespace of namespaces) {
-                try {
-                    const { data } = await client.query({
-                        query: GET_QUERY_ALL_TOKEN_OWNER_RECORDS(tokenOwner, namespace),
-                        fetchPolicy: 'no-cache',
-                    });
-
-                    const pushRecord = (item: any) => {
-                        const recordPk = item?.pubkey ? new PublicKey(item.pubkey) : null;
-                        const recordPkString = recordPk?.toBase58?.() || '';
-                        if (!recordPkString || seenRecordPks.has(recordPkString)) {
-                            return;
-                        }
-
-                        seenRecordPks.add(recordPkString);
-                        mergedRecords.push({
-                            owner: new PublicKey(program.owner),
-                            pubkey: recordPk,
-                            account: {
-                                realm: new PublicKey(item.realm),
-                                accountType: item.accountType,
-                                governingTokenMint: new PublicKey(item.governingTokenMint),
-                                governingTokenOwner: new PublicKey(item.governingTokenOwner),
-                                governanceDelegate: item?.governanceDelegate ? new PublicKey(item.governanceDelegate) : null,
-                                governingTokenDepositAmount: new BN(item.governingTokenDepositAmount),
-                                unrelinquishedVotesCount: item.unrelinquishedVotesCount,
-                                totalVotesCount: item.totalVotesCount,
-                                outstandingProposalCount: item.outstandingProposalCount,
-                                reserved: item.reserved,
-                                version: item.version,
-                            }
-                        });
-                    };
-
-                    const rowsBeforeNamespace = mergedRecords.length;
-                    data?.[`${namespace}_TokenOwnerRecordV1`]?.forEach(pushRecord);
-                    data?.[`${namespace}_TokenOwnerRecordV2`]?.forEach(pushRecord);
-
-                    if (mergedRecords.length > rowsBeforeNamespace) {
-                        break;
-                    }
-                } catch (e) {
-                    console.log(`Error fetching owner records via ${namespace}`, e);
-                }
-            }
-        })
-    );
-
-    return mergedRecords;
+    return Array.from(records.values());
 }
 
 export const getTokenOwnerRecordsByRealmIndexed = async (filterRealm?:string, realmOwner?:string, tokenOwner?:string) => {
