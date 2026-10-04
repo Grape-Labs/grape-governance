@@ -23,3 +23,19 @@ test('summary counts unique realms, verified entries and councils without using 
  const item={governanceAddress:'realm-a',gspl:{},councilMint:pk('mint'),totalProposalsVoting:999,totalMembers:999};
  assert.deepEqual(directorySummary([item,item,{governanceAddress:'realm-b'},{}]),{daos:2,verified:1,councils:1});
 });
+
+test('cached nested realm accounts retain directory counts and wallet matches',()=>{
+ const dao={governanceAddress:'realm-a',realm:{pubkey:'realm-a',account:{config:{councilMint:'mint'}}},governanceName:'Named DAO',gspl:{}};
+ assert.deepEqual(directorySummary([dao]),{daos:1,verified:1,councils:1});
+ assert.equal(buildParticipatingDirectory([{account:{realm:pk('realm-a')}}],[dao])[0],dao);
+});
+test('recent proposal window ranks DAOs by newest proposal, deduplicates and stops at 100',()=>{
+ const {rankDirectoryByProposals}=loaded.exports;
+ const directory=[{governanceAddress:'a',governanceName:'Alpha',governances:[{pubkey:'ga'}]}, {governanceAddress:'b',governanceName:'Beta',governances:[{pubkey:'gb'}]}];
+ const proposals=Array.from({length:101},(_,i)=>({pubkey:`p${i}`,governance:i===0?'ga':'gb',draftAt:i+1,name:`Proposal ${i}`}));
+ const ranked=rankDirectoryByProposals(directory,[...proposals,proposals[100]]);
+ assert.equal(ranked[0].governanceAddress,'b');
+ assert.equal(ranked[0].recentActivity.count,100);
+ assert.equal(ranked[0].recentActivity.latestName,'Proposal 100');
+ assert.equal(ranked[1].recentActivity,undefined);
+});

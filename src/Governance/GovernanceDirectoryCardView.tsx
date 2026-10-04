@@ -73,6 +73,41 @@ const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardV
     [item?.governanceAddress, name]
   );
 
+  if (directoryOnly) {
+    const activity = item?.recentActivity;
+    return (
+      <Card component={Link} to={"/dao/" + item.governanceAddress} sx={{
+        display: 'flex', flexDirection: 'column', height: '100%', minHeight: 154,
+        textDecoration: 'none', color: 'inherit', borderRadius: '14px', p: 2,
+        background: '#131c27', boxShadow: 'none',
+        border: activity?.count ? '1px solid rgba(93, 211, 176, 0.35)' : '1px solid rgba(255,255,255,0.08)',
+        transition: 'border-color 150ms, background 150ms',
+        '&:hover': { background: '#192534', borderColor: 'rgba(132,190,255,0.5)' },
+        '&:focus-visible': { outline: '2px solid #84beff', outlineOffset: 3 },
+      }}>
+        <Stack direction="row" spacing={1.25} alignItems="center">
+          <Avatar src={ogSrc || undefined} sx={{ width: 36, height: 36, bgcolor: tint, fontSize: 16 }}>{name[0]}</Avatar>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography noWrap sx={{ fontWeight: 650, fontSize: 16 }}>{name}</Typography>
+            <Typography variant="caption" sx={{ color: '#8fa4b8' }}>{String(item.governanceAddress).slice(0, 4)}…{String(item.governanceAddress).slice(-4)}</Typography>
+          </Box>
+          {item?.gspl && <VerifiedIcon sx={{ fontSize: 17, color: '#8eafcb' }} />}
+          <OpenInNewIcon sx={{ fontSize: 16, opacity: 0.4 }} />
+        </Stack>
+        {activity?.count ? (
+          <Box sx={{ mt: 1.75 }}>
+            <Typography variant="caption" sx={{ color: '#7bdcbb', fontWeight: 600 }}>{activity.count} recent proposal{activity.count === 1 ? '' : 's'}</Typography>
+            <Typography variant="body2" noWrap sx={{ mt: 0.5 }}>{activity.latestName || 'View latest proposal'}</Typography>
+          </Box>
+        ) : desc ? (
+          <Typography variant="body2" sx={{ mt: 1.75, color: '#9cabbc', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{desc}</Typography>
+        ) : (
+          <Typography variant="body2" sx={{ mt: 1.75, color: '#8fa4b8' }}>Explore proposals <span aria-hidden="true">↗</span></Typography>
+        )}
+      </Card>
+    );
+  }
+
   return (
     <Card
       onClick={() => navigate("/dao/" + item.governanceAddress)}

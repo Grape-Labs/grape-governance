@@ -25,13 +25,9 @@ import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
-import GRAPE_LOGO_SQUARE from '../public/grape_logo_square.png';
-import OG_LOGO_SQUARE from '../public/og_logo_square.png';
-import GRAPE_DAO_LOGO from '../public/grape-dao-512.png';
 
 import GovernanceDirectoryCardView from './GovernanceDirectoryCardView';
 import CreateSplGovernanceDaoButton from './CreateNewDAO/CreateSplGovernanceDaoButton';
@@ -49,8 +45,10 @@ import {
   fetchGovernanceLookupFile,
 } from './CachedStorageHelpers';
 
-import { GGAPI_STORAGE_POOL } from '../utils/grapeTools/constants';
-import { buildParticipatingDirectory, directorySummary } from './directorySummary';
+import { fetchRecentDirectoryActivity } from './api/recentDirectoryActivity';
+
+import { RPC_CONNECTION, GGAPI_STORAGE_POOL } from '../utils/grapeTools/constants';
+import { buildParticipatingDirectory, directorySummary, directoryRealmKey, rankDirectoryByProposals } from './directorySummary';
 
 interface Props {
   window?: () => Window;
@@ -93,9 +91,7 @@ function governanceKey(value: any): string {
 }
 
 function governanceRealmKey(item: any): string {
-  return governanceKey(
-    item?.realm || item?.governance?.account?.realm || item?.governance?.realm || item?.governanceAddress
-  );
+  return directoryRealmKey(item);
 }
 
 function normalizeName(value: any): string {
@@ -190,6 +186,19 @@ export function GovernanceDirectoryView(props: Props) {
   const [walletFavoritesLoading, setWalletFavoritesLoading] = React.useState(false);
   const [walletError, setWalletError] = React.useState<string | null>(null);
   const [walletRefresh, setWalletRefresh] = React.useState(0);
+  const [recentProposals, setRecentProposals] = React.useState<any[]>([]);
+  const [activityStatus, setActivityStatus] = React.useState('Checking recent proposals…');
+  React.useEffect(() => {
+    let cancelled = false;
+    setActivityStatus('Checking recent proposals…');
+    fetchRecentDirectoryActivity(RPC_CONNECTION, [DEFAULT_GOVERNANCE_PROGRAM_NAME, ...govOwners.map(owner => owner.owner)])
+      .then(result => {
+        if (cancelled) return;
+        setRecentProposals(result.proposals);
+        setActivityStatus(result.partial ? 'Recent activity is incomplete' : result.proposals.length ? `New proposals first · ${result.scanned} recent transactions checked` : `No new proposals found in ${result.scanned} recent transactions`);
+      }).catch(() => { if (!cancelled) setActivityStatus('Recent activity unavailable'); });
+    return () => { cancelled = true; };
+  }, [walletRefresh]);
   const metadataInFlight = React.useRef<Set<string>>(new Set());
   const mythicMetadataInFlight = React.useRef<Set<string>>(new Set());
   const walletAddress = publicKey?.toBase58?.() || '';
@@ -666,16 +675,8 @@ export function GovernanceDirectoryView(props: Props) {
     return () => { cancelled = true; };
   }, [walletAddress, walletRefresh]);
 
-  const sortedGovernances = React.useMemo(() => {
-    const items = [...governanceLookup];
-    items.sort((a, b) => {
-      const aName = normalizeName(a?.governanceName || a?.governanceAddress).toLowerCase();
-      const bName = normalizeName(b?.governanceName || b?.governanceAddress).toLowerCase();
-      return aName.localeCompare(bName);
-    });
-
-    return items;
-  }, [governanceLookup]);
+  const sortedGovernances = React.useMemo(() =>
+    rankDirectoryByProposals(governanceLookup, recentProposals), [governanceLookup, recentProposals]);
 
   const filteredGovernances = React.useMemo(() => {
     const query = (searchFilter || '').trim();
@@ -735,9 +736,9 @@ export function GovernanceDirectoryView(props: Props) {
   ]);
 
   const favoriteGovernances = React.useMemo(() =>
-    buildParticipatingDirectory(
+    rankDirectoryByProposals(buildParticipatingDirectory(
       membershipWallet === walletAddress ? walletMemberships : [], governanceLookup
-    ), [walletMemberships, governanceLookup, membershipWallet, walletAddress]);
+    ), recentProposals), [walletMemberships, governanceLookup, membershipWallet, walletAddress, recentProposals]);
 
   const favoriteGovernanceAddressSet = React.useMemo(
     () => new Set(favoriteGovernances.map((item) => governanceKey(item?.governanceAddress)).filter(Boolean)),
@@ -902,283 +903,41 @@ export function GovernanceDirectoryView(props: Props) {
         borderRadius: '24px',
         p: { xs: 2, md: 3 },
         background:
-          'radial-gradient(1200px 600px at 18% 0%, rgba(16, 118, 255, 0.22), transparent 62%), radial-gradient(900px 480px at 90% 12%, rgba(0, 190, 135, 0.18), transparent 55%), radial-gradient(700px 350px at 50% 100%, rgba(255, 153, 0, 0.1), transparent 60%), rgba(0,0,0,0.55)',
+          'linear-gradient(160deg, #111923, #0c1017 65%)',
         border: '1px solid rgba(255,255,255,0.08)',
         backdropFilter: 'blur(10px)',
       }}
     >
-      <Typography
-        variant="caption"
-        sx={{
-          display: 'block',
-          mb: 1.35,
-          px: 0.25,
-          textAlign: 'left',
-          color: 'rgba(225,232,240,0.7)',
-          letterSpacing: '0.01em',
-        }}
-      >
-        Featured Grape tools from a broader stack of 6 on-chain programs, 4 APIs, 5 interfaces, and 5 Discord bots.
-      </Typography>
-
-      <Grid container spacing={1.5} sx={{ mb: 2.25 }}>
-        <Grid item xs={12} md={4}>
-          <Box
-            component="a"
-            href="https://grapedao.org"
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-              p: 1.5,
-              borderRadius: '16px',
-              textDecoration: 'none',
-              color: 'inherit',
-              background:
-                'linear-gradient(120deg, rgba(120, 66, 255, 0.24), rgba(255, 97, 161, 0.18))',
-              border: '1px solid rgba(255,255,255,0.14)',
-              transition: 'transform 120ms ease, border-color 120ms ease, background 120ms ease',
-              '&:hover': {
-                transform: 'translateY(-1px)',
-                borderColor: 'rgba(255,255,255,0.24)',
-                background:
-                  'linear-gradient(120deg, rgba(120, 66, 255, 0.3), rgba(255, 97, 161, 0.24))',
-              },
-            }}
-          >
-            <Box
-              component="img"
-              src={GRAPE_DAO_LOGO}
-              alt="Grape DAO"
-              sx={{
-                width: 50,
-                height: 50,
-                borderRadius: '12px',
-                objectFit: 'cover',
-                border: '1px solid rgba(255,255,255,0.16)',
-              }}
-            />
-            <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, letterSpacing: 0.2 }}>
-                Grape DAO
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.84 }}>
-                Main hub for the Grape ecosystem
-              </Typography>
-            </Box>
-            <OpenInNewIcon fontSize="small" sx={{ opacity: 0.85 }} />
-          </Box>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <Box
-            component="a"
-            href="https://vine.governance.so"
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-              p: 1.5,
-              borderRadius: '16px',
-              textDecoration: 'none',
-              color: 'inherit',
-              background:
-                'linear-gradient(120deg, rgba(18, 120, 255, 0.26), rgba(0, 178, 128, 0.18))',
-              border: '1px solid rgba(255,255,255,0.14)',
-              transition: 'transform 120ms ease, border-color 120ms ease, background 120ms ease',
-              '&:hover': {
-                transform: 'translateY(-1px)',
-                borderColor: 'rgba(255,255,255,0.24)',
-                background:
-                  'linear-gradient(120deg, rgba(18, 120, 255, 0.33), rgba(0, 178, 128, 0.24))',
-              },
-            }}
-          >
-            <Box
-              component="img"
-              src={OG_LOGO_SQUARE}
-              alt="OG Reputation Space"
-              sx={{
-                width: 50,
-                height: 50,
-                borderRadius: '12px',
-                objectFit: 'cover',
-                border: '1px solid rgba(255,255,255,0.16)',
-              }}
-            />
-            <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, letterSpacing: 0.2 }}>
-                OG Reputation Spaces
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.84 }}>
-                On-chain reputation by Grape
-              </Typography>
-            </Box>
-            <OpenInNewIcon fontSize="small" sx={{ opacity: 0.85 }} />
-          </Box>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <Box
-            component="a"
-            href="https://verification.governance.so"
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-              p: 1.5,
-              borderRadius: '16px',
-              textDecoration: 'none',
-              color: 'inherit',
-              background:
-                'linear-gradient(120deg, rgba(255, 170, 0, 0.24), rgba(255, 97, 61, 0.2))',
-              border: '1px solid rgba(255,255,255,0.14)',
-              transition: 'transform 120ms ease, border-color 120ms ease, background 120ms ease',
-              '&:hover': {
-                transform: 'translateY(-1px)',
-                borderColor: 'rgba(255,255,255,0.24)',
-                background:
-                  'linear-gradient(120deg, rgba(255, 170, 0, 0.3), rgba(255, 97, 61, 0.27))',
-              },
-            }}
-          >
-            <Box
-              component="img"
-              src={GRAPE_LOGO_SQUARE}
-              alt="Grape Verification"
-              sx={{
-                width: 50,
-                height: 50,
-                borderRadius: '12px',
-                objectFit: 'cover',
-                border: '1px solid rgba(255,255,255,0.16)',
-              }}
-            />
-            <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, letterSpacing: 0.2 }}>
-                Grape Verification
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.84 }}>
-                On-chain verification by Grape
-              </Typography>
-            </Box>
-            <OpenInNewIcon fontSize="small" sx={{ opacity: 0.85 }} />
-          </Box>
-        </Grid>
-      </Grid>
-
-      <Grid container spacing={2} alignItems="center" id="back-to-top-anchor">
-        <Grid item xs={12} md={7} sx={{ textAlign: 'left' }}>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }} useFlexGap flexWrap="wrap">
-            <Typography variant="h4" sx={{ fontWeight: 700, letterSpacing: -0.5 }}>
-              DAO Directory
-            </Typography>
-          </Stack>
-
-          <Typography variant="body2" sx={{ opacity: 0.85 }}>
-            Explore Solana DAOs and return to your communities. Open a DAO for current proposals and voting power.
-          </Typography>
-
-          <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} useFlexGap flexWrap="wrap">
-            <Chip size="small" label={`${summary.daos.toLocaleString()} listed DAOs`} />
-            <Chip size="small" label={`${summary.verified.toLocaleString()} verified DAOs`} />
-            <Chip size="small" label={`${summary.councils.toLocaleString()} with councils`} />
-          </Stack>
-        </Grid>
-
-        <Grid item xs={12} md={5}>
-          <Box
-            sx={{
-              position: { xs: 'static', md: 'sticky' },
-              top: 12,
-              zIndex: 10,
-              p: 1.5,
-              borderRadius: '18px',
-              background: 'rgba(0,0,0,0.35)',
-              border: '1px solid rgba(255,255,255,0.08)',
-            }}
-          >
-            <Stack spacing={1.25}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Search DAOs, governance address, mint..."
-                value={searchFilter}
-                onChange={(e) => setSearchFilter(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon fontSize="small" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-
-              <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={1}
-                alignItems={{ xs: 'stretch', sm: 'center' }}
-                justifyContent="space-between"
-              >
-                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                  <Chip
-                    icon={<VerifiedIcon />}
-                    label="Verified"
-                    color={filterVerified ? 'primary' : 'default'}
-                    variant={filterVerified ? 'filled' : 'outlined'}
-                    size="small"
-                    onClick={() => setFilterVerified((value) => !value)}
-                  />
-                </Stack>
-
-                <ToggleButtonGroup
-                  exclusive
-                  size="small"
-                  value={viewMode}
-                  onChange={(_, mode) => mode && setViewMode(mode)}
-                >
-                  <ToggleButton value="grid">
-                    <ViewModuleIcon fontSize="small" />
-                  </ToggleButton>
-                  <ToggleButton value="list">
-                    <ViewListIcon fontSize="small" />
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </Stack>
-
-              <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={1}
-                alignItems={{ xs: 'flex-start', sm: 'center' }}
-                justifyContent="space-between"
-              >
-
-                <Button
-                  color="inherit"
-                  size="small"
-                  variant="outlined"
-                  startIcon={<RefreshIcon fontSize="small" />}
-                  onClick={() => { void loadGovernanceDirectory(true); setWalletRefresh(value => value + 1); }}
-                  disabled={refreshing}
-                >
-                  {refreshing ? 'Refreshing...' : 'Refresh'}
-                </Button>
-              </Stack>
-
-              <Stack direction="row" justifyContent="flex-end">
-                <CreateSplGovernanceDaoButton />
-              </Stack>
-            </Stack>
-          </Box>
-        </Grid>
-      </Grid>
-
+      <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ mb: 2.5 }}>
+        <Box>
+          <Typography variant="overline" sx={{ color: '#89a8bd', letterSpacing: 2 }}>GOVERNANCE / SOLANA</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 700, letterSpacing: -1 }}>Discover your next decision.</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.75 }}>Your DAOs, their latest proposals, and a place to take part.</Typography>
+        </Box>
+        <CreateSplGovernanceDaoButton />
+      </Stack>
+      <Stack direction="row" spacing={3} useFlexGap flexWrap="wrap" sx={{ mb: 2.5, color: 'text.secondary' }}>
+        <Typography variant="body2"><strong style={{ color: '#eef4fa' }}>{summary.daos.toLocaleString()}</strong> DAOs in directory</Typography>
+        <Typography variant="body2"><strong style={{ color: '#eef4fa' }}>{summary.verified.toLocaleString()}</strong> verified</Typography>
+        {walletAddress && <Typography variant="body2"><strong style={{ color: '#eef4fa' }}>{favoriteGovernances.length}</strong> memberships</Typography>}
+      </Stack>
+      <Typography variant="caption" title="Checks up to 100 recent governance transactions, then ranks the proposals found. Results are reused for five minutes. This is not a complete global proposal feed." sx={{ display: 'block', mb: 1.5, color: '#89a8bd' }}>{activityStatus}</Typography>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center" sx={{ mb: 2.5 }}>
+        <TextField fullWidth size="small" placeholder="Find a DAO" value={searchFilter}
+          onChange={event => setSearchFilter(event.target.value)}
+          inputProps={{ 'aria-label': 'Search DAOs' }}
+          InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }} />
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Chip icon={<VerifiedIcon />} label="Verified" variant={filterVerified ? 'filled' : 'outlined'}
+            color={filterVerified ? 'primary' : 'default'} onClick={() => setFilterVerified(value => !value)} />
+          <ToggleButtonGroup exclusive size="small" value={viewMode} onChange={(_, mode) => mode && setViewMode(mode)}>
+            <ToggleButton value="grid" aria-label="Grid view"><ViewModuleIcon fontSize="small" /></ToggleButton>
+            <ToggleButton value="list" aria-label="List view"><ViewListIcon fontSize="small" /></ToggleButton>
+          </ToggleButtonGroup>
+          <Button color="inherit" size="small" startIcon={<RefreshIcon />} disabled={refreshing}
+            onClick={() => { void loadGovernanceDirectory(true); setWalletRefresh(value => value + 1); }}>Refresh</Button>
+        </Stack>
+      </Stack>
       {(refreshing || error) && (
         <Box sx={{ mt: 2 }}>
           {refreshing && <LinearProgress color="inherit" />}
@@ -1195,10 +954,7 @@ export function GovernanceDirectoryView(props: Props) {
       {walletAddress && (
         <Box sx={{
           mb: 2.5,
-          p: 2,
-          borderRadius: '14px',
-          border: '2px solid rgba(132, 190, 255, 0.3)',
-          background: 'linear-gradient(135deg, rgba(77, 163, 255, 0.08) 0%, rgba(132, 190, 255, 0.04) 100%)',
+          p: 0,
         }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.75 }} useFlexGap flexWrap="wrap">
             <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: -0.25 }}>
@@ -1218,7 +974,7 @@ export function GovernanceDirectoryView(props: Props) {
           </Stack>
 
           <Typography variant="body2" sx={{ opacity: 0.78, mb: walletFavoritesLoading ? 1 : 1.25 }}>
-            DAOs with membership records owned by or delegated to your wallet, including staking and reputation memberships. Membership does not always mean active voting power.
+            Communities you’ve joined or represent.
           </Typography>
 
           {walletError && (
@@ -1317,6 +1073,11 @@ export function GovernanceDirectoryView(props: Props) {
         </Box>
       ) : null}
 
+      <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap" sx={{ mt: 3, opacity: 0.65 }}>
+        {[['Grape DAO', 'https://grapedao.org'], ['Reputation', 'https://vine.governance.so'], ['Verification', 'https://verification.governance.so']].map(([label, href]) => (
+          <Button key={href} component="a" href={href} target="_blank" rel="noopener noreferrer" size="small" color="inherit">{label}</Button>
+        ))}
+      </Stack>
       {hasMoreGovernances && (
         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
           <Button
