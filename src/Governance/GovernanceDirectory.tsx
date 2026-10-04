@@ -24,6 +24,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import VerifiedIcon from '@mui/icons-material/Verified';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import RefreshIcon from '@mui/icons-material/Refresh';
 
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -36,6 +37,8 @@ import { initGrapeGovernanceDirectory } from './api/gspl_queries';
 import { fetchMythicRealmMetadata, mergeDaoMetadata } from './api/realmMetadata';
 import {
   getAllGovernancesFromAllPrograms,
+  getAllProposalsFromAllPrograms,
+  fetchRealmNameFromRulesWallet,
   getRealmIndexed,
   getRealmsIndexed,
   govOwners,
@@ -45,7 +48,7 @@ import {
   fetchGovernanceLookupFile,
 } from './CachedStorageHelpers';
 
-import { fetchRecentDirectoryActivity } from './api/recentDirectoryActivity';
+
 
 import { RPC_CONNECTION, GGAPI_STORAGE_POOL } from '../utils/grapeTools/constants';
 import { buildParticipatingDirectory, directorySummary, directoryRealmKey, rankDirectoryByProposals } from './directorySummary';
@@ -191,12 +194,22 @@ export function GovernanceDirectoryView(props: Props) {
   React.useEffect(() => {
     let cancelled = false;
     setActivityStatus('Checking recent proposals…');
-    fetchRecentDirectoryActivity(RPC_CONNECTION, [DEFAULT_GOVERNANCE_PROGRAM_NAME, ...govOwners.map(owner => owner.owner)])
-      .then(result => {
+    const loadActivity = async () => {
+      const proposals = (await getAllProposalsFromAllPrograms()).flat().filter(Boolean);
+      const realms = new Map<string, string>();
+      const governances = Array.from(new Set<string>(proposals.map(proposal => governanceKey(proposal.account?.governance)).filter(Boolean)));
+      for (let offset = 0; offset < governances.length; offset += 4) {
         if (cancelled) return;
-        setRecentProposals(result.proposals);
-        setActivityStatus(result.partial ? 'Recent activity is incomplete' : result.proposals.length ? `New proposals first · ${result.scanned} recent transactions checked` : `No new proposals found in ${result.scanned} recent transactions`);
-      }).catch(() => { if (!cancelled) setActivityStatus('Recent activity unavailable'); });
+        await Promise.all(governances.slice(offset, offset + 4).map(async address => {
+          const result = await fetchRealmNameFromRulesWallet(address);
+          if (result) realms.set(address, result.realm);
+        }));
+      }
+      if (cancelled) return;
+      setRecentProposals(proposals.map(proposal => ({ ...proposal, realm: realms.get(governanceKey(proposal.account?.governance)) })));
+      setActivityStatus(proposals.length ? `Latest ${proposals.length} proposals · newest first${realms.size < governances.length ? ' · some DAOs could not be resolved' : ''}` : 'No recent proposals available');
+    };
+    void loadActivity().catch(() => { if (!cancelled) setActivityStatus('Recent activity unavailable'); });
     return () => { cancelled = true; };
   }, [walletRefresh]);
   const metadataInFlight = React.useRef<Set<string>>(new Set());
@@ -908,6 +921,25 @@ export function GovernanceDirectoryView(props: Props) {
         backdropFilter: 'blur(10px)',
       }}
     >
+      <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', pb: 1, mb: 3 }}>
+        {[
+          { name: 'Grape Verification', caption: 'Verify your community', href: 'https://verification.governance.so', color: '#74e2c0', glyph: '✓' },
+          { name: 'Grape DAO', caption: 'Discover the Grape ecosystem', href: 'https://grapedao.org', color: '#c3a2ff', glyph: '◎' },
+          { name: 'Grape Reputation', caption: 'Build on-chain reputation', href: 'https://reputation.governance.so', color: '#89c9ff', glyph: '↗' },
+        ].map(service => (
+          <Box key={service.href} component="a" href={service.href} target="_blank" rel="noopener noreferrer" sx={{
+            flex: '1 0 240px', display: 'flex', alignItems: 'center', gap: 1.5, p: 2, borderRadius: '16px',
+            color: 'inherit', textDecoration: 'none', border: `1px solid ${service.color}35`,
+            background: `linear-gradient(115deg, ${service.color}18, ${service.color}04)`,
+            '&:hover': { borderColor: service.color, backgroundColor: `${service.color}12` },
+            '&:focus-visible': { outline: `2px solid ${service.color}`, outlineOffset: -2 },
+          }}>
+            <Box sx={{ fontSize: 28, color: service.color }}>{service.glyph}</Box>
+            <Box sx={{ flex: 1 }}><Typography sx={{ fontWeight: 700 }}>{service.name}</Typography><Typography variant="caption" sx={{ color: 'text.secondary' }}>{service.caption}</Typography></Box>
+            <OpenInNewIcon sx={{ fontSize: 16, color: service.color }} />
+          </Box>
+        ))}
+      </Box>
       <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ mb: 2.5 }}>
         <Box>
           <Typography variant="overline" sx={{ color: '#89a8bd', letterSpacing: 2 }}>GOVERNANCE / SOLANA</Typography>
@@ -921,7 +953,7 @@ export function GovernanceDirectoryView(props: Props) {
         <Typography variant="body2"><strong style={{ color: '#eef4fa' }}>{summary.verified.toLocaleString()}</strong> verified</Typography>
         {walletAddress && <Typography variant="body2"><strong style={{ color: '#eef4fa' }}>{favoriteGovernances.length}</strong> memberships</Typography>}
       </Stack>
-      <Typography variant="caption" title="Checks up to 100 recent governance transactions, then ranks the proposals found. Results are reused for five minutes. This is not a complete global proposal feed." sx={{ display: 'block', mb: 1.5, color: '#89a8bd' }}>{activityStatus}</Typography>
+      <Typography variant="caption" title="Uses the same cached proposal feed as Realtime. Coverage depends on available governance programs." sx={{ display: 'block', mb: 1.5, color: '#89a8bd' }}>{activityStatus}</Typography>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center" sx={{ mb: 2.5 }}>
         <TextField fullWidth size="small" placeholder="Find a DAO" value={searchFilter}
           onChange={event => setSearchFilter(event.target.value)}
@@ -974,7 +1006,7 @@ export function GovernanceDirectoryView(props: Props) {
           </Stack>
 
           <Typography variant="body2" sx={{ opacity: 0.78, mb: walletFavoritesLoading ? 1 : 1.25 }}>
-            Communities you’ve joined or represent.
+            Your communities, ordered by their newest proposals.
           </Typography>
 
           {walletError && (
@@ -1073,11 +1105,6 @@ export function GovernanceDirectoryView(props: Props) {
         </Box>
       ) : null}
 
-      <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap" sx={{ mt: 3, opacity: 0.65 }}>
-        {[['Grape DAO', 'https://grapedao.org'], ['Reputation', 'https://vine.governance.so'], ['Verification', 'https://verification.governance.so']].map(([label, href]) => (
-          <Button key={href} component="a" href={href} target="_blank" rel="noopener noreferrer" size="small" color="inherit">{label}</Button>
-        ))}
-      </Stack>
       {hasMoreGovernances && (
         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
           <Button
