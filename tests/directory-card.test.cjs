@@ -28,3 +28,10 @@ test('other card consumers retain their existing statistics',()=>{
  assert.ok(html.includes('123 members'));
  assert.ok(html.includes('456 proposals'));
 });
+
+test('homepage activity card shows the latest proposal title and recent count without a date',()=>{
+ const html=renderToStaticMarkup(React.createElement(Card,{item:{...item,recentActivity:{count:2,latestName:'Fund the ecosystem',latestAt:1700000000}},directoryOnly:true}));
+ assert.ok(html.includes('2 recent proposals'));
+ assert.ok(html.includes('Fund the ecosystem'));
+ assert.ok(!html.includes('No description provided'));
+});
