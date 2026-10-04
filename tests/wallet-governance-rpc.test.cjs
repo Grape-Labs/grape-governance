@@ -52,3 +52,15 @@ test('RPC failure is not returned as an empty membership list',async()=>{
  const api=load({getProgramAccounts:async()=>{throw Error('RPC unavailable');}});
  await assert.rejects(api.getTokenOwnerRecordsByOwnerAcrossProgramsIndexed(wallet.toBase58()),/RPC unavailable/);
 });
+
+test('homepage discovery preserves successful memberships when another program fails',async()=>{
+ const row={pubkey:wallet,account:{owner:program,data:rawRecord(sdk.GovernanceAccountType.TokenOwnerRecordV2,wallet,undefined)}};
+ const api=load({getProgramAccounts:async(owner,{filters})=>{
+  if(!owner.equals(program))throw Error('Unavailable program');
+  return filters.every(({memcmp:{offset,bytes}})=>row.account.data.subarray(offset,offset+bs58.decode(bytes).length).equals(Buffer.from(bs58.decode(bytes))))?[row]:[];
+ }});
+ const result=await api.getWalletGovernanceMemberships(wallet.toBase58());
+ assert.equal(result.records.length,1);
+ assert.ok(result.failedPrograms.length>0);
+ assert.ok(!result.failedPrograms.includes(program.toBase58()));
+});

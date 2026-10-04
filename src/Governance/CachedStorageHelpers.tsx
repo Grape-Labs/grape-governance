@@ -223,21 +223,19 @@ function withCacheBust(u: string, v = Date.now().toString()): string {
 }
 
 export const fetchGovernanceLookupFile = async (pool: string): Promise<any | null> => {
-  // Try legacy first (since you’re testing it)
-  const legacy = await loadLegacyFromSrc();
-  if (legacy) return legacy;
 
   if (pool && GGAPI_STORAGE_URI) {
     const netUrlBase = `${GGAPI_STORAGE_URI}/${pool}/governance_lookup.json`;
     const netUrl = withCacheBust(netUrlBase);
     try {
       const net = await withTimeout(fetchAndDecompressFileSafe(netUrl), 5000);
-      if (net) return net;
+      if (Array.isArray(net) && net.length > 0) return net;
     } catch (e) {
       console.warn('network path failed/timeout', e);
     }
   }
-  return null; // or {}
+  // The bundled directory is an offline fallback, never the preferred source.
+  return loadLegacyFromSrc();
 };
 
 /*

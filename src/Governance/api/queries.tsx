@@ -1333,28 +1333,37 @@ export const getTokenOwnerRecordsByOwnerIndexed = async (filterRealm?:string, re
 }
 
 // Wallet discovery only uses filtered RPC reads, including delegate-only memberships.
-export const getTokenOwnerRecordsByOwnerAcrossProgramsIndexed = async (tokenOwner?: string) => {
-    if (!tokenOwner) return [];
+export const getWalletGovernanceMemberships = async (tokenOwner?: string) => {
+    if (!tokenOwner) return { records: [], failedPrograms: [] };
     const wallet = new PublicKey(tokenOwner);
     const programs = Array.from(new Set([DEFAULT_GOVERNANCE_PROGRAM_ID, ...govOwners.map((program) => program.owner)]));
     const records = new Map<string, any>();
+    const failedPrograms: string[] = [];
     for (let index = 0; index < programs.length; index += 3) {
-        const batches = await Promise.all(programs.slice(index, index + 3).map(async (program) => {
+        await Promise.all(programs.slice(index, index + 3).map(async (program) => {
             const programId = new PublicKey(program);
-            const [owned, delegated] = await Promise.all([
+            const results = await Promise.allSettled([
                 getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, wallet),
-                getGovernanceAccounts(RPC_CONNECTION, programId, TokenOwnerRecord, [
-                    // The optional delegate pubkey follows the 121-byte fixed prefix
-                    // and its one-byte Some discriminator in both V1 and V2 records.
-                    pubkeyFilter(122, wallet)!,
-                ]),
+                getGovernanceAccounts(RPC_CONNECTION, programId, TokenOwnerRecord, [pubkeyFilter(122, wallet)!]),
             ]);
-            return [...owned, ...delegated.filter((record) => record.account.governanceDelegate?.equals(wallet))];
+            if (results.some(result => result.status === 'rejected')) failedPrograms.push(program);
+            results.forEach((result, queryIndex) => {
+                if (result.status !== 'fulfilled') return;
+                for (const record of result.value) {
+                    if (queryIndex === 1 && !record.account.governanceDelegate?.equals(wallet)) continue;
+                    records.set(record.pubkey.toBase58(), record);
+                }
+            });
         }));
-        for (const record of batches.flat()) records.set(record.pubkey.toBase58(), record);
     }
-    return Array.from(records.values());
-}
+    return { records: Array.from(records.values()), failedPrograms };
+};
+
+export const getTokenOwnerRecordsByOwnerAcrossProgramsIndexed = async (tokenOwner?: string) => {
+    const result = await getWalletGovernanceMemberships(tokenOwner);
+    if (result.failedPrograms.length) throw new Error('RPC unavailable for one or more governance programs');
+    return result.records;
+};
 
 export const getTokenOwnerRecordsByRealmIndexed = async (filterRealm?:string, realmOwner?:string, tokenOwner?:string) => {
 

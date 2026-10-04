@@ -46,7 +46,7 @@ function getBannerSrc(metadata: any) {
 }
 
 const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardView(props: any) {
-  const { item, metadata } = props;
+  const { item, metadata, directoryOnly = false } = props;
   const navigate = useNavigate();
 
   const name = metadata?.displayName || item?.governanceName || "Governance";
@@ -194,7 +194,7 @@ const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardV
                 </Tooltip>
               )}
 
-              {votingCount > 0 && (
+              {!directoryOnly && votingCount > 0 && (
                 <Chip
                   size="small"
                   icon={<HowToVoteIcon />}
@@ -237,7 +237,7 @@ const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardV
         <Divider sx={{ my: 1.5, opacity: 0.12 }} />
 
         {/* Stats row (cleaner than a table) */}
-        <Grid container spacing={1}>
+        {!directoryOnly && <Grid container spacing={1}>
           {Number(item?.totalMembers || 0) > 0 && (
             <Grid item>
               <Chip size="small" label={`${Number(item.totalMembers).toLocaleString()} members`} />
@@ -259,15 +259,15 @@ const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardV
               />
             </Grid>
           )}
-        </Grid>
+        </Grid>}
 
-        <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 1.2, opacity: 0.75 }}>
+        {!directoryOnly && <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 1.2, opacity: 0.75 }}>
           <AccessTimeIcon sx={{ fontSize: 14 }} />
           <Typography variant="caption">{lastProposalLabel}</Typography>
-        </Stack>
+        </Stack>}
 
         {/* Voting proposals preview */}
-        {votingList.length > 0 && (
+        {!directoryOnly && votingList.length > 0 && (
           <Box sx={{ mt: 1.25 }}>
             <Tooltip
               placement="top"
@@ -321,7 +321,9 @@ const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardV
           Open
         </Button>
 
-        {votingCount > 0 ? (
+        {directoryOnly ? (
+          <Typography variant="caption" sx={{ opacity: 0.65 }}>View proposals & membership</Typography>
+        ) : votingCount > 0 ? (
           <Badge color="error" badgeContent={votingCount} sx={{ "& .MuiBadge-badge": { right: 6 } }}>
             <HowToVoteIcon fontSize="small" />
           </Badge>
@@ -333,6 +335,6 @@ const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardV
       </CardActions>
     </Card>
   );
-}, (prevProps, nextProps) => prevProps.item === nextProps.item && prevProps.metadata === nextProps.metadata);
+}, (prevProps, nextProps) => prevProps.item === nextProps.item && prevProps.metadata === nextProps.metadata && prevProps.directoryOnly === nextProps.directoryOnly);
 
 export default GovernanceDirectoryCardView;
