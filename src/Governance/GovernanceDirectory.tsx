@@ -23,7 +23,6 @@ import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import SearchIcon from '@mui/icons-material/Search';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import ViewListIcon from '@mui/icons-material/ViewList';
-import WhatshotIcon from '@mui/icons-material/Whatshot';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
@@ -34,7 +33,6 @@ import GRAPE_LOGO_SQUARE from '../public/grape_logo_square.png';
 import OG_LOGO_SQUARE from '../public/og_logo_square.png';
 import GRAPE_DAO_LOGO from '../public/grape-dao-512.png';
 
-import GovernanceRealtimeInfo from './GovernanceRealtimeInfo';
 import GovernanceDirectoryCardView from './GovernanceDirectoryCardView';
 import CreateSplGovernanceDaoButton from './CreateNewDAO/CreateSplGovernanceDaoButton';
 
@@ -45,15 +43,14 @@ import {
   getRealmIndexed,
   getRealmsIndexed,
   govOwners,
-  getTokenOwnerRecordsByOwnerAcrossProgramsIndexed,
+  getWalletGovernanceMemberships,
 } from './api/queries';
 import {
   fetchGovernanceLookupFile,
-  fetchGovernanceMasterMembersFile,
 } from './CachedStorageHelpers';
 
 import { GGAPI_STORAGE_POOL } from '../utils/grapeTools/constants';
-import { getFormattedNumberToLocale } from '../utils/grapeTools/helpers';
+import { buildParticipatingDirectory, directorySummary } from './directorySummary';
 
 interface Props {
   window?: () => Window;
@@ -185,18 +182,14 @@ export function GovernanceDirectoryView(props: Props) {
   const [searchFilter, setSearchFilter] = React.useState('');
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
   const [filterVerified, setFilterVerified] = React.useState(false);
-  const [filterActiveVoting, setFilterActiveVoting] = React.useState(false);
-  const [filterOver100Proposals, setFilterOver100Proposals] = React.useState(false);
 
   const [visibleCount, setVisibleCount] = React.useState(48);
 
-  const [gspl, setGSPL] = React.useState<any[]>([]);
-  const [governanceTotalMembers, setGovernanceTotalMembers] = React.useState(0);
-  const [governanceTotalProposals, setGovernanceTotalProposals] = React.useState(0);
-  const [lastSyncedAt, setLastSyncedAt] = React.useState<number | null>(null);
-  const [syncSource, setSyncSource] = React.useState<'graphql' | 'cache' | 'mixed'>('graphql');
-  const [favoriteRealmVoteTotals, setFavoriteRealmVoteTotals] = React.useState<Record<string, number>>({});
+  const [walletMemberships, setWalletMemberships] = React.useState<any[]>([]);
+  const [membershipWallet, setMembershipWallet] = React.useState('');
   const [walletFavoritesLoading, setWalletFavoritesLoading] = React.useState(false);
+  const [walletError, setWalletError] = React.useState<string | null>(null);
+  const [walletRefresh, setWalletRefresh] = React.useState(0);
   const metadataInFlight = React.useRef<Set<string>>(new Set());
   const mythicMetadataInFlight = React.useRef<Set<string>>(new Set());
   const walletAddress = publicKey?.toBase58?.() || '';
@@ -595,17 +588,15 @@ export function GovernanceDirectoryView(props: Props) {
           return flattened;
         };
 
-        const [gsplEntriesRaw, cachedLookupRaw, masterMembersRaw] = await Promise.all([
+        const [gsplEntriesRaw, cachedLookupRaw] = await Promise.all([
           initGrapeGovernanceDirectory().catch(() => []),
           fetchGovernanceLookupFile(GGAPI_STORAGE_POOL).catch(() => null),
-          fetchGovernanceMasterMembersFile(GGAPI_STORAGE_POOL).catch(() => null),
         ]);
 
         const gsplEntries = Array.isArray(gsplEntriesRaw) ? gsplEntriesRaw : [];
         const gqlDirectory: any[] = [];
         const votingProposalsByGovernance = {};
         const cachedLookup = Array.isArray(cachedLookupRaw) ? cachedLookupRaw : [];
-        const masterMembers = Array.isArray(masterMembersRaw) ? masterMembersRaw : [];
         const shouldLoadIndexedFallback = gqlDirectory.length === 0 && cachedLookup.length === 0;
         let indexedRealms: any[] = [];
         let indexedGovernances: any[] = [];
@@ -629,28 +620,6 @@ export function GovernanceDirectoryView(props: Props) {
         );
 
         setGovernanceLookup(mergedDirectory);
-        setGSPL(gsplEntries);
-        setLastSyncedAt(Date.now());
-
-        if (gqlDirectory.length > 0 && cachedLookup.length > 0) {
-          setSyncSource('mixed');
-        } else if (gqlDirectory.length > 0) {
-          setSyncSource('graphql');
-        } else {
-          setSyncSource('cache');
-        }
-
-        const totalMembersFromDirectory = mergedDirectory.reduce(
-          (sum, item) => sum + toNumeric(item?.totalMembers, 0),
-          0
-        );
-        const totalProposalsFromDirectory = mergedDirectory.reduce(
-          (sum, item) => sum + toNumeric(item?.totalProposals, 0),
-          0
-        );
-
-        setGovernanceTotalMembers(masterMembers.length > 0 ? masterMembers.length : totalMembersFromDirectory);
-        setGovernanceTotalProposals(totalProposalsFromDirectory);
 
         if (!mergedDirectory.length) {
           setError('No directory data available from RPC or cache.');
@@ -672,70 +641,34 @@ export function GovernanceDirectoryView(props: Props) {
 
   React.useEffect(() => {
     let cancelled = false;
+    setWalletMemberships([]);
+    setMembershipWallet(walletAddress);
+    setWalletError(null);
+    setWalletFavoritesLoading(!!walletAddress);
+    if (!walletAddress) return;
 
-    const loadWalletFavorites = async () => {
-      if (!walletAddress) {
-        setFavoriteRealmVoteTotals({});
-        setWalletFavoritesLoading(false);
-        return;
-      }
-
-      setWalletFavoritesLoading(true);
+    const load = async () => {
       try {
-        const ownerRecords = await getTokenOwnerRecordsByOwnerAcrossProgramsIndexed(walletAddress);
+        const { records, failedPrograms } = await getWalletGovernanceMemberships(walletAddress);
         if (cancelled) return;
-
-        const nextFavoriteRealmVoteTotals: Record<string, number> = {};
-        for (const ownerRecord of ownerRecords || []) {
-          const realmKey = governanceKey(ownerRecord?.account?.realm);
-          const depositAmount = toNumeric(
-            ownerRecord?.account?.governingTokenDepositAmount?.toString?.() ??
-              ownerRecord?.account?.governingTokenDepositAmount,
-            0
-          );
-
-          if (!realmKey || !(depositAmount > 0)) continue;
-          nextFavoriteRealmVoteTotals[realmKey] =
-            (nextFavoriteRealmVoteTotals[realmKey] || 0) + depositAmount;
+        // Keep membership records even when voting power is held by a plugin.
+        setWalletMemberships(records);
+        if (failedPrograms.length) {
+          setWalletError('Some DAOs could not be checked. Retry to complete your memberships.');
         }
-
-        setFavoriteRealmVoteTotals(nextFavoriteRealmVoteTotals);
-      } catch (favoriteError) {
-        console.error('Failed to load wallet favorites', favoriteError);
-        if (!cancelled) {
-          setFavoriteRealmVoteTotals({});
-        }
+      } catch (error) {
+        if (!cancelled) setWalletError('Unable to check your DAOs. Please retry.');
       } finally {
-        if (!cancelled) {
-          setWalletFavoritesLoading(false);
-        }
+        if (!cancelled) setWalletFavoritesLoading(false);
       }
     };
-
-    loadWalletFavorites();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [walletAddress]);
+    void load();
+    return () => { cancelled = true; };
+  }, [walletAddress, walletRefresh]);
 
   const sortedGovernances = React.useMemo(() => {
     const items = [...governanceLookup];
     items.sort((a, b) => {
-      const liveVotesDiff =
-        toNumeric(b?.totalProposalsVoting, 0) - toNumeric(a?.totalProposalsVoting, 0);
-      if (liveVotesDiff !== 0) return liveVotesDiff;
-
-      const latestProposalDiff =
-        Number(`0x${b?.lastProposalDate || '0'}`) - Number(`0x${a?.lastProposalDate || '0'}`);
-      if (latestProposalDiff !== 0) return latestProposalDiff;
-
-      const totalProposalDiff = toNumeric(b?.totalProposals, 0) - toNumeric(a?.totalProposals, 0);
-      if (totalProposalDiff !== 0) return totalProposalDiff;
-
-      const membersDiff = toNumeric(b?.totalMembers, 0) - toNumeric(a?.totalMembers, 0);
-      if (membersDiff !== 0) return membersDiff;
-
       const aName = normalizeName(a?.governanceName || a?.governanceAddress).toLowerCase();
       const bName = normalizeName(b?.governanceName || b?.governanceAddress).toLowerCase();
       return aName.localeCompare(bName);
@@ -754,8 +687,6 @@ export function GovernanceDirectoryView(props: Props) {
 
     return sortedGovernances.filter((item: GovernanceLookupItem) => {
       if (filterVerified && !item?.gspl) return false;
-      if (filterActiveVoting && !(toNumeric(item?.totalProposalsVoting, 0) > 0)) return false;
-      if (filterOver100Proposals && !(toNumeric(item?.totalProposals, 0) > 100)) return false;
 
       if (!query) return true;
 
@@ -799,41 +730,14 @@ export function GovernanceDirectoryView(props: Props) {
     sortedGovernances,
     searchFilter,
     filterVerified,
-    filterActiveVoting,
-    filterOver100Proposals,
     metadataMap,
     mythicMetadataMap,
   ]);
 
-  const favoriteGovernances = React.useMemo(() => {
-    const favoriteRealmKeys = new Set(Object.keys(favoriteRealmVoteTotals));
-    if (!favoriteRealmKeys.size) return [];
-
-    return filteredGovernances
-      .filter((item) => favoriteRealmKeys.has(governanceRealmKey(item)))
-      .sort((a, b) => {
-        const liveVotesDiff =
-          toNumeric(b?.totalProposalsVoting, 0) - toNumeric(a?.totalProposalsVoting, 0);
-        if (liveVotesDiff !== 0) return liveVotesDiff;
-
-        const totalProposalDiff = toNumeric(b?.totalProposals, 0) - toNumeric(a?.totalProposals, 0);
-        if (totalProposalDiff !== 0) return totalProposalDiff;
-
-        const membersDiff = toNumeric(b?.totalMembers, 0) - toNumeric(a?.totalMembers, 0);
-        if (membersDiff !== 0) return membersDiff;
-
-        const favoriteVoteDiff =
-          toNumeric(
-            favoriteRealmVoteTotals[governanceRealmKey(b)],
-            0
-          ) - toNumeric(favoriteRealmVoteTotals[governanceRealmKey(a)], 0);
-        if (favoriteVoteDiff !== 0) return favoriteVoteDiff;
-
-        return normalizeName(a?.governanceName || a?.governanceAddress).localeCompare(
-          normalizeName(b?.governanceName || b?.governanceAddress)
-        );
-      });
-  }, [favoriteRealmVoteTotals, filteredGovernances]);
+  const favoriteGovernances = React.useMemo(() =>
+    buildParticipatingDirectory(
+      membershipWallet === walletAddress ? walletMemberships : [], governanceLookup
+    ), [walletMemberships, governanceLookup, membershipWallet, walletAddress]);
 
   const favoriteGovernanceAddressSet = React.useMemo(
     () => new Set(favoriteGovernances.map((item) => governanceKey(item?.governanceAddress)).filter(Boolean)),
@@ -850,20 +754,20 @@ export function GovernanceDirectoryView(props: Props) {
 
   React.useEffect(() => {
     setVisibleCount(viewMode === 'grid' ? 48 : 80);
-  }, [viewMode, searchFilter, filterVerified, filterActiveVoting, filterOver100Proposals]);
+  }, [viewMode, searchFilter, filterVerified]);
 
   React.useEffect(() => {
     let cancelled = false;
 
     const fetchMetadata = async () => {
-      const lookahead = Math.max(visibleCount + 24, 84);
+      const lookahead = visibleCount;
       const metadataUris = Array.from(
         new Set(
           [...favoriteGovernances, ...nonFavoriteGovernances.slice(0, lookahead)]
             .map((item) => item?.gspl?.metadataUri)
             .filter((uri) => typeof uri === 'string' && uri.length > 0)
         )
-      ).filter((uri) => !metadataMap[uri] && !metadataInFlight.current.has(uri));
+      ).filter((uri) => !Object.prototype.hasOwnProperty.call(metadataMap, uri) && !metadataInFlight.current.has(uri));
 
       if (!metadataUris.length) return;
 
@@ -874,11 +778,11 @@ export function GovernanceDirectoryView(props: Props) {
         batch.map(async (uri) => {
           try {
             const response = await fetch(uri);
-            if (!response.ok) return null;
+            if (!response.ok) return [uri, null] as const;
             const metadata = await response.json();
             return [uri, metadata] as const;
           } catch (_e) {
-            return null;
+            return [uri, null] as const;
           } finally {
             metadataInFlight.current.delete(uri);
           }
@@ -907,7 +811,7 @@ export function GovernanceDirectoryView(props: Props) {
     let cancelled = false;
 
     const fetchMythicMetadata = async () => {
-      const lookahead = Math.max(visibleCount + 24, 84);
+      const lookahead = visibleCount;
       const realmAddresses = Array.from(
         new Set(
           [...favoriteGovernances, ...nonFavoriteGovernances.slice(0, lookahead)]
@@ -929,8 +833,8 @@ export function GovernanceDirectoryView(props: Props) {
         batch.map(async (realmAddress) => {
           try {
             const realm = await getRealmIndexed(realmAddress);
-            if (!realm) return null;
-            const metadata = await fetchMythicRealmMetadata(realm);
+            if (!realm) return [realmAddress, null] as const;
+            const metadata = { displayName: realm.account?.name, ...await fetchMythicRealmMetadata(realm) };
             return [realmAddress, metadata] as const;
           } catch (_e) {
             return [realmAddress, null] as const;
@@ -963,44 +867,12 @@ export function GovernanceDirectoryView(props: Props) {
     [nonFavoriteGovernances, visibleCount]
   );
 
-  const latestActivityAddress = React.useMemo(() => {
-    const validItems = sortedGovernances.filter((item) =>
-      isValidSolanaPublicKey(governanceKey(item?.governanceAddress))
-    );
-    if (!validItems.length) return DEFAULT_GOVERNANCE_PROGRAM_NAME;
-
-    const activeVoting = validItems.find((item) => toNumeric(item?.totalProposalsVoting, 0) > 0);
-    if (activeVoting) return governanceKey(activeVoting?.governanceAddress);
-
-    const withRecentProposal = validItems.find(
-      (item) => Number(`0x${item?.lastProposalDate || '0'}`) > 0
-    );
-    if (withRecentProposal) return governanceKey(withRecentProposal?.governanceAddress);
-
-    return governanceKey(validItems[0]?.governanceAddress) || DEFAULT_GOVERNANCE_PROGRAM_NAME;
-  }, [sortedGovernances]);
-
   const hasMoreGovernances = displayedGovernances.length < nonFavoriteGovernances.length;
-
-  const totalLiveProposals = React.useMemo(
-    () =>
-      governanceLookup.reduce(
-        (sum, item) => sum + toNumeric(item?.totalProposalsVoting, 0),
-        0
-      ),
-    [governanceLookup]
-  );
-
-  const syncSourceLabel =
-    syncSource === 'graphql' ? 'GraphQL' : syncSource === 'mixed' ? 'GraphQL + cache' : 'Cache fallback';
-
-  const syncTimeLabel = lastSyncedAt ? new Date(lastSyncedAt).toLocaleTimeString() : 'Not synced yet';
+  const summary = React.useMemo(() => directorySummary(governanceLookup), [governanceLookup]);
 
   const clearFilters = () => {
     setSearchFilter('');
     setFilterVerified(false);
-    setFilterActiveVoting(false);
-    setFilterOver100Proposals(false);
   };
 
   if (loading) {
@@ -1207,43 +1079,16 @@ export function GovernanceDirectoryView(props: Props) {
             <Typography variant="h4" sx={{ fontWeight: 700, letterSpacing: -0.5 }}>
               DAO Directory
             </Typography>
-            <Chip
-              size="small"
-              icon={<VerifiedIcon />}
-              label={`${gspl?.length || 0} verified`}
-              variant="outlined"
-              sx={{ borderRadius: '999px' }}
-            />
-            <Chip
-              size="small"
-              icon={<WhatshotIcon />}
-              label={`${totalLiveProposals.toLocaleString()} live votes`}
-              variant="outlined"
-              sx={{ borderRadius: '999px' }}
-            />
-            <Chip
-              size="small"
-              label={syncSourceLabel}
-              variant="outlined"
-              color={syncSource === 'cache' ? 'warning' : 'success'}
-              sx={{ borderRadius: '999px' }}
-            />
           </Stack>
 
           <Typography variant="body2" sx={{ opacity: 0.85 }}>
-            Proposal freshness and active voting are synced from GraphQL. Cache data is only used to enrich fields not available from GraphQL.
+            Explore Solana DAOs and return to your communities. Open a DAO for current proposals and voting power.
           </Typography>
 
           <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} useFlexGap flexWrap="wrap">
-            <Chip size="small" label={`${governanceLookup.length || 0} active DAOs`} />
-            <Chip
-              size="small"
-              label={`${governanceTotalMembers ? getFormattedNumberToLocale(governanceTotalMembers) : 0} unique voters`}
-            />
-            <Chip
-              size="small"
-              label={`${governanceTotalProposals ? getFormattedNumberToLocale(governanceTotalProposals) : 0} proposals`}
-            />
+            <Chip size="small" label={`${summary.daos.toLocaleString()} listed DAOs`} />
+            <Chip size="small" label={`${summary.verified.toLocaleString()} verified DAOs`} />
+            <Chip size="small" label={`${summary.councils.toLocaleString()} with councils`} />
           </Stack>
         </Grid>
 
@@ -1290,22 +1135,6 @@ export function GovernanceDirectoryView(props: Props) {
                     size="small"
                     onClick={() => setFilterVerified((value) => !value)}
                   />
-                  <Chip
-                    icon={<HowToVoteIcon />}
-                    label="Voting now"
-                    color={filterActiveVoting ? 'primary' : 'default'}
-                    variant={filterActiveVoting ? 'filled' : 'outlined'}
-                    size="small"
-                    onClick={() => setFilterActiveVoting((value) => !value)}
-                  />
-                  <Chip
-                    icon={<WhatshotIcon />}
-                    label=">100 proposals"
-                    color={filterOver100Proposals ? 'primary' : 'default'}
-                    variant={filterOver100Proposals ? 'filled' : 'outlined'}
-                    size="small"
-                    onClick={() => setFilterOver100Proposals((value) => !value)}
-                  />
                 </Stack>
 
                 <ToggleButtonGroup
@@ -1329,16 +1158,13 @@ export function GovernanceDirectoryView(props: Props) {
                 alignItems={{ xs: 'flex-start', sm: 'center' }}
                 justifyContent="space-between"
               >
-                <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                  Last synced: {syncTimeLabel}
-                </Typography>
 
                 <Button
                   color="inherit"
                   size="small"
                   variant="outlined"
                   startIcon={<RefreshIcon fontSize="small" />}
-                  onClick={() => loadGovernanceDirectory(true)}
+                  onClick={() => { void loadGovernanceDirectory(true); setWalletRefresh(value => value + 1); }}
                   disabled={refreshing}
                 >
                   {refreshing ? 'Refreshing...' : 'Refresh'}
@@ -1382,8 +1208,8 @@ export function GovernanceDirectoryView(props: Props) {
               size="small"
               icon={<HowToVoteIcon />}
               label={
-                walletFavoritesLoading
-                  ? 'Checking wallet votes...'
+                walletFavoritesLoading || membershipWallet !== walletAddress
+                  ? 'Checking your DAOs...'
                   : `${favoriteGovernances.length} DAO${favoriteGovernances.length === 1 ? '' : 's'}`
               }
               variant="outlined"
@@ -1392,10 +1218,16 @@ export function GovernanceDirectoryView(props: Props) {
           </Stack>
 
           <Typography variant="body2" sx={{ opacity: 0.78, mb: walletFavoritesLoading ? 1 : 1.25 }}>
-            DAOs where you currently have deposited voting power.
+            DAOs with membership records owned by or delegated to your wallet, including staking and reputation memberships. Membership does not always mean active voting power.
           </Typography>
 
-          {walletFavoritesLoading ? (
+          {walletError && (
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+              <Typography role="status" variant="body2" color="warning.main">{walletError}</Typography>
+              <Button size="small" onClick={() => setWalletRefresh(value => value + 1)}>Retry</Button>
+            </Stack>
+          )}
+          {walletFavoritesLoading || membershipWallet !== walletAddress ? (
             <LinearProgress color="inherit" />
           ) : favoriteGovernances.length > 0 ? (
             <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
@@ -1413,7 +1245,7 @@ export function GovernanceDirectoryView(props: Props) {
                     sm={viewMode === 'grid' ? 6 : 12}
                     md={viewMode === 'grid' ? 4 : 12}
                   >
-                    <GovernanceDirectoryCardView item={item} metadata={metadata} />
+                    <GovernanceDirectoryCardView item={item} metadata={metadata} directoryOnly />
                   </Grid>
                 );
               })}
@@ -1428,25 +1260,13 @@ export function GovernanceDirectoryView(props: Props) {
               }}
             >
               <Typography variant="body2" sx={{ opacity: 0.75 }}>
-                No participating DAOs found for the connected wallet under the current filters.
+                {walletError ? 'Membership results are incomplete.' : 'No DAO membership records found for this wallet.'}
               </Typography>
             </Box>
           )}
         </Box>
       )}
 
-      {!searchFilter && filteredGovernances.length > 0 && (
-        <Box sx={{ mb: 1.5 }}>
-          <GovernanceRealtimeInfo
-            key={latestActivityAddress}
-            governanceLookup={governanceLookup}
-            governanceAddress={latestActivityAddress}
-            title={'Latest Activity'}
-            expanded={false}
-            compact={true}
-          />
-        </Box>
-      )}
 
       {nonFavoriteGovernances.length > 0 && (
         <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: -0.25, mt: 3, mb: 1.5 }}>
@@ -1470,7 +1290,7 @@ export function GovernanceDirectoryView(props: Props) {
                 sm={viewMode === 'grid' ? 6 : 12}
                 md={viewMode === 'grid' ? 4 : 12}
               >
-                <GovernanceDirectoryCardView item={item} metadata={metadata} />
+                <GovernanceDirectoryCardView item={item} metadata={metadata} directoryOnly />
               </Grid>
             );
           })}
