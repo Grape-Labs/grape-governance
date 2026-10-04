@@ -76,34 +76,49 @@ const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardV
   if (directoryOnly) {
     const activity = item?.recentActivity;
     return (
-      <Card component={Link} to={"/dao/" + item.governanceAddress} sx={{
-        display: 'flex', flexDirection: 'column', height: '100%', minHeight: 154,
-        textDecoration: 'none', color: 'inherit', borderRadius: '14px', p: 2,
-        background: '#131c27', boxShadow: 'none',
-        border: activity?.count ? '1px solid rgba(93, 211, 176, 0.35)' : '1px solid rgba(255,255,255,0.08)',
-        transition: 'border-color 150ms, background 150ms',
-        '&:hover': { background: '#192534', borderColor: 'rgba(132,190,255,0.5)' },
-        '&:focus-visible': { outline: '2px solid #84beff', outlineOffset: 3 },
+      <Card sx={{
+        display: 'flex', flexDirection: 'column', height: '100%', minHeight: activity?.count ? 238 : 190,
+        color: 'inherit', borderRadius: '18px', p: 2.25, position: 'relative', overflow: 'hidden',
+        background: `radial-gradient(ellipse at top right, ${tint}, transparent 75%), #131c27`, boxShadow: 'none',
+        border: activity?.count ? '1px solid rgba(93, 211, 176, 0.4)' : '1px solid rgba(255,255,255,0.09)',
+        transition: 'border-color 150ms, transform 150ms',
+        '&:hover': { transform: 'translateY(-2px)', borderColor: 'rgba(132,190,255,0.5)' },
+        '& a:focus-visible': { outline: '2px solid #84beff', outlineOffset: 3 },
       }}>
-        <Stack direction="row" spacing={1.25} alignItems="center">
-          <Avatar src={ogSrc || undefined} sx={{ width: 36, height: 36, bgcolor: tint, fontSize: 16 }}>{name[0]}</Avatar>
+        <Stack component={Link} to={"/dao/" + item.governanceAddress} direction="row" spacing={1.25} alignItems="center" sx={{ color: 'inherit', textDecoration: 'none' }}>
+          <Avatar src={ogSrc || undefined} sx={{ width: 44, height: 44, bgcolor: tint, color: '#fff', fontSize: 20, border: '1px solid rgba(255,255,255,0.12)' }}>{name[0]}</Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography noWrap sx={{ fontWeight: 650, fontSize: 16 }}>{name}</Typography>
+            <Typography noWrap sx={{ fontWeight: 700, fontSize: 17 }}>{name}</Typography>
             <Typography variant="caption" sx={{ color: '#8fa4b8' }}>{String(item.governanceAddress).slice(0, 4)}…{String(item.governanceAddress).slice(-4)}</Typography>
           </Box>
-          {item?.gspl && <VerifiedIcon sx={{ fontSize: 17, color: '#8eafcb' }} />}
-          <OpenInNewIcon sx={{ fontSize: 16, opacity: 0.4 }} />
+          {item?.gspl && <Tooltip title="Verified DAO"><VerifiedIcon sx={{ fontSize: 17, color: '#8eafcb' }} /></Tooltip>}
         </Stack>
         {activity?.count ? (
-          <Box sx={{ mt: 1.75 }}>
-            <Typography variant="caption" sx={{ color: '#7bdcbb', fontWeight: 600 }}>{activity.count} recent proposal{activity.count === 1 ? '' : 's'}</Typography>
-            <Typography variant="body2" noWrap sx={{ mt: 0.5 }}>{activity.latestName || 'View latest proposal'}</Typography>
+          <Box sx={{ mt: 2, flex: 1 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+              <Typography variant="caption" sx={{ color: '#7bdcbb', fontWeight: 700 }}>{activity.count} recent proposal{activity.count === 1 ? '' : 's'}</Typography>
+              {activity.latestAt > 0 && <Typography variant="caption" sx={{ color: '#9cabbc' }}>{new Date(activity.latestAt * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</Typography>}
+            </Stack>
+            {(activity.proposals || []).map((proposal: any) => {
+              const address = proposal.pubkey?.toBase58?.() || String(proposal.pubkey);
+              return <Box key={address} component={Link} to={`/proposal/${item.governanceAddress}/${address}`} sx={{
+                display: 'flex', alignItems: 'center', gap: 1, p: 1.25, mb: 0.75, borderRadius: '10px',
+                background: 'rgba(0,0,0,0.22)', textDecoration: 'none', color: '#eef4fa',
+                '&:hover': { background: 'rgba(123,220,187,0.12)' },
+              }}>
+                <HowToVoteIcon sx={{ fontSize: 16, color: '#7bdcbb', flexShrink: 0 }} />
+                <Typography variant="body2" sx={{ flex: 1, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{proposal.account?.name || proposal.name || 'View proposal'}</Typography>
+                <span aria-hidden="true">↗</span>
+              </Box>;
+            })}
+            {!activity.proposals?.length && <Typography variant="body2">{activity.latestName || 'View latest proposal'}</Typography>}
           </Box>
-        ) : desc ? (
-          <Typography variant="body2" sx={{ mt: 1.75, color: '#9cabbc', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{desc}</Typography>
         ) : (
-          <Typography variant="body2" sx={{ mt: 1.75, color: '#8fa4b8' }}>Explore proposals <span aria-hidden="true">↗</span></Typography>
+          <Typography variant="body2" sx={{ mt: 2, flex: 1, color: '#9cabbc', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{desc || 'Discover this community and take part in its next decision.'}</Typography>
         )}
+        <Box component={Link} to={"/dao/" + item.governanceAddress} sx={{ mt: 2, pt: 1.25, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', justifyContent: 'space-between', textDecoration: 'none', color: '#a9c4db', fontSize: 12, '&:hover': { color: '#fff' } }}>
+          <span>Explore DAO</span><span aria-hidden="true">→</span>
+        </Box>
       </Card>
     );
   }

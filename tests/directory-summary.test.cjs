@@ -39,3 +39,14 @@ test('recent proposal window ranks DAOs by newest proposal, deduplicates and sto
  assert.equal(ranked[0].recentActivity.latestName,'Proposal 100');
  assert.equal(ranked[1].recentActivity,undefined);
 });
+
+test('realtime account proposals rank participating and other DAOs and retain two newest previews',()=>{
+ const {rankDirectoryByProposals}=loaded.exports;
+ const directory=[{governanceAddress:'a',governanceName:'Alpha'}, {governanceAddress:'b',governanceName:'Beta'}];
+ const proposals=[1,3,2].map(i=>({pubkey:pk(`p${i}`),realm:'b',account:{draftAt:{toString:()=>String(i)},name:`Decision ${i}`}}));
+ const ranked=rankDirectoryByProposals(directory,proposals);
+ assert.equal(ranked[0].governanceAddress,'b');
+ assert.deepEqual(ranked[0].recentActivity.proposals.map(p=>p.account.name),['Decision 3','Decision 2']);
+ const memberships=buildParticipatingDirectory([{account:{realm:'a'}},{account:{realm:'b'}}],directory);
+ assert.equal(rankDirectoryByProposals(memberships,proposals)[0].governanceAddress,'b');
+});

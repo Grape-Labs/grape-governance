@@ -48,13 +48,13 @@ export function rankDirectoryByProposals(directory: any[], proposals: any[], lim
       if (address) governanceRealms.set(address, realm);
     }
   }
-  const activity = new Map<string, { count: number; latestAt: number; latestName: string }>();
+  const activity = new Map<string, { count: number; latestAt: number; latestName: string; proposals: any[] }>();
   for (const proposal of recent) {
     const realm = key(proposal.realm) || governanceRealms.get(key(proposal.account?.governance || proposal.governance));
     if (!realm) continue;
     const current = activity.get(realm);
-    if (current) current.count += 1;
-    else activity.set(realm, { count: 1, latestAt: timestamp(proposal), latestName: proposal.account?.name || proposal.name || '' });
+    if (current) { current.count += 1; if (current.proposals.length < 2) current.proposals.push(proposal); }
+    else activity.set(realm, { count: 1, latestAt: timestamp(proposal), latestName: proposal.account?.name || proposal.name || '', proposals: [proposal] });
   }
   return directory.map(item => ({ ...item, recentActivity: activity.get(directoryRealmKey(item)) })).sort((a, b) =>
     (b.recentActivity?.latestAt || 0) - (a.recentActivity?.latestAt || 0) ||
