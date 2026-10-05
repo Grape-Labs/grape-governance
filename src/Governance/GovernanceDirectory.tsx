@@ -921,30 +921,28 @@ export function GovernanceDirectoryView(props: Props) {
         backdropFilter: 'blur(10px)',
       }}
     >
-      <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', pb: 1, mb: 3 }}>
+      <Box sx={{ display: 'flex', gap: 1.25, overflowX: 'auto', pb: 1, mb: 3, scrollSnapType: 'x proximity' }}>
         {[
           { name: 'Grape Verification', caption: 'Verify your community', href: 'https://verification.governance.so', color: '#74e2c0', image: 'https://verification.governance.so/grape-touch.png' },
           { name: 'Grape DAO', caption: 'Discover the Grape ecosystem', href: 'https://grapedao.org', color: '#c3a2ff', image: 'https://www.grapedao.org/icons/grape-512.png' },
           { name: 'Grape Reputation', caption: 'Build on-chain reputation', href: 'https://reputation.governance.so', color: '#89c9ff', image: 'https://reputation.governance.so/images/og_logo_square.png' },
         ].map(service => (
           <Box key={service.href} component="a" href={service.href} target="_blank" rel="noopener noreferrer" sx={{
-            flex: '1 0 240px', display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: '16px',
-            color: 'inherit', textDecoration: 'none', border: `1px solid ${service.color}35`,
-            background: `linear-gradient(115deg, ${service.color}18, ${service.color}04)`,
-            '&:hover': { borderColor: service.color, backgroundColor: `${service.color}12` },
+            flex: '1 0 260px', minWidth: 0, display: 'flex', alignItems: 'center', gap: 2,
+            p: 2, borderRadius: '12px', scrollSnapAlign: 'start',
+            color: 'inherit', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.09)',
+            background: '#161d29', transition: 'background 160ms, border-color 160ms',
+            '&:hover': { borderColor: `${service.color}70`, background: '#1c2533', '& .service-arrow': { color: service.color, transform: 'translate(2px, -2px)' } },
             '&:focus-visible': { outline: `2px solid ${service.color}`, outlineOffset: -2 },
           }}>
-            <Box sx={{ width: '100%', height: 100, position: 'relative', display: 'flex', alignItems: 'center', px: 2.5,
-              background: `radial-gradient(ellipse at 25% 50%, ${service.color}25, transparent 70%)`,
-              borderBottom: `1px solid ${service.color}20`,
-            }}>
-              <Box component="img" src={service.image} alt="" aria-hidden="true" sx={{ position: 'absolute', right: 16, top: -24, width: 148, height: 148, objectFit: 'contain', opacity: 0.07, transform: 'rotate(-15deg)', borderRadius: '50%' }} />
-              <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 68, height: 68, borderRadius: '18px', background: '#111923', border: `1px solid ${service.color}40`, boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
-                <Box component="img" src={service.image} alt="" sx={{ width: 48, height: 48, objectFit: 'contain', borderRadius: '8px' }} />
-              </Box>
-              <OpenInNewIcon sx={{ ml: 'auto', fontSize: 17, color: service.color }} />
+            <Box component="img" src={service.image} alt="" sx={{
+              width: 60, height: 60, flexShrink: 0, objectFit: 'contain', borderRadius: '12px',
+            }} />
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography sx={{ fontSize: 15, fontWeight: 700, letterSpacing: -0.2, lineHeight: 1.4 }}>{service.name}</Typography>
+              <Typography sx={{ fontSize: 12, color: '#98a6ba', mt: 0.5, lineHeight: 1.5 }}>{service.caption}</Typography>
             </Box>
-            <Box sx={{ p: 2, width: '100%' }}><Typography sx={{ fontWeight: 700 }}>{service.name}</Typography><Typography variant="caption" sx={{ color: 'text.secondary' }}>{service.caption}</Typography></Box>
+            <OpenInNewIcon className="service-arrow" sx={{ flexShrink: 0, fontSize: 16, color: '#728197', transition: 'color 160ms, transform 160ms' }} />
           </Box>
         ))}
       </Box>
