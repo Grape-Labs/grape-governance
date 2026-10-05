@@ -50,7 +50,7 @@ import {
 
 
 
-import { GRAPE_LOGO, VINE_LOGO, GGAPI_STORAGE_POOL } from '../utils/grapeTools/constants';
+import { GGAPI_STORAGE_POOL } from '../utils/grapeTools/constants';
 import { buildParticipatingDirectory, directorySummary, directoryRealmKey, rankDirectoryByProposals } from './directorySummary';
 
 interface Props {
@@ -923,9 +923,9 @@ export function GovernanceDirectoryView(props: Props) {
     >
       <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', pb: 1, mb: 3 }}>
         {[
-          { name: 'Grape Verification', caption: 'Verify your community', href: 'https://verification.governance.so', color: '#74e2c0', image: GRAPE_LOGO, verification: true },
-          { name: 'Grape DAO', caption: 'Discover the Grape ecosystem', href: 'https://grapedao.org', color: '#c3a2ff', image: GRAPE_LOGO, verification: false },
-          { name: 'Grape Reputation', caption: 'Build on-chain reputation', href: 'https://reputation.governance.so', color: '#89c9ff', image: VINE_LOGO, verification: false },
+          { name: 'Grape Verification', caption: 'Verify your community', href: 'https://verification.governance.so', color: '#74e2c0', image: 'https://verification.governance.so/grape-touch.png' },
+          { name: 'Grape DAO', caption: 'Discover the Grape ecosystem', href: 'https://grapedao.org', color: '#c3a2ff', image: 'https://www.grapedao.org/icons/grape-512.png' },
+          { name: 'Grape Reputation', caption: 'Build on-chain reputation', href: 'https://reputation.governance.so', color: '#89c9ff', image: 'https://reputation.governance.so/images/og_logo_square.png' },
         ].map(service => (
           <Box key={service.href} component="a" href={service.href} target="_blank" rel="noopener noreferrer" sx={{
             flex: '1 0 240px', display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: '16px',
@@ -940,8 +940,7 @@ export function GovernanceDirectoryView(props: Props) {
             }}>
               <Box component="img" src={service.image} alt="" aria-hidden="true" sx={{ position: 'absolute', right: 16, top: -24, width: 148, height: 148, objectFit: 'contain', opacity: 0.07, transform: 'rotate(-15deg)', borderRadius: '50%' }} />
               <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 68, height: 68, borderRadius: '18px', background: '#111923', border: `1px solid ${service.color}40`, boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
-                <Box component="img" src={service.image} alt="" sx={{ width: 48, height: 48, objectFit: 'contain', borderRadius: service.image === VINE_LOGO ? '50%' : 0 }} />
-                {service.verification && <VerifiedIcon sx={{ position: 'absolute', right: -7, bottom: -5, fontSize: 25, color: service.color, background: '#111923', borderRadius: '50%', p: 0.25 }} />}
+                <Box component="img" src={service.image} alt="" sx={{ width: 48, height: 48, objectFit: 'contain', borderRadius: '8px' }} />
               </Box>
               <OpenInNewIcon sx={{ ml: 'auto', fontSize: 17, color: service.color }} />
             </Box>
