@@ -1,3 +1,4 @@
+import { assertGrapeProposalEligibility } from '../api/grapeProposalEligibility';
 
 import { PublicKey, SystemProgram, TransactionInstruction, Transaction, Signer, TransactionMessage, VersionedTransaction } from '@solana/web3.js'
 
@@ -134,6 +135,7 @@ export async function createProposalInstructionsLegacy(
       signatory?: PublicKey | null
     },
   ): Promise<any>{//Promise<Transaction> {
+  if (!editAddress) await assertGrapeProposalEligibility(connection, realmPk, walletPk);
 
 
     // Inside your component

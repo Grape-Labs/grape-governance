@@ -1,3 +1,4 @@
+import { assertGrapeProposalEligibility, GRAPE_PROPOSAL_REALM } from './api/grapeProposalEligibility';
 import { PublicKey, TokenAmount, Connection, Transaction, TransactionInstruction } from '@solana/web3.js';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -187,6 +188,8 @@ const confettiConfig = {
   colors: ["#f00", "#0f0", "#00f"]
 };
 
+const governanceKeyForEligibility = (value: any) => value?.toBase58?.() || String(value || '');
+
 export default function GovernanceCreateProposalView(props: any){
     const navigate = useNavigate();  
     const [searchParams, setSearchParams] = useSearchParams();
@@ -232,6 +235,21 @@ export default function GovernanceCreateProposalView(props: any){
     const [proposalMade, setProposalMade] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
     const [realm, setRealm] = React.useState(props?.realm);
+    const [eligibility, setEligibility] = React.useState({ key: '', allowed: false, message: 'Checking reputation and verification…' });
+    const [eligibilityRetry, setEligibilityRetry] = React.useState(0);
+    const eligibilityRealm = governanceKeyForEligibility(realm?.pubkey || cachedRealm?.pubkey || governanceAddress);
+    const eligibilityKey = `${eligibilityRealm}:${publicKey?.toBase58() || ''}`;
+    const requiresEligibility = eligibilityRealm === GRAPE_PROPOSAL_REALM && !editProposalAddress;
+    React.useEffect(() => {
+      let cancelled = false;
+      if (!requiresEligibility || !publicKey) return;
+      setEligibility({ key: eligibilityKey, allowed: false, message: 'Checking reputation and verification…' });
+      assertGrapeProposalEligibility(connection, new PublicKey(eligibilityRealm), publicKey)
+        .then(() => { if (!cancelled) setEligibility({ key: eligibilityKey, allowed: true, message: 'Reputation and verification confirmed.' }); })
+        .catch(error => { if (!cancelled) setEligibility({ key: eligibilityKey, allowed: false, message: error.message }); });
+      return () => { cancelled = true; };
+    }, [eligibilityKey, requiresEligibility, eligibilityRetry]);
+    const eligibilityBlocked = requiresEligibility && (eligibility.key !== eligibilityKey || !eligibility.allowed);
     const [realmName, setRealmName] = React.useState(null);
     const [tokenMap, setTokenMap] = React.useState(props?.tokenMap);
     const [tokenArray, setTokenArray] = React.useState(null);
@@ -490,6 +508,10 @@ export default function GovernanceCreateProposalView(props: any){
     
 
     const calculateProposalFee = async() => {
+      if (eligibilityBlocked) {
+        enqueueSnackbar(eligibility.message, { variant: 'error' });
+        return;
+      }
       // get governance settings
       // 1. Generate the instructions to pass to governance
       const transaction = new Transaction();
@@ -606,6 +628,11 @@ export default function GovernanceCreateProposalView(props: any){
     }
     
     const createProposal = async(isDraft: boolean, returnTx?: boolean, startIx?: number) => {
+      if (eligibilityBlocked) {
+        enqueueSnackbar(eligibility.message, { variant: 'error' });
+        return;
+      }
+
       
       // get governance settings
       setCreateDisabled(true);
@@ -1876,6 +1903,13 @@ export default function GovernanceCreateProposalView(props: any){
 
     return (
         <>
+        {requiresEligibility && publicKey && <Box role="status" sx={{ p: 2, mb: 2, border: '1px solid', borderColor: eligibilityBlocked ? 'warning.main' : 'success.main', borderRadius: 2 }}>
+          <Typography sx={{ fontWeight: 700 }}>Grape DAO proposal requirements</Typography>
+          <Typography variant="body2">Positive DAO reputation and active verification are required. {eligibility.key === eligibilityKey ? eligibility.message : 'Checking wallet…'}</Typography>
+          <Button onClick={() => setEligibilityRetry(value => value + 1)}>Recheck eligibility</Button>
+          <Button href="https://verification.governance.so" target="_blank" rel="noopener noreferrer">Verification</Button>
+          <Button href="https://reputation.governance.so" target="_blank" rel="noopener noreferrer">Reputation</Button>
+        </Box>}
         {!publicKey ?
           <>
             <Box 
@@ -2504,7 +2538,7 @@ export default function GovernanceCreateProposalView(props: any){
                                     (title && title.length > 0) &&
                                     (description && description.length > 0) &&
                                     (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
-                                    (!createDisabled)
+                                    (!createDisabled && !eligibilityBlocked)
                                     )
                                   }
                                   onClick={simulateProposal}
@@ -2519,7 +2553,7 @@ export default function GovernanceCreateProposalView(props: any){
                                     (title && title.length > 0) &&
                                     (description && description.length > 0) &&
                                     (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
-                                    (!createDisabled)
+                                    (!createDisabled && !eligibilityBlocked)
                                     )
                                   }
                                   onClick={(e) => createProposal(true)}
@@ -2536,7 +2570,7 @@ export default function GovernanceCreateProposalView(props: any){
                                       (title && title.length > 0) &&
                                       (description && description.length > 0) &&
                                       (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
-                                      (!createDisabled)
+                                      (!createDisabled && !eligibilityBlocked)
                                       )
                                     }
                                     onClick={(e) => createProposal(false)}
@@ -2575,7 +2609,7 @@ export default function GovernanceCreateProposalView(props: any){
                                       (title && title.length > 0) &&
                                       (description && description.length > 0) &&
                                       (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
-                                      (!createDisabled)
+                                      (!createDisabled && !eligibilityBlocked)
                                       )
                                     }
                                     fullWidth

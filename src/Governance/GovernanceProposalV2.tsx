@@ -1,3 +1,4 @@
+import { GRAPE_VERIFICATION_PROGRAM_ID, parseVerificationSpace, deriveVerificationSpacePda, hashVerificationWallet, parseVerificationLink, parseVerificationIdentity } from './api/grapeVerification';
 import ProposalGrantReview from './Members/ProposalGrantReview';
 import { 
     getGovernanceAccounts,
@@ -187,7 +188,7 @@ const GRAPE_DAO_BLOCKED_PROPOSALS = new Set([
 const GRAPE_DAO_LARGE_TRANSFER_COUNT = 5;
 const RECURRING_PROPOSAL_MIN_AGE_DAYS = 21;
 const RECURRING_PROPOSAL_MAX_AGE_DAYS = 65;
-const GRAPE_VERIFICATION_PROGRAM_ID = new PublicKey('VrFyyRxPoyWxpABpBXU4YUCCF9p8giDSJUv2oXfDr5q');
+
 
 function normalizeRecurringProposalName(value: any): string {
     const monthNames = /\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/gi;
@@ -247,56 +248,6 @@ function setSimilarity(left: Set<string>, right: Set<string>): number {
     if (!left.size || !right.size) return 0;
     const intersection = Array.from(left).filter((value) => right.has(value)).length;
     return intersection / new Set([...Array.from(left), ...Array.from(right)]).size;
-}
-
-function parseVerificationSpace(data: Uint8Array) {
-    if (data.length < 139) throw new Error('Invalid Grape Verification space account');
-    let offset = 9;
-    const daoId = new PublicKey(data.slice(offset, offset + 32)); offset += 32;
-    const authority = new PublicKey(data.slice(offset, offset + 32)); offset += 32;
-    const attestor = new PublicKey(data.slice(offset, offset + 32)); offset += 32;
-    const isFrozen = data[offset] === 1; offset += 2;
-    const salt = data.slice(offset, offset + 32);
-    return { daoId, authority, attestor, isFrozen, salt };
-}
-
-function deriveVerificationSpacePda(daoId: PublicKey): [PublicKey, number] {
-    return PublicKey.findProgramAddressSync(
-        [Buffer.from('space'), daoId.toBuffer()],
-        GRAPE_VERIFICATION_PROGRAM_ID,
-    );
-}
-
-async function hashVerificationWallet(salt: Uint8Array, wallet: PublicKey): Promise<Uint8Array> {
-    const domain = new TextEncoder().encode('wallet');
-    const input = new Uint8Array(salt.length + domain.length + 32);
-    input.set(salt, 0);
-    input.set(domain, salt.length);
-    input.set(wallet.toBytes(), salt.length + domain.length);
-    return new Uint8Array(await crypto.subtle.digest('SHA-256', input));
-}
-
-function parseVerificationLink(data: Uint8Array) {
-    if (data.length !== 88) throw new Error('Invalid Grape Verification link account');
-    const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-    return {
-        identity: new PublicKey(data.slice(9, 41)),
-        walletHash: data.slice(41, 73),
-        linkedAt: Number(view.getBigInt64(73, true)),
-    };
-}
-
-function parseVerificationIdentity(data: Uint8Array) {
-    if (data.length < 124) throw new Error('Invalid Grape Verification identity account');
-    const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-    let offset = 9;
-    const space = new PublicKey(data.slice(offset, offset + 32)); offset += 32;
-    const platform = view.getUint8(offset); offset += 33;
-    const verified = view.getUint8(offset) === 1; offset += 1;
-    const verifiedAt = Number(view.getBigInt64(offset, true)); offset += 8;
-    const expiresAt = Number(view.getBigInt64(offset, true)); offset += 8;
-    const attestedBy = new PublicKey(data.slice(offset, offset + 32));
-    return { space, platform, verified, verifiedAt, expiresAt, attestedBy };
 }
 
 const VERIFICATION_PLATFORM_LABELS: Record<number, string> = {

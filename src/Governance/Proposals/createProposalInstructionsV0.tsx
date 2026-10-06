@@ -1,3 +1,4 @@
+import { assertGrapeProposalEligibility } from '../api/grapeProposalEligibility';
 // createProposalInstructionsV0.tsx
 import {
   AddressLookupTableProgram,
@@ -175,6 +176,7 @@ export async function createProposalInstructionsV0(
     signatory?: PublicKey | null
   }
 ): Promise<ProposalV0Result> {
+  if (!editAddress) await assertGrapeProposalEligibility(connection, realmPk, walletPk);
   const programId = new PublicKey(token_realm_program_id)
   const governanceAuthority =
     proposalAuthority?.governanceAuthority || walletPk
