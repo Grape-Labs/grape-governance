@@ -422,7 +422,6 @@ export default function SanctumSwapView(props: any) {
         </BootstrapDialogTitle>
 
         <DialogContent>
-                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: 'center', mb: 2 }}>
             Build a governance proposal that executes a liquid staking swap via Sanctum.
           </DialogContentText>
@@ -615,7 +614,8 @@ export default function SanctumSwapView(props: any) {
             <Typography variant="caption">Sanctum API order endpoint integration.</Typography>
           </Box>
 
-          <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p: 0, pb: 1 }}>
+          <GrapeExtensionEligibilityNotice />
+                    <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p: 0, pb: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               {publicKey ? (
                 <Button

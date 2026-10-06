@@ -328,7 +328,6 @@ export default function ClaimExtensionView(props: any){
                     Claim Extension
                 </BootstrapDialogTitle>
                 <DialogContent>
-                    <GrapeExtensionEligibilityNotice />
                     
                     <DialogContentText>
                         Welcome to the first Governance Wallet Extension, check any merkle distribution, enter the address of the token
@@ -446,6 +445,7 @@ export default function ClaimExtensionView(props: any){
                         <Typography variant="caption">Made with ❤️ by Grape &amp; Jupiter #OPOS</Typography>
                     </Box>
 
+                    <GrapeExtensionEligibilityNotice />
                     <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p:0, pb:1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', p:0 }}>
                         {(publicKey && claimableAmount && claimableAmount > 0) &&

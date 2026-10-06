@@ -1,4 +1,4 @@
-import GrapeProposalEligibilityNotice, { useGrapeProposalEligibility, GrapeProposalEligibilityContext } from '../GrapeProposalEligibilityNotice';
+import { useGrapeProposalEligibility, GrapeProposalEligibilityContext } from '../GrapeProposalEligibilityNotice';
 import { assertGrapeProposalEligibility } from '../api/grapeProposalEligibility';
 import * as React from 'react';
 import {
@@ -4284,7 +4284,6 @@ const StakeAccountsView = () => {
     return (
         <GrapeProposalEligibilityContext.Provider value={proposalEligibility}>
         <Card>
-        <GrapeProposalEligibilityNotice eligibility={proposalEligibility} />
         <CardHeader
             avatar={
                 <Avatar aria-label={walletAddress}>
@@ -4295,7 +4294,6 @@ const StakeAccountsView = () => {
                 <Stack direction="row" spacing={0.25} alignItems="center">
                     {!(loading && loadingPrices) && (
                         <ExtensionsMenuView
-                            proposalEligibility={proposalEligibility}
                             useAddTrigger
                             realm={realm}
                             rulesWallet={rulesWallet}

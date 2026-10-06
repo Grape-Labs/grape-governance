@@ -455,7 +455,6 @@ export default function DecommissionView(props: any) {
         </BootstrapDialogTitle>
 
         <DialogContent onKeyDown={stopInputKeyPropagation}>
-                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: 'center', mb: 2 }}>
             Safe decommission flow: drain SOL, optionally close empty token accounts, and optionally
             remove realm authority.
@@ -649,7 +648,8 @@ export default function DecommissionView(props: any) {
             <Typography variant="caption">Made with ❤️ by Grape</Typography>
           </Box>
 
-          <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p: 0, pb: 1 }}>
+          <GrapeExtensionEligibilityNotice />
+                    <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p: 0, pb: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', p: 0 }}>
               {publicKey ? (
                 <Button

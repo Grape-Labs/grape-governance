@@ -1187,7 +1187,6 @@ export default function GovernanceConfigView(props: any) {
         </DialogTitle>
 
         <DialogContent>
-                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ mb: 2, textAlign: 'center' }}>
             Build proposal instructions to update Governance and Realm configuration.
           </DialogContentText>
@@ -1792,7 +1791,8 @@ export default function GovernanceConfigView(props: any) {
           </Box>
         </DialogContent>
 
-        <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', px: 2, pb: 2 }}>
+        <GrapeExtensionEligibilityNotice />
+                    <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', px: 2, pb: 2 }}>
           <Button
             size="small"
             onClick={() => setOpenAdvanced((v) => !v)}

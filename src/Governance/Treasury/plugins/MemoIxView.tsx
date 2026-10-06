@@ -291,7 +291,6 @@ export default function MemoIxView(props: any) {
         </BootstrapDialogTitle>
 
         <DialogContent>
-                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: "center", mb: 2 }}>
             Write a small on-chain note (Memo program). Great for links, context, and audit trails.
           </DialogContentText>
@@ -362,7 +361,8 @@ export default function MemoIxView(props: any) {
             <Typography variant="caption">Made with ❤️ by Grape</Typography>
           </Box>
 
-          <DialogActions sx={{ display: "flex", justifyContent: "space-between", p: 0, pb: 1 }}>
+          <GrapeExtensionEligibilityNotice />
+                    <DialogActions sx={{ display: "flex", justifyContent: "space-between", p: 0, pb: 1 }}>
             <Box sx={{ display: "flex", alignItems: "center", p: 0 }}>
               {publicKey ? (
                 <Button

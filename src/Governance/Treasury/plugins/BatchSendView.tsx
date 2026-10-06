@@ -500,7 +500,6 @@ export default function BatchSendView(props: any) {
         </BootstrapDialogTitle>
 
         <DialogContent>
-                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: "center", mb: 2 }}>
             Paste recipients as <b>address, amount</b> per line. Builds a proposal with many transfers.
           </DialogContentText>
@@ -625,7 +624,8 @@ export default function BatchSendView(props: any) {
             <Typography variant="caption">Made with ❤️ by Grape</Typography>
           </Box>
 
-          <DialogActions sx={{ display: "flex", justifyContent: "space-between", p: 0, pb: 1 }}>
+          <GrapeExtensionEligibilityNotice />
+                    <DialogActions sx={{ display: "flex", justifyContent: "space-between", p: 0, pb: 1 }}>
             <Box sx={{ display: "flex", alignItems: "center" }}>
               {publicKey ? (
                 <Button

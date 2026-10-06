@@ -1018,7 +1018,6 @@ export default function JupDcaExtensionView(props: any){
                     DCA/Swap Extension
                 </BootstrapDialogTitle>
                 <DialogContent>
-                    <GrapeExtensionEligibilityNotice />
                     
                     <DialogContentText sx={{textAlign:'center'}}>
                         DCA / Scheduled Swap
@@ -1421,6 +1420,7 @@ export default function JupDcaExtensionView(props: any){
                         <Typography variant="caption">Powered by Jupiter</Typography>
                     </Box>
 
+                    <GrapeExtensionEligibilityNotice />
                     <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p:0, pb:1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', p:0 }}>
                         {(publicKey && tokenAmount && tokenAmount > 0 && periodDuration && toMintAddress && tokenSelected) ?

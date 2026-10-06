@@ -509,7 +509,6 @@ export default function ProgramAuthorityView(props: any) {
         </BootstrapDialogTitle>
 
         <DialogContent>
-                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: 'center', mb: 2 }}>
             Queue upgrade-authority changes using treasury execution, or directly fund treasury from your wallet.
           </DialogContentText>
@@ -756,7 +755,8 @@ export default function ProgramAuthorityView(props: any) {
             <Typography variant="caption">Made with ❤️ by Grape</Typography>
           </Box>
 
-          <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p: 0, pb: 1 }}>
+          <GrapeExtensionEligibilityNotice />
+                    <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p: 0, pb: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', p: 0 }}>
               {tabValue === 0 || tabValue === 1 || tabValue === 2 ? (
                 <Button

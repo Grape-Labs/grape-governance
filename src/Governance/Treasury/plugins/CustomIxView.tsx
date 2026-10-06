@@ -592,7 +592,6 @@ export default function CustomIxView(props: any) {
         </BootstrapDialogTitle>
 
         <DialogContent>
-                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: "center" }}>
             Paste a base64-serialized governance instruction (recommended) or a base64 transaction.
           </DialogContentText>
@@ -696,7 +695,8 @@ export default function CustomIxView(props: any) {
             <Typography variant="caption">Made with ❤️ by Grape</Typography>
           </Box>
 
-          <DialogActions sx={{ display: "flex", justifyContent: "space-between", p: 0, pb: 1 }}>
+          <GrapeExtensionEligibilityNotice />
+                    <DialogActions sx={{ display: "flex", justifyContent: "space-between", p: 0, pb: 1 }}>
             <Box sx={{ display: "flex", alignItems: "center", p: 0 }}>
               {publicKey ? (
                 <Button

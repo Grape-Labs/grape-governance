@@ -530,7 +530,6 @@ const splitJupiterInstructions = (swapIxs: any) => {
         </BootstrapDialogTitle>
 
         <DialogContent>
-                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: "center", mb: 2 }}>
             Build a governance proposal that executes a Jupiter swap.
           </DialogContentText>
@@ -694,7 +693,8 @@ const splitJupiterInstructions = (swapIxs: any) => {
             <Typography variant="caption">Made with ❤️ by Grape</Typography>
           </Box>
 
-          <DialogActions sx={{ display: "flex", justifyContent: "space-between", p: 0, pb: 1 }}>
+          <GrapeExtensionEligibilityNotice />
+                    <DialogActions sx={{ display: "flex", justifyContent: "space-between", p: 0, pb: 1 }}>
             <Box sx={{ display: "flex", alignItems: "center" }}>
               {publicKey ? (
                 <Button

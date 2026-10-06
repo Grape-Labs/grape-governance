@@ -31,17 +31,15 @@ export function GrapeExtensionEligibilityNotice() {
 }
 
 export default function GrapeProposalEligibilityNotice({ eligibility }: { eligibility: ReturnType<typeof useGrapeProposalEligibility> }) {
-  if (!eligibility?.required) return null;
-  return <Box role="status" sx={{ p: 2, m: 1,  whiteSpace: 'normal', borderRadius: 2, border: '1px solid', borderColor: eligibility.allowed ? 'success.main' : 'warning.main' }}>
-    <Typography variant="subtitle2">Connected wallet · Grape DAO proposal eligibility</Typography>
-    {eligibility.wallet && <Typography variant="caption" sx={{ display: 'block', overflowWrap: 'anywhere' }}>{eligibility.wallet}</Typography>}
-    {(['verification', 'reputation'] as const).map(kind => <Typography key={kind} variant="body2" sx={{ mt: 1, color: eligibility.checks?.[kind]?.passed ? 'success.main' : 'text.primary' }}>
-      <strong>{kind === 'verification' ? 'Verification' : 'Reputation'}:</strong> {eligibility.checks?.[kind]?.message || (eligibility.wallet ? 'Checking…' : 'Connect wallet')}
-    </Typography>)}
-    <Typography variant="body2" sx={{ mt: 0.5 }}>Creating a proposal requires positive DAO reputation and active verification.</Typography>
-    <Typography variant="body2" sx={{ mt: 0.5 }}>{eligibility.message}</Typography>
-    <Button size="small" onClick={eligibility.retry}>Recheck</Button>
-    <Button size="small" href="https://verification.governance.so" target="_blank" rel="noopener noreferrer">Verification</Button>
-    <Button size="small" href="https://reputation.governance.so" target="_blank" rel="noopener noreferrer">Reputation</Button>
+  if (!eligibility?.required || eligibility.allowed) return null;
+  const missing = eligibility.checks
+    ? [!eligibility.checks.verification.passed && 'verification', !eligibility.checks.reputation.passed && 'reputation'].filter(Boolean).join(' and ')
+    : '';
+  const label = !eligibility.wallet ? 'Connect a wallet to create a proposal.'
+    : missing ? `Proposal blocked: ${missing} required.`
+    : eligibility.message.startsWith('Checking') ? 'Checking proposal eligibility…' : 'Unable to confirm eligibility. Retry to create a proposal.';
+  return <Box role="status" sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1, py: 0.75, color: 'text.secondary' }}>
+    <Typography variant="caption">{label}</Typography>
+    <Button size="small" color="inherit" onClick={eligibility.retry} sx={{ minWidth: 0, p: 0, fontSize: 12 }}>Retry</Button>
   </Box>;
 }
