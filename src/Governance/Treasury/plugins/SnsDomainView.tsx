@@ -781,7 +781,6 @@ export default function SnsDomainView(props: any) {
         </DialogTitle>
 
         <DialogContent onKeyDown={stopInputKeyPropagation}>
-                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: 'center', mb: 2 }}>
             Register .sol domains and transfer existing domain ownership through governance proposals.
           </DialogContentText>
@@ -1070,7 +1069,8 @@ export default function SnsDomainView(props: any) {
           </Box>
         </DialogContent>
 
-        <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', px: 2, pb: 2 }}>
+        <GrapeExtensionEligibilityNotice />
+                    <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', px: 2, pb: 2 }}>
           <Button
             size="small"
             onClick={() => setOpenAdvanced((v) => !v)}

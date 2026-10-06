@@ -662,7 +662,6 @@ export default function DirectoryExtensionView(props: any){
                     Directory Extension
                 </BootstrapDialogTitle>
                 <DialogContent>
-                    <GrapeExtensionEligibilityNotice />
                     
                     <DialogContentText>
                         Welcome to the GSPL Directory Extension.  List your DAO to get listed, Create a proposal for GSPL Approval and or Update your current Listing.
@@ -791,7 +790,8 @@ export default function DirectoryExtensionView(props: any){
                         <Box alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2, textAlign:'center'}}>
                             <Typography variant="caption">Made with ❤️ by Grape</Typography>
                         </Box>
-                        <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p:0, pb:1 }}>
+                        <GrapeExtensionEligibilityNotice />
+                    <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p:0, pb:1 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', p:0 }}>
                             {(publicKey) &&
                                     <Button

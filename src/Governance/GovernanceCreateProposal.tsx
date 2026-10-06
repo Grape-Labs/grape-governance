@@ -1903,12 +1903,9 @@ export default function GovernanceCreateProposalView(props: any){
 
     return (
         <>
-        {requiresEligibility && publicKey && <Box role="status" sx={{ p: 2, mb: 2, border: '1px solid', borderColor: eligibilityBlocked ? 'warning.main' : 'success.main', borderRadius: 2 }}>
-          <Typography sx={{ fontWeight: 700 }}>Grape DAO proposal requirements</Typography>
-          <Typography variant="body2">Positive DAO reputation and active verification are required. {eligibility.key === eligibilityKey ? eligibility.message : 'Checking wallet…'}</Typography>
-          <Button onClick={() => setEligibilityRetry(value => value + 1)}>Recheck eligibility</Button>
-          <Button href="https://verification.governance.so" target="_blank" rel="noopener noreferrer">Verification</Button>
-          <Button href="https://reputation.governance.so" target="_blank" rel="noopener noreferrer">Reputation</Button>
+        {eligibilityBlocked && publicKey && <Box role="status" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <Typography variant="caption" color="text.secondary">{eligibility.message.startsWith('Checking') ? 'Checking proposal eligibility…' : 'Proposal blocked: verification and positive reputation required.'}</Typography>
+          <Button size="small" color="inherit" onClick={() => setEligibilityRetry(value => value + 1)}>Retry</Button>
         </Box>}
         {!publicKey ?
           <>

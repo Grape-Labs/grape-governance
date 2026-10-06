@@ -441,7 +441,6 @@ export default function DraftProposalView(props: any) {
       >
         <DialogTitle>Quick Draft Proposal</DialogTitle>
         <DialogContent onKeyDown={stopMenuKeyHandling}>
-                    <GrapeExtensionEligibilityNotice />
           <Typography variant="caption" sx={{ opacity: 0.8 }}>
             This creates a draft proposal. Optionally provide an existing proposal address to copy its instructions.
           </Typography>
@@ -502,7 +501,8 @@ export default function DraftProposalView(props: any) {
             </Select>
           </FormControl>
         </DialogContent>
-        <DialogActions>
+        <GrapeExtensionEligibilityNotice />
+                    <DialogActions>
           <Button onClick={handleClose} disabled={isCreatingDraft}>
             Cancel
           </Button>

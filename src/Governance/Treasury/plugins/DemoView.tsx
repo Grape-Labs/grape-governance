@@ -185,7 +185,6 @@ export default function DemoExtensionView(props: any){
                     Extensions
                 </BootstrapDialogTitle>
                 <DialogContent>
-                    <GrapeExtensionEligibilityNotice />
                     
                     <DialogContentText>
                     Add your extension plugins now on governance.so - the most powerful DAO Wallet on Solana by Grape - reach out to the Grape DAO to get started
@@ -195,6 +194,7 @@ export default function DemoExtensionView(props: any){
                         <Typography variant="caption">Made with ❤️ by Grape #OPOS</Typography>
                     </Box>
 
+                    <GrapeExtensionEligibilityNotice />
                     <DialogActions>
                         <Button 
                         //    disabled={!loading}

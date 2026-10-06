@@ -668,7 +668,6 @@ export default function SendExtensionView(props: any){
                     Send Extension
                 </BootstrapDialogTitle>
                 <DialogContent>
-                    <GrapeExtensionEligibilityNotice />
                     
                     <DialogContentText sx={{textAlign:'center'}}>
                         Quickly send SOL & Tokens to any valid Solana address
@@ -841,6 +840,7 @@ export default function SendExtensionView(props: any){
                         <Typography variant="caption">Made with ❤️ by Grape</Typography>
                     </Box>
 
+                    <GrapeExtensionEligibilityNotice />
                     <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p:0, pb:1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', p:0 }}>
                         {(publicKey && tokenAmount && tokenAmount > 0 && tokenRecipient && tokenSelected) &&

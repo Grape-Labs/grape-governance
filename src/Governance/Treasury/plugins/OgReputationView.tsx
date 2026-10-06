@@ -818,7 +818,6 @@ export default function OgReputationView(props: any) {
         </BootstrapDialogTitle>
 
         <DialogContent>
-                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: 'center', mb: 2 }}>
             Discover OG Reputation Spaces and queue governance actions for reputation operations.
           </DialogContentText>
@@ -1253,7 +1252,8 @@ export default function OgReputationView(props: any) {
             <Typography variant="caption">Vine Reputation client integration (@grapenpm/vine-reputation-client).</Typography>
           </Box>
 
-          <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p: 0, pb: 1 }}>
+          <GrapeExtensionEligibilityNotice />
+                    <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p: 0, pb: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               {publicKey ? (
                 <Button

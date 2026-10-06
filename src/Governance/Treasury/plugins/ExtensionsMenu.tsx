@@ -1,4 +1,3 @@
-import GrapeProposalEligibilityNotice from '../../GrapeProposalEligibilityNotice';
 import * as React from 'react';
 import {
   Box,
@@ -288,7 +287,6 @@ export default function ExtensionsMenuView(props: any) {
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
-        <GrapeProposalEligibilityNotice eligibility={props.proposalEligibility} />
         {showLegacyCreateProposalButton && (
           <Box>
             <IntegratedGovernanceProposalDialogView
@@ -443,7 +441,6 @@ export default function ExtensionsMenuView(props: any) {
         onClose={() => setGovernanceToolsAnchorEl(null)}
         {...submenuPosition}
       >
-        <GrapeProposalEligibilityNotice eligibility={props.proposalEligibility} />
         <GovernanceConfigView
           realm={realm}
           handleCloseExtMenu={handleCloseAllMenus}
@@ -481,7 +478,6 @@ export default function ExtensionsMenuView(props: any) {
         onClose={() => setProposalToolsAnchorEl(null)}
         {...submenuPosition}
       >
-        <GrapeProposalEligibilityNotice eligibility={props.proposalEligibility} />
         <DraftProposalView
           realm={realm}
           handleCloseExtMenu={handleCloseAllMenus}
@@ -533,7 +529,6 @@ export default function ExtensionsMenuView(props: any) {
         onClose={() => setTreasuryToolsAnchorEl(null)}
         {...submenuPosition}
       >
-        <GrapeProposalEligibilityNotice eligibility={props.proposalEligibility} />
         <SendExtensionView
           realm={realm}
           handleCloseExtMenu={handleCloseAllMenus}
@@ -609,7 +604,6 @@ export default function ExtensionsMenuView(props: any) {
         onClose={() => setDefiToolsAnchorEl(null)}
         {...submenuPosition}
       >
-        <GrapeProposalEligibilityNotice eligibility={props.proposalEligibility} />
         <JupDcaExtensionView
           realm={realm}
           handleCloseExtMenu={handleCloseAllMenus}
@@ -664,7 +658,6 @@ export default function ExtensionsMenuView(props: any) {
         onClose={() => setIdentityToolsAnchorEl(null)}
         {...submenuPosition}
       >
-        <GrapeProposalEligibilityNotice eligibility={props.proposalEligibility} />
         <TokenMetadataView
           realm={realm}
           governanceAddress={props?.governanceAddress || realm?.pubkey?.toBase58?.()}
@@ -726,7 +719,6 @@ export default function ExtensionsMenuView(props: any) {
         onClose={() => setIntraDaoToolsAnchorEl(null)}
         {...submenuPosition}
       >
-        <GrapeProposalEligibilityNotice eligibility={props.proposalEligibility} />
         <OgReputationView
           realm={realm}
           governanceAddress={props?.governanceAddress || realm?.pubkey?.toBase58?.()}
@@ -760,7 +752,6 @@ export default function ExtensionsMenuView(props: any) {
         onClose={() => setInfoToolsAnchorEl(null)}
         {...submenuPosition}
       >
-        <GrapeProposalEligibilityNotice eligibility={props.proposalEligibility} />
         <Box sx={{ minWidth: 340, px: 2, pt: 1.5, pb: 1 }}>
           <Box
             sx={{

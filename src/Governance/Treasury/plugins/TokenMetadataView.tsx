@@ -410,7 +410,6 @@ export default function TokenMetadataView(props: any) {
         </BootstrapDialogTitle>
 
         <DialogContent onKeyDown={stopInputKeyPropagation}>
-                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: 'center', mb: 2 }}>
             Auto create if missing, update if already present.
           </DialogContentText>
@@ -626,7 +625,8 @@ export default function TokenMetadataView(props: any) {
             <Typography variant="caption">Made with ❤️ by Grape</Typography>
           </Box>
 
-          <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p: 0, pb: 1 }}>
+          <GrapeExtensionEligibilityNotice />
+                    <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p: 0, pb: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', p: 0 }}>
               {publicKey ? (
                 <Button

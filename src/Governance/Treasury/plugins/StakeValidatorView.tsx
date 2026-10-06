@@ -1350,7 +1350,6 @@ export default function StakeValidatorView(props: any){
                     Stake / Unstake Validator
                 </BootstrapDialogTitle>
                 <DialogContent>
-                    <GrapeExtensionEligibilityNotice />
                     
                     <Tabs 
                         value={tabValue} 
@@ -1834,6 +1833,7 @@ export default function StakeValidatorView(props: any){
                         <Typography variant="caption">Made with ❤️ by Grape</Typography>
                     </Box>
 
+                    <GrapeExtensionEligibilityNotice />
                     <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p:0, pb:1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', p:0 }}>
                         {(publicKey) ?
