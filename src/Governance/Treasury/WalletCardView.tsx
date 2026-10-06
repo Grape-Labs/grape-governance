@@ -1,3 +1,5 @@
+import GrapeProposalEligibilityNotice, { useGrapeProposalEligibility } from '../GrapeProposalEligibilityNotice';
+import { assertGrapeProposalEligibility } from '../api/grapeProposalEligibility';
 import * as React from 'react';
 import {
     PublicKey,
@@ -495,6 +497,7 @@ export default function WalletCardView(props:any) {
     const [showCompressed, setShowCompressed] = React.useState(false);
 
     const { publicKey } = useWallet();
+    const proposalEligibility = useGrapeProposalEligibility(String(governanceAddress || ''), publicKey?.toBase58() || '');
     const anchorWallet = useAnchorWallet();
     const MAX_INSTRUCTION_QUEUE = 20;
     const instructionQueueStorageKey = React.useMemo(
@@ -2991,6 +2994,21 @@ const StakeAccountsView = () => {
     }
 
     const handleProposalTxCreation = async() => {
+        if (instructions && !instructions.editProposalAddress) {
+            try {
+                if (!proposalEligibility.allowed) throw new Error(proposalEligibility.message);
+                await assertGrapeProposalEligibility(RPC_CONNECTION, new PublicKey(governanceAddress), publicKey);
+            } catch (error) {
+                setSimulationSummary({ status: 'creation_failed', message: error.message });
+                setLoadingText('Proposal eligibility required');
+                setProposalCreated(false);
+                setLoadingPropCreation(false);
+                setLoaderCreationComplete(true);
+                setSimulationFailed(true);
+                return;
+            }
+        }
+
         
         if (instructions){
 
@@ -4266,6 +4284,7 @@ const StakeAccountsView = () => {
     return (
         <>
         <Card>
+        <GrapeProposalEligibilityNotice eligibility={proposalEligibility} />
         <CardHeader
             avatar={
                 <Avatar aria-label={walletAddress}>
@@ -4275,7 +4294,8 @@ const StakeAccountsView = () => {
             action={
                 <Stack direction="row" spacing={0.25} alignItems="center">
                     {!(loading && loadingPrices) && (
-                        <ExtensionsMenuView 
+                        <ExtensionsMenuView
+                            proposalEligibility={proposalEligibility}
                             useAddTrigger
                             realm={realm}
                             rulesWallet={rulesWallet}
