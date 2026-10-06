@@ -1,3 +1,4 @@
+import { assertGrapeProposalEligibility } from '../../api/grapeProposalEligibility';
 import React from 'react';
 import { styled } from '@mui/material/styles';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -798,6 +799,7 @@ export default function IntraDAOView(props: any) {
 
     const ixs: TransactionInstruction[] = [];
 
+    await assertGrapeProposalEligibility(RPC_CONNECTION, realmPk, publicKey);
     const proposalPk = await withCreateProposal(
       ixs,
       programId,

@@ -1,3 +1,4 @@
+import { assertGrapeProposalEligibility } from '../api/grapeProposalEligibility';
 import { 
   getGovernance,
   getTokenOwnerRecordAddress,
@@ -123,6 +124,7 @@ export async function createProposalInstructionsLegacy(
     returnTx?: boolean,
     payer?: PublicKey,
     editAddress?: PublicKey): Promise<any>{//Promise<Transaction> {
+  if (!editAddress) await assertGrapeProposalEligibility(connection, realmPk, walletPk);
     
     //console.log('inDAOProposal instructionArray before adding DAO Instructions:'+JSON.stringify(transactionInstr));
     //let initialInstructions: TransactionInstruction[] = [];
