@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 import React from 'react';
 import { PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
 import BN from 'bn.js';
@@ -1186,6 +1187,7 @@ export default function GovernanceConfigView(props: any) {
         </DialogTitle>
 
         <DialogContent>
+                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ mb: 2, textAlign: 'center' }}>
             Build proposal instructions to update Governance and Realm configuration.
           </DialogContentText>

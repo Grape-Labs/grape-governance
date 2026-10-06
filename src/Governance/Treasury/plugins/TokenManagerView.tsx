@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 import { 
     PublicKey, 
     Connection, 
@@ -1417,6 +1418,7 @@ export default function TokenManagerView(props) {
                 </AppBar>
     
                 <DialogContent>
+                    <GrapeExtensionEligibilityNotice />
                     {tabIndex === 0 && (
                         <Stack spacing={2} sx={{ pt: 2, pb: 2 }}>
                             <Typography variant="h6">Create a New Token</Typography>

@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 // BatchSendView.tsx
 // Drop-in Extension Plugin: Batch Transfer (SOL + SPL via CSV)
 // Usage: add <BatchSendView .../> into ExtensionsMenuView just like Send/CustomIx/etc.
@@ -499,6 +500,7 @@ export default function BatchSendView(props: any) {
         </BootstrapDialogTitle>
 
         <DialogContent>
+                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: "center", mb: 2 }}>
             Paste recipients as <b>address, amount</b> per line. Builds a proposal with many transfers.
           </DialogContentText>

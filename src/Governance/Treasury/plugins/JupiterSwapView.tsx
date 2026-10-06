@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 import { web3 } from "@coral-xyz/anchor";
 import React, { useCallback } from "react";
 import axios from "axios";
@@ -529,6 +530,7 @@ const splitJupiterInstructions = (swapIxs: any) => {
         </BootstrapDialogTitle>
 
         <DialogContent>
+                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: "center", mb: 2 }}>
             Build a governance proposal that executes a Jupiter swap.
           </DialogContentText>

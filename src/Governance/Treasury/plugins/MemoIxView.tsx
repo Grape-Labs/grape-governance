@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -290,6 +291,7 @@ export default function MemoIxView(props: any) {
         </BootstrapDialogTitle>
 
         <DialogContent>
+                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: "center", mb: 2 }}>
             Write a small on-chain note (Memo program). Great for links, context, and audit trails.
           </DialogContentText>

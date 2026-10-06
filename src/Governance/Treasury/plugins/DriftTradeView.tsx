@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 import React from 'react';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -418,6 +419,7 @@ export default function DriftTradeView(props: any) {
         </BootstrapDialogTitle>
 
         <DialogContent onKeyDown={stopInputKeyPropagation}>
+                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: 'center', mb: 2 }}>
             Build executable Drift order instructions and queue them into a governance proposal.
           </DialogContentText>

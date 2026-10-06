@@ -1,4 +1,4 @@
-import GrapeProposalEligibilityNotice, { useGrapeProposalEligibility } from '../GrapeProposalEligibilityNotice';
+import GrapeProposalEligibilityNotice, { useGrapeProposalEligibility, GrapeProposalEligibilityContext } from '../GrapeProposalEligibilityNotice';
 import { assertGrapeProposalEligibility } from '../api/grapeProposalEligibility';
 import * as React from 'react';
 import {
@@ -4282,7 +4282,7 @@ const StakeAccountsView = () => {
 
     
     return (
-        <>
+        <GrapeProposalEligibilityContext.Provider value={proposalEligibility}>
         <Card>
         <GrapeProposalEligibilityNotice eligibility={proposalEligibility} />
         <CardHeader
@@ -5674,7 +5674,7 @@ const StakeAccountsView = () => {
             Copied to clipboard!
             </Alert>
         </Snackbar>
-    </>
+    </GrapeProposalEligibilityContext.Provider>
         
     );
 }

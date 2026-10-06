@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 import React from 'react';
 import axios from 'axios';
 import {
@@ -421,6 +422,7 @@ export default function SanctumSwapView(props: any) {
         </BootstrapDialogTitle>
 
         <DialogContent>
+                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: 'center', mb: 2 }}>
             Build a governance proposal that executes a liquid staking swap via Sanctum.
           </DialogContentText>

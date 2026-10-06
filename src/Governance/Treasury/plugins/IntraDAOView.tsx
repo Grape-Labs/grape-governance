@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 import { assertGrapeProposalEligibility } from '../../api/grapeProposalEligibility';
 import React from 'react';
 import { styled } from '@mui/material/styles';
@@ -981,6 +982,7 @@ export default function IntraDAOView(props: any) {
         </BootstrapDialogTitle>
 
         <DialogContent onKeyDown={stopInputKeyPropagation}>
+                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: 'center', mb: 2 }}>
             Build cross-DAO governance instructions with treasury as authority.
           </DialogContentText>

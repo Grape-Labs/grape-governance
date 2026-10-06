@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 import { AnchorProvider, web3 } from '@coral-xyz/anchor';
 import { Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getOrCreateAssociatedTokenAccount, createAssociatedTokenAccount, createTransferInstruction } from "@solana/spl-token-v2";
@@ -667,6 +668,7 @@ export default function SendExtensionView(props: any){
                     Send Extension
                 </BootstrapDialogTitle>
                 <DialogContent>
+                    <GrapeExtensionEligibilityNotice />
                     
                     <DialogContentText sx={{textAlign:'center'}}>
                         Quickly send SOL & Tokens to any valid Solana address

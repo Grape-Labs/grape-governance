@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 import { AnchorProvider, web3 } from '@coral-xyz/anchor';
 import { 
     Signer, 
@@ -1017,6 +1018,7 @@ export default function JupDcaExtensionView(props: any){
                     DCA/Swap Extension
                 </BootstrapDialogTitle>
                 <DialogContent>
+                    <GrapeExtensionEligibilityNotice />
                     
                     <DialogContentText sx={{textAlign:'center'}}>
                         DCA / Scheduled Swap

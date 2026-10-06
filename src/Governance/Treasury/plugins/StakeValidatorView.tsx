@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 // FIXED VERSION - Key changes for JITO MEV Harvest:
 // 1. Use canonical field names (activeStakeLamports, rentLamports, inactiveLamports)
 // 2. All lamports fields are already in lamports (not SOL), so don't multiply by LAMPORTS_PER_SOL
@@ -1349,6 +1350,7 @@ export default function StakeValidatorView(props: any){
                     Stake / Unstake Validator
                 </BootstrapDialogTitle>
                 <DialogContent>
+                    <GrapeExtensionEligibilityNotice />
                     
                     <Tabs 
                         value={tabValue} 

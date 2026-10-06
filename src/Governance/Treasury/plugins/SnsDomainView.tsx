@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 import React from 'react';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { styled } from '@mui/material/styles';
@@ -780,6 +781,7 @@ export default function SnsDomainView(props: any) {
         </DialogTitle>
 
         <DialogContent onKeyDown={stopInputKeyPropagation}>
+                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: 'center', mb: 2 }}>
             Register .sol domains and transfer existing domain ownership through governance proposals.
           </DialogContentText>

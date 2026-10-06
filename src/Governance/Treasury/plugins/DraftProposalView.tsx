@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 import React from 'react';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -440,6 +441,7 @@ export default function DraftProposalView(props: any) {
       >
         <DialogTitle>Quick Draft Proposal</DialogTitle>
         <DialogContent onKeyDown={stopMenuKeyHandling}>
+                    <GrapeExtensionEligibilityNotice />
           <Typography variant="caption" sx={{ opacity: 0.8 }}>
             This creates a draft proposal. Optionally provide an existing proposal address to copy its instructions.
           </Typography>

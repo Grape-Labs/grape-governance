@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 import { PublicKey } from '@solana/web3.js';
 import { AnchorProvider, web3 } from '@coral-xyz/anchor';
 import { Connection } from '@solana/web3.js';
@@ -661,6 +662,7 @@ export default function DirectoryExtensionView(props: any){
                     Directory Extension
                 </BootstrapDialogTitle>
                 <DialogContent>
+                    <GrapeExtensionEligibilityNotice />
                     
                     <DialogContentText>
                         Welcome to the GSPL Directory Extension.  List your DAO to get listed, Create a proposal for GSPL Approval and or Update your current Listing.
