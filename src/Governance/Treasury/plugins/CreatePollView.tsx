@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 import React from 'react';
 import { styled } from '@mui/material/styles';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -235,6 +236,7 @@ export default function CreatePollView(props: any) {
         </BootstrapDialogTitle>
 
         <DialogContent onKeyDown={stopInputKeyPropagation}>
+                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: 'center', mb: 2 }}>
             Create a poll proposal with multiple options.
           </DialogContentText>

@@ -15,9 +15,16 @@ function setup({verified=true,points=1n,rpcError=false,currentPoints=true}={}){
  loaded._compile(transformSync(fs.readFileSync(filename,'utf8'),{filename,configFile:false,babelrc:false,presets:['@babel/preset-typescript'],plugins:['@babel/plugin-transform-modules-commonjs']}).code,filename);
  const account={owner:{equals:()=>true},data:[]};
  const connection={getAccountInfo:async()=>{if(rpcError)throw Error('offline');return account},getProgramAccounts:async()=>[{account}],getMultipleAccountsInfo:async()=>[account]};
- return {check:(r=realm)=>loaded.exports.assertGrapeProposalEligibility(connection,r,{}),season:()=>checkedSeason};
+ return {status:()=>loaded.exports.getGrapeProposalEligibility(connection,realm,{}),check:(r=realm)=>loaded.exports.assertGrapeProposalEligibility(connection,r,{}),season:()=>checkedSeason};
 }
 test('requires both reputation and verification',async()=>{await setup().check();await assert.rejects(setup({verified:false}).check(),/verification is required/);await assert.rejects(setup({points:0n}).check(),/reputation in season 3/)});
 test('fails closed on RPC errors',async()=>{await assert.rejects(setup({rpcError:true}).check(),/creation blocked/)});
 test('uses previous season only when current baseline has no points',async()=>{const a=setup({currentPoints:false});await a.check();assert.equal(a.season(),2);const b=setup();await b.check();assert.equal(b.season(),3)});
 test('does not restrict other DAOs',async()=>{await setup({rpcError:true}).check({toBase58:()=> 'other'})});
+
+test('reports reputation independently when verification fails',async()=>{
+ const status=await setup({verified:false}).status();
+ assert.equal(status.verification.passed,false);
+ assert.equal(status.reputation.passed,true);
+ assert.match(status.reputation.message,/1 points/);
+});

@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   LAMPORTS_PER_SOL,
@@ -508,6 +509,7 @@ export default function ProgramAuthorityView(props: any) {
         </BootstrapDialogTitle>
 
         <DialogContent>
+                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: 'center', mb: 2 }}>
             Queue upgrade-authority changes using treasury execution, or directly fund treasury from your wallet.
           </DialogContentText>

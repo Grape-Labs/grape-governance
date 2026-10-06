@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 import React from 'react';
 import { styled } from '@mui/material/styles';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -454,6 +455,7 @@ export default function DecommissionView(props: any) {
         </BootstrapDialogTitle>
 
         <DialogContent onKeyDown={stopInputKeyPropagation}>
+                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: 'center', mb: 2 }}>
             Safe decommission flow: drain SOL, optionally close empty token accounts, and optionally
             remove realm authority.

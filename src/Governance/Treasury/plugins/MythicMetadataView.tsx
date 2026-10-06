@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 import React from 'react';
 import { Buffer } from 'buffer';
 import { PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.js';
@@ -781,6 +782,7 @@ export default function MythicMetadataView(props: any) {
         </BootstrapDialogTitle>
 
         <DialogContent onKeyDown={stopInputKeyPropagation}>
+                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: 'center', mb: 2 }}>
             Build Mythic Metadata program instructions and create proposal.
           </DialogContentText>

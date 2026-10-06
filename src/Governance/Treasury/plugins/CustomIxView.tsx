@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 // /src/Governance/Treasury/plugins/CustomIxView.tsx
 // DROP-IN replacement for your existing CustomIxView.tsx
 //
@@ -591,6 +592,7 @@ export default function CustomIxView(props: any) {
         </BootstrapDialogTitle>
 
         <DialogContent>
+                    <GrapeExtensionEligibilityNotice />
           <DialogContentText sx={{ textAlign: "center" }}>
             Paste a base64-serialized governance instruction (recommended) or a base64 transaction.
           </DialogContentText>

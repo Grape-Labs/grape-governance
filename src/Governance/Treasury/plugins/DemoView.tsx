@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 import MerkleDistributor from '@jup-ag/merkle-distributor-sdk';
 import { PublicKey } from '@solana/web3.js';
 import { AnchorProvider, web3 } from '@coral-xyz/anchor';
@@ -184,6 +185,7 @@ export default function DemoExtensionView(props: any){
                     Extensions
                 </BootstrapDialogTitle>
                 <DialogContent>
+                    <GrapeExtensionEligibilityNotice />
                     
                     <DialogContentText>
                     Add your extension plugins now on governance.so - the most powerful DAO Wallet on Solana by Grape - reach out to the Grape DAO to get started

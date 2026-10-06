@@ -1,3 +1,4 @@
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 import MerkleDistributor from '@jup-ag/merkle-distributor-sdk';
 import { PublicKey, Transaction } from '@solana/web3.js';
 import { AnchorProvider, web3 } from '@coral-xyz/anchor';
@@ -327,6 +328,7 @@ export default function ClaimExtensionView(props: any){
                     Claim Extension
                 </BootstrapDialogTitle>
                 <DialogContent>
+                    <GrapeExtensionEligibilityNotice />
                     
                     <DialogContentText>
                         Welcome to the first Governance Wallet Extension, check any merkle distribution, enter the address of the token
