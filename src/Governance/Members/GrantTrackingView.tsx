@@ -321,9 +321,9 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
   const recordAssessment=React.useCallback((status:string)=>setAssessments(previous=>previous[assessmentKey]===status?previous:{...previous,[assessmentKey]:status}),[assessmentKey]);
   const since=recipientGrants.length?Math.min(...recipientGrants.map(p=>p.timestamp)):defaultSince;
   return <><Accordion onChange={(_,expanded)=>{if(expanded)void loadSuggestions();}} sx={{my:2,background:'rgba(255,255,255,0.03)'}}>
-    <AccordionSummary expandIcon={<ExpandMoreIcon/>}><Box><Typography variant="h6">Member grants</Typography><Typography variant="body2" color="text.secondary">Compare grants with tokens staked</Typography></Box></AccordionSummary>
+    <AccordionSummary expandIcon={<ExpandMoreIcon/>}><Box><Typography variant="h6">Member grants</Typography><Typography variant="body2" color="text.secondary">{loaded?`${grants.length.toLocaleString()} grants loaded · ${next?'More history available':'Available history loaded'}`:'Choose a grantor → Load grants → Review the table'}</Typography></Box></AccordionSummary>
     <AccordionDetails>
-      <Typography variant="body2" color="text.secondary" sx={{mb:2}}>Select a grantor to add grant totals and staking shortfalls to the members table.</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{mb:2}}>Choose the wallet that distributed the tokens. Loading grants adds totals and staking shortfalls to the table below.</Typography>
       <Stack direction={{xs:'column',sm:'row'}} spacing={1.5}>
         <Autocomplete freeSolo fullWidth loading={walletsLoading} options={Array.from(new Set([...grantors,...wallets]))} inputValue={source} disabled={busy}
           onInputChange={(_,value)=>setSource(value)}
@@ -354,10 +354,13 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
       <Box component="details" sx={{mt:2}}><Typography component="summary" variant="caption" color="text.secondary" sx={{cursor:'pointer'}}>About grant totals</Typography><Typography variant="body2" color="text.secondary" sx={{mt:1}}>Includes direct wallet grants and deposits into governance. Totals reflect the history loaded so far. Reloading recent grants starts a new scan. Recent results may be cached for 5 minutes; older history for 24 hours.</Typography></Box>
     </AccordionDetails>
   </Accordion>
-  <Stack direction={{xs:'column',sm:'row'}} spacing={2} alignItems={{xs:'stretch',sm:'center'}} sx={{my:2,p:2,border:'1px solid rgba(255,255,255,0.12)',borderRadius:2}}>
+  <Box component="details" sx={{my:2}}>
+    <Typography component="summary" variant="body2" color="text.secondary" sx={{cursor:'pointer'}}>Review settings · {threshold}% warning threshold</Typography>
+  <Stack direction={{xs:'column',sm:'row'}} spacing={2} alignItems={{xs:'stretch',sm:'center'}} sx={{mt:1,p:2,border:'1px solid rgba(255,255,255,0.12)',borderRadius:2}}>
     <TextField sx={{minWidth:210}} label="Warning threshold (%)" type="number" size="small" value={thresholdInput} error={!thresholdValid} helperText={thresholdValid?'Shortfall percentage · default 30%':'Enter a percentage greater than 0 and up to 100'} inputProps={{min:0.01,max:100,step:1}} onChange={e=>setThresholdInput(e.target.value)}/>
     <Box><Typography variant="body2">Warn when staked tokens are {Number((100-threshold).toFixed(2))}% or less of loaded grants.</Typography><Typography variant="caption" color="text.secondary">Also applies to individual swaps in activity reviews. Reopen previous reviews after changing this setting.</Typography></Box>
   </Stack>
+  </Box>
   {children(renderGrantCell,rows=>downloadMembersCsv(membersCsv(rows,{grants,loaded,grantor:active,partial:!!next,threshold}),realm),(wallet,staked)=>grantQualification(grants,wallet,staked,loaded,!!next,threshold))}
   <Dialog open={!!selected} onClose={()=>setSelected('')} fullWidth maxWidth="lg">
     <DialogContent>

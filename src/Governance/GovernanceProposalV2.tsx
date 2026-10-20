@@ -7017,7 +7017,7 @@ export function GovernanceProposalV2View(props: any){
                                     borderRadius: '16px',
                                     border: '1px solid rgba(255,82,82,0.72)',
                                     bgcolor: 'rgba(95,20,28,0.76)',
-                                    boxShadow: '0 0 0 1px rgba(255,82,82,0.12) inset, 0 14px 34px rgba(0,0,0,0.28)',
+                                    boxShadow: 'none',
                                 }}
                             >
                                 <Stack direction="row" spacing={1} alignItems="flex-start">
@@ -7026,12 +7026,14 @@ export function GovernanceProposalV2View(props: any){
                                         <Typography variant="h6" sx={{ color: '#fff1f0', fontWeight: 800, lineHeight: 1.2 }}>
                                             {grapeDaoSafetySignals.isBlockedProposal
                                                 ? 'Security warning: known malicious Grape DAO proposal'
-                                                : 'Security warning: this Grape DAO proposal requires careful review'}
+                                                : 'Security warning: review this proposal carefully'}
                                         </Typography>
                                         <Typography variant="body2" sx={{ color: 'rgba(255,232,230,0.86)', mt: 0.45 }}>
                                             Do not rely on the proposal description alone. Verify every instruction, asset, amount, destination, and voter independently before voting or executing.
                                         </Typography>
-                                        <Stack spacing={0.25} sx={{ mt: 0.75 }}>
+                                        <Box component="details" sx={{ mt: 1 }}>
+                                            <Typography component="summary" variant="body2" sx={{ cursor: 'pointer', color: '#fff1f0' }}>View security findings</Typography>
+                                            <Stack spacing={1} sx={{ mt: 1 }}>
                                             {proposalRiskAssessment.findings
                                                 .filter((finding) => finding.severity === 'critical' || finding.severity === 'high')
                                                 .slice(0, 4)
@@ -7040,7 +7042,8 @@ export function GovernanceProposalV2View(props: any){
                                                         • {finding.title}: {finding.evidence}
                                                     </Typography>
                                                 ))}
-                                        </Stack>
+                                            </Stack>
+                                        </Box>
                                     </Box>
                                 </Stack>
                             </Box>
@@ -7598,9 +7601,6 @@ export function GovernanceProposalV2View(props: any){
                                     ...panelSx,
                                 }}
                             >
-                                
-                                    <Typography sx={{ ...sectionLabelSx, ml: 1.25, mt: 1.1, mb: 0.9 }}>Executable Plan</Typography>
-                                
                                     <ListItemButton 
                                         onClick={handleClickOpenInstructions}
                                         sx={{
@@ -7616,10 +7616,9 @@ export function GovernanceProposalV2View(props: any){
                                         <CodeIcon />
                                         </ListItemIcon>
                                         <ListItemText primary={<>
-                                            Instructions
-                                            &nbsp;{proposalTransactionCount}
+                                            Instructions · {proposalTransactionCount}
                                             </>
-                                        } />
+                                        } secondary="Review transfers, recipient deposits, and executable actions" />
                                             {openInstructions ? <ExpandLess /> : <ExpandMoreIcon />}
                                     </ListItemButton>
                                     <Collapse in={openInstructions} timeout="auto" unmountOnExit
@@ -7641,7 +7640,7 @@ export function GovernanceProposalV2View(props: any){
                                                     }}
                                                 >
                                                     <Typography variant="subtitle1">
-                                                        Instructions Summary
+                                                        Transfer summary
                                                     </Typography>
                                                     <Typography variant="caption">
                                                         {getGroupedInstructions(instructionTransferDetails).map((item, key, array) => (
