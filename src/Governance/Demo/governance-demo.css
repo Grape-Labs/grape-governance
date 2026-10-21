@@ -1067,3 +1067,74 @@
     transition: none !important;
   }
 }
+.gd-section-content {
+  min-width: 0;
+  padding-bottom: 24px;
+  color: var(--gd-text);
+}
+.gd-section-content > .MuiBox-root,
+.gd-section-content > .MuiGrid-root {
+  margin-top: 0 !important;
+  padding: 16px !important;
+  border: 1px solid #ffffff18;
+  border-radius: 16px !important;
+  background: linear-gradient(130deg, #182534, #141c29) !important;
+  max-width: 100%;
+  min-width: 0;
+}
+.gd-section-content .MuiPaper-root {
+  background-color: #172331;
+  color: var(--gd-text);
+  box-shadow: none;
+  border-color: #ffffff18;
+}
+.gd-section-content .MuiTableContainer-root {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.gd-section-content .MuiDataGrid-root {
+  border-color: #ffffff18;
+  border-radius: 12px;
+  color: var(--gd-text);
+}
+.gd-section-content .MuiTableCell-root,
+.gd-section-content .MuiDataGrid-cell,
+.gd-section-content .MuiDataGrid-columnHeaders {
+  border-color: #ffffff12;
+}
+.gd-section-content .MuiTableHead-root {
+  background: #ffffff04;
+}
+.gd-section-content .MuiButton-outlined,
+.gd-section-content .MuiOutlinedInput-notchedOutline {
+  border-color: #ffffff25;
+}
+.gd-section-content .MuiAccordion-root {
+  background: #ffffff03;
+  box-shadow: none;
+  border: 1px solid #ffffff12;
+  border-radius: 10px;
+}
+.gd-section-content .MuiTabs-root {
+  border-bottom: 1px solid #ffffff15;
+}
+.gd-section-content .MuiTab-root {
+  text-transform: none;
+  min-height: 44px;
+}
+.gd-section-content .MuiTypography-root {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 650px) {
+  .gd-section-content > .MuiBox-root,
+  .gd-section-content > .MuiGrid-root {
+    padding: 10px !important;
+    border-radius: 12px !important;
+  }
+  .gd-section-content .MuiTabs-root {
+    max-width: 100%;
+  }
+  .gd-section-content .MuiTableCell-root {
+    padding: 10px 8px;
+  }
+}

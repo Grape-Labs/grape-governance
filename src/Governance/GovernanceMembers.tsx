@@ -853,7 +853,7 @@ function RenderGovernanceMembersTable(props:any) {
 export function GovernanceMembersView(props: any) {
     const [searchParams, setSearchParams] = useSearchParams();
     const {handlekey} = useParams<{ handlekey: string }>();
-    const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
+    const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey || props.governanceAddress;
     const governanceAddress = urlParams;
     const debugVsr = searchParams.get('debugVsr') === '1';
     const [startTime, setStartTime] = React.useState(null);
@@ -1880,13 +1880,13 @@ export function GovernanceMembersView(props: any) {
                         {realm &&
                             <>
                                 <Grid container>
-                                    <GovernanceHeaderView
+                                    {!props.compactLayout && <GovernanceHeaderView
                                         governanceName={realmName}
                                         governanceAddress={governanceAddress}
                                         gsplMetadata={gsplMetadata}
-                                    />
+                                    />}
                                     <Grid item xs={6} container justifyContent="flex-end">
-                                        <GovernanceNavigation governanceAddress={governanceAddress} />
+                                        {props.showGovernanceNavigation !== false && <GovernanceNavigation governanceAddress={governanceAddress} />}
                                     </Grid>
                                 </Grid>
                             </>

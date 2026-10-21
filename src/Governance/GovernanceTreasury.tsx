@@ -60,7 +60,7 @@ export function GovernanceTreasuryView(props: any) {
   const { address } = useParams<{ address: string }>();
   const { rules } = useParams<{ rules: string }>();
 
-  const governanceAddress = address;
+  const governanceAddress = address || props.governanceAddress;
   const filterRulesWallet = rules;
 
   const [storagePool] = React.useState(GGAPI_STORAGE_POOL);
@@ -327,13 +327,13 @@ export function GovernanceTreasuryView(props: any) {
         >
           {realmName && (
             <Grid container>
-              <GovernanceHeaderView
+              {!props.compactLayout && <GovernanceHeaderView
                 governanceName={realmName}
                 governanceAddress={governanceAddress}
                 gsplMetadata={gsplMetadata}
-              />
+              />}
               <Grid item xs={6} container justifyContent="flex-end" alignItems="center" sx={{ gap: 1 }}>
-                <GovernanceNavigation governanceAddress={governanceAddress} />
+                {props.showGovernanceNavigation !== false && <GovernanceNavigation governanceAddress={governanceAddress} />}
               </Grid>
             </Grid>
           )}

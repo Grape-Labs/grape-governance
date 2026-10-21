@@ -1,6 +1,7 @@
 import React, { useMemo, Suspense } from 'react';
 import GovernanceDemo from './Governance/Demo/GovernanceDemo';
 import GrapeDaoPage from './Governance/Demo/GrapeDaoPage';
+import GrapeDaoSection from './Governance/Demo/GrapeDaoSection';
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 //import { SpeedInsights } from '@vercel/speed-insights/react';
 
@@ -373,12 +374,17 @@ function DashboardContent() {
                                               <Route path="metrics/*" element={<PremiumView />} >
                                                   <Route path=":handlekey" element={<PremiumView />} />
                                               </Route>
+                                              <Route path="members/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip" element={<GrapeDaoSection section="members" />} />
+                                              <Route path="treasury/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip" element={<GrapeDaoSection section="treasury" />} />
+                                              <Route path="stats/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip" element={<GrapeDaoSection section="stats" />} />
+                                              <Route path="reputation/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip" element={<GrapeDaoSection section="reputation" />} />
                                               <Route path="members/*" element={<GovernanceMembersView />} >
                                                   <Route path=":handlekey" element={<GovernanceMembersView />} />
                                               </Route>
                                               <Route path="stats/*" element={<GovernanceStatsView />} >
                                                   <Route path=":handlekey" element={<GovernanceStatsView />} />
                                               </Route>
+                                              <Route path="treasury/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip/:rules" element={<GrapeDaoSection section="treasury" />} />
                                               <Route path="treasury/*" element={<GovernanceTreasuryView />} >
                                                   <Route path=":address" element={<GovernanceTreasuryView />} />
                                                   <Route path=":address/:rules" element={<GovernanceTreasuryView />} />
