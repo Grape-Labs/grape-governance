@@ -169,7 +169,7 @@ test("loads actual realm proposals, prioritizes active votes, and preserves the 
       await screen.findByRole("heading", { name: "Grape community grant" })
     );
     assert.ok(screen.getByText("100 target"));
-    assert.ok(screen.getByText(/Currently passing · 23 above target/));
+    assert.ok(screen.getByText(/Passing · \+23 above target/));
     assert.equal(screen.getByRole("progressbar", { name: "Approval progress" }).getAttribute("aria-valuenow"), "100");
     assert.equal(
       screen.queryByRole("link", { name: /Return to Grape DAO/ }),
