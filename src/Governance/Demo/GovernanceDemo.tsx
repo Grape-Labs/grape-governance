@@ -3,6 +3,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import ProposalPreviewBoundary from "./ProposalPreviewBoundary";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import DaoPageLayout from "./DaoPageLayout";
+import { recordedVoteLabel, proposalListStatus } from "./proposalListStatus";
 import {
   getVoteRecordsByVoterIndexed,
   getRealmIndexed,
@@ -39,9 +40,9 @@ export default function GovernanceDemo({
   const walletAddress = address(publicKey);
   const [voteHistory, setVoteHistory] = React.useState<{
     wallet: string;
-    voted: Set<string>;
+    voted: Map<string, any>;
     status: string;
-  }>({ wallet: "", voted: new Set(), status: "loading" });
+  }>({ wallet: "", voted: new Map(), status: "loading" });
   const [proposals, setProposals] = React.useState<any[]>([]);
   const [realm, setRealm] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
@@ -96,7 +97,7 @@ export default function GovernanceDemo({
     let running = false;
     setVoteHistory({
       wallet: walletAddress,
-      voted: new Set(),
+      voted: new Map(),
       status: "loading",
     });
     const load = async () => {
@@ -110,10 +111,10 @@ export default function GovernanceDemo({
         );
         if (!Array.isArray(records))
           throw new Error("Vote history unavailable");
-        const voted = new Set<string>(
+        const voted = new Map<string, any>(
           records
             .filter((record) => !record.account?.isRelinquished)
-            .map((record) => address(record.account?.proposal))
+            .map((record) => [address(record.account?.proposal), record])
         );
         if (!cancelled)
           setVoteHistory({ wallet: walletAddress, voted, status: "ready" });
@@ -121,7 +122,7 @@ export default function GovernanceDemo({
         if (!cancelled)
           setVoteHistory({
             wallet: walletAddress,
-            voted: new Set(),
+            voted: new Map(),
             status: "error",
           });
       } finally {
@@ -145,7 +146,7 @@ export default function GovernanceDemo({
       : voteHistory.status === "error"
       ? "Vote unavailable"
       : voteHistory.voted.has(id)
-      ? "Voted"
+      ? recordedVoteLabel(voteHistory.voted.get(id), proposals.find((item) => address(item.pubkey) === id)?.account)
       : "Not voted";
   const activeCount = proposals.filter(
     (item) => item.account.state === 2
@@ -502,7 +503,9 @@ export default function GovernanceDemo({
                     />
                   </label>
                   <div className="gd-scenario-list gd-proposal-list">
-                    {visible.map((item) => (
+                    {visible.map((item) => {
+                      const tally = proposalListStatus(item.account);
+                      return (
                       <button
                         key={address(item.pubkey)}
                         aria-pressed={selectedAddress === address(item.pubkey)}
@@ -529,9 +532,10 @@ export default function GovernanceDemo({
                               </span>
                             )}
                           </small>
+                          {tally && <small className="gd-list-tally" title={tally.detail}>{tally.label}</small>}
                         </span>
                       </button>
-                    ))}
+                    );})}
                     {!visible.length && <p>No matching proposals.</p>}
                   </div>
                   <button

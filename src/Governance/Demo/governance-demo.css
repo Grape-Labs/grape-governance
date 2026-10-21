@@ -1180,3 +1180,9 @@
     margin-left: 0;
   }
 }
+
+.gd-proposal-list .gd-list-tally {
+  margin-top: 5px;
+  color: #a6b3c7;
+  font-size: 11px;
+}
