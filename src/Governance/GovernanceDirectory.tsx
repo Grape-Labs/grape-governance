@@ -899,10 +899,11 @@ export function GovernanceDirectoryView(props: Props) {
     return (
       <Box
         sx={{
-          mt: 6,
-          background: 'rgba(0, 0, 0, 0.55)',
+          mt: { xs: 1, md: 2 },
+          background: 'radial-gradient(ellipse at 50% 0%, #172c3d 0, transparent 55%), #0b111c',
+          color: '#a6b3c7',
           borderRadius: '20px',
-          p: 4,
+          p: { xs: 3, md: 5 },
           alignItems: 'center',
           textAlign: 'center',
         }}
@@ -918,45 +919,25 @@ export function GovernanceDirectoryView(props: Props) {
   return (
     <Box
       sx={{
-        mt: 6,
-        borderRadius: '24px',
-        p: { xs: 2, md: 3 },
-        background:
-          'linear-gradient(160deg, #111923, #0c1017 65%)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        backdropFilter: 'blur(10px)',
+        mt: { xs: 1, md: 2 },
+        borderRadius: { xs: '16px', md: '24px' },
+        p: { xs: 2, sm: 3, md: 5 },
+        background: 'radial-gradient(ellipse at 50% 0%, #172c3d 0, transparent 55%), #0b111c',
+        color: '#edf2fa',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        '& > *': { maxWidth: '1160px', mx: 'auto' },
+        '& .MuiTypography-root, & .MuiButton-root, & .MuiInputBase-root': { fontFamily: 'inherit' },
+        '& .MuiOutlinedInput-root': { borderRadius: '10px', background: '#ffffff04' },
+        '& .MuiOutlinedInput-notchedOutline': { borderColor: '#ffffff26' },
+        '& .MuiButton-root': { textTransform: 'none' },
+        '& a:focus-visible, & button:focus-visible': { outline: '2px solid #85caff', outlineOffset: 3 },
       }}
     >
-      <Box sx={{ display: 'flex', gap: 1.25, overflowX: 'auto', pb: 1, mb: 3, scrollSnapType: 'x proximity' }}>
-        {[
-          { name: 'Grape Verification', caption: 'Verify your community', href: 'https://verification.governance.so', color: '#74e2c0', image: 'https://verification.governance.so/grape-touch.png' },
-          { name: 'Grape DAO', caption: 'Discover the Grape ecosystem', href: 'https://grapedao.org', color: '#c3a2ff', image: 'https://www.grapedao.org/icons/grape-512.png' },
-          { name: 'Grape Reputation', caption: 'Build on-chain reputation', href: 'https://reputation.governance.so', color: '#89c9ff', image: 'https://reputation.governance.so/images/og_logo_square.png' },
-        ].map(service => (
-          <Box key={service.href} component="a" href={service.href} target="_blank" rel="noopener noreferrer" sx={{
-            flex: '1 0 260px', minWidth: 0, display: 'flex', alignItems: 'center', gap: 2,
-            p: 2, borderRadius: '12px', scrollSnapAlign: 'start',
-            color: 'inherit', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.09)',
-            background: '#161d29', transition: 'background 160ms, border-color 160ms',
-            '&:hover': { borderColor: `${service.color}70`, background: '#1c2533', '& .service-arrow': { color: service.color, transform: 'translate(2px, -2px)' } },
-            '&:focus-visible': { outline: `2px solid ${service.color}`, outlineOffset: -2 },
-          }}>
-            <Box component="img" src={service.image} alt="" sx={{
-              width: 60, height: 60, flexShrink: 0, objectFit: 'contain', borderRadius: '12px',
-            }} />
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{ fontSize: 15, fontWeight: 700, letterSpacing: -0.2, lineHeight: 1.4 }}>{service.name}</Typography>
-              <Typography sx={{ fontSize: 12, color: '#98a6ba', mt: 0.5, lineHeight: 1.5 }}>{service.caption}</Typography>
-            </Box>
-            <OpenInNewIcon className="service-arrow" sx={{ flexShrink: 0, fontSize: 16, color: '#728197', transition: 'color 160ms, transform 160ms' }} />
-          </Box>
-        ))}
-      </Box>
-      <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ mb: 2.5 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }} justifyContent="space-between" sx={{ mb: 2.5 }}>
         <Box>
-          <Typography variant="overline" sx={{ color: '#89a8bd', letterSpacing: 2 }}>GOVERNANCE / SOLANA</Typography>
-          <Typography variant="h4" sx={{ fontWeight: 700, letterSpacing: -1 }}>Discover your next decision.</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.75 }}>Your DAOs, their latest proposals, and a place to take part.</Typography>
+          <Typography variant="overline" sx={{ color: '#a6b3c7', letterSpacing: 2.5, fontSize: 11, fontWeight: 700 }}>GOVERNANCE / SOLANA</Typography>
+          <Typography component="h1" sx={{ fontSize: { xs: 28, sm: 34 }, fontWeight: 700, letterSpacing: -1, lineHeight: 1.2, mt: 0.5 }}>Your DAOs. <Box component="span" sx={{ color: '#91a9bf' }}>Your next decision.</Box></Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.75 }}>Explore communities, review proposals, and take part.</Typography>
         </Box>
         <CreateSplGovernanceDaoButton />
       </Stack>
@@ -966,12 +947,12 @@ export function GovernanceDirectoryView(props: Props) {
         {walletAddress && <Typography variant="body2"><strong style={{ color: '#eef4fa' }}>{favoriteGovernances.length}</strong> memberships</Typography>}
       </Stack>
       <Typography variant="caption" title="Uses the same cached proposal feed as Realtime. Coverage depends on available governance programs." sx={{ display: 'block', mb: 1.5, color: '#89a8bd' }}>{activityStatus}</Typography>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center" sx={{ mb: 2.5 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center" sx={{ mb: 2.5 }}>
         <TextField fullWidth size="small" placeholder="Find a DAO" value={searchFilter}
           onChange={event => setSearchFilter(event.target.value)}
           inputProps={{ 'aria-label': 'Search DAOs' }}
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }} />
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap" sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}>
           <Chip icon={<VerifiedIcon />} label="Verified" variant={filterVerified ? 'filled' : 'outlined'}
             color={filterVerified ? 'primary' : 'default'} onClick={() => setFilterVerified(value => !value)} />
           <ToggleButtonGroup exclusive size="small" value={viewMode} onChange={(_, mode) => mode && setViewMode(mode)}>
@@ -1030,7 +1011,7 @@ export function GovernanceDirectoryView(props: Props) {
           {walletFavoritesLoading || membershipWallet !== walletAddress ? (
             <LinearProgress color="inherit" />
           ) : favoriteGovernances.length > 0 ? (
-            <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
+            <Grid container spacing={2}>
               {favoriteGovernances.map((item: GovernanceLookupItem, key: number) => {
                 const metadata = mergeDaoMetadata(
                   item?.gspl?.metadataUri ? metadataMap[item.gspl.metadataUri] : null,
@@ -1070,12 +1051,12 @@ export function GovernanceDirectoryView(props: Props) {
 
       {nonFavoriteGovernances.length > 0 && (
         <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: -0.25, mt: 3, mb: 1.5 }}>
-          All Other DAOs
+          {walletAddress ? 'Explore more DAOs' : 'Explore DAOs'}
         </Typography>
       )}
 
       {nonFavoriteGovernances.length > 0 ? (
-        <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }} sx={{ mt: 0.5 }}>
+        <Grid container spacing={2} sx={{ mt: 0.5 }}>
           {displayedGovernances.map((item: GovernanceLookupItem, key: number) => {
             const metadata = mergeDaoMetadata(
               item?.gspl?.metadataUri ? metadataMap[item.gspl.metadataUri] : null,
@@ -1129,6 +1110,22 @@ export function GovernanceDirectoryView(props: Props) {
           </Button>
         </Box>
       )}
+
+
+      <Stack component="footer" direction="row" spacing={2.5} useFlexGap flexWrap="wrap"
+        sx={{ mt: 5, pt: 2.5, borderTop: '1px solid #ffffff12' }}>
+        {[
+          { name: 'Verification', href: 'https://verification.governance.so' },
+          { name: 'Vine / OG Reputation', href: 'https://vine.governance.so' },
+          { name: 'About Grape', href: 'https://grapedao.org' },
+        ].map(service => (
+          <Box key={service.href} component="a" href={service.href} target="_blank" rel="noopener noreferrer"
+            sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, color: '#a6b3c7',
+              textDecoration: 'none', fontSize: 13, '&:hover': { color: '#b6ecd5' } }}>
+            {service.name}<OpenInNewIcon sx={{ fontSize: 13 }} />
+          </Box>
+        ))}
+      </Stack>
 
       <ScrollTop {...props}>
         <Fab size="small" aria-label="scroll back to top">

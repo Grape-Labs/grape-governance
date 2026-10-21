@@ -79,10 +79,10 @@ const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardV
       <Card sx={{
         display: 'flex', flexDirection: 'column', height: '100%', minHeight: activity?.count ? 238 : 190,
         color: 'inherit', borderRadius: '18px', p: 2.25, position: 'relative', overflow: 'hidden',
-        background: `radial-gradient(ellipse at top right, ${tint}, transparent 75%), #131c27`, boxShadow: 'none',
-        border: activity?.count ? '1px solid rgba(93, 211, 176, 0.4)' : '1px solid rgba(255,255,255,0.09)',
-        transition: 'border-color 150ms, transform 150ms',
-        '&:hover': { transform: 'translateY(-2px)', borderColor: 'rgba(132,190,255,0.5)' },
+        background: 'linear-gradient(145deg, #182534, #141c29)', boxShadow: 'none',
+        border: '1px solid rgba(255,255,255,0.12)',
+        transition: 'border-color 150ms, background 150ms',
+        '&:hover': { borderColor: 'rgba(182,236,213,0.5)' },
         '& a:focus-visible': { outline: '2px solid #84beff', outlineOffset: 3 },
       }}>
         <Stack component={Link} to={"/dao/" + item.governanceAddress} direction="row" spacing={1.25} alignItems="center" sx={{ color: 'inherit', textDecoration: 'none' }}>
@@ -103,7 +103,7 @@ const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardV
               const address = proposal.pubkey?.toBase58?.() || String(proposal.pubkey);
               return <Box key={address} component={Link} to={`/proposal/${item.governanceAddress}/${address}`} sx={{
                 display: 'flex', alignItems: 'center', gap: 1, p: 1.25, mb: 0.75, borderRadius: '10px',
-                background: 'rgba(0,0,0,0.22)', textDecoration: 'none', color: '#eef4fa',
+                border: '1px solid #ffffff0a', background: 'rgba(11,17,28,0.4)', textDecoration: 'none', color: '#eef4fa',
                 '&:hover': { background: 'rgba(123,220,187,0.12)' },
               }}>
                 <HowToVoteIcon sx={{ fontSize: 16, color: '#7bdcbb', flexShrink: 0 }} />
@@ -116,7 +116,7 @@ const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardV
         ) : (
           <Typography variant="body2" sx={{ mt: 2, flex: 1, color: '#9cabbc', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{desc || 'Discover this community and take part in its next decision.'}</Typography>
         )}
-        <Box component={Link} to={"/dao/" + item.governanceAddress} sx={{ mt: 2, pt: 1.25, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', justifyContent: 'space-between', textDecoration: 'none', color: '#a9c4db', fontSize: 12, '&:hover': { color: '#fff' } }}>
+        <Box component={Link} to={"/dao/" + item.governanceAddress} sx={{ mt: 2, pt: 1.25, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', justifyContent: 'space-between', textDecoration: 'none', color: '#b6ecd5', fontSize: 13, '&:hover': { color: '#fff' } }}>
           <span>Explore DAO</span><span aria-hidden="true">→</span>
         </Box>
       </Card>

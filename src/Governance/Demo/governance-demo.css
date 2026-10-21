@@ -1138,3 +1138,45 @@
     padding: 10px 8px;
   }
 }
+.gd-dao-nav .gd-old-view {
+  order: 2;
+  margin-left: auto;
+  align-self: center;
+  min-height: 32px;
+  padding: 5px 10px;
+  font-size: 11px;
+  border: 1px solid #ffffff30;
+  border-radius: 7px;
+  background: #ffffff04;
+}
+.gd-dao-nav .gd-vine-link {
+  font-size: 12px;
+}
+.gd-treasury-wallet {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #a6b3c740;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #223140, #172432);
+  box-shadow: 0 4px 16px #0002;
+  transition: border-color 0.15s;
+}
+.gd-treasury-wallet:hover,
+.gd-treasury-wallet:focus-within {
+  border-color: #91cbb67a;
+}
+.gd-treasury-wallet > .MuiPaper-root,
+.gd-treasury-wallet > .MuiBox-root {
+  background: transparent !important;
+  box-shadow: none;
+}
+@media (max-width: 650px) {
+  .gd-treasury-wallet {
+    padding: 8px;
+    border-radius: 12px;
+  }
+  .gd-dao-nav .gd-old-view {
+    min-height: 40px;
+    margin-left: 0;
+  }
+}

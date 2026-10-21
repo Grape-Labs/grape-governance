@@ -3,7 +3,20 @@ import DaoPageLayout from "./DaoPageLayout";
 import { GovernanceMembersView } from "../GovernanceMembers";
 import { GovernanceTreasuryView } from "../GovernanceTreasury";
 import { GovernanceStatsView } from "../GovernanceStats";
-import { GovernanceReputationView } from "../GovernanceReputation";
+function VineReputationView(_props: any) {
+  return (
+    <div className="gd-main gd-content">
+      <p>DAO reputation is available on Vine / OG Reputation.</p>
+      <a
+        href="https://vine.governance.so/dao/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Open Vine / OG Reputation ↗
+      </a>
+    </div>
+  );
+}
 const pages = {
   members: {
     title: "Members",
@@ -21,9 +34,9 @@ const pages = {
     View: GovernanceStatsView,
   },
   reputation: {
-    title: "Reputation",
+    title: "Vine / OG Reputation",
     description: "Community contributions and reputation.",
-    View: GovernanceReputationView,
+    View: VineReputationView,
   },
 };
 export default function GrapeDaoSection({
