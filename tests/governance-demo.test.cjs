@@ -36,6 +36,8 @@ const compiled = transformSync(fs.readFileSync(filename, "utf8"), {
 const loaded = new Module(filename, module);
 loaded.filename = filename;
 loaded.paths = Module._nodeModulePaths(path.dirname(filename));
+let walletAddress = "test-wallet";
+let voteFailure = false;
 let fail = false;
 let renderFailure = false;
 const realm = "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip";
@@ -51,6 +53,12 @@ const rows = [
 ];
 loaded.require = function (id) {
   if (id.endsWith(".css")) return {};
+  if (id === "@solana/wallet-adapter-react")
+    return {
+      useWallet: () => ({
+        publicKey: walletAddress ? { toBase58: () => walletAddress } : null,
+      }),
+    };
   if (id === "./ProposalPreviewBoundary") {
     const file = path.resolve(
       "src/Governance/Demo/ProposalPreviewBoundary.tsx"
@@ -72,6 +80,13 @@ loaded.require = function (id) {
   }
   if (id === "../api/queries")
     return {
+      getVoteRecordsByVoterIndexed: async () => {
+        if (voteFailure) throw new Error("Unavailable");
+        return [
+          { account: { proposal: "active-proposal", isRelinquished: false } },
+          { account: { proposal: "closed-proposal", isRelinquished: true } },
+        ];
+      },
       getRealmIndexed: async (address) => {
         assert.equal(address, realm);
         if (fail) throw new Error("RPC unavailable");
@@ -248,6 +263,36 @@ test("a proposal render error preserves the list and provides a working retry", 
   } finally {
     renderFailure = false;
     console.error = originalError;
+    cleanup();
+  }
+});
+
+test("sidebar distinguishes active votes, past proposals and wallet participation", async () => {
+  try {
+    mount();
+    assert.ok(await screen.findByText("Voted"));
+    assert.ok(screen.getByText("Not voted"));
+    assert.match(
+      screen.getByRole("button", { name: /Grape community grant/ }).className,
+      /is-voting/
+    );
+    assert.match(
+      screen.getByRole("button", { name: /Existing treasury allocation/ })
+        .className,
+      /is-past/
+    );
+  } finally {
+    cleanup();
+  }
+});
+test("failed vote lookup is not presented as not voted", async () => {
+  try {
+    voteFailure = true;
+    mount();
+    assert.equal((await screen.findAllByText("Vote unavailable")).length, 2);
+    assert.equal(screen.queryByText("Not voted"), null);
+  } finally {
+    voteFailure = false;
     cleanup();
   }
 });
