@@ -1216,3 +1216,25 @@
 .gd-author-verified { color: var(--gd-green); }
 .gd-author-details { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; overflow-wrap: anywhere; }
 .gd-author-details a { color: #b6ecd5; }
+.gd-author-providers { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.gd-author-providers > span { margin-right: 2px; }
+.gd-author-providers a {
+  padding: 1px 7px;
+  border: 1px solid #64dfb133;
+  border-radius: 6px;
+  background: #64dfb109;
+  text-decoration: none;
+}
+.gd-author-providers a:hover { border-color: #64dfb180; }
+
+/* Keep the proposal heading on a consistent, compact vertical rhythm. */
+.gd-live .gd-card-top { padding: 16px 24px 12px; }
+.gd-live .gd-content { padding: 0 24px 24px; }
+.gd-live .gd-content > h2 { margin: 0 0 12px; }
+.gd-live .gd-content > .gd-description { margin: 0 0 12px; max-width: none; }
+.gd-live .gd-content > .gd-author { margin: 0 0 12px; }
+.gd-live .gd-author summary { line-height: 1.6; }
+@media (max-width: 650px) {
+  .gd-live .gd-card-top { padding: 14px 14px 12px; }
+  .gd-live .gd-content { padding: 0 14px 18px; }
+}
