@@ -1187,45 +1187,24 @@
   font-size: 11px;
 }
 
+/* Compact approval and wallet sentiment summary. */
 .gd-vote-overview {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin: 24px 0;
-}
-.gd-vote-panel {
-  min-width: 0;
-  padding: 16px;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  margin: 16px 0;
   border: 1px solid #ffffff18;
-  border-radius: 16px;
+  border-radius: 12px;
   background: #ffffff03;
 }
-.gd-vote-panel h3 { margin: 0; font-size: 15px; font-weight: 600; }
-.gd-vote-panel p { margin: 6px 0 12px; color: var(--gd-muted); font-size: 12px; }
-.gd-vote-panel .gd-bar { margin: 12px 0 8px; }
-.gd-vote-metrics { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 11px; color: var(--gd-muted); }
+.gd-vote-panel { min-width: 0; padding: 12px 16px; }
+.gd-vote-panel + .gd-vote-panel { border-left: 1px solid #ffffff12; }
+.gd-vote-panel h3 { margin: 0; font-size: 13px; font-weight: 600; }
+.gd-vote-panel p { margin: 6px 0 0; color: var(--gd-muted); font-size: 11px; }
+.gd-vote-panel .gd-bar { height: 5px; margin: 8px 0; }
+.gd-vote-metrics { display: flex; justify-content: space-between; gap: 4px 12px; flex-wrap: wrap; font-size: 11px; color: var(--gd-muted); }
 .gd-vote-panel p.gd-passing { color: var(--gd-green); }
-.gd-vote-panel p:last-child { margin-bottom: 0; }
-@media (max-width: 900px) {
+.gd-voter-count { display: block; margin: 6px 0; font-size: 14px; }
+@media (max-width: 600px) {
   .gd-vote-overview { grid-template-columns: 1fr; }
-}
-
-/* One summary strip; separate metrics without nested cards. */
-.gd-vote-overview {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, .7fr);
-  gap: 0;
-  border: 1px solid #ffffff18;
-  border-radius: 16px;
-  background: #ffffff03;
-}
-.gd-vote-overview .gd-vote-panel {
-  border: 0;
-  border-radius: 0;
-  background: none;
-}
-.gd-vote-overview .gd-vote-panel + .gd-vote-panel { border-left: 1px solid #ffffff12; }
-.gd-voter-count { display: block; margin: 10px 0 8px; font-size: 15px; }
-@media (max-width: 700px) {
-  .gd-vote-overview { grid-template-columns: 1fr; }
-  .gd-vote-overview .gd-vote-panel + .gd-vote-panel { border-left: 0; border-top: 1px solid #ffffff12; }
+  .gd-vote-panel + .gd-vote-panel { border-left: 0; border-top: 1px solid #ffffff12; }
 }
