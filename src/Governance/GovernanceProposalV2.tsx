@@ -8051,6 +8051,23 @@ export function GovernanceProposalV2View(props: any){
         return props.renderSimple({
             proposal: thisitem,
             stateLabel: GOVERNANCE_STATE[thisitem.account.state] || 'Unknown',
+            author: proposalAuthorAddress ? {
+                address: proposalAuthorAddress,
+                power: authorVotingMeta.hasMemberRecord && tokenDecimals !== null
+                    ? formatCompactNumber(authorVotingMeta.votingPower) : null,
+                powerType: authorVotingMeta.proposalTypeLabel,
+                verification: proposalAuthorVerification.loading ? 'Checking verification…'
+                    : !proposalAuthorVerification.checked ? 'Verification unavailable'
+                    : proposalAuthorVerification.spaceFrozen ? 'Verification paused'
+                    : proposalAuthorVerification.matches.some(match => match.active) ? 'Verified'
+                    : 'Not verified',
+                reputation: proposalAuthorReputation.loading ? 'Loading reputation…'
+                    : proposalAuthorReputation.checked && proposalAuthorReputation.baselineAvailable
+                        ? formatCompactNumber(proposalAuthorReputation.points) + ' reputation'
+                        : 'Reputation unavailable',
+                season: proposalAuthorReputation.season,
+                previousSeason: proposalAuthorReputation.usingPreviousSeason,
+            } : null,
             forVotes: tokenDecimals === null ? 'Loading…' : formatMetricValue(forUi), againstVotes: tokenDecimals === null ? 'Loading…' : formatMetricValue(againstUi),
             forPct, totalCastUi, isMultiChoiceProposal,
             sentiment: Array.isArray(solanaVotingResultRows) ? distinctVoterSentiment(solanaVotingResultRows) : null,
