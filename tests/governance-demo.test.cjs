@@ -101,6 +101,9 @@ loaded.require = function (id) {
           hasVoted: true,
           hasVotedSide: "yes",
           instructionCount: 2,
+          assetSummary: [
+            { mint: "grape-mint", name: "GRAPE", amount: 100, recipients: 1 },
+          ],
           instructionDetails: [
             {
               description: "Transfer to grant recipient",
@@ -152,7 +155,13 @@ test("loads actual realm proposals, prioritizes active votes, and preserves the 
     assert.ok(
       screen.getByRole("heading", { name: "2 executable transactions" })
     );
-    assert.ok(screen.getByText(/Transfer to grant recipient/));
+    assert.ok(screen.getByText("100 GRAPE"));
+    assert.equal(screen.queryByText(/Transfer to grant recipient/), null);
+    assert.ok(
+      screen.getByRole("button", {
+        name: "Review instructions & recipient checks",
+      })
+    );
     fireEvent.click(
       screen.getByRole("button", {
         name: "Review execution plan & risks",
