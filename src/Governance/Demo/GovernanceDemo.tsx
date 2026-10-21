@@ -1,7 +1,9 @@
 import React from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import ProposalPreviewBoundary from "./ProposalPreviewBoundary";
 import { useSearchParams } from "react-router-dom";
 import {
+  getVoteRecordsByVoterIndexed,
   getRealmIndexed,
   getAllGovernancesIndexed,
   getAllProposalsIndexed,
@@ -26,6 +28,13 @@ const address = (value: any) => value?.toBase58?.() || String(value || "");
 
 export default function GovernanceDemo() {
   const [params, setParams] = useSearchParams();
+  const { publicKey } = useWallet();
+  const walletAddress = address(publicKey);
+  const [voteHistory, setVoteHistory] = React.useState<{
+    wallet: string;
+    voted: Set<string>;
+    status: string;
+  }>({ wallet: "", voted: new Set(), status: "loading" });
   const [proposals, setProposals] = React.useState<any[]>([]);
   const [realm, setRealm] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
@@ -74,6 +83,63 @@ export default function GovernanceDemo() {
       cancelled = true;
     };
   }, [revision]);
+  React.useEffect(() => {
+    if (!walletAddress || !realm) return;
+    let cancelled = false;
+    let running = false;
+    setVoteHistory({
+      wallet: walletAddress,
+      voted: new Set(),
+      status: "loading",
+    });
+    const load = async () => {
+      if (running) return;
+      running = true;
+      try {
+        const records = await getVoteRecordsByVoterIndexed(
+          address(realm.owner),
+          GRAPE_REALM,
+          walletAddress
+        );
+        if (!Array.isArray(records))
+          throw new Error("Vote history unavailable");
+        const voted = new Set<string>(
+          records
+            .filter((record) => !record.account?.isRelinquished)
+            .map((record) => address(record.account?.proposal))
+        );
+        if (!cancelled)
+          setVoteHistory({ wallet: walletAddress, voted, status: "ready" });
+      } catch {
+        if (!cancelled)
+          setVoteHistory({
+            wallet: walletAddress,
+            voted: new Set(),
+            status: "error",
+          });
+      } finally {
+        running = false;
+      }
+    };
+    void load();
+    const timer = window.setInterval(load, 60000);
+    window.addEventListener("focus", load);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", load);
+    };
+  }, [walletAddress, realm, revision]);
+  const voteLabel = (id: string) =>
+    !walletAddress
+      ? null
+      : voteHistory.wallet !== walletAddress || voteHistory.status === "loading"
+      ? "Checking vote…"
+      : voteHistory.status === "error"
+      ? "Vote unavailable"
+      : voteHistory.voted.has(id)
+      ? "Voted"
+      : "Not voted";
   const selected = requested
     ? proposals.find((item) => address(item.pubkey) === requested)
     : proposals[0];
@@ -96,7 +162,7 @@ export default function GovernanceDemo() {
       <div className="gd-shell">
         <header className="gd-header">
           <a href={`/dao/${GRAPE_REALM}`} className="gd-brand">
-            <span className="gd-brand-icon">G</span> Grape DAO{" "}
+            <span className="gd-brand-icon">G</span> Governance{" "}
             <span className="gd-brand-muted">/ Lab</span>
           </a>
           <span className="gd-demo-badge">
@@ -111,10 +177,7 @@ export default function GovernanceDemo() {
               <br />
               <span>A clearer decision.</span>
             </h1>
-            <p>
-              Real proposals, real votes. Explore a simpler view of Grape
-              governance.
-            </p>
+            <p>Real proposals. Real votes.</p>
           </div>
           {loading ? (
             <p role="status">Loading Grape DAO proposals…</p>
@@ -362,8 +425,16 @@ export default function GovernanceDemo() {
               <aside className="gd-sidebar">
                 <section className="gd-scenarios">
                   <span className="gd-eyebrow">GRAPE DAO</span>
-                  <h3>Choose a proposal.</h3>
-                  <p>Active votes first, followed by recent proposals.</p>
+                  <h3>
+                    Proposals{" "}
+                    <span className="gd-active-count">
+                      {
+                        proposals.filter((item) => item.account.state === 2)
+                          .length
+                      }{" "}
+                      voting
+                    </span>
+                  </h3>
                   <label className="gd-search">
                     Search proposals
                     <input
@@ -378,17 +449,28 @@ export default function GovernanceDemo() {
                       <button
                         key={address(item.pubkey)}
                         aria-pressed={selectedAddress === address(item.pubkey)}
-                        className={
+                        className={`${
                           selectedAddress === address(item.pubkey)
                             ? "is-selected"
                             : ""
-                        }
+                        } ${
+                          item.account.state === 2 ? "is-voting" : "is-past"
+                        }`}
                         onClick={() => select(address(item.pubkey))}
                       >
                         <span>
                           <strong>{item.account.name}</strong>
                           <small>
-                            {states[item.account.state] || "Unknown"}
+                            <span className="gd-list-state">
+                              {item.account.state === 2
+                                ? "● Voting"
+                                : states[item.account.state] || "Unknown"}
+                            </span>
+                            {voteLabel(address(item.pubkey)) && (
+                              <span className="gd-vote-label">
+                                {voteLabel(address(item.pubkey))}
+                              </span>
+                            )}
                           </small>
                         </span>
                       </button>
