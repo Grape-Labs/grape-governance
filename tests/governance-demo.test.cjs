@@ -165,6 +165,10 @@ test("loads actual realm proposals, prioritizes active votes, and preserves the 
       await screen.findByRole("heading", { name: "Grape community grant" })
     );
     assert.ok(screen.getByText("123"));
+    assert.equal(
+      screen.queryByRole("link", { name: /Return to Grape DAO/ }),
+      null
+    );
     assert.ok(screen.getByText("Loaded Gist proposal text"));
     assert.ok(screen.getByText(/Vote recorded · yes/));
     assert.ok(screen.getByText(/Own power 100/));
