@@ -297,6 +297,25 @@ export default function GovernanceDemo({
                                   ? "Review the proposal and choose whether to support it."
                                   : `This proposal is ${view.stateLabel.toLowerCase()}. Its recorded outcome is shown below.`}
                               </p>
+                              {view.author && (
+                                <details className="gd-author">
+                                  <summary>
+                                    <span>By <strong>{view.author.address.slice(0, 4)}…{view.author.address.slice(-4)}</strong></span>
+                                    <span title="Current deposited voting power; excludes delegated power and plugin adjustments">
+                                      {view.author.power == null ? "Power unavailable" : `${view.author.power} ${view.author.powerType.toLowerCase()} power`}
+                                    </span>
+                                    <span className={view.author.verification === "Verified" ? "gd-author-verified" : ""}>{view.author.verification}</span>
+                                    <span>{view.author.reputation}</span>
+                                  </summary>
+                                  <div className="gd-author-details">
+                                    <a href={`https://explorer.solana.com/address/${view.author.address}`} target="_blank" rel="noopener noreferrer">{view.author.address} ↗</a>
+                                    <span>Power reflects current deposits, excluding delegation and plugin adjustments.</span>
+                                    <a href={`https://vine.governance.so/dao/${GRAPE_REALM}`} target="_blank" rel="noopener noreferrer">
+                                      Vine / OG Reputation{view.author.season != null ? ` · Season ${view.author.season}${view.author.previousSeason ? " (previous)" : ""}` : ""} ↗
+                                    </a>
+                                  </div>
+                                </details>
+                              )}
                               {view.warning && (
                                 <div className="gd-live-warning" role="alert">
                                   {view.warning}

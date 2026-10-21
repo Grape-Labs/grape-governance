@@ -1208,3 +1208,11 @@
   .gd-vote-overview { grid-template-columns: 1fr; }
   .gd-vote-panel + .gd-vote-panel { border-left: 0; border-top: 1px solid #ffffff12; }
 }
+
+.gd-author { margin: 8px 0 18px; color: var(--gd-muted); font-size: 11px; }
+.gd-author summary { cursor: pointer; line-height: 1.8; }
+.gd-author summary > span { display: inline-block; margin-right: 14px; }
+.gd-author strong { color: var(--gd-text); font-weight: 500; }
+.gd-author-verified { color: var(--gd-green); }
+.gd-author-details { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; overflow-wrap: anywhere; }
+.gd-author-details a { color: #b6ecd5; }
