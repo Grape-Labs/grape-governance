@@ -45,3 +45,18 @@ test('sentiment deduplicates wallets and excludes withdrawn votes', () => {
     row(null,0),
   ]), {total:4,for:2,against:1,other:1});
 });
+test('all voting proposals lead, ordered by voting start rather than draft age', () => {
+  const proposal = (id, state, draftAt, votingAt) => ({ id, account: { state, draftAt, votingAt } });
+  const oldDraft = proposal('old-draft-new-vote', 0, 1);
+  const rows = [
+    proposal('completed', 5, 900, 950),
+    proposal('new-draft', 0, 1000),
+    proposal('older-vote', 2, 500, 600),
+    oldDraft,
+    proposal('missing-start', 2, 100),
+  ];
+  oldDraft.account.state = 2;
+  oldDraft.account.votingAt = 800;
+  assert.deepEqual(rows.sort(mod.exports.compareProposalPriority).map(row => row.id),
+    ['old-draft-new-vote','older-vote','missing-start','new-draft','completed']);
+});

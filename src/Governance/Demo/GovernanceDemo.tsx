@@ -3,7 +3,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import ProposalPreviewBoundary from "./ProposalPreviewBoundary";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import DaoPageLayout from "./DaoPageLayout";
-import { recordedVoteLabel, proposalListStatus } from "./proposalListStatus";
+import { recordedVoteLabel, proposalListStatus, compareProposalPriority } from "./proposalListStatus";
 import {
   getVoteRecordsByVoterIndexed,
   getRealmIndexed,
@@ -66,14 +66,7 @@ export default function GovernanceDemo({
           owner,
           GRAPE_REALM
         );
-        const sorted = [...rows].sort((a, b) => {
-          const active =
-            Number(b.account.state === 2) - Number(a.account.state === 2);
-          return (
-            active ||
-            Number(b.account.draftAt || 0) - Number(a.account.draftAt || 0)
-          );
-        });
+        const sorted = [...rows].sort(compareProposalPriority);
         if (!cancelled) {
           setRealm(liveRealm);
           setProposals(sorted);
