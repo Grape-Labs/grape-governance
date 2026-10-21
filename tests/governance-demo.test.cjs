@@ -59,11 +59,12 @@ loaded.require = function (id) {
         publicKey: walletAddress ? { toBase58: () => walletAddress } : null,
       }),
     };
-  if (id === "./ProposalPreviewBoundary") {
-    const file = path.resolve(
-      "src/Governance/Demo/ProposalPreviewBoundary.tsx"
-    );
+  if (id === "./ProposalPreviewBoundary" || id === "./GrapeDaoNavigation") {
+    const file = path.resolve(`src/Governance/Demo/${id.slice(2)}.tsx`);
     const child = new Module(file, module);
+    child.require = function (id) {
+      return id.endsWith(".css") ? {} : Module.prototype.require.call(this, id);
+    };
     child.filename = file;
     child.paths = Module._nodeModulePaths(path.dirname(file));
     child._compile(
@@ -191,8 +192,10 @@ test("loads actual realm proposals, prioritizes active votes, and preserves the 
     );
     assert.equal(screen.queryByText("Existing instruction review"), null);
     assert.equal(
-      screen.getByRole("link", { name: /Original page/ }).getAttribute("href"),
-      `/proposal/${realm}/closed-proposal`
+      screen
+        .getByRole("link", { name: /Advanced proposal/ })
+        .getAttribute("href"),
+      `/proposal/${realm}/closed-proposal?view=advanced`
     );
   } finally {
     cleanup();
@@ -243,6 +246,9 @@ test("both demo URLs are active JSX routes, not commented-out declarations", () 
   assert.equal(routes.get("/demo/governance"), "GovernanceDemo");
   assert.equal(routes.get(`/demo/governance/dao/${realm}`), "GovernanceDemo");
   assert.equal(routes.get("proposal/*"), "GovernanceProposalWrapper");
+  assert.equal(routes.get(`dao/${realm}`), "GrapeDaoPage");
+  assert.equal(routes.get(`proposal/${realm}/:proposal`), "GrapeDaoPage");
+  assert.equal(routes.get(`governance/${realm}`), "GrapeDaoPage");
 });
 
 test("a proposal render error preserves the list and provides a working retry", async () => {
@@ -293,6 +299,104 @@ test("failed vote lookup is not presented as not voted", async () => {
     assert.equal(screen.queryByText("Not voted"), null);
   } finally {
     voteFailure = false;
+    cleanup();
+  }
+});
+
+test("DAO landing and direct proposal URLs use simple view; advanced routes retain the old views", () => {
+  const file = path.resolve("src/Governance/Demo/GrapeDaoPage.tsx");
+  const page = new Module(file, module);
+  page.filename = file;
+  page.paths = Module._nodeModulePaths(path.dirname(file));
+  page.require = function (id) {
+    if (id === "./GovernanceDemo")
+      return {
+        __esModule: true,
+        default: () => React.createElement("p", null, "Simple landing"),
+      };
+    if (id === "./GrapeDaoNavigation")
+      return { __esModule: true, default: () => null };
+    if (id === "../Governance")
+      return {
+        GovernanceCachedView: (props) =>
+          React.createElement(
+            "p",
+            null,
+            `Advanced DAO ${props.governanceAddress}`
+          ),
+      };
+    if (id === "../GovernanceProposalWrapper")
+      return {
+        GovernanceProposalWrapper: (props) =>
+          React.createElement(
+            "p",
+            null,
+            `Advanced proposal ${props.governanceAddress}`
+          ),
+      };
+    return Module.prototype.require.call(this, id);
+  };
+  page._compile(
+    transformSync(fs.readFileSync(file, "utf8"), {
+      filename: file,
+      configFile: false,
+      babelrc: false,
+      presets: ["@babel/preset-typescript", "@babel/preset-react"],
+      plugins: ["@babel/plugin-transform-modules-commonjs"],
+    }).code,
+    file
+  );
+  const Page = page.exports.default;
+  for (const [url, advanced, expected] of [
+    [`/dao/${realm}`, false, "Simple landing"],
+    [`/proposal/${realm}/proposal-id`, false, "Simple landing"],
+    [
+      `/proposal/${realm}/proposal-id?view=advanced`,
+      false,
+      `Advanced proposal ${realm}`,
+    ],
+    [`/governance/${realm}`, true, `Advanced DAO ${realm}`],
+  ]) {
+    try {
+      render(
+        React.createElement(
+          MemoryRouter,
+          { initialEntries: [url] },
+          React.createElement(Page, { advanced })
+        )
+      );
+      assert.ok(screen.getByText(expected));
+    } finally {
+      cleanup();
+    }
+  }
+});
+
+test("no active votes shows recent decisions instead of auto-opening an old proposal", async () => {
+  const previous = rows[1].account.state;
+  try {
+    rows[1].account.state = 5;
+    mount();
+    assert.ok(await screen.findByRole("heading", { name: "No active votes" }));
+    assert.ok(screen.getByRole("heading", { name: "Recent decisions" }));
+    assert.equal(
+      screen.queryByRole("heading", { name: "Existing treasury allocation" }),
+      null
+    );
+    fireEvent.click(
+      screen.getAllByRole("button", { name: /Existing treasury allocation/ })[0]
+    );
+    assert.ok(
+      await screen.findByRole("heading", {
+        name: "Existing treasury allocation",
+      })
+    );
+    assert.equal(
+      screen.queryByRole("heading", { name: "No active votes" }),
+      null
+    );
+  } finally {
+    rows[1].account.state = previous;
     cleanup();
   }
 });

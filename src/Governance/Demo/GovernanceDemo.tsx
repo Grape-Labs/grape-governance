@@ -1,7 +1,8 @@
 import React from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import ProposalPreviewBoundary from "./ProposalPreviewBoundary";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useParams, useNavigate } from "react-router-dom";
+import GrapeDaoNavigation from "./GrapeDaoNavigation";
 import {
   getVoteRecordsByVoterIndexed,
   getRealmIndexed,
@@ -26,7 +27,13 @@ const states = [
 ];
 const address = (value: any) => value?.toBase58?.() || String(value || "");
 
-export default function GovernanceDemo() {
+export default function GovernanceDemo({
+  landing = false,
+}: {
+  landing?: boolean;
+}) {
+  const route = useParams();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const { publicKey } = useWallet();
   const walletAddress = address(publicKey);
@@ -42,7 +49,7 @@ export default function GovernanceDemo() {
   const [revision, setRevision] = React.useState(0);
   const [filter, setFilter] = React.useState("");
   const [expandedFor, setExpandedFor] = React.useState<string | null>(null);
-  const requested = params.get("proposal");
+  const requested = route.proposal || params.get("proposal");
   React.useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -140,6 +147,10 @@ export default function GovernanceDemo() {
       : voteHistory.voted.has(id)
       ? "Voted"
       : "Not voted";
+  const activeCount = proposals.filter(
+    (item) => item.account.state === 2
+  ).length;
+  const noActiveVotes = !requested && activeCount === 0;
   const selected = requested
     ? proposals.find((item) => address(item.pubkey) === requested)
     : proposals[0];
@@ -153,20 +164,25 @@ export default function GovernanceDemo() {
     String(item.account.name).toLowerCase().includes(filter.toLowerCase())
   );
   const select = (id: string) => {
-    setParams({ proposal: id });
+    if (landing) navigate(`/proposal/${GRAPE_REALM}/${id}`);
+    else setParams({ proposal: id });
     setExpanded(false);
   };
 
   return (
     <div className="governance-demo gd-live">
       <div className="gd-shell">
+        <GrapeDaoNavigation />
         <header className="gd-header">
           <a href={`/dao/${GRAPE_REALM}`} className="gd-brand">
             <span className="gd-brand-icon">G</span> Governance{" "}
             <span className="gd-brand-muted">/ Lab</span>
           </a>
           <span className="gd-demo-badge">
-            <span /> Real proposals · Experimental layout
+            <span />{" "}
+            {landing
+              ? "Live DAO governance"
+              : "Real proposals · Experimental layout"}
           </span>
         </header>
         <main>
@@ -197,7 +213,52 @@ export default function GovernanceDemo() {
                 aria-label="Selected proposal"
                 className="gd-live-proposal"
               >
-                {!selected ? (
+                {noActiveVotes ? (
+                  <section
+                    className="gd-main gd-empty-state"
+                    aria-labelledby="gd-empty-title"
+                  >
+                    <span className="gd-empty-icon" aria-hidden="true">
+                      ✓
+                    </span>
+                    <h2 id="gd-empty-title">No active votes</h2>
+                    <p>
+                      You’re all caught up. There’s nothing open for voting
+                      right now.
+                    </p>
+                    {proposals.length > 0 ? (
+                      <>
+                        <h3>Recent decisions</h3>
+                        <div className="gd-scenario-list gd-recent-decisions">
+                          {proposals.slice(0, 3).map((item) => (
+                            <button
+                              key={address(item.pubkey)}
+                              onClick={() => select(address(item.pubkey))}
+                            >
+                              <span>
+                                <strong>{item.account.name}</strong>
+                                <small>
+                                  {states[item.account.state] || "Unknown"}
+                                </small>
+                              </span>
+                              <span aria-hidden="true">↗</span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="gd-footnote">
+                        No proposals have been found for this DAO yet.
+                      </p>
+                    )}
+                    <button
+                      className="gd-secondary"
+                      onClick={() => setRevision((n) => n + 1)}
+                    >
+                      Check for new proposals
+                    </button>
+                  </section>
+                ) : !selected ? (
                   <div className="gd-main gd-content">
                     <h2>
                       {requested
@@ -208,7 +269,8 @@ export default function GovernanceDemo() {
                     <button
                       className="gd-secondary"
                       onClick={() => {
-                        setParams({});
+                        if (landing) navigate(`/dao/${GRAPE_REALM}`);
+                        else setParams({});
                         setRevision((n) => n + 1);
                       }}
                     >
@@ -218,7 +280,7 @@ export default function GovernanceDemo() {
                 ) : (
                   <ProposalPreviewBoundary
                     key={`${selectedAddress}:${revision}`}
-                    originalUrl={`/proposal/${GRAPE_REALM}/${selectedAddress}`}
+                    originalUrl={`/proposal/${GRAPE_REALM}/${selectedAddress}?view=advanced`}
                     onRetry={() => setRevision((n) => n + 1)}
                   >
                     <GovernanceProposalV2View
@@ -400,9 +462,9 @@ export default function GovernanceDemo() {
                                     : "Review execution plan & risks"}
                                 </button>
                                 <a
-                                  href={`/proposal/${GRAPE_REALM}/${selectedAddress}`}
+                                  href={`/proposal/${GRAPE_REALM}/${selectedAddress}?view=advanced`}
                                 >
-                                  Original page ↗
+                                  Advanced proposal ↗
                                 </a>
                               </div>
                             </div>
@@ -426,7 +488,7 @@ export default function GovernanceDemo() {
                 <section className="gd-scenarios">
                   <span className="gd-eyebrow">GRAPE DAO</span>
                   <h3>
-                    Proposals{" "}
+                    {activeCount ? "Proposals" : "Proposal history"}{" "}
                     <span className="gd-active-count">
                       {
                         proposals.filter((item) => item.account.state === 2)
@@ -490,7 +552,9 @@ export default function GovernanceDemo() {
         </main>
         <footer className="gd-footer">
           <span>
-            Experimental presentation · Existing governance transactions
+            {landing
+              ? "Grape DAO governance"
+              : "Experimental presentation · Existing governance transactions"}
           </span>
           <a href={`/dao/${GRAPE_REALM}`}>Return to Grape DAO ↗</a>
         </footer>

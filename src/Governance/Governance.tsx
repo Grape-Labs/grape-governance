@@ -1526,7 +1526,7 @@ function RenderGovernanceTable(props:any) {
 export function GovernanceCachedView(props: any) {
     const [searchParams, setSearchParams] = useSearchParams();
     const { handlekey, proposal: routeProposalPk } = useParams<{ handlekey: string; proposal?: string }>();
-    const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
+    const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey || props.governanceAddress;
     const sharedProposalPk =
       searchParams.get("proposal") ||
       searchParams.get("proposalPk") ||
