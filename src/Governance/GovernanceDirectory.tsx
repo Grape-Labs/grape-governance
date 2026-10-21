@@ -50,7 +50,8 @@ import {
 
 
 
-import { GGAPI_STORAGE_POOL } from '../utils/grapeTools/constants';
+import { participatingDaoCache } from './participatingDaoCache';
+import { GGAPI_STORAGE_POOL, RPC_CONNECTION } from '../utils/grapeTools/constants';
 import { buildParticipatingDirectory, directorySummary, directoryRealmKey, rankDirectoryByProposals } from './directorySummary';
 
 interface Props {
@@ -661,17 +662,22 @@ export function GovernanceDirectoryView(props: Props) {
     loadGovernanceDirectory(false);
   }, [loadGovernanceDirectory]);
 
+  const previousWalletRefresh = React.useRef(walletRefresh);
   React.useEffect(() => {
     let cancelled = false;
-    setWalletMemberships([]);
+    const force = previousWalletRefresh.current !== walletRefresh;
+    previousWalletRefresh.current = walletRefresh;
+    const endpoint = RPC_CONNECTION.rpcEndpoint;
+    const cached = walletAddress ? participatingDaoCache.read(walletAddress, endpoint) : null;
+    setWalletMemberships(cached?.records || []);
     setMembershipWallet(walletAddress);
     setWalletError(null);
-    setWalletFavoritesLoading(!!walletAddress);
+    setWalletFavoritesLoading(!!walletAddress && !cached);
     if (!walletAddress) return;
 
     const load = async () => {
       try {
-        const { records, failedPrograms } = await getWalletGovernanceMemberships(walletAddress);
+        const { records, failedPrograms } = await participatingDaoCache.load(walletAddress, endpoint, getWalletGovernanceMemberships, force);
         if (cancelled) return;
         // Keep membership records even when voting power is held by a plugin.
         setWalletMemberships(records);
@@ -679,7 +685,7 @@ export function GovernanceDirectoryView(props: Props) {
           setWalletError('Some DAOs could not be checked. Retry to complete your memberships.');
         }
       } catch (error) {
-        if (!cancelled) setWalletError('Unable to check your DAOs. Please retry.');
+        if (!cancelled) setWalletError(cached ? 'Showing saved DAOs. Refresh failed; please retry.' : 'Unable to check your DAOs. Please retry.');
       } finally {
         if (!cancelled) setWalletFavoritesLoading(false);
       }

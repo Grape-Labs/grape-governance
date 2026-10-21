@@ -574,7 +574,6 @@ export default function GovernanceDemo({
               ? "Grape DAO governance"
               : "Experimental presentation · Existing governance transactions"}
           </span>
-          <a href={`/dao/${GRAPE_REALM}`}>Return to Grape DAO ↗</a>
         </footer>
       </div>
     </div>

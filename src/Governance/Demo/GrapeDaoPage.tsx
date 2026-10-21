@@ -15,7 +15,10 @@ export default function GrapeDaoPage({
     return (
       <>
         <GrapeDaoNavigation advanced />
-        <GovernanceCachedView governanceAddress="By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip" />
+        <GovernanceCachedView
+          showGovernanceNavigation={false}
+          governanceAddress="By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip"
+        />
       </>
     );
   if (params.get("view") === "advanced")
