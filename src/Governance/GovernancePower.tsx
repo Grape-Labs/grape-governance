@@ -2283,11 +2283,11 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
         const format = (value: number) => (value / Math.pow(10, decimals)).toLocaleString(undefined, {maximumFractionDigits: 2});
         return <Box aria-label="Your voting power">
             {!publicKey ? <Typography>Connect your wallet to see your vote and voting power.</Typography> : loading || mintDecimals === null ? <Typography role="status">Loading your voting power…</Typography> : <>
-                <Box sx={{display:'flex',gap:3,flexWrap:'wrap'}}>
-                    <Box><Typography variant="caption">Your {council ? 'council' : 'community'} power</Typography><Typography>{format(own)}</Typography></Box>
+                <Box sx={{display:'flex',gap:2,flexWrap:'wrap','& > div':{display:'flex',alignItems:'baseline',gap:0.75},'& p':{fontSize:14,fontWeight:600}}}>
+                    <Box><Typography variant="caption">{council ? 'Council power' : 'Own power'}</Typography><Typography>{format(own)}</Typography></Box>
                     <Box><Typography variant="caption">Delegated to you</Typography><Typography>{isPluginVotingPower && !council ? 'See plugin delegation details' : format(delegated)}</Typography></Box>
                 </Box>
-                {(council ? currentCouncilDelegate : currentCommunityDelegate) && <Typography variant="caption">Your power is delegated to {council ? currentCouncilDelegate : currentCommunityDelegate}.</Typography>}
+                {(council ? currentCouncilDelegate : currentCommunityDelegate) && <Box component="details" sx={{mt:0.5,fontSize:12,color:'text.secondary'}}><Box component="summary" sx={{cursor:'pointer'}}>Delegated out to {(council ? currentCouncilDelegate : currentCommunityDelegate).slice(0,4)}…{(council ? currentCouncilDelegate : currentCommunityDelegate).slice(-4)}</Box><Box sx={{overflowWrap:'anywhere',mt:0.5}}>{council ? currentCouncilDelegate : currentCommunityDelegate}</Box></Box>}
             </>}
         </Box>;
     }

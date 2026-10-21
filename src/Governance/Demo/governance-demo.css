@@ -740,3 +740,46 @@
   min-width: 44px;
   flex: none;
 }
+.gd-live-power {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  padding: 12px 0;
+  margin: 16px 0;
+  border-bottom: 1px solid #ffffff12;
+}
+.gd-live-power > p {
+  margin: 0;
+  font-size: 13px;
+  color: #b6ecd5;
+}
+.gd-live-power > [aria-label="Your voting power"] {
+  flex-basis: 100%;
+}
+.gd-execution-summary {
+  padding: 14px 16px;
+  margin: 16px 0;
+}
+.gd-execution-summary h3 {
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+.gd-execution-summary p {
+  margin: 6px 0 12px;
+}
+.gd-asset-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 10px 0 14px;
+  font-size: 13px;
+}
+.gd-asset-summary > span {
+  background: #ffffff06;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+.gd-asset-summary > span > span {
+  color: var(--gd-muted);
+}

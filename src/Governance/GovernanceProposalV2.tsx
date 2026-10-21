@@ -8053,6 +8053,10 @@ export function GovernanceProposalV2View(props: any){
             hasVoted, hasVotedSide, connected: !!publicKey,
             instructionCount: proposalInstructions ? proposalTransactionCount : null,
             instructionDetails: instructionTransferDetails || [],
+            assetSummary: getGroupedInstructions(instructionTransferDetails || []).filter((item: any) => item.totalAmount > 0).map((item: any) => ({
+                mint: item.mint, name: item.name || item.mint, amount: item.totalAmount,
+                recipients: Object.keys(item.destinationAmounts).length,
+            })),
             findings: proposalRiskAssessment.findings,
             descriptionLoading: simpleDescriptionLoading, descriptionError: simpleDescriptionError,
             descriptionUrl: extractFirstHttpUrl(thisitem.account?.descriptionLink),
@@ -8074,6 +8078,21 @@ export function GovernanceProposalV2View(props: any){
                 <Typography variant="h6">What this proposal can execute</Typography>
                 <Typography variant="body2" sx={{mb:2}}>Approval authorizes these instructions. Review assets, amounts, recipients, and permission changes before voting.</Typography>
                 {proposalRiskAssessment.findings.map((finding, index) => <Alert key={index} severity={finding.severity === 'high' || finding.severity === 'critical' ? 'warning' : 'info'} sx={{mb:1}}><strong>{finding.title}</strong>: {finding.evidence}</Alert>)}
+                {instructionTransferDetails?.length > 0 && realm && <>
+                    <Typography variant="subtitle2" sx={{mt:2}}>Recipient checks</Typography>
+                    <Typography variant="body2" color="text.secondary">Check current DAO deposits, grant retention, reputation, and address verification. Unchecked recipients are not verified.</Typography>
+                    {governanceNativeWallet && <Stack direction="row" spacing={1} sx={{my:1}} flexWrap="wrap">
+                        <GrapeVerificationDAO title="DAO members" governanceAddress={governanceAddress} governanceLookup={governanceLookup}
+                            address={normalizePkString(governanceNativeWallet)} destinationWalletArray={destinationWalletArray}
+                            setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray}/>
+                        <GrapeVerificationSpeedDial address={normalizePkString(governanceNativeWallet)} destinationWalletArray={destinationWalletArray}
+                            setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}/>
+                    </Stack>}
+                    <Typography variant="caption" color="text.secondary">{proposalRecipientReputation.loading ? 'Loading recipient reputation…' : proposalRecipientReputation.checked && proposalRecipientReputation.spaceExists ? 'Recipient reputation is shown alongside instructions below.' : 'Recipient reputation unavailable or not yet checked.'}</Typography>
+                    <ProposalGrantReview details={instructionTransferDetails} realm={normalizePkString(realm.pubkey) || governanceAddress}
+                        mint={normalizePkString(realm.account?.communityMint)}
+                        grantor={governanceAddress === GRAPE_DAO_REALM ? '6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD' : normalizePkString(governanceNativeWallet)}/>
+                </>}
                 <InstructionTableView proposalInstructions={proposalInstructions} proposal={thisitem}
                     governanceNativeWallet={governanceNativeWallet} governanceRulesWallet={thisitem.account.governance}
                     governingTokenMint={thisitem.account.governingTokenMint} setReload={setReload} realm={realm}
@@ -8081,6 +8100,8 @@ export function GovernanceProposalV2View(props: any){
                     cachedTokenMeta={cachedTokenMeta} setInstructionTransferDetails={setInstructionTransferDetails}
                     instructionTransferDetails={instructionTransferDetails} memberMap={memberMap} tokenMap={tokenMap}
                     verifiedDestinationWalletArray={verifiedDestinationWalletArray} verifiedDAODestinationWalletArray={verifiedDAODestinationWalletArray}
+                    recipientReputationByWallet={proposalRecipientReputation.byWallet}
+                    recipientReputationChecked={proposalRecipientReputation.checked && proposalRecipientReputation.spaceExists}
                     instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA}/>
             </Box>,
         });

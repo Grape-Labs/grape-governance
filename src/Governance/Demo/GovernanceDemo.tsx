@@ -248,7 +248,9 @@ export default function GovernanceDemo() {
                                 className="gd-live-power"
                                 aria-label="Your participation"
                               >
-                                <h3>Your participation</h3>
+                                <span className="gd-eyebrow">
+                                  YOUR PARTICIPATION
+                                </span>
                                 <p role="status">
                                   {!view.connected
                                     ? "Connect your wallet to check your vote."
@@ -276,41 +278,33 @@ export default function GovernanceDemo() {
                                 </h3>
                                 <p>
                                   {view.instructionCount > 0
-                                    ? "If this proposal succeeds, these transactions can move treasury assets or change permissions. Read the execution plan before casting your vote."
+                                    ? "Approval authorizes these actions. Review amounts, recipients, and permission changes."
                                     : "The proposal description is not a substitute for checking its on-chain instructions."}
                                 </p>
-                                {(view.instructionDetails || []).map(
-                                  (detail: any, index: number) => (
-                                    <p
-                                      key={index}
-                                      className="gd-instruction-line"
-                                    >
-                                      {detail.description ||
-                                        detail.type ||
-                                        "Instruction"}
-                                      {Number(detail.amount) > 0
-                                        ? ` · ${Number(
-                                            detail.amount
-                                          ).toLocaleString()} ${
-                                            detail.name ||
-                                            detail.mint ||
-                                            "tokens"
-                                          }`
-                                        : ""}
-                                      {detail.destinationAta
-                                        ? ` → ${
-                                            detail.tokenOwner ||
-                                            detail.destinationAta
-                                          }`
-                                        : ""}
-                                    </p>
-                                  )
-                                )}
+                                <div className="gd-asset-summary">
+                                  {(view.assetSummary || []).map(
+                                    (asset: any) => (
+                                      <span key={asset.mint}>
+                                        <strong>
+                                          {Number(
+                                            asset.amount
+                                          ).toLocaleString()}{" "}
+                                          {asset.name}
+                                        </strong>
+                                        <span>
+                                          {" "}
+                                          · {asset.recipients} recipient
+                                          {asset.recipients === 1 ? "" : "s"}
+                                        </span>
+                                      </span>
+                                    )
+                                  )}
+                                </div>
                                 <button
                                   className="gd-secondary"
                                   onClick={() => setExpanded(true)}
                                 >
-                                  Review execution plan
+                                  Review instructions & recipient checks
                                 </button>
                               </section>
                               {view.actions && (
@@ -326,7 +320,9 @@ export default function GovernanceDemo() {
                               )}
                               {view.isMultiChoiceProposal && (
                                 <p className="gd-note">
-                                  This proposal has multiple options. Use the original page to review and vote on each option.
+                                  This proposal has multiple options. Use the
+                                  original page to review and vote on each
+                                  option.
                                 </p>
                               )}
                               <div className="gd-actions">
