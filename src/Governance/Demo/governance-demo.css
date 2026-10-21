@@ -903,3 +903,167 @@
   color: #edf2fa;
   background: #ffffff08;
 }
+/* Keep long addresses, markdown and instruction tables inside their panels. */
+.gd-shell,
+.gd-workspace > *,
+.gd-content,
+.gd-sidebar,
+.gd-live-power > *,
+.gd-live-actions > *,
+.gd-facts > div,
+.gd-scenario-list button > span {
+  min-width: 0;
+}
+.gd-content h2,
+.gd-facts strong,
+.gd-asset-summary,
+.gd-empty-state,
+.gd-review,
+.gd-live-warning {
+  overflow-wrap: anywhere;
+}
+.gd-live-description {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.gd-live-description pre {
+  max-width: 100%;
+  overflow: auto;
+  white-space: pre;
+}
+.gd-live-description iframe,
+.gd-live-description video {
+  max-width: 100%;
+}
+.gd-full-details {
+  max-width: 100%;
+  overscroll-behavior-x: contain;
+}
+.gd-dao-nav a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.gd-mobile-proposals {
+  display: none;
+}
+#gd-proposal-browser {
+  scroll-margin-top: 90px;
+}
+@media (max-width: 950px) {
+  .gd-mobile-proposals {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 44px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    border: 1px solid #ffffff20;
+    border-radius: 8px;
+    font-size: 13px;
+    text-decoration: none;
+  }
+}
+@media (max-width: 650px) {
+  .gd-live {
+    padding: 0 10px;
+    margin-top: 12px;
+    border-radius: 12px;
+  }
+  .gd-live .gd-header {
+    padding: 14px 0;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .gd-dao-nav {
+    gap: 2px;
+    padding: 8px 0;
+  }
+  .gd-dao-nav a {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  .gd-live .gd-card-top {
+    padding: 16px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .gd-live .gd-content,
+  .gd-empty-state {
+    padding: 18px 14px;
+  }
+  .gd-live .gd-content h2 {
+    font-size: 23px;
+    line-height: 1.3;
+  }
+  .gd-live .gd-workspace {
+    gap: 20px;
+  }
+  .gd-live .gd-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .gd-live .gd-actions > button {
+    width: 100%;
+    white-space: normal;
+  }
+  .gd-live .gd-actions > a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+  }
+  .gd-execution-summary {
+    padding: 12px;
+  }
+  .gd-execution-summary button,
+  .gd-live-warning button {
+    width: 100%;
+    white-space: normal;
+  }
+  .gd-live .gd-live-actions {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .gd-live-actions button {
+    min-height: 52px;
+  }
+  .gd-search input {
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .gd-tally > div:first-child {
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+  .gd-facts {
+    gap: 12px;
+  }
+  .gd-live-power {
+    gap: 6px 12px;
+  }
+  .gd-asset-summary > span {
+    max-width: 100%;
+  }
+  .gd-full-details > .MuiBox-root {
+    padding: 12px;
+  }
+  .gd-live .gd-footer {
+    flex-direction: column;
+    gap: 8px;
+    padding: 20px 0;
+  }
+  .gd-live .gd-footer a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .governance-demo * {
+    scroll-behavior: auto;
+    transition: none !important;
+  }
+}
