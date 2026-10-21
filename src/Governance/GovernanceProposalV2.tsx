@@ -8061,6 +8061,11 @@ export function GovernanceProposalV2View(props: any){
                     : proposalAuthorVerification.spaceFrozen ? 'Verification paused'
                     : proposalAuthorVerification.matches.some(match => match.active) ? 'Verified'
                     : 'Not verified',
+                verificationProviders: proposalAuthorVerification.checked && !proposalAuthorVerification.spaceFrozen
+                    ? Array.from(new Set(proposalAuthorVerification.matches
+                        .filter(match => match.active)
+                        .map(match => VERIFICATION_PLATFORM_LABELS[match.platform] || `Platform ${match.platform}`)))
+                    : [],
                 reputation: proposalAuthorReputation.loading ? 'Loading reputation…'
                     : proposalAuthorReputation.checked && proposalAuthorReputation.baselineAvailable
                         ? formatCompactNumber(proposalAuthorReputation.points) + ' reputation'

@@ -309,6 +309,15 @@ export default function GovernanceDemo({
                                   </summary>
                                   <div className="gd-author-details">
                                     <a href={`https://explorer.solana.com/address/${view.author.address}`} target="_blank" rel="noopener noreferrer">{view.author.address} ↗</a>
+                                    {view.author.verificationProviders?.length > 0 && (
+                                      <div className="gd-author-providers" aria-label="Verified with">
+                                        <span>Verified with</span>
+                                        {view.author.verificationProviders.map((provider: string) => (
+                                          <a key={provider} href={`https://verification.governance.so/dao/${GRAPE_REALM}/wallet/${view.author.address}`}
+                                            target="_blank" rel="noopener noreferrer">{provider} ↗</a>
+                                        ))}
+                                      </div>
+                                    )}
                                     <span>Power reflects current deposits, excluding delegation and plugin adjustments.</span>
                                     <a href={`https://vine.governance.so/dao/${GRAPE_REALM}`} target="_blank" rel="noopener noreferrer">
                                       Vine / OG Reputation{view.author.season != null ? ` · Season ${view.author.season}${view.author.previousSeason ? " (previous)" : ""}` : ""} ↗
