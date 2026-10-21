@@ -90,3 +90,14 @@ export function distinctVoterSentiment(records: any[]) {
   }
   return counts;
 }
+
+// Active votes always lead; an old draft can become the newest active vote.
+export function compareProposalPriority(a: any, b: any): number {
+  const aVoting = Number(a.account.state) === 2;
+  const bVoting = Number(b.account.state) === 2;
+  if (aVoting !== bVoting) return aVoting ? -1 : 1;
+  const timestamp = (item: any, voting: boolean) =>
+    Number((voting ? item.account.votingAt : null) ?? item.account.draftAt ?? 0) || 0;
+  return timestamp(b, bVoting) - timestamp(a, aVoting) ||
+    (Number(b.account.draftAt) || 0) - (Number(a.account.draftAt) || 0);
+}
