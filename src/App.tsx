@@ -1,5 +1,6 @@
 import React, { useMemo, Suspense } from 'react';
 import GovernanceDemo from './Governance/Demo/GovernanceDemo';
+import GrapeDaoPage from './Governance/Demo/GrapeDaoPage';
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 //import { SpeedInsights } from '@vercel/speed-insights/react';
 
@@ -342,6 +343,9 @@ function DashboardContent() {
                                                   <Route path=":walletAddress" element={<MyGovernanceView />} />
                                               </Route>
 
+                                              <Route path="dao/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip" element={<GrapeDaoPage />} />
+                                              <Route path="proposal/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip/:proposal" element={<GrapeDaoPage />} />
+                                              <Route path="governance/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip" element={<GrapeDaoPage advanced />} />
                                               <Route path="governance/*" element={<GovernanceCachedView />} >
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
                                                   <Route path=":handlekey/:proposal" element={<GovernanceCachedView />} />

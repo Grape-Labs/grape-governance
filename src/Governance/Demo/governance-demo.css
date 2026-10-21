@@ -838,3 +838,68 @@
   color: #c7d2e0;
   white-space: nowrap;
 }
+.gd-dao-nav {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 14px 0;
+  border-bottom: 1px solid #ffffff15;
+  margin-bottom: 4px;
+}
+.gd-dao-nav a {
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #a6b3c7 !important;
+  text-decoration: none;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.gd-dao-nav a:hover,
+.gd-dao-nav a:focus-visible {
+  background: #ffffff0c;
+  color: #edf2fa !important;
+}
+.gd-dao-nav a.is-current {
+  background: #64dfb112;
+  color: #b6ecd5 !important;
+}
+.gd-empty-state {
+  padding: 28px;
+}
+.gd-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #64dfb114;
+  color: #64dfb1;
+  margin-bottom: 14px;
+}
+.gd-empty-state h2 {
+  font-size: 26px;
+  letter-spacing: -0.6px;
+  margin: 0 0 8px;
+}
+.gd-empty-state > p {
+  font-size: 14px;
+  color: var(--gd-muted);
+  margin: 0 0 24px;
+}
+.gd-empty-state h3 {
+  font-size: 12px;
+  color: var(--gd-muted);
+  font-weight: 500;
+  margin: 24px 0 10px;
+}
+.gd-recent-decisions {
+  margin: 0 0 20px;
+}
+.gd-recent-decisions button {
+  color: #a6b3c7;
+}
+.gd-recent-decisions button:hover,
+.gd-recent-decisions button:focus-visible {
+  color: #edf2fa;
+  background: #ffffff08;
+}
