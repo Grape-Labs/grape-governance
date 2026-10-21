@@ -119,6 +119,7 @@ loaded.require = function (id) {
           connected: true,
           hasVoted: true,
           hasVotedSide: "yes",
+          approval: { progress: 100, target: "100", passing: true, surplus: "23", remaining: "0" },
           instructionCount: 2,
           assetSummary: [
             { mint: "grape-mint", name: "GRAPE", amount: 100, recipients: 1 },
@@ -167,7 +168,9 @@ test("loads actual realm proposals, prioritizes active votes, and preserves the 
     assert.ok(
       await screen.findByRole("heading", { name: "Grape community grant" })
     );
-    assert.ok(screen.getByText("123"));
+    assert.ok(screen.getByText("100 target"));
+    assert.ok(screen.getByText(/Currently passing · 23 above target/));
+    assert.equal(screen.getByRole("progressbar", { name: "Approval progress" }).getAttribute("aria-valuenow"), "100");
     assert.equal(
       screen.queryByRole("link", { name: /Return to Grape DAO/ }),
       null

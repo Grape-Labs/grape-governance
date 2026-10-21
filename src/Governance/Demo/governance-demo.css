@@ -1186,3 +1186,26 @@
   color: #a6b3c7;
   font-size: 11px;
 }
+
+.gd-vote-overview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 24px 0;
+}
+.gd-vote-panel {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #ffffff18;
+  border-radius: 16px;
+  background: #ffffff03;
+}
+.gd-vote-panel h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.gd-vote-panel p { margin: 6px 0 12px; color: var(--gd-muted); font-size: 12px; }
+.gd-vote-panel .gd-bar { margin: 12px 0 8px; }
+.gd-vote-metrics { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 11px; color: var(--gd-muted); }
+.gd-vote-panel p.gd-passing { color: var(--gd-green); }
+.gd-vote-panel p:last-child { margin-bottom: 0; }
+@media (max-width: 900px) {
+  .gd-vote-overview { grid-template-columns: 1fr; }
+}
