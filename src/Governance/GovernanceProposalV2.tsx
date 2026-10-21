@@ -5483,7 +5483,7 @@ export function GovernanceProposalV2View(props: any){
     };
     const isMultiChoiceProposal = thisitem?.account?.voteType?.type === 1;
 
-    return (
+    const fullProposalView = (
         <>
             <ThemeProvider theme={grapeTheme}>
                 <Box
@@ -8026,4 +8026,30 @@ export function GovernanceProposalV2View(props: any){
             </ThemeProvider>
         </>
     )
+    if (props.renderSimple && !loadingValidation && !loadingParticipants && thisitem) {
+        return props.renderSimple({
+            proposal: thisitem,
+            stateLabel: GOVERNANCE_STATE[thisitem.account.state] || 'Unknown',
+            forVotes: formatMetricValue(forUi), againstVotes: formatMetricValue(againstUi),
+            forPct, totalCastUi, isMultiChoiceProposal,
+            hasVoted, hasVotedSide,
+            description: irysHtml ? <div dangerouslySetInnerHTML={{__html: irysHtml}} /> :
+                proposalDescription ? <ReactMarkdown>{proposalDescription}</ReactMarkdown> : null,
+            power: realm ? <GovernancePower governanceAddress={governanceAddress} realm={realm}/> : null,
+            warning: showProminentSecurityWarning ? (grapeDaoSafetySignals.isBlockedProposal
+                ? 'Known malicious proposal. Review the security findings before taking any action.'
+                : 'This proposal requires careful security review. Inspect its instructions before voting.') : null,
+            actions: realm && !isMultiChoiceProposal && !showProminentSecurityWarning && thisitem.account.state === 2 ?
+                [0, 1].map(type => <VoteForProposal key={type}
+                    title={type === 0 ? 'YES' : 'NO'} subtitle={type === 0 ? 'Support this proposal' : 'Oppose this proposal'}
+                    hovertext="" showIcon={true} actionOnly={true}
+                    votingResultRows={solanaVotingResultRows} getVotingParticipants={getVotingParticipants}
+                    hasVotedVotes={hasVotedVotes} hasVoted={hasVoted} hasVotedSide={hasVotedSide}
+                    realm={realm} governanceAddress={governanceAddress} thisitem={thisitem}
+                    type={type} quorum={totalQuorum} state={thisitem.account.state} governanceRules={thisGovernance}/>) : null,
+            details: fullProposalView,
+        });
+    }
+    return fullProposalView;
+
 }

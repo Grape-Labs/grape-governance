@@ -219,7 +219,7 @@ function DashboardContent() {
       <SnackbarProvider>
         <Router>
             <Routes>
-              <Route path="/demo/governance" element={<GovernanceDemo />} />
+
               
               <Route path="api/*" element={<ApiView />} >
                 <Route path=":handlekey/:querytype/:queryvar1/:queryvar2/:queryvar3" element={<ApiView />} />
@@ -326,6 +326,7 @@ function DashboardContent() {
                                             */}
                                               
                                             {/*
+                                              <Route path="/demo/governance" element={<GovernanceDemo />} />
                                               <Route path="/new/create" element={<CreateNewDAO />} />
                                               <Route path="/new/create/multisig" element={<MultiSigWizard />} />
                                               <Route path="/new/create/community" element={<CommunityTokenWizard />} />
