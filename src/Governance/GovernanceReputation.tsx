@@ -733,7 +733,7 @@ function RenderVoterRecordTable(props:any) {
 export function GovernanceReputationView(props: any) {
     const [searchParams, setSearchParams] = useSearchParams();
     const {handlekey} = useParams<{ handlekey: string }>();
-    const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
+    const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey || props.governanceAddress;
     const [startTime, setStartTime] = React.useState(null);
     const [endTime, setEndTime] = React.useState(null);
     const governanceAddress = urlParams;
@@ -1208,7 +1208,7 @@ export function GovernanceReputationView(props: any) {
                                     <Grid item xs={12} sm={6} container justifyContent="flex-end">
                                         <Grid container>
                                             <Grid item xs={12}>
-                                                <GovernanceNavigation governanceAddress={governanceAddress} />
+                                                {props.showGovernanceNavigation !== false && <GovernanceNavigation governanceAddress={governanceAddress} />}
                                             </Grid>
                                             <Grid item xs={12} 
                                                 justifyContent="flex-end"

@@ -187,7 +187,7 @@ function TablePaginationActions(props) {
 export function GovernanceStatsView(props: any) {
     const [searchParams, setSearchParams] = useSearchParams();
     const {handlekey} = useParams<{ handlekey: string }>();
-    const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
+    const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey || props.governanceAddress;
     const governanceAddress = urlParams;
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
@@ -1026,13 +1026,13 @@ export function GovernanceStatsView(props: any) {
                         {realm &&
                             <>
                                 <Grid container>
-                                    <GovernanceHeaderView
+                                    {!props.compactLayout && <GovernanceHeaderView
                                         governanceName={realmName}
                                         governanceAddress={governanceAddress}
                                         gsplMetadata={gsplMetadata}
-                                    />
+                                    />}
                                     <Grid item xs={6} container justifyContent="flex-end">
-                                        <GovernanceNavigation governanceAddress={governanceAddress} />
+                                        {props.showGovernanceNavigation !== false && <GovernanceNavigation governanceAddress={governanceAddress} />}
                                     </Grid>
                                 </Grid>
                             </>

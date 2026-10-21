@@ -59,12 +59,14 @@ loaded.require = function (id) {
         publicKey: walletAddress ? { toBase58: () => walletAddress } : null,
       }),
     };
-  if (id === "./ProposalPreviewBoundary" || id === "./GrapeDaoNavigation") {
+  if (
+    id === "./ProposalPreviewBoundary" ||
+    id === "./GrapeDaoNavigation" ||
+    id === "./DaoPageLayout"
+  ) {
     const file = path.resolve(`src/Governance/Demo/${id.slice(2)}.tsx`);
     const child = new Module(file, module);
-    child.require = function (id) {
-      return id.endsWith(".css") ? {} : Module.prototype.require.call(this, id);
-    };
+    child.require = loaded.require;
     child.filename = file;
     child.paths = Module._nodeModulePaths(path.dirname(file));
     child._compile(
@@ -318,8 +320,11 @@ test("DAO landing and direct proposal URLs use simple view; advanced routes reta
         __esModule: true,
         default: () => React.createElement("p", null, "Simple landing"),
       };
-    if (id === "./GrapeDaoNavigation")
-      return { __esModule: true, default: () => null };
+    if (id === "./DaoPageLayout")
+      return {
+        __esModule: true,
+        default: ({ children }) => React.createElement("div", null, children),
+      };
     if (id === "../Governance")
       return {
         GovernanceCachedView: (props) =>
@@ -402,5 +407,31 @@ test("no active votes shows recent decisions instead of auto-opening an old prop
   } finally {
     rows[1].account.state = previous;
     cleanup();
+  }
+});
+
+test('each DAO section shares one navigation and disables the legacy header/menu', () => {
+  const file=path.resolve('src/Governance/Demo/GrapeDaoSection.tsx');
+  const sectionModule=new Module(file,module);
+  sectionModule.filename=file;sectionModule.paths=Module._nodeModulePaths(path.dirname(file));
+  sectionModule.require=function(id){
+    const names={'../GovernanceMembers':'GovernanceMembersView','../GovernanceTreasury':'GovernanceTreasuryView','../GovernanceStats':'GovernanceStatsView','../GovernanceReputation':'GovernanceReputationView'};
+    if(names[id])return {[names[id]]:props=>{
+      assert.equal(props.governanceAddress,realm);
+      assert.equal(props.compactLayout,true);
+      assert.equal(props.showGovernanceNavigation,false);
+      return React.createElement('div',null,'Existing tools');
+    }};
+    return loaded.require(id);
+  };
+  sectionModule._compile(transformSync(fs.readFileSync(file,'utf8'),{filename:file,configFile:false,babelrc:false,presets:['@babel/preset-typescript','@babel/preset-react'],plugins:['@babel/plugin-transform-modules-commonjs']}).code,file);
+  for(const section of ['members','treasury','stats','reputation']){
+    try {
+      render(React.createElement(MemoryRouter,null,React.createElement(sectionModule.exports.default,{section})));
+      assert.equal(screen.getAllByRole('navigation').length,1);
+      assert.ok(screen.getByRole('heading',{name:section[0].toUpperCase()+section.slice(1)}));
+      assert.equal(screen.getByRole('link',{name:section[0].toUpperCase()+section.slice(1)}).getAttribute('aria-current'),'page');
+      assert.ok(screen.getByText('Existing tools'));
+    } finally {cleanup();}
   }
 });
