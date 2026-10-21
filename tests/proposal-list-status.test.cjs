@@ -37,3 +37,11 @@ test('handles zero, ties, large integer weights and unsupported cases safely', (
   assert.equal(proposalListStatus(account(1,0,{state:5})),null);
   assert.equal(proposalListStatus(account(1,0,{options:[{},{}]})),null);
 });
+test('sentiment deduplicates wallets and excludes withdrawn votes', () => {
+  const row = (owner, kind, extra = {}) => ({account:{governingTokenOwner:owner,vote:{voteType:kind},...extra}});
+  assert.deepEqual(mod.exports.distinctVoterSentiment([
+    row('a',0),row('a',0),row('b',1),row('c',2),row('d',0,{isRelinquished:true}),
+    {governingTokenOwner:'e',vote:{legacyYes:12}},
+    row(null,0),
+  ]), {total:4,for:2,against:1,other:1});
+});

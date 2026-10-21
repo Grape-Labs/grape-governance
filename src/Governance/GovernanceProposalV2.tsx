@@ -1,3 +1,4 @@
+import { distinctVoterSentiment } from "./Demo/proposalListStatus";
 import { GRAPE_VERIFICATION_PROGRAM_ID, parseVerificationSpace, deriveVerificationSpacePda, hashVerificationWallet, parseVerificationLink, parseVerificationIdentity } from './api/grapeVerification';
 import ProposalGrantReview from './Members/ProposalGrantReview';
 import { 
@@ -3561,6 +3562,7 @@ export function GovernanceProposalV2View(props: any){
                     }
 
                     votingResults.push({
+                        isRelinquished: item.account?.isRelinquished ?? item.isRelinquished ?? false,
                         id:counter,
                         pubkey:item.pubkey.toBase58(),
                         proposal:item.account.proposal.toBase58(),
@@ -3626,6 +3628,7 @@ export function GovernanceProposalV2View(props: any){
                     //console.log("multipleChoice: "+JSON.stringify(multipleChoice));
 
                     votingResults.push({
+                        isRelinquished: item.account?.isRelinquished ?? item.isRelinquished ?? false,
                         id:counter,
                         pubkey:item.pubkey.toBase58(),
                         proposal:item.proposal.toBase58(),
@@ -8050,6 +8053,7 @@ export function GovernanceProposalV2View(props: any){
             stateLabel: GOVERNANCE_STATE[thisitem.account.state] || 'Unknown',
             forVotes: tokenDecimals === null ? 'Loading…' : formatMetricValue(forUi), againstVotes: tokenDecimals === null ? 'Loading…' : formatMetricValue(againstUi),
             forPct, totalCastUi, isMultiChoiceProposal,
+            sentiment: Array.isArray(solanaVotingResultRows) ? distinctVoterSentiment(solanaVotingResultRows) : null,
             approval: tokenDecimals !== null && Number(totalQuorum) > 0 ? {
                 progress: approvalProgressPct,
                 target: formatMetricValue(Number(totalQuorum)),
@@ -8057,6 +8061,8 @@ export function GovernanceProposalV2View(props: any){
                 thresholdReached: approvalThresholdReached,
                 remaining: formatMetricValue(votesRequiredToPass),
                 surplus: formatMetricValue(Math.max(0, forUi - Number(totalQuorum))),
+                surplusCompact: formatCompactNumber(Math.max(0, forUi - Number(totalQuorum))),
+                remainingCompact: formatCompactNumber(votesRequiredToPass),
             } : null,
             hasVoted, hasVotedSide, connected: !!publicKey,
             instructionCount: proposalInstructions ? proposalTransactionCount : null,

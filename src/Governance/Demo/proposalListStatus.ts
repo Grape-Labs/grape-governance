@@ -63,3 +63,30 @@ export function proposalListStatus(account: any): { label: string; detail: strin
     detail: `${margin} percentage-point lead among votes cast. Approval threshold unavailable; this is not a passing prediction.`,
   };
 }
+
+// Count token-owner wallets, not vote weight or transaction signatures.
+export function distinctVoterSentiment(records: any[]) {
+  const wallets = new Map<string, Set<string>>();
+  for (const record of records || []) {
+    if (record.account?.isRelinquished || record.isRelinquished) continue;
+    const owner = record.account?.governingTokenOwner ?? record.governingTokenOwner;
+    const key = typeof owner === "string" ? owner : owner?.toBase58?.();
+    if (!key) continue;
+    const vote = record.account?.vote ?? record.vote?.vote;
+    const kind = vote?.voteType;
+    const yes = record.account?.voteWeight?.yes ?? record.vote?.legacyYes;
+    const no = record.account?.voteWeight?.no ?? record.vote?.legacyNo;
+    const side = kind != null
+      ? (["for", "against", "abstain", "veto"][Number(kind)] || "other")
+      : Number(yes) > 0 ? "for" : Number(no) > 0 ? "against" : "other";
+    if (!wallets.has(key)) wallets.set(key, new Set());
+    wallets.get(key)!.add(side);
+  }
+  const counts = { total: wallets.size, for: 0, against: 0, other: 0 };
+  for (const sides of wallets.values()) {
+    if (sides.size === 1 && sides.has("for")) counts.for++;
+    else if (sides.size === 1 && sides.has("against")) counts.against++;
+    else counts.other++;
+  }
+  return counts;
+}

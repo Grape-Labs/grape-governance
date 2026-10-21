@@ -330,8 +330,7 @@ export default function GovernanceDemo({
                               {!view.isMultiChoiceProposal && (
                                 <div className="gd-vote-overview">
                                   <section className="gd-vote-panel" aria-label="Vote split">
-                                    <h3>Vote split</h3>
-                                    <p>For versus Against among votes cast</p>
+                                    <h3>Voting power</h3>
                                     <div className="gd-bar" role="img"
                                       aria-label={view.totalCastUi > 0 ? `${view.forPct.toFixed(1)} percent For` : "No votes cast"}>
                                       <span style={{ width: `${view.forPct}%` }} />
@@ -343,7 +342,7 @@ export default function GovernanceDemo({
                                   </section>
                                   <section className="gd-vote-panel" aria-label="Approval progress">
                                     <h3>Approval progress</h3>
-                                    <p>For votes compared with the approval threshold</p>
+
                                     <div className="gd-bar" role="progressbar" aria-label="Approval progress"
                                       aria-valuemin={0} aria-valuemax={100}
                                       aria-valuenow={view.approval ? Math.min(100, Math.max(0, view.approval.progress)) : undefined}
@@ -356,12 +355,27 @@ export default function GovernanceDemo({
                                       <span>{view.approval ? `${view.approval.target} target` : "Threshold unavailable"}</span>
                                     </div>
                                     {view.approval && view.proposal.account.state === 2 && (
-                                      <p className={view.approval.passing ? "gd-passing" : ""}>
+                                      <p className={view.approval.passing ? "gd-passing" : ""}
+                                        title={view.approval.passing
+                                          ? `${view.approval.surplus} above the approval target. For leads Against.`
+                                          : `${view.approval.remaining} more For votes needed to reach the target and lead Against.`}>
                                         {view.approval.passing
-                                          ? `Currently passing · ${view.approval.surplus} above target. For leads Against.`
-                                          : `${view.approval.remaining} more For votes needed to reach the target and lead Against.`}
+                                          ? `Passing · +${view.approval.surplusCompact ?? view.approval.surplus} above target`
+                                          : `${view.approval.remainingCompact ?? view.approval.remaining} more For needed`}
                                       </p>
                                     )}
+                                  </section>
+                                  <section className="gd-vote-panel" aria-label="Voter sentiment">
+                                    <h3>Voter sentiment</h3>
+                                    {view.sentiment ? <>
+                                      <strong className="gd-voter-count">{view.sentiment.total} distinct wallets</strong>
+                                      <div className="gd-vote-metrics">
+                                        <span>{view.sentiment.for} For</span>
+                                        <span>{view.sentiment.against} Against</span>
+                                        {view.sentiment.other > 0 && <span>{view.sentiment.other} Other</span>}
+                                      </div>
+                                      <p>One count per token-owner wallet</p>
+                                    </> : <p>Voter counts unavailable</p>}
                                   </section>
                                 </div>
                               )}
