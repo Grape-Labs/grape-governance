@@ -24,7 +24,6 @@ export default function GrapeDaoNavigation({
           ["proposals", "Proposals", "dao"],
           ["members", "Members", "members"],
           ["treasury", "Treasury", "treasury"],
-          ["reputation", "Reputation", "reputation"],
           ["stats", "Stats", "stats"],
           ["advanced", "Show old view", "governance"],
         ] as const
@@ -32,12 +31,22 @@ export default function GrapeDaoNavigation({
         <Link
           key={key}
           to={`/${path}/${realm}`}
-          className={current === key ? "is-current" : undefined}
+          className={`${current === key ? "is-current" : ""} ${
+            key === "advanced" ? "gd-old-view" : ""
+          }`}
           aria-current={current === key ? "page" : undefined}
         >
           {label}
         </Link>
       ))}
+      <a
+        className="gd-vine-link"
+        href={`https://vine.governance.so/dao/${realm}`}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Vine / OG Reputation ↗
+      </a>
     </nav>
   );
 }

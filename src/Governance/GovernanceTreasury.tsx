@@ -558,6 +558,7 @@ export function GovernanceTreasuryView(props: any) {
 
                 return (
                   <Grid key={key} item lg={4} md={6} sm={12} xs={12}>
+                    <Box className={props.compactLayout ? 'gd-treasury-wallet' : undefined}>
                     <WalletCardView
                       realm={realm}
                       rulesWallet={item}
@@ -571,6 +572,7 @@ export function GovernanceTreasuryView(props: any) {
                       onWalletValueUpdated={() => setWalletSortTick((x) => x + 1)}
                       walletAddress={new PublicKey(item.nativeTreasuryAddress).toBase58()}
                     />
+                    </Box>
                   </Grid>
                 );
               })}

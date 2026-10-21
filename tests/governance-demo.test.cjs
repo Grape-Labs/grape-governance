@@ -425,13 +425,16 @@ test('each DAO section shares one navigation and disables the legacy header/menu
     return loaded.require(id);
   };
   sectionModule._compile(transformSync(fs.readFileSync(file,'utf8'),{filename:file,configFile:false,babelrc:false,presets:['@babel/preset-typescript','@babel/preset-react'],plugins:['@babel/plugin-transform-modules-commonjs']}).code,file);
-  for(const section of ['members','treasury','stats','reputation']){
+  for(const section of ['members','treasury','stats']){
     try {
       render(React.createElement(MemoryRouter,null,React.createElement(sectionModule.exports.default,{section})));
       assert.equal(screen.getAllByRole('navigation').length,1);
       assert.ok(screen.getByRole('heading',{name:section[0].toUpperCase()+section.slice(1)}));
       assert.equal(screen.getByRole('link',{name:section[0].toUpperCase()+section.slice(1)}).getAttribute('aria-current'),'page');
       assert.ok(screen.getByText('Existing tools'));
+      assert.equal(screen.getByRole('link',{name:'Vine / OG Reputation ↗'}).getAttribute('href'),`https://vine.governance.so/dao/${realm}`);
+      assert.match(screen.getByRole('link',{name:'Show old view'}).className,/gd-old-view/);
+      assert.equal(screen.queryByText('Live DAO governance'),null);
     } finally {cleanup();}
   }
 });
