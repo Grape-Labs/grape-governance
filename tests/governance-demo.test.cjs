@@ -62,9 +62,10 @@ loaded.require = function (id) {
   if (
     id === "./ProposalPreviewBoundary" ||
     id === "./GrapeDaoNavigation" ||
-    id === "./DaoPageLayout"
+    id === "./DaoPageLayout" ||
+    id === "./proposalListStatus"
   ) {
-    const file = path.resolve(`src/Governance/Demo/${id.slice(2)}.tsx`);
+    const file = path.resolve(`src/Governance/Demo/${id.slice(2)}.${id === "./proposalListStatus" ? "ts" : "tsx"}`);
     const child = new Module(file, module);
     child.require = loaded.require;
     child.filename = file;
@@ -86,7 +87,7 @@ loaded.require = function (id) {
       getVoteRecordsByVoterIndexed: async () => {
         if (voteFailure) throw new Error("Unavailable");
         return [
-          { account: { proposal: "active-proposal", isRelinquished: false } },
+          { account: { proposal: "active-proposal", isRelinquished: false, vote: { voteType: 0 } } },
           { account: { proposal: "closed-proposal", isRelinquished: true } },
         ];
       },
@@ -282,7 +283,7 @@ test("a proposal render error preserves the list and provides a working retry", 
 test("sidebar distinguishes active votes, past proposals and wallet participation", async () => {
   try {
     mount();
-    assert.ok(await screen.findByText("Voted"));
+    assert.ok(await screen.findByText("Voted For"));
     assert.ok(screen.getByText("Not voted"));
     assert.match(
       screen.getByRole("button", { name: /Grape community grant/ }).className,
@@ -320,7 +321,8 @@ test("DAO landing and direct proposal URLs use simple view; advanced routes reta
         __esModule: true,
         default: () => React.createElement("p", null, "Simple landing"),
       };
-    if (id === "./DaoPageLayout")
+    if (id === "./DaoPageLayout" ||
+    id === "./proposalListStatus")
       return {
         __esModule: true,
         default: ({ children }) => React.createElement("div", null, children),
