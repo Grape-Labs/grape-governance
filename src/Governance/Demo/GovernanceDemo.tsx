@@ -32,7 +32,7 @@ export default function GovernanceDemo() {
   const [error, setError] = React.useState("");
   const [revision, setRevision] = React.useState(0);
   const [filter, setFilter] = React.useState("");
-  const [expanded, setExpanded] = React.useState(false);
+  const [expandedFor, setExpandedFor] = React.useState<string | null>(null);
   const requested = params.get("proposal");
   React.useEffect(() => {
     let cancelled = false;
@@ -78,9 +78,11 @@ export default function GovernanceDemo() {
     ? proposals.find((item) => address(item.pubkey) === requested)
     : proposals[0];
   const selectedAddress = selected ? address(selected.pubkey) : "";
-  React.useEffect(() => {
-    setExpanded(false);
-  }, [selectedAddress]);
+  const expanded = expandedFor === selectedAddress;
+  const setExpanded = (value: boolean | ((previous: boolean) => boolean)) => {
+    const next = typeof value === "function" ? value(expanded) : value;
+    setExpandedFor(next ? selectedAddress : null);
+  };
   const visible = proposals.filter((item) =>
     String(item.account.name).toLowerCase().includes(filter.toLowerCase())
   );
@@ -161,7 +163,6 @@ export default function GovernanceDemo() {
                       governanceAddress={GRAPE_REALM}
                       governanceProposal={selectedAddress}
                       item={selected}
-                      realm={realm}
                       showGovernanceTitle={false}
                       renderSimple={(view: any) => (
                         <>
@@ -193,10 +194,20 @@ export default function GovernanceDemo() {
                               <div className="gd-live-description">
                                 {view.description || (
                                   <p>
-                                    Open the full proposal details to read the
-                                    author’s description and supporting
-                                    material.
+                                    {view.descriptionLoading
+                                      ? "Loading proposal description…"
+                                      : view.descriptionError ||
+                                        "No inline description available."}
                                   </p>
+                                )}
+                                {view.descriptionUrl && (
+                                  <a
+                                    href={view.descriptionUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    Read original description ↗
+                                  </a>
                                 )}
                               </div>
                               {!view.isMultiChoiceProposal && (
@@ -233,15 +244,75 @@ export default function GovernanceDemo() {
                                     </div>
                                   </div>
                                 )}
-                              {view.hasVoted && (
-                                <p role="status" className="gd-note">
-                                  Your vote is recorded
-                                  {view.hasVotedSide
-                                    ? ` · ${view.hasVotedSide}`
-                                    : ""}
-                                  .
+                              <section
+                                className="gd-live-power"
+                                aria-label="Your participation"
+                              >
+                                <h3>Your participation</h3>
+                                <p role="status">
+                                  {!view.connected
+                                    ? "Connect your wallet to check your vote."
+                                    : view.hasVoted
+                                    ? `Vote recorded${
+                                        view.hasVotedSide
+                                          ? ` · ${view.hasVotedSide}`
+                                          : ""
+                                      }`
+                                    : "You have not voted on this proposal."}
                                 </p>
-                              )}
+                                {view.power}
+                              </section>
+                              <section className="gd-execution-summary">
+                                <h3>
+                                  {view.instructionCount == null
+                                    ? "Checking executable instructions…"
+                                    : view.instructionCount > 0
+                                    ? `${
+                                        view.instructionCount
+                                      } executable transaction${
+                                        view.instructionCount === 1 ? "" : "s"
+                                      }`
+                                    : "No executable transactions attached"}
+                                </h3>
+                                <p>
+                                  {view.instructionCount > 0
+                                    ? "If this proposal succeeds, these transactions can move treasury assets or change permissions. Read the execution plan before casting your vote."
+                                    : "The proposal description is not a substitute for checking its on-chain instructions."}
+                                </p>
+                                {(view.instructionDetails || []).map(
+                                  (detail: any, index: number) => (
+                                    <p
+                                      key={index}
+                                      className="gd-instruction-line"
+                                    >
+                                      {detail.description ||
+                                        detail.type ||
+                                        "Instruction"}
+                                      {Number(detail.amount) > 0
+                                        ? ` · ${Number(
+                                            detail.amount
+                                          ).toLocaleString()} ${
+                                            detail.name ||
+                                            detail.mint ||
+                                            "tokens"
+                                          }`
+                                        : ""}
+                                      {detail.destinationAta
+                                        ? ` → ${
+                                            detail.tokenOwner ||
+                                            detail.destinationAta
+                                          }`
+                                        : ""}
+                                    </p>
+                                  )
+                                )}
+                                <button
+                                  className="gd-secondary"
+                                  onClick={() => setExpanded(true)}
+                                >
+                                  Review execution plan
+                                </button>
+                              </section>
                               {view.actions && (
                                 <>
                                   <div className="gd-live-actions">
@@ -255,15 +326,9 @@ export default function GovernanceDemo() {
                               )}
                               {view.isMultiChoiceProposal && (
                                 <p className="gd-note">
-                                  This proposal has multiple options. Open the
-                                  full voting details to review and vote on each
-                                  option.
+                                  This proposal has multiple options. Use the original page to review and vote on each option.
                                 </p>
                               )}
-                              <details className="gd-live-power">
-                                <summary>Your voting power</summary>
-                                {view.power}
-                              </details>
                               <div className="gd-actions">
                                 <button
                                   className="gd-secondary"
@@ -272,8 +337,8 @@ export default function GovernanceDemo() {
                                   onClick={() => setExpanded((value) => !value)}
                                 >
                                   {expanded
-                                    ? "Hide full details"
-                                    : "Review full proposal & instructions"}
+                                    ? "Hide execution plan"
+                                    : "Review execution plan & risks"}
                                 </button>
                                 <a
                                   href={`/proposal/${GRAPE_REALM}/${selectedAddress}`}

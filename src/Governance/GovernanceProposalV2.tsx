@@ -68,6 +68,7 @@ import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github'
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 import { InstructionMapping } from "../utils/grapeTools/InstructionMapping";
 import ReactMarkdown from 'react-markdown';
+import Alert from '@mui/material/Alert';
 import remarkGfm from 'remark-gfm';
 import remarkImages from 'remark-images';
 import removeInvalidImages from './removeInvalidImages';
@@ -457,6 +458,23 @@ export function GovernanceProposalV2View(props: any){
     const [irysHtml, setIrysHtml] = React.useState<string | null>(null);
     const [irysError, setIrysError] = React.useState<string | null>(null);
     const [proposalDescription, setProposalDescription] = React.useState(null);
+    const [simpleDescriptionError, setSimpleDescriptionError] = React.useState('');
+    const [simpleDescriptionLoading, setSimpleDescriptionLoading] = React.useState(false);
+    React.useEffect(() => {
+        if (!props.renderSimple) return;
+        const url = extractFirstHttpUrl(thisitem?.account?.descriptionLink);
+        if (!url || !/^https:\/\/gist\.github\.com\//i.test(url)) return;
+        let cancelled = false;
+        setSimpleDescriptionLoading(true); setSimpleDescriptionError('');
+        resolveProposalDescription(url).then(text => {
+            if (!cancelled) {
+                if (!text?.trim()) setSimpleDescriptionError('The proposal description is empty or unavailable.');
+                else setProposalDescription(text);
+            }
+        }).catch(() => { if (!cancelled) setSimpleDescriptionError('Could not load the Gist. Open the source to read it.'); })
+          .finally(() => { if (!cancelled) setSimpleDescriptionLoading(false); });
+        return () => { cancelled = true; };
+    }, [thisitem?.account?.descriptionLink, !!props.renderSimple]);
     const [thisGovernance, setThisGovernance] = React.useState(null);
     const [proposalAuthor, setProposalAuthor] = React.useState(null);
     const [governingMintInfo, setGoverningMintInfo] = React.useState(null);
@@ -4152,10 +4170,10 @@ export function GovernanceProposalV2View(props: any){
     };
 
     React.useEffect(() => { 
-        if (thisitem && !governanceNativeWallet){
+        if (thisitem && realm && !governanceNativeWallet){
             fetchNativeTreasuryAddress(thisitem.account.governance);
         }
-    }, [thisitem]);
+    }, [thisitem, realm]);
 
     React.useEffect(() => { 
 
@@ -8030,12 +8048,17 @@ export function GovernanceProposalV2View(props: any){
         return props.renderSimple({
             proposal: thisitem,
             stateLabel: GOVERNANCE_STATE[thisitem.account.state] || 'Unknown',
-            forVotes: formatMetricValue(forUi), againstVotes: formatMetricValue(againstUi),
+            forVotes: tokenDecimals === null ? 'Loading…' : formatMetricValue(forUi), againstVotes: tokenDecimals === null ? 'Loading…' : formatMetricValue(againstUi),
             forPct, totalCastUi, isMultiChoiceProposal,
-            hasVoted, hasVotedSide,
+            hasVoted, hasVotedSide, connected: !!publicKey,
+            instructionCount: proposalInstructions ? proposalTransactionCount : null,
+            instructionDetails: instructionTransferDetails || [],
+            findings: proposalRiskAssessment.findings,
+            descriptionLoading: simpleDescriptionLoading, descriptionError: simpleDescriptionError,
+            descriptionUrl: extractFirstHttpUrl(thisitem.account?.descriptionLink),
             description: irysHtml ? <div dangerouslySetInnerHTML={{__html: irysHtml}} /> :
-                proposalDescription ? <ReactMarkdown>{proposalDescription}</ReactMarkdown> : null,
-            power: realm ? <GovernancePower governanceAddress={governanceAddress} realm={realm}/> : null,
+                proposalDescription ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{proposalDescription}</ReactMarkdown> : null,
+            power: realm ? <GovernancePower summaryOnly governingTokenMint={thisitem.account.governingTokenMint} governanceAddress={governanceAddress} realm={realm}/> : null,
             warning: showProminentSecurityWarning ? (grapeDaoSafetySignals.isBlockedProposal
                 ? 'Known malicious proposal. Review the security findings before taking any action.'
                 : 'This proposal requires careful security review. Inspect its instructions before voting.') : null,
@@ -8047,7 +8070,19 @@ export function GovernanceProposalV2View(props: any){
                     hasVotedVotes={hasVotedVotes} hasVoted={hasVoted} hasVotedSide={hasVotedSide}
                     realm={realm} governanceAddress={governanceAddress} thisitem={thisitem}
                     type={type} quorum={totalQuorum} state={thisitem.account.state} governanceRules={thisGovernance}/>) : null,
-            details: fullProposalView,
+            details: <Box sx={{p:2}}>
+                <Typography variant="h6">What this proposal can execute</Typography>
+                <Typography variant="body2" sx={{mb:2}}>Approval authorizes these instructions. Review assets, amounts, recipients, and permission changes before voting.</Typography>
+                {proposalRiskAssessment.findings.map((finding, index) => <Alert key={index} severity={finding.severity === 'high' || finding.severity === 'critical' ? 'warning' : 'info'} sx={{mb:1}}><strong>{finding.title}</strong>: {finding.evidence}</Alert>)}
+                <InstructionTableView proposalInstructions={proposalInstructions} proposal={thisitem}
+                    governanceNativeWallet={governanceNativeWallet} governanceRulesWallet={thisitem.account.governance}
+                    governingTokenMint={thisitem.account.governingTokenMint} setReload={setReload} realm={realm}
+                    proposalAuthor={proposalAuthor} hasProposalAuthority={canManageDraftProposal} state={thisitem.account.state}
+                    cachedTokenMeta={cachedTokenMeta} setInstructionTransferDetails={setInstructionTransferDetails}
+                    instructionTransferDetails={instructionTransferDetails} memberMap={memberMap} tokenMap={tokenMap}
+                    verifiedDestinationWalletArray={verifiedDestinationWalletArray} verifiedDAODestinationWalletArray={verifiedDAODestinationWalletArray}
+                    instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA}/>
+            </Box>,
         });
     }
     return fullProposalView;
