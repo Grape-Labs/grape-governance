@@ -135,3 +135,21 @@ test("shows RPC errors and recovers on retry without fictitious fallback data", 
     cleanup();
   }
 });
+
+test('both demo URLs are active JSX routes, not commented-out declarations', () => {
+  const ast = require('@babel/parser').parse(fs.readFileSync('src/App.tsx', 'utf8'), {
+    sourceType: 'module', plugins: ['typescript', 'jsx'],
+  });
+  const routes = new Map();
+  require('@babel/traverse').default(ast, {
+    JSXOpeningElement({node}) {
+      if (node.name.type !== 'JSXIdentifier' || node.name.name !== 'Route') return;
+      const pathAttr = node.attributes.find(attr => attr.name?.name === 'path');
+      const elementAttr = node.attributes.find(attr => attr.name?.name === 'element');
+      routes.set(pathAttr?.value?.value, elementAttr?.value?.expression?.openingElement?.name?.name);
+    },
+  });
+  assert.equal(routes.get('/demo/governance'), 'GovernanceDemo');
+  assert.equal(routes.get(`/demo/governance/dao/${realm}`), 'GovernanceDemo');
+  assert.equal(routes.get('proposal/*'), 'GovernanceProposalWrapper');
+});
