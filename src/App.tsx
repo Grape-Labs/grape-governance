@@ -326,12 +326,14 @@ function DashboardContent() {
                                             */}
                                               
                                             {/*
-                                              <Route path="/demo/governance" element={<GovernanceDemo />} />
                                               <Route path="/new/create" element={<CreateNewDAO />} />
                                               <Route path="/new/create/multisig" element={<MultiSigWizard />} />
                                               <Route path="/new/create/community" element={<CommunityTokenWizard />} />
                                               */}
                                               
+                                              <Route path="/demo/governance" element={<GovernanceDemo />} />
+                                              <Route path="/demo/governance/dao/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip" element={<GovernanceDemo />} />
+
                                               <Route path="gspl/*" element={<GovernanceDirectoryTestView />} >
                                                 <Route path=":handlekey" element={<GovernanceDirectoryTestView />} />
                                               </Route>
