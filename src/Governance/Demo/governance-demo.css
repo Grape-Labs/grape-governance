@@ -682,3 +682,61 @@
     flex-direction: column;
   }
 }
+.gd-live .gd-intro {
+  padding: 24px 0;
+}
+.gd-live .gd-intro h1 {
+  font-size: 30px;
+  margin: 8px 0;
+}
+.gd-live .gd-intro h1 br {
+  display: none;
+}
+.gd-live .gd-intro h1 span {
+  margin-left: 8px;
+}
+.gd-execution-summary {
+  padding: 20px;
+  border: 1px solid #e7bd6755;
+  background: #e7bd6709;
+  border-radius: 12px;
+  margin: 24px 0;
+}
+.gd-execution-summary h3,
+.gd-live-power h3 {
+  font-size: 16px;
+  margin: 0 0 10px;
+}
+.gd-execution-summary p {
+  font-size: 13px;
+  color: #c7d2e0;
+}
+.gd-instruction-line {
+  overflow-wrap: anywhere;
+}
+.gd-live-description table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.gd-live-description td,
+.gd-live-description th {
+  padding: 8px;
+  border: 1px solid #ffffff22;
+}
+.gd-full-details {
+  background: #141c29;
+  border: 1px solid #ffffff22;
+  border-radius: 14px;
+  overflow: auto;
+}
+.gd-live-actions .MuiButtonGroup-root {
+  width: 100%;
+}
+.gd-live-actions .MuiButtonGroup-root > button:first-of-type {
+  flex: 1;
+}
+.gd-live-actions .MuiButtonGroup-root > button:last-of-type {
+  width: 44px;
+  min-width: 44px;
+  flex: none;
+}

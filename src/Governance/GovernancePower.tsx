@@ -259,6 +259,7 @@ export default function GovernancePower(props: any){
     const [realm, setRealm] = React.useState(props?.realm || null);
     //const [cachedMemberMap, setCachedMemberMap] = React.useState(props?.cachedMemberMap || false);
     const [rpcMemberMap, setRpcMemberMap] = React.useState(null);
+    const [incomingPower, setIncomingPower] = React.useState({community: 0, council: 0});
     const [isParticipatingInDao, setIsParticipatingInDao] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
     const [depositedCommunityMint, setDepositedCommunityMint] = React.useState(null);
@@ -735,6 +736,14 @@ export default function GovernancePower(props: any){
                 fetchedTMI = true;
             }
             
+            const incoming = {community: 0, council: 0};
+            for (const record of tokenOwnerRecord) {
+                if (toBase58Safe(record.account?.governanceDelegate) !== publicKey.toBase58() || toBase58Safe(record.account?.governingTokenOwner) === publicKey.toBase58()) continue;
+                const mint = toBase58Safe(record.account?.governingTokenMint);
+                if (mint === communityMint) incoming.community += toNumberSafe(record.account.governingTokenDepositAmount);
+                if (mint === councilMint) incoming.council += toNumberSafe(record.account.governingTokenDepositAmount);
+            }
+            setIncomingPower(incoming);
             for (let record of tokenOwnerRecord){
                 if (record.account.realm.toBase58() === governanceAddress){
                     
@@ -2266,6 +2275,22 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
         toNumberSafe(depositedCouncilMint) > 0
     );
 
+    if (props.summaryOnly) {
+        const council = toBase58Safe(props.governingTokenMint) === toBase58Safe(realm?.account?.config?.councilMint);
+        const decimals = council ? 0 : displayedVsrVotingPowerDecimals;
+        const own = council ? toNumberSafe(depositedCouncilMint) : isPluginVotingPower ? toNumberSafe(vsrState?.voterWeight) : displayedCommunityMintAmount;
+        const delegated = council ? incomingPower.council : incomingPower.community;
+        const format = (value: number) => (value / Math.pow(10, decimals)).toLocaleString(undefined, {maximumFractionDigits: 2});
+        return <Box aria-label="Your voting power">
+            {!publicKey ? <Typography>Connect your wallet to see your vote and voting power.</Typography> : loading || mintDecimals === null ? <Typography role="status">Loading your voting power…</Typography> : <>
+                <Box sx={{display:'flex',gap:3,flexWrap:'wrap'}}>
+                    <Box><Typography variant="caption">Your {council ? 'council' : 'community'} power</Typography><Typography>{format(own)}</Typography></Box>
+                    <Box><Typography variant="caption">Delegated to you</Typography><Typography>{isPluginVotingPower && !council ? 'See plugin delegation details' : format(delegated)}</Typography></Box>
+                </Box>
+                {(council ? currentCouncilDelegate : currentCommunityDelegate) && <Typography variant="caption">Your power is delegated to {council ? currentCouncilDelegate : currentCommunityDelegate}.</Typography>}
+            </>}
+        </Box>;
+    }
     return(
         <Grid xs={12}>
         {(!publicKey && loading) ?

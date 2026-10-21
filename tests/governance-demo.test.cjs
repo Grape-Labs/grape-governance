@@ -89,9 +89,36 @@ loaded.require = function (id) {
       GovernanceProposalV2View: (props) => {
         if (renderFailure) throw new Error("Render failed");
         assert.equal(props.governanceAddress, realm);
+        assert.equal(
+          props.realm,
+          undefined,
+          "Allow proposal metadata and participant initialization"
+        );
         return props.renderSimple({
           proposal: props.item,
           stateLabel: props.item.account.state === 2 ? "Voting" : "Completed",
+          connected: true,
+          hasVoted: true,
+          hasVotedSide: "yes",
+          instructionCount: 2,
+          instructionDetails: [
+            {
+              description: "Transfer to grant recipient",
+              amount: 100,
+              name: "GRAPE",
+              destinationAta: "recipient-token-account",
+            },
+          ],
+          description: React.createElement(
+            "p",
+            null,
+            "Loaded Gist proposal text"
+          ),
+          power: React.createElement(
+            "p",
+            null,
+            "Own power 100 · Delegated to you 200"
+          ),
           forVotes: "123",
           againstVotes: "45",
           forPct: 73,
@@ -119,9 +146,16 @@ test("loads actual realm proposals, prioritizes active votes, and preserves the 
       await screen.findByRole("heading", { name: "Grape community grant" })
     );
     assert.ok(screen.getByText("123"));
+    assert.ok(screen.getByText("Loaded Gist proposal text"));
+    assert.ok(screen.getByText(/Vote recorded · yes/));
+    assert.ok(screen.getByText(/Own power 100/));
+    assert.ok(
+      screen.getByRole("heading", { name: "2 executable transactions" })
+    );
+    assert.ok(screen.getByText(/Transfer to grant recipient/));
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Review full proposal & instructions",
+        name: "Review execution plan & risks",
       })
     );
     assert.ok(screen.getByText("Existing instruction review"));
