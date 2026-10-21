@@ -1,4 +1,5 @@
 import React, { useMemo, Suspense } from 'react';
+import GovernanceDemo from './Governance/Demo/GovernanceDemo';
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 //import { SpeedInsights } from '@vercel/speed-insights/react';
 
@@ -218,6 +219,7 @@ function DashboardContent() {
       <SnackbarProvider>
         <Router>
             <Routes>
+              <Route path="/demo/governance" element={<GovernanceDemo />} />
               
               <Route path="api/*" element={<ApiView />} >
                 <Route path=":handlekey/:querytype/:queryvar1/:queryvar2/:queryvar3" element={<ApiView />} />
