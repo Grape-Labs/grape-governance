@@ -37,6 +37,7 @@ const loaded = new Module(filename, module);
 loaded.filename = filename;
 loaded.paths = Module._nodeModulePaths(path.dirname(filename));
 let fail = false;
+let renderFailure = false;
 const realm = "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip";
 const rows = [
   {
@@ -50,6 +51,25 @@ const rows = [
 ];
 loaded.require = function (id) {
   if (id.endsWith(".css")) return {};
+  if (id === "./ProposalPreviewBoundary") {
+    const file = path.resolve(
+      "src/Governance/Demo/ProposalPreviewBoundary.tsx"
+    );
+    const child = new Module(file, module);
+    child.filename = file;
+    child.paths = Module._nodeModulePaths(path.dirname(file));
+    child._compile(
+      transformSync(fs.readFileSync(file, "utf8"), {
+        filename: file,
+        configFile: false,
+        babelrc: false,
+        presets: ["@babel/preset-typescript", "@babel/preset-react"],
+        plugins: ["@babel/plugin-transform-modules-commonjs"],
+      }).code,
+      file
+    );
+    return child.exports;
+  }
   if (id === "../api/queries")
     return {
       getRealmIndexed: async (address) => {
@@ -67,6 +87,7 @@ loaded.require = function (id) {
   if (id === "../GovernanceProposalV2")
     return {
       GovernanceProposalV2View: (props) => {
+        if (renderFailure) throw new Error("Render failed");
         assert.equal(props.governanceAddress, realm);
         return props.renderSimple({
           proposal: props.item,
@@ -136,20 +157,54 @@ test("shows RPC errors and recovers on retry without fictitious fallback data", 
   }
 });
 
-test('both demo URLs are active JSX routes, not commented-out declarations', () => {
-  const ast = require('@babel/parser').parse(fs.readFileSync('src/App.tsx', 'utf8'), {
-    sourceType: 'module', plugins: ['typescript', 'jsx'],
-  });
+test("both demo URLs are active JSX routes, not commented-out declarations", () => {
+  const ast = require("@babel/parser").parse(
+    fs.readFileSync("src/App.tsx", "utf8"),
+    {
+      sourceType: "module",
+      plugins: ["typescript", "jsx"],
+    }
+  );
   const routes = new Map();
-  require('@babel/traverse').default(ast, {
-    JSXOpeningElement({node}) {
-      if (node.name.type !== 'JSXIdentifier' || node.name.name !== 'Route') return;
-      const pathAttr = node.attributes.find(attr => attr.name?.name === 'path');
-      const elementAttr = node.attributes.find(attr => attr.name?.name === 'element');
-      routes.set(pathAttr?.value?.value, elementAttr?.value?.expression?.openingElement?.name?.name);
+  require("@babel/traverse").default(ast, {
+    JSXOpeningElement({ node }) {
+      if (node.name.type !== "JSXIdentifier" || node.name.name !== "Route")
+        return;
+      const pathAttr = node.attributes.find(
+        (attr) => attr.name?.name === "path"
+      );
+      const elementAttr = node.attributes.find(
+        (attr) => attr.name?.name === "element"
+      );
+      routes.set(
+        pathAttr?.value?.value,
+        elementAttr?.value?.expression?.openingElement?.name?.name
+      );
     },
   });
-  assert.equal(routes.get('/demo/governance'), 'GovernanceDemo');
-  assert.equal(routes.get(`/demo/governance/dao/${realm}`), 'GovernanceDemo');
-  assert.equal(routes.get('proposal/*'), 'GovernanceProposalWrapper');
+  assert.equal(routes.get("/demo/governance"), "GovernanceDemo");
+  assert.equal(routes.get(`/demo/governance/dao/${realm}`), "GovernanceDemo");
+  assert.equal(routes.get("proposal/*"), "GovernanceProposalWrapper");
+});
+
+test("a proposal render error preserves the list and provides a working retry", async () => {
+  const originalError = console.error;
+  try {
+    console.error = () => {};
+    renderFailure = true;
+    mount();
+    assert.ok(await screen.findByRole("alert"));
+    assert.ok(
+      screen.getByRole("button", { name: /Existing treasury allocation/ })
+    );
+    renderFailure = false;
+    fireEvent.click(screen.getByRole("button", { name: "Retry proposal" }));
+    assert.ok(
+      await screen.findByRole("heading", { name: "Grape community grant" })
+    );
+  } finally {
+    renderFailure = false;
+    console.error = originalError;
+    cleanup();
+  }
 });

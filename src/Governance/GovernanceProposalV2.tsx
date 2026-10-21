@@ -6238,7 +6238,7 @@ export function GovernanceProposalV2View(props: any){
                                                     <RenderDescription
                                                     title={thisitem.account?.name}
                                                     description={thisitem.account?.descriptionLink}
-                                                    fallback={proposalPk?.toBase58()}
+                                                    fallback={toBase58Safe(proposalPk)}
                                                     />
                                                 </Typography>
 
@@ -6264,7 +6264,7 @@ export function GovernanceProposalV2View(props: any){
                                                 <RenderDescription
                                                     title={thisitem.account?.name}
                                                     description={thisitem.account?.descriptionLink}
-                                                    fallback={proposalPk?.toBase58()}
+                                                    fallback={toBase58Safe(proposalPk)}
                                                 />
                                                 </Typography>
                                             )}
