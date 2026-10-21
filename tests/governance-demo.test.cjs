@@ -36,68 +36,102 @@ const compiled = transformSync(fs.readFileSync(filename, "utf8"), {
 const loaded = new Module(filename, module);
 loaded.filename = filename;
 loaded.paths = Module._nodeModulePaths(path.dirname(filename));
+let fail = false;
+const realm = "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip";
+const rows = [
+  {
+    pubkey: "closed-proposal",
+    account: { name: "Existing treasury allocation", state: 5, draftAt: 200 },
+  },
+  {
+    pubkey: "active-proposal",
+    account: { name: "Grape community grant", state: 2, draftAt: 100 },
+  },
+];
 loaded.require = function (id) {
-  return id.endsWith(".css") ? {} : Module.prototype.require.call(this, id);
+  if (id.endsWith(".css")) return {};
+  if (id === "../api/queries")
+    return {
+      getRealmIndexed: async (address) => {
+        assert.equal(address, realm);
+        if (fail) throw new Error("RPC unavailable");
+        return { owner: "program" };
+      },
+      getAllGovernancesIndexed: async () => [{ pubkey: "rules" }],
+      getAllProposalsIndexed: async (rules, owner, address) => {
+        assert.deepEqual(rules, ["rules"]);
+        assert.equal(address, realm);
+        return rows;
+      },
+    };
+  if (id === "../GovernanceProposalV2")
+    return {
+      GovernanceProposalV2View: (props) => {
+        assert.equal(props.governanceAddress, realm);
+        return props.renderSimple({
+          proposal: props.item,
+          stateLabel: props.item.account.state === 2 ? "Voting" : "Completed",
+          forVotes: "123",
+          againstVotes: "45",
+          forPct: 73,
+          totalCastUi: 168,
+          details: React.createElement(
+            "p",
+            null,
+            "Existing instruction review"
+          ),
+        });
+      },
+    };
+  return Module.prototype.require.call(this, id);
 };
 loaded._compile(compiled, filename);
 const Demo = loaded.exports.default;
-
-test("requires a choice, allows review changes, and shows approval without moving tokens", () => {
+const { MemoryRouter } = require("react-router-dom");
+const { waitFor } = require("@testing-library/react");
+const mount = () =>
+  render(React.createElement(MemoryRouter, null, React.createElement(Demo)));
+test("loads actual realm proposals, prioritizes active votes, and preserves the original review", async () => {
   try {
-    render(React.createElement(Demo));
-    assert.equal(
-      screen.getByRole("button", { name: /Review my choice/ }).disabled,
-      true
+    mount();
+    assert.ok(
+      await screen.findByRole("heading", { name: "Grape community grant" })
     );
-    fireEvent.click(screen.getByRole("radio", { name: /YES/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Review my choice/ }));
-    assert.ok(screen.getByText("YES · Buy SOL"));
-    fireEvent.click(screen.getByRole("button", { name: "Change choice" }));
-    assert.equal(screen.getByRole("radio", { name: /YES/ }).checked, true);
-    fireEvent.click(screen.getByRole("radio", { name: /NO/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Review my choice/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Confirm demo vote/ }));
-    assert.ok(screen.getByRole("heading", { name: "Proposal approved" }));
-    assert.ok(screen.getByText("NO · 1,000 votes"));
-    assert.ok(screen.getByText("Unchanged"));
-    assert.match(
-      screen.getByText(/An authorized execution/).textContent,
-      /Approval alone does not move/
+    assert.ok(screen.getByText("123"));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Review full proposal & instructions",
+      })
+    );
+    assert.ok(screen.getByText("Existing instruction review"));
+    fireEvent.click(
+      screen.getByRole("button", { name: /Existing treasury allocation/ })
+    );
+    assert.ok(
+      screen.getByRole("heading", { name: "Existing treasury allocation" })
+    );
+    assert.equal(screen.queryByText("Existing instruction review"), null);
+    assert.equal(
+      screen.getByRole("link", { name: /Original page/ }).getAttribute("href"),
+      `/proposal/${realm}/closed-proposal`
     );
   } finally {
     cleanup();
   }
 });
-
-test("scenario changes reset the choice and both failure outcomes explain why funds stay put", () => {
+test("shows RPC errors and recovers on retry without fictitious fallback data", async () => {
   try {
-    render(React.createElement(Demo));
-    for (const [scenario, outcome] of [
-      ["Buy ZEC", "Participation target not reached"],
-      ["Buy BTC", "Proposal rejected"],
-    ]) {
-      fireEvent.click(
-        screen.getByRole("button", { name: new RegExp(scenario) })
-      );
-      assert.equal(
-        screen.getByRole("button", { name: /Review my choice/ }).disabled,
-        true
-      );
-      fireEvent.click(screen.getByRole("radio", { name: /YES/ }));
-      fireEvent.click(screen.getByRole("button", { name: /Review my choice/ }));
-      fireEvent.click(
-        screen.getByRole("button", { name: /Confirm demo vote/ })
-      );
-      assert.ok(screen.getByRole("heading", { name: outcome }));
-      assert.ok(screen.getByText(/The treasury keeps its funds/));
-    }
-    fireEvent.click(screen.getByRole("button", { name: /Next scenario/ }));
-    assert.ok(screen.getByRole("heading", { name: "Should the DAO buy SOL?" }));
-    assert.equal(
-      screen.getByRole("button", { name: /Review my choice/ }).disabled,
-      true
+    fail = true;
+    mount();
+    assert.ok(await screen.findByRole("alert"));
+    assert.ok(screen.getByText("RPC unavailable"));
+    fail = false;
+    fireEvent.click(screen.getByRole("button", { name: "Retry loading" }));
+    assert.ok(
+      await screen.findByRole("heading", { name: "Grape community grant" })
     );
   } finally {
+    fail = false;
     cleanup();
   }
 });

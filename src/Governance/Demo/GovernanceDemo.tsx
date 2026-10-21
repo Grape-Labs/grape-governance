@@ -1,375 +1,347 @@
 import React from "react";
+import { useSearchParams } from "react-router-dom";
+import {
+  getRealmIndexed,
+  getAllGovernancesIndexed,
+  getAllProposalsIndexed,
+} from "../api/queries";
+import { GovernanceProposalV2View } from "../GovernanceProposalV2";
 import "./governance-demo.css";
 
-type Choice = "yes" | "no";
-type Stage = "decide" | "review" | "result";
-const scenarios = [
-  {
-    asset: "SOL",
-    title: "Should the DAO buy SOL?",
-    description:
-      "Allocate 5,000 USDC from the treasury to SOL and hold it for 30 days.",
-    budget: "5,000 USDC",
-    result: "approved",
-    yes: 72,
-    participation: 68,
-  },
-  {
-    asset: "ZEC",
-    title: "Should the DAO buy ZEC?",
-    description:
-      "Allocate 3,000 USDC from the treasury to ZEC and review the allocation after 30 days.",
-    budget: "3,000 USDC",
-    result: "threshold",
-    yes: 61,
-    participation: 24,
-  },
-  {
-    asset: "BTC",
-    title: "Should the DAO buy BTC?",
-    description:
-      "Allocate 8,000 USDC from the treasury to wrapped BTC and hold it for 30 days.",
-    budget: "8,000 USDC",
-    result: "rejected",
-    yes: 36,
-    participation: 74,
-  },
+export const GRAPE_REALM = "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip";
+const states = [
+  "Draft",
+  "Signing off",
+  "Voting",
+  "Succeeded",
+  "Executing",
+  "Completed",
+  "Cancelled",
+  "Defeated",
+  "Execution error",
+  "Vetoed",
 ];
+const address = (value: any) => value?.toBase58?.() || String(value || "");
 
 export default function GovernanceDemo() {
-  const [scenarioIndex, setScenarioIndex] = React.useState(0);
-  const [stage, setStage] = React.useState<Stage>("decide");
-  const [choice, setChoice] = React.useState<Choice | null>(null);
-  const heading = React.useRef<HTMLHeadingElement>(null);
-  const scenario = scenarios[scenarioIndex];
-  const reset = (index = scenarioIndex) => {
-    setScenarioIndex(index);
-    setChoice(null);
-    setStage("decide");
-  };
+  const [params, setParams] = useSearchParams();
+  const [proposals, setProposals] = React.useState<any[]>([]);
+  const [realm, setRealm] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState("");
+  const [revision, setRevision] = React.useState(0);
+  const [filter, setFilter] = React.useState("");
+  const [expanded, setExpanded] = React.useState(false);
+  const requested = params.get("proposal");
   React.useEffect(() => {
-    heading.current?.focus();
-  }, [stage, scenarioIndex]);
-  const outcome =
-    scenario.result === "approved"
-      ? "Proposal approved"
-      : scenario.result === "threshold"
-      ? "Participation target not reached"
-      : "Proposal rejected";
-  const explanation =
-    scenario.result === "approved"
-      ? "The participation target was met and YES received the majority. The proposal is ready for execution."
-      : scenario.result === "threshold"
-      ? "Too little voting power participated to meet this demo’s target. The purchase will not proceed."
-      : "The participation target was met and NO received the majority. The purchase will not proceed.";
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    (async () => {
+      try {
+        const liveRealm = await getRealmIndexed(GRAPE_REALM);
+        if (!liveRealm) throw new Error("Grape DAO could not be loaded.");
+        const owner = address(liveRealm.owner);
+        const rules = await getAllGovernancesIndexed(GRAPE_REALM, owner);
+        const rows = await getAllProposalsIndexed(
+          rules.map((rule) => address(rule.pubkey)),
+          owner,
+          GRAPE_REALM
+        );
+        const sorted = [...rows].sort((a, b) => {
+          const active =
+            Number(b.account.state === 2) - Number(a.account.state === 2);
+          return (
+            active ||
+            Number(b.account.draftAt || 0) - Number(a.account.draftAt || 0)
+          );
+        });
+        if (!cancelled) {
+          setRealm(liveRealm);
+          setProposals(sorted);
+        }
+      } catch (e) {
+        if (!cancelled)
+          setError(
+            e instanceof Error ? e.message : "Unable to load proposals."
+          );
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [revision]);
+  const selected = requested
+    ? proposals.find((item) => address(item.pubkey) === requested)
+    : proposals[0];
+  const selectedAddress = selected ? address(selected.pubkey) : "";
+  React.useEffect(() => {
+    setExpanded(false);
+  }, [selectedAddress]);
+  const visible = proposals.filter((item) =>
+    String(item.account.name).toLowerCase().includes(filter.toLowerCase())
+  );
+  const select = (id: string) => {
+    setParams({ proposal: id });
+    setExpanded(false);
+  };
 
   return (
-    <div className="governance-demo">
+    <div className="governance-demo gd-live">
       <div className="gd-shell">
         <header className="gd-header">
-          <a href="/" className="gd-brand">
-            <span className="gd-brand-icon">G</span> Governance{" "}
+          <a href={`/dao/${GRAPE_REALM}`} className="gd-brand">
+            <span className="gd-brand-icon">G</span> Grape DAO{" "}
             <span className="gd-brand-muted">/ Lab</span>
           </a>
           <span className="gd-demo-badge">
-            <span /> Interactive demo
+            <span /> Real proposals · Experimental layout
           </span>
         </header>
         <main>
           <div className="gd-intro">
-            <span className="gd-eyebrow">A CLEARER WAY TO PARTICIPATE</span>
+            <span className="gd-eyebrow">GRAPE GOVERNANCE</span>
             <h1>
-              Big decisions.
+              Your DAO.
               <br />
-              <span>Simple steps.</span>
+              <span>A clearer decision.</span>
             </h1>
             <p>
-              Understand the proposal. Make your choice. See what happens next.
+              Real proposals, real votes. Explore a simpler view of Grape
+              governance.
             </p>
           </div>
-          <div className="gd-workspace">
-            <section className="gd-main" aria-label="Proposal experiment">
-              <div className="gd-card-top">
-                <span className="gd-eyebrow">
-                  EXAMPLE DAO <span className="gd-dot">·</span> TREASURY
-                </span>
-                <span className="gd-pill">Simulated data</span>
-              </div>
-              <ol className="gd-steps" aria-label="Voting steps">
-                {["Decide", "Review", "Outcome"].map((label, index) => (
-                  <li
-                    key={label}
-                    aria-current={
-                      index === ["decide", "review", "result"].indexOf(stage)
-                        ? "step"
-                        : undefined
-                    }
-                    className={
-                      index <= ["decide", "review", "result"].indexOf(stage)
-                        ? "is-active"
-                        : ""
-                    }
-                  >
-                    <span>{index + 1}</span>
-                    {label}
-                  </li>
-                ))}
-              </ol>
-              <div className="gd-content">
-                <div
-                  className={`gd-asset ${
-                    stage === "result" ? `gd-${scenario.result}` : ""
-                  }`}
-                  aria-hidden="true"
-                >
-                  {stage === "result"
-                    ? scenario.result === "approved"
-                      ? "✓"
-                      : "—"
-                    : scenario.asset.slice(0, 1)}
-                </div>
-                <h2 ref={heading} tabIndex={-1}>
-                  {stage === "result"
-                    ? outcome
-                    : stage === "review"
-                    ? "Ready to confirm your choice?"
-                    : scenario.title}
-                </h2>
-                <p className="gd-description">
-                  {stage === "result" ? explanation : scenario.description}
-                </p>
-                {stage === "decide" && (
-                  <>
-                    <div className="gd-facts">
-                      <div>
-                        <span>Proposed allocation</span>
-                        <strong>{scenario.budget}</strong>
-                      </div>
-                      <div>
-                        <span>Your voting power</span>
-                        <strong>1,000 votes</strong>
-                      </div>
-                    </div>
-                    <fieldset className="gd-choices">
-                      <legend>What would you like the DAO to do?</legend>
-                      {(["yes", "no"] as Choice[]).map((value) => (
-                        <label
-                          key={value}
-                          className={`gd-choice gd-${value} ${
-                            choice === value ? "is-selected" : ""
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="demo-vote"
-                            value={value}
-                            checked={choice === value}
-                            onChange={() => setChoice(value)}
-                          />
-                          <span className="gd-choice-title">
-                            {value === "yes" ? "↗ YES" : "↘ NO"}
-                          </span>
-                          <span>
-                            {value === "yes"
-                              ? `Buy ${scenario.asset}`
-                              : "Keep the treasury as it is"}
-                          </span>
-                        </label>
-                      ))}
-                    </fieldset>
+          {loading ? (
+            <p role="status">Loading Grape DAO proposals…</p>
+          ) : error ? (
+            <div role="alert">
+              <p>{error}</p>
+              <button
+                className="gd-secondary"
+                onClick={() => setRevision((n) => n + 1)}
+              >
+                Retry loading
+              </button>
+            </div>
+          ) : (
+            <div className="gd-workspace">
+              <section
+                aria-label="Selected proposal"
+                className="gd-live-proposal"
+              >
+                {!selected ? (
+                  <div className="gd-main gd-content">
+                    <h2>
+                      {requested
+                        ? "Proposal not found in Grape DAO"
+                        : "No proposals found"}
+                    </h2>
+                    <p>Select a proposal from the list or refresh.</p>
                     <button
-                      className="gd-primary"
-                      disabled={!choice}
-                      onClick={() => setStage("review")}
+                      className="gd-secondary"
+                      onClick={() => {
+                        setParams({});
+                        setRevision((n) => n + 1);
+                      }}
                     >
-                      Review my choice <span aria-hidden="true">→</span>
+                      Refresh proposals
                     </button>
-                    <p className="gd-footnote">
-                      You can change your choice before confirming.
-                    </p>
-                  </>
-                )}
-                {stage === "review" && (
-                  <>
-                    <div className={`gd-review gd-${choice}`}>
-                      <span>Your choice</span>
-                      <strong>
-                        {choice === "yes"
-                          ? `YES · Buy ${scenario.asset}`
-                          : `NO · Don’t buy ${scenario.asset}`}
-                      </strong>
-                      <span>1,000 simulated votes</span>
-                    </div>
-                    <p className="gd-note">
-                      This records a demo vote only. No wallet connection,
-                      transaction, or tokens are needed.
-                    </p>
-                    <div className="gd-actions">
-                      <button
-                        className="gd-secondary"
-                        onClick={() => setStage("decide")}
-                      >
-                        Change choice
-                      </button>
-                      <button
-                        className="gd-primary"
-                        onClick={() => setStage("result")}
-                      >
-                        Confirm demo vote <span aria-hidden="true">→</span>
-                      </button>
-                    </div>
-                  </>
-                )}
-                {stage === "result" && (
-                  <>
-                    <div className="gd-result-summary">
-                      <div>
-                        <span>Your recorded choice</span>
-                        <strong>{choice?.toUpperCase()} · 1,000 votes</strong>
-                      </div>
-                      <div>
-                        <span>Your tokens</span>
-                        <strong>Unchanged</strong>
-                      </div>
-                    </div>
-                    <div className="gd-tally">
-                      <div>
-                        <strong>Final vote</strong>
-                        <span>
-                          {scenario.yes}% YES · {100 - scenario.yes}% NO
-                        </span>
-                      </div>
-                      <div
-                        className="gd-bar"
-                        role="img"
-                        aria-label={`${scenario.yes} percent YES, ${
-                          100 - scenario.yes
-                        } percent NO`}
-                      >
-                        <span style={{ width: `${scenario.yes}%` }} />
-                      </div>
-                      <p>
-                        {scenario.participation}% participation · 40% demo
-                        target
-                      </p>
-                    </div>
-                    <div className="gd-next">
-                      <span className="gd-eyebrow">WHAT HAPPENS NEXT</span>
-                      <p>
-                        {scenario.result === "approved"
-                          ? "An authorized execution transaction would carry out the purchase. Approval alone does not move treasury funds."
-                          : "The treasury keeps its funds. Members can discuss a revised proposal."}
-                      </p>
-                    </div>
-                    <div className="gd-actions">
-                      <button className="gd-secondary" onClick={() => reset()}>
-                        Try again
-                      </button>
-                      <button
-                        className="gd-primary"
-                        onClick={() =>
-                          reset((scenarioIndex + 1) % scenarios.length)
-                        }
-                      >
-                        Next scenario <span aria-hidden="true">→</span>
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-              <div className="gd-details">
-                <details>
-                  <summary>
-                    Proposal details <span>Allocation & execution</span>
-                  </summary>
-                  <div>
-                    <p>
-                      <strong>Action:</strong> Exchange {scenario.budget} for{" "}
-                      {scenario.asset} from the example treasury.
-                    </p>
-                    <p>
-                      <strong>Review period:</strong> 30 days after execution.
-                    </p>
-                    <p>
-                      This prototype contains no executable instructions. A live
-                      proposal would show the exact asset, destination, minimum
-                      received, and transaction simulation here.
-                    </p>
                   </div>
-                </details>
-                <details>
-                  <summary>
-                    How this demo works <span>Rules & limitations</span>
-                  </summary>
-                  <div>
-                    <p>
-                      Each scenario has a predetermined outcome so you can
-                      explore all three results. Your choice is recorded locally
-                      for this interaction and does not change the example
-                      totals.
-                    </p>
-                    <p>
-                      For this demo, approval requires 40% participation and
-                      more than 50% YES votes. These are illustrative rules, not
-                      a representation of any live DAO’s SPL Governance
-                      configuration.
-                    </p>
-                    <p>
-                      This is a standard voting UI experiment. No bets, bonds,
-                      payouts, or fund ownership are simulated.
-                    </p>
-                  </div>
-                </details>
-              </div>
-            </section>
-            <aside className="gd-sidebar">
-              <section className="gd-scenarios">
-                <span className="gd-eyebrow">EXPLORE THE DEMO</span>
-                <h3>Three ways a vote can end.</h3>
-                <p>Choose a scenario to walk through the experience.</p>
-                <div className="gd-scenario-list">
-                  {scenarios.map((item, index) => (
-                    <button
-                      key={item.asset}
-                      aria-pressed={scenarioIndex === index}
-                      className={scenarioIndex === index ? "is-selected" : ""}
-                      onClick={() => reset(index)}
-                    >
-                      <span className="gd-scenario-number">0{index + 1}</span>
-                      <span>
-                        <strong>Buy {item.asset}</strong>
-                        <small>
-                          {item.result === "approved"
-                            ? "Approved"
-                            : item.result === "threshold"
-                            ? "Low participation"
-                            : "Rejected"}
-                        </small>
-                      </span>
-                      <span aria-hidden="true">↗</span>
-                    </button>
-                  ))}
-                </div>
+                ) : (
+                  <GovernanceProposalV2View
+                    key={`${selectedAddress}:${revision}`}
+                    governanceAddress={GRAPE_REALM}
+                    governanceProposal={selectedAddress}
+                    item={selected}
+                    realm={realm}
+                    showGovernanceTitle={false}
+                    renderSimple={(view: any) => (
+                      <>
+                        <article className="gd-main">
+                          <div className="gd-card-top">
+                            <span className="gd-eyebrow">
+                              GRAPE DAO PROPOSAL
+                            </span>
+                            <span className="gd-pill">{view.stateLabel}</span>
+                          </div>
+                          <div className="gd-content">
+                            <h2>{view.proposal.account.name}</h2>
+                            <p className="gd-description">
+                              {view.proposal.account.state === 2
+                                ? "Review the proposal and choose whether to support it."
+                                : `This proposal is ${view.stateLabel.toLowerCase()}. Its recorded outcome is shown below.`}
+                            </p>
+                            {view.warning && (
+                              <div className="gd-live-warning" role="alert">
+                                {view.warning}
+                                <button
+                                  className="gd-secondary"
+                                  onClick={() => setExpanded(true)}
+                                >
+                                  Review security and instructions
+                                </button>
+                              </div>
+                            )}
+                            <div className="gd-live-description">
+                              {view.description || (
+                                <p>
+                                  Open the full proposal details to read the
+                                  author’s description and supporting material.
+                                </p>
+                              )}
+                            </div>
+                            {!view.isMultiChoiceProposal && (
+                              <div className="gd-facts">
+                                <div>
+                                  <span>For</span>
+                                  <strong>{view.forVotes}</strong>
+                                </div>
+                                <div>
+                                  <span>Against</span>
+                                  <strong>{view.againstVotes}</strong>
+                                </div>
+                              </div>
+                            )}
+                            {!view.isMultiChoiceProposal &&
+                              view.totalCastUi > 0 && (
+                                <div className="gd-tally">
+                                  <div>
+                                    <strong>
+                                      Share of For / Against votes
+                                    </strong>
+                                    <span>{view.forPct.toFixed(1)}% For</span>
+                                  </div>
+                                  <div
+                                    className="gd-bar"
+                                    role="img"
+                                    aria-label={`${view.forPct.toFixed(
+                                      1
+                                    )} percent For`}
+                                  >
+                                    <span
+                                      style={{ width: `${view.forPct}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            {view.hasVoted && (
+                              <p role="status" className="gd-note">
+                                Your vote is recorded
+                                {view.hasVotedSide
+                                  ? ` · ${view.hasVotedSide}`
+                                  : ""}
+                                .
+                              </p>
+                            )}
+                            {view.actions && (
+                              <>
+                                <div className="gd-live-actions">
+                                  {view.actions}
+                                </div>
+                                <p className="gd-footnote">
+                                  These are real voting actions. Review the
+                                  wallet transaction before signing.
+                                </p>
+                              </>
+                            )}
+                            {view.isMultiChoiceProposal && (
+                              <p className="gd-note">
+                                This proposal has multiple options. Open the
+                                full voting details to review and vote on each
+                                option.
+                              </p>
+                            )}
+                            <details className="gd-live-power">
+                              <summary>Your voting power</summary>
+                              {view.power}
+                            </details>
+                            <div className="gd-actions">
+                              <button
+                                className="gd-secondary"
+                                aria-expanded={expanded}
+                                aria-controls="gd-full-details"
+                                onClick={() => setExpanded((value) => !value)}
+                              >
+                                {expanded
+                                  ? "Hide full details"
+                                  : "Review full proposal & instructions"}
+                              </button>
+                              <a
+                                href={`/proposal/${GRAPE_REALM}/${selectedAddress}`}
+                              >
+                                Original page ↗
+                              </a>
+                            </div>
+                          </div>
+                        </article>
+                        {expanded && (
+                          <section
+                            id="gd-full-details"
+                            className="gd-full-details"
+                            aria-label="Full proposal review"
+                          >
+                            {view.details}
+                          </section>
+                        )}
+                      </>
+                    )}
+                  />
+                )}
               </section>
-              <div className="gd-sandbox-note">
-                <span aria-hidden="true">◇</span>
-                <div>
-                  <strong>A space to experiment</strong>
-                  <p>
-                    All amounts and outcomes are examples. Your wallet and the
-                    live governance pages are unaffected.
-                  </p>
-                </div>
-              </div>
-            </aside>
-          </div>
+              <aside className="gd-sidebar">
+                <section className="gd-scenarios">
+                  <span className="gd-eyebrow">GRAPE DAO</span>
+                  <h3>Choose a proposal.</h3>
+                  <p>Active votes first, followed by recent proposals.</p>
+                  <label className="gd-search">
+                    Search proposals
+                    <input
+                      value={filter}
+                      onChange={(event) => setFilter(event.target.value)}
+                      type="search"
+                      placeholder="Search by title"
+                    />
+                  </label>
+                  <div className="gd-scenario-list gd-proposal-list">
+                    {visible.map((item) => (
+                      <button
+                        key={address(item.pubkey)}
+                        aria-pressed={selectedAddress === address(item.pubkey)}
+                        className={
+                          selectedAddress === address(item.pubkey)
+                            ? "is-selected"
+                            : ""
+                        }
+                        onClick={() => select(address(item.pubkey))}
+                      >
+                        <span>
+                          <strong>{item.account.name}</strong>
+                          <small>
+                            {states[item.account.state] || "Unknown"}
+                          </small>
+                        </span>
+                      </button>
+                    ))}
+                    {!visible.length && <p>No matching proposals.</p>}
+                  </div>
+                  <button
+                    className="gd-secondary"
+                    onClick={() => setRevision((n) => n + 1)}
+                  >
+                    Refresh proposals
+                  </button>
+                </section>
+              </aside>
+            </div>
+          )}
         </main>
         <footer className="gd-footer">
           <span>
-            Governance Lab <span className="gd-dot">/</span> Proposal experience
-            v1
+            Experimental presentation · Existing governance transactions
           </span>
-          <a href="/">Return to governance ↗</a>
+          <a href={`/dao/${GRAPE_REALM}`}>Return to Grape DAO ↗</a>
         </footer>
       </div>
     </div>
