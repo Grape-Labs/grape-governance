@@ -1415,3 +1415,5 @@
 .gd-settings-dialog .gd-settings-list { margin: 0; }
 .gd-signer-signed { color: #64dfb1; }
 @media (max-width: 450px) { .gd-settings-rule-grid { grid-template-columns: 1fr; } }
+.gd-proposal-footer-tools { flex-wrap: wrap; }
+.gd-live .gd-proposal-footer-tools > .gd-secondary { padding: 6px 10px; min-height: 34px; font-size: 11px; border-radius: 7px; }
