@@ -823,7 +823,7 @@ function RenderGovernanceTable(props:any) {
         
         return (
             <>
-                <TableCell  align="center">
+                <TableCell align="center" sx={{ width: 160, minWidth: 160, whiteSpace: 'nowrap', overflowWrap: 'normal' }}>
                     <Typography variant="h6">
                         <Tooltip title={
                             <>
@@ -871,7 +871,7 @@ function RenderGovernanceTable(props:any) {
                             </>
                             }>
                             
-                            <Button sx={{borderRadius:'17px',color:'inherit',textTransform:'none'}}>
+                            <Button sx={{borderRadius:'8px',color:'inherit',textTransform:'none', whiteSpace:'nowrap', overflowWrap:'normal', fontSize:12, minHeight:32, px:1, '& .MuiTypography-root': { whiteSpace:'nowrap', overflowWrap:'normal' }}}>
                                 {GOVERNANCE_STATE[thisitem.account?.state]}
                                     <>
 
@@ -1100,19 +1100,25 @@ function RenderGovernanceTable(props:any) {
                     </Box>
                 </Box>
                 
-                <TableContainer component={Paper} sx={{background:'none'}}>
-                    <Table sx={{ minWidth: 650 }}>
-                        <StyledTable sx={{ minWidth: 500 }} size="small" aria-label="Portfolio Table">
+                <TableContainer component={Paper} sx={{background:'none', overflowX:'auto'}}>
+                        <StyledTable sx={{
+                            minWidth: 900, width: '100%', tableLayout: 'fixed',
+                            '& .MuiTableCell-root': { px: 1.5, py: 1.25 },
+                            '& .MuiTableCell-root:nth-of-type(2)': { width: 170 },
+                            '& .MuiTableCell-root:nth-of-type(3)': { width: 220 },
+                            '& .MuiTableCell-root:nth-of-type(4)': { width: 160, whiteSpace: 'nowrap' },
+                            '& .MuiTableCell-root:not(:first-of-type) .MuiTypography-root': { overflowWrap: 'normal', fontSize: 12 },
+                        }} size="small" aria-label="Portfolio Table">
                             <TableHead>
                                 <TableRow>
-                                    <TableCell><Typography variant="caption" sx={{width:"50%"}}>Title</Typography></TableCell>
-                                    <TableCell align="center" sx={{width:"15%"}}><Typography variant="caption">Proposed</Typography></TableCell>
+                                    <TableCell><Typography variant="caption">Title</Typography></TableCell>
+                                    <TableCell align="center" sx={{width:170}}><Typography variant="caption">Proposed</Typography></TableCell>
                                     {/*
                                     <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">Yes</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">No</Typography></TableCell>
                                     */}
-                                    <TableCell align="center" sx={{width:"16%"}}><Typography variant="caption">Results</Typography></TableCell>
-                                    <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">Status</Typography></TableCell>
+                                    <TableCell align="center" sx={{width:220}}><Typography variant="caption">Results</Typography></TableCell>
+                                    <TableCell align="center" sx={{width:160}}><Typography variant="caption">Status</Typography></TableCell>
                                     {/*<TableCell align="center"><Typography variant="caption">Details</Typography></TableCell>*/}
                                 </TableRow>
                             </TableHead>
@@ -1383,7 +1389,7 @@ function RenderGovernanceTable(props:any) {
                                                             </Typography>
                                                         </TableCell>
                                                     :
-                                                        <TableCell sx={{ width: '16%', minWidth: 210 }}>
+                                                        <TableCell sx={{ width: 220 }}>
                                                                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                                                     <Tooltip title={
                                                                         <>
@@ -1517,7 +1523,6 @@ function RenderGovernanceTable(props:any) {
                             
                             
                         </StyledTable>
-                    </Table>
                 </TableContainer>
             </>
         )
