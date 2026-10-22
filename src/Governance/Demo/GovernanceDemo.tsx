@@ -324,11 +324,6 @@ export default function GovernanceDemo({
                             </div>
                             <div className="gd-content">
                               <h2>{view.proposal.account.name}</h2>
-                              <p className="gd-description">
-                                {view.proposal.account.state === 2
-                                  ? "Review the proposal and choose whether to support it."
-                                  : `This proposal is ${view.stateLabel.toLowerCase()}. Its recorded outcome is shown below.`}
-                              </p>
                               {view.author && (
                                 <details className="gd-author">
                                   <summary>

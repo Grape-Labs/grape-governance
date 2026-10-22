@@ -1243,11 +1243,10 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px 16px;
-  margin: 12px 0 18px;
-  padding: 10px 0;
+  margin: 8px 0 14px;
+  padding: 0;
   list-style: none;
-  border-top: 1px solid #ffffff12;
-  border-bottom: 1px solid #ffffff12;
+  border: 0;
 }
 .gd-proposal-timeline li { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .gd-proposal-timeline li > span:first-child { font-size: 10px; color: var(--gd-muted); }
@@ -1269,7 +1268,7 @@
 .gd-timeline-track {
   position: relative;
   height: 3px;
-  margin: 4px -12px 8px 0;
+  margin: 4px -12px 4px 0;
   background: #ffffff18;
 }
 .gd-timeline-track > span { display: block; height: 100%; background: #64dfb1; }
@@ -1295,3 +1294,9 @@
   .gd-proposal-timeline .is-reached .gd-timeline-track { background: #64dfb1; }
   .gd-timeline-track > i { left: -2px; top: 0; }
 }
+
+.gd-live .gd-live-description { margin: 16px 0; }
+.gd-live-description img { max-height: 100px; object-fit: contain; object-position: left center; }
+.gd-live-description h1,
+.gd-live-description h2 { font-size: 20px; letter-spacing: -.3px; }
+.gd-live .gd-content > .gd-author { margin-bottom: 8px; }
