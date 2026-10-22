@@ -8048,8 +8048,36 @@ export function GovernanceProposalV2View(props: any){
         </>
     )
     if (props.renderSimple && !loadingValidation && !loadingParticipants && thisitem) {
+        const managementProps = {
+            governanceAddress, governanceRulesWallet: thisitem.account.governance,
+            governingTokenMint: thisitem.account.governingTokenMint,
+            proposalAuthor: thisitem.account.tokenOwnerRecord, payerWallet: publicKey,
+            governanceLookup, editProposalAddress: thisitem.pubkey, realm, memberMap,
+            setReload, proposalSignatories, proposal: thisitem, state: thisitem.account.state,
+        };
+        const pendingSigner = !!publicKey && [0, 1].includes(Number(thisitem.account.state)) &&
+            (proposalSignatories || []).some(record =>
+                normalizePkString(record.account?.signatory) === normalizePkString(publicKey) &&
+                record.account?.signedOff === false);
+        const finalizeStart = Number(thisitem.account?.signingOffAt || thisitem.account?.votingAt || 0);
+        const canFinalize = !!publicKey && !!governingMintInfo && Number(thisitem.account.state) === 2 &&
+            finalizeStart > 0 && baseVotingTime > 0 &&
+            moment().unix() >= finalizeStart + baseVotingTime + coolOffTime;
         return props.renderSimple({
             proposal: thisitem,
+            management: <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {!publicKey ? <Typography>Connect your wallet to see available actions.</Typography> : <>
+                    {canManageDraftProposal && <ManageGovernanceProposal {...managementProps} mode={2} />}
+                    {(canManageDraftProposal || pendingSigner) && <ManageGovernanceProposal {...managementProps} mode={1} />}
+                    {canFinalize && <ManageGovernanceProposal {...managementProps} mode={5} />}
+                    {!canManageDraftProposal && !pendingSigner && !canFinalize &&
+                        <Typography color="text.secondary">No signatory, sign-off, or finalize actions are available for this wallet at this stage.</Typography>}
+                    {realm && <VetoVoteRow realm={realm} proposal={thisitem} memberMap={memberMap}
+                        councilVoterRecord={councilVoterRecord} publicKey={publicKey}
+                        sendTransaction={sendTransaction} getVotingParticipants={getVotingParticipants}
+                        vetoCount={vetoCount ?? undefined} vetoVoters={vetoVoters} />}
+                </>}
+            </Box>,
             stateLabel: GOVERNANCE_STATE[thisitem.account.state] || 'Unknown',
             timeline: timelineEntries,
             settings: {

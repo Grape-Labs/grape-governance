@@ -5,6 +5,7 @@ import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import DaoPageLayout from "./DaoPageLayout";
 import ProposalShare from "./ProposalShare";
 import ProposalSettings from "./ProposalSettings";
+import ProposalManagement from "./ProposalManagement";
 import VoterBreakdown from "./VoterBreakdown";
 import { recordedVoteLabel, proposalListStatus, compareProposalPriority } from "./proposalListStatus";
 import {
@@ -520,6 +521,7 @@ export default function GovernanceDemo({
                                     : "Review execution plan & risks"}
                                 </button>
                                 <div className="gd-proposal-footer-tools">
+                                {view.management && <ProposalManagement>{view.management}</ProposalManagement>}
                                 <a
                                   href={`/proposal/${GRAPE_REALM}/${selectedAddress}?view=advanced`}
                                 >
