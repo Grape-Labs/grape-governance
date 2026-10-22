@@ -1238,3 +1238,18 @@
   .gd-live .gd-card-top { padding: 14px 14px 12px; }
   .gd-live .gd-content { padding: 0 14px 18px; }
 }
+
+.gd-proposal-timeline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px 16px;
+  margin: 12px 0 18px;
+  padding: 10px 0;
+  list-style: none;
+  border-top: 1px solid #ffffff12;
+  border-bottom: 1px solid #ffffff12;
+}
+.gd-proposal-timeline li { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.gd-proposal-timeline li > span:first-child { font-size: 10px; color: var(--gd-muted); }
+.gd-proposal-timeline time { font-size: 11px; color: var(--gd-text); }
+.gd-proposal-timeline .gd-timeline-pending { font-size: 11px; color: var(--gd-muted); }

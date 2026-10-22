@@ -318,6 +318,24 @@ export default function GovernanceDemo({
                                   </div>
                                 </details>
                               )}
+                              {view.timeline?.length > 0 && (
+                                <ol className="gd-proposal-timeline" aria-label="Proposal timeline">
+                                  {view.timeline.map((entry: any) => (
+                                    <li key={entry.key}>
+                                      <span>{entry.label}</span>
+                                      {entry.at ? (
+                                        <time dateTime={new Date(entry.at * 1000).toISOString()}
+                                          title={new Date(entry.at * 1000).toLocaleString(undefined, { dateStyle: "full", timeStyle: "long" })}>
+                                          {new Date(entry.at * 1000).toLocaleString(undefined, {
+                                            month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+                                            timeZoneName: "short",
+                                          })}
+                                        </time>
+                                      ) : <span className="gd-timeline-pending">Pending</span>}
+                                    </li>
+                                  ))}
+                                </ol>
+                              )}
                               {view.warning && (
                                 <div className="gd-live-warning" role="alert">
                                   {view.warning}

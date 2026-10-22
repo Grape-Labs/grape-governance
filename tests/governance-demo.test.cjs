@@ -117,6 +117,12 @@ loaded.require = function (id) {
           proposal: props.item,
           stateLabel: props.item.account.state === 2 ? "Voting" : "Completed",
           connected: true,
+          timeline: [
+            { key: "created", label: "Created", at: 1792400000 },
+            { key: "voting", label: "Voting", at: 1792500000 },
+            { key: "cooloff", label: "Cool off", at: 1792900000 },
+            { key: "ends", label: "Ends", at: 1792903600 },
+          ],
           hasVoted: true,
           hasVotedSide: "yes",
           approval: { progress: 100, target: "100", passing: true, surplus: "23", remaining: "0" },
@@ -169,6 +175,9 @@ test("loads actual realm proposals, prioritizes active votes, and preserves the 
       await screen.findByRole("heading", { name: "Grape community grant" })
     );
     assert.ok(screen.getByText("100 target"));
+    const timeline = screen.getByRole("list", { name: "Proposal timeline" });
+    assert.equal(timeline.querySelectorAll("time").length, 4);
+    assert.ok(timeline.textContent.includes("Cool off"));
     assert.ok(screen.getByText(/Passing · \+23 above target/));
     assert.equal(screen.getByRole("progressbar", { name: "Approval progress" }).getAttribute("aria-valuenow"), "100");
     assert.equal(
