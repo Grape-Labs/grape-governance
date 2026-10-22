@@ -61,6 +61,7 @@ loaded.require = function (id) {
     };
   if (
     id === "./ProposalPreviewBoundary" ||
+    id === "./ProposalShare" ||
     id === "./GrapeDaoNavigation" ||
     id === "./DaoPageLayout" ||
     id === "./proposalListStatus"

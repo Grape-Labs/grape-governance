@@ -3,6 +3,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import ProposalPreviewBoundary from "./ProposalPreviewBoundary";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import DaoPageLayout from "./DaoPageLayout";
+import ProposalShare from "./ProposalShare";
 import { recordedVoteLabel, proposalListStatus, compareProposalPriority } from "./proposalListStatus";
 import {
   getVoteRecordsByVoterIndexed,
@@ -281,7 +282,10 @@ export default function GovernanceDemo({
                               <span className="gd-eyebrow">
                                 GRAPE DAO PROPOSAL
                               </span>
-                              <span className="gd-pill">{view.stateLabel}</span>
+                              <div className="gd-proposal-tools">
+                                <span className="gd-pill">{view.stateLabel}</span>
+                                <ProposalShare realm={GRAPE_REALM} proposal={selectedAddress} title={view.proposal.account.name} />
+                              </div>
                             </div>
                             <div className="gd-content">
                               <h2>{view.proposal.account.name}</h2>
