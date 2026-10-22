@@ -53,6 +53,7 @@ const rows = [
 ];
 loaded.require = function (id) {
   if (id.endsWith(".css")) return {};
+  if (id === "../../utils/grapeTools/Explorer") return { default: () => null, __esModule: true };
   if (id === "@solana/wallet-adapter-react")
     return {
       useWallet: () => ({

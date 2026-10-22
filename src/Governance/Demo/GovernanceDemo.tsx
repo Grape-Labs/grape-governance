@@ -508,8 +508,7 @@ export default function GovernanceDemo({
                                   option.
                                 </p>
                               )}
-                              <div className="gd-actions">
-                                <ProposalSettings settings={view.settings} />
+                              <div className="gd-actions gd-proposal-footer">
                                 <button
                                   className="gd-secondary"
                                   aria-expanded={expanded}
@@ -520,11 +519,14 @@ export default function GovernanceDemo({
                                     ? "Hide execution plan"
                                     : "Review execution plan & risks"}
                                 </button>
+                                <div className="gd-proposal-footer-tools">
                                 <a
                                   href={`/proposal/${GRAPE_REALM}/${selectedAddress}?view=advanced`}
                                 >
                                   Advanced proposal ↗
                                 </a>
+                                <ProposalSettings settings={view.settings} />
+                                </div>
                               </div>
                             </div>
                           </article>

@@ -22,7 +22,6 @@ import { findDisplayName } from "../name-service";
 import {
   RPC_CONNECTION,
   TWITTER_PROXY,
-  SHYFT_KEY,
   HELIUS_API,
   BLACKLIST_WALLETS,
 } from "./constants";
@@ -634,18 +633,6 @@ export default function ExplorerView(props: any) {
           <OpenInNewIcon sx={{ opacity: 0.6 }} fontSize="small" />
         </MenuItem>
 
-        <MenuItem
-          component="a"
-          href={`https://translator.shyft.to/${type === "address" ? "address" : "tx"}/${address}`}
-          target="_blank"
-          onClick={handleClose}
-        >
-          <ListItemIcon>
-            <ExploreOutlinedIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary="Shyft translator" />
-          <OpenInNewIcon sx={{ opacity: 0.6 }} fontSize="small" />
-        </MenuItem>
 
         <MenuItem
           component="a"

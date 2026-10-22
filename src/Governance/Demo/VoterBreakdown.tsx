@@ -80,11 +80,9 @@ export default function VoterBreakdown({ records, proposal, count }: { records: 
       <DialogContent>
         <p style={{ fontSize: 12, color: "#a6b3c7" }}>Voting power recorded with each vote. Relinquished records are marked separately.</p>
         {records != null && <div className="gd-voter-stats">
-          <span><strong>{stats.total}</strong> wallets</span>
-          <span><strong>{stats.for}</strong> For</span>
-          <span><strong>{stats.against}</strong> Against</span>
-          {stats.other > 0 && <span><strong>{stats.other}</strong> Other</span>}
-          <span><strong>{stats.total ? (stats.for / stats.total * 100).toFixed(1) : "0"}%</strong> wallets For</span>
+          <div><span>Participating wallets</span><strong>{stats.total}</strong></div>
+          <div><span>For / Against</span><strong><span className="gd-stat-for">{stats.for}</span><span className="gd-stat-divider"> / </span>{stats.against}</strong>{stats.other > 0 && <small>{stats.other} other</small>}</div>
+          <div><span>Wallet support</span><strong>{stats.total ? (stats.for / stats.total * 100).toFixed(1) : "0"}<small>%</small></strong></div>
         </div>}
         {records == null ? <p>Voter records unavailable.</p> : rows.length === 0 ? <p>No voter records yet.</p> :
           <div style={{ overflowX: "auto" }}>
