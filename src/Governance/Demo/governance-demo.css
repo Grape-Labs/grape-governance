@@ -1300,3 +1300,33 @@
 .gd-live-description h1,
 .gd-live-description h2 { font-size: 20px; letter-spacing: -.3px; }
 .gd-live .gd-content > .gd-author { margin-bottom: 8px; }
+
+/* Compact execution notice with an adjacent review action. */
+.gd-live .gd-execution-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px 16px;
+  align-items: center;
+  padding: 12px 14px;
+  margin: 12px 0;
+  border-radius: 12px;
+}
+.gd-live .gd-execution-summary h3 { grid-column: 1; margin: 0; font-size: 13px; }
+.gd-live .gd-execution-summary p { grid-column: 1; margin: 0; font-size: 11px; line-height: 1.5; }
+.gd-live .gd-execution-summary .gd-asset-summary {
+  grid-column: 1; margin: 0; gap: 4px 12px; font-size: 12px;
+}
+.gd-live .gd-execution-summary .gd-asset-summary:empty { display: none; }
+.gd-live .gd-execution-summary .gd-asset-summary > span { padding: 0; background: none; }
+.gd-live .gd-execution-summary > button {
+  grid-column: 2; grid-row: 1 / 4;
+  padding: 8px 10px; min-height: 36px; font-size: 11px;
+  max-width: 175px; white-space: normal; line-height: 1.4;
+}
+@media (max-width: 650px) {
+  .gd-live .gd-execution-summary { grid-template-columns: 1fr; gap: 6px; }
+  .gd-live .gd-execution-summary > button {
+    grid-column: 1; grid-row: auto; justify-self: start;
+    max-width: none; width: auto; min-height: 44px;
+  }
+}
