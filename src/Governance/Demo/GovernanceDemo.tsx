@@ -3,6 +3,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import ProposalPreviewBoundary from "./ProposalPreviewBoundary";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import DaoPageLayout from "./DaoPageLayout";
+import ProposalShare from "./ProposalShare";
 import { recordedVoteLabel, proposalListStatus, compareProposalPriority } from "./proposalListStatus";
 import {
   getVoteRecordsByVoterIndexed,
@@ -281,7 +282,10 @@ export default function GovernanceDemo({
                               <span className="gd-eyebrow">
                                 GRAPE DAO PROPOSAL
                               </span>
-                              <span className="gd-pill">{view.stateLabel}</span>
+                              <div className="gd-proposal-tools">
+                                <span className="gd-pill">{view.stateLabel}</span>
+                                <ProposalShare realm={GRAPE_REALM} proposal={selectedAddress} title={view.proposal.account.name} />
+                              </div>
                             </div>
                             <div className="gd-content">
                               <h2>{view.proposal.account.name}</h2>
@@ -317,6 +321,24 @@ export default function GovernanceDemo({
                                     </a>
                                   </div>
                                 </details>
+                              )}
+                              {view.timeline?.length > 0 && (
+                                <ol className="gd-proposal-timeline" aria-label="Proposal timeline">
+                                  {view.timeline.map((entry: any) => (
+                                    <li key={entry.key}>
+                                      <span>{entry.label}</span>
+                                      {entry.at ? (
+                                        <time dateTime={new Date(entry.at * 1000).toISOString()}
+                                          title={new Date(entry.at * 1000).toLocaleString(undefined, { dateStyle: "full", timeStyle: "long" })}>
+                                          {new Date(entry.at * 1000).toLocaleString(undefined, {
+                                            month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+                                            timeZoneName: "short",
+                                          })}
+                                        </time>
+                                      ) : <span className="gd-timeline-pending">Pending</span>}
+                                    </li>
+                                  ))}
+                                </ol>
                               )}
                               {view.warning && (
                                 <div className="gd-live-warning" role="alert">

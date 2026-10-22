@@ -8051,6 +8051,7 @@ export function GovernanceProposalV2View(props: any){
         return props.renderSimple({
             proposal: thisitem,
             stateLabel: GOVERNANCE_STATE[thisitem.account.state] || 'Unknown',
+            timeline: timelineEntries,
             author: proposalAuthorAddress ? {
                 address: proposalAuthorAddress,
                 power: authorVotingMeta.hasMemberRecord && tokenDecimals !== null
