@@ -1345,3 +1345,10 @@
 .gd-live .gd-full-details .MuiAlert-root { padding: 4px 10px; font-size: 12px; line-height: 1.5; }
 .gd-live .gd-full-details .MuiAlert-message { padding: 4px 0; }
 .gd-live .gd-full-details .MuiButton-root { font-size: 12px; padding: 5px 10px; min-height: 36px; text-transform: none; }
+
+.gd-sentiment-heading { display: flex; align-items: center; gap: 6px; }
+.gd-voter-icon { border: 0; background: transparent; color: #b6ecd5; padding: 2px 5px; font-size: 14px; border-radius: 4px; }
+.gd-voter-count-button { padding: 0; border: 0; background: transparent; color: var(--gd-text); font-weight: 600; text-align: left; }
+.gd-voter-icon:hover, .gd-voter-count-button:hover { color: #64dfb1; }
+.gd-voters-table .gd-voter-power { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gd-voter-choice { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
