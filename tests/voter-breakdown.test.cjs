@@ -22,3 +22,11 @@ test('Excel workbook is valid XML and treats formula-like values as strings',()=
  assert.ok(xml.includes('ss:Type="String"'));
  assert.equal(doc.querySelectorAll('Row')[1].querySelector('Data').textContent,'=1+1 & <wallet>');
 });
+test('sorts exact power descending and formats grouped rounded values',()=>{
+ const {formatVoterPower}=load(path.resolve('src/Governance/Demo/VoterBreakdown.tsx'));
+ const rows=voterRows(['900719925474099300','900719925474099301','2'].map(raw=>({governingTokenOwner:raw,vote:{voterWeight:raw,decimals:2}})),{});
+ assert.equal(rows[0].wallet,'900719925474099301');
+ assert.equal(formatVoterPower('24379258.294536'),'24,379,258.29');
+ assert.equal(formatVoterPower('999.999'),'1,000');
+ assert.equal(formatVoterPower('Unavailable'),'Unavailable');
+});

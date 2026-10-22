@@ -415,16 +415,14 @@ export default function GovernanceDemo({
                                     )}
                                   </section>
                                   <section className="gd-vote-panel" aria-label="Voter sentiment">
-                                    <h3>Voter sentiment</h3>
+                                    <VoterBreakdown records={view.voterRecords ?? null} proposal={view.proposal} count={view.sentiment?.total} />
                                     {view.sentiment ? <>
-                                      <strong className="gd-voter-count" title="One count per token-owner wallet">{view.sentiment.total} wallets</strong>
                                       <div className="gd-vote-metrics">
                                         <span>{view.sentiment.for} For</span>
                                         <span>{view.sentiment.against} Against</span>
                                         {view.sentiment.other > 0 && <span>{view.sentiment.other} Other</span>}
                                       </div>
                                     </> : <p>Voter counts unavailable</p>}
-                                    <VoterBreakdown records={view.voterRecords ?? null} proposal={view.proposal} />
                                   </section>
                                 </div>
                               )}

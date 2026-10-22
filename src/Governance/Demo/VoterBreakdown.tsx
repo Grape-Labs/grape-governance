@@ -1,5 +1,7 @@
 import React from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from "@mui/material";
+import ThumbUpIcon from "@mui/icons-material/ThumbUp";
+import ThumbDownIcon from "@mui/icons-material/ThumbDown";
 import { recordedVoteLabel } from "./proposalListStatus";
 
 export function voterRows(records: any[], proposal: any) {
@@ -22,7 +24,26 @@ export function voterRows(records: any[], proposal: any) {
       status: record.isRelinquished ? "Relinquished" : "Recorded",
       record: String(record.voteAddress || record.pubkey || ""),
     };
+  }).sort((a, b) => {
+    if (a.power === "Unavailable") return b.power === "Unavailable" ? 0 : 1;
+    if (b.power === "Unavailable") return -1;
+    const [aw, af = ""] = a.power.split(".");
+    const [bw, bf = ""] = b.power.split(".");
+    const scale = Math.max(af.length, bf.length);
+    const av = BigInt(aw + af.padEnd(scale, "0"));
+    const bv = BigInt(bw + bf.padEnd(scale, "0"));
+    return av > bv ? -1 : av < bv ? 1 : 0;
   });
+}
+
+export function formatVoterPower(power: string) {
+  if (power === "Unavailable") return power;
+  const [whole, fraction = ""] = power.split(".");
+  const rounded = BigInt(whole) * 100n + BigInt(fraction.padEnd(3, "0").slice(0, 2)) +
+    (Number(fraction[2] || 0) >= 5 ? 1n : 0n);
+  const integer = (rounded / 100n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const decimal = (rounded % 100n).toString().padStart(2, "0").replace(/0+$/, "");
+  return integer + (decimal ? "." + decimal : "");
 }
 
 export function voterWorkbook(rows: ReturnType<typeof voterRows>) {
@@ -35,7 +56,7 @@ export function voterWorkbook(rows: ReturnType<typeof voterRows>) {
     '</Table></Worksheet></Workbook>';
 }
 
-export default function VoterBreakdown({ records, proposal }: { records: any[] | null; proposal: any }) {
+export default function VoterBreakdown({ records, proposal, count }: { records: any[] | null; proposal: any; count?: number }) {
   const [open, setOpen] = React.useState(false);
   const rows = React.useMemo(() => voterRows(records || [], proposal.account), [records, proposal]);
   const download = () => {
@@ -48,7 +69,8 @@ export default function VoterBreakdown({ records, proposal }: { records: any[] |
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   return <>
-    <button className="gd-voter-link" type="button" onClick={() => setOpen(true)}>Voter breakdown ↗</button>
+    <h3 className="gd-sentiment-heading">Voter sentiment <button className="gd-voter-icon" type="button" aria-label="Open voter breakdown" title="Voter breakdown" onClick={() => setOpen(true)}>↗</button></h3>
+    {count != null && <button type="button" className="gd-voter-count gd-voter-count-button" title="Open voter breakdown · One count per token-owner wallet" onClick={() => setOpen(true)}>{count} wallets</button>}
     <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md"
       aria-labelledby="gd-voters-title" PaperProps={{ sx: { bgcolor: "#141e2b", color: "#edf2fa", borderRadius: 3 } }}>
       <DialogTitle id="gd-voters-title" sx={{ fontSize: 18 }}>Voter breakdown</DialogTitle>
@@ -57,10 +79,10 @@ export default function VoterBreakdown({ records, proposal }: { records: any[] |
         {records == null ? <p>Voter records unavailable.</p> : rows.length === 0 ? <p>No voter records yet.</p> :
           <div style={{ overflowX: "auto" }}>
             <table className="gd-voters-table">
-              <thead><tr><th>Wallet</th><th>Vote</th><th>Voting power</th><th>Status</th></tr></thead>
+              <thead><tr><th>Wallet</th><th>Vote</th><th className="gd-voter-power" aria-sort="descending">Voting power ↓</th><th>Status</th></tr></thead>
               <tbody>{rows.map((row, index) => <tr key={row.record || index}>
                 <td><a href={`https://explorer.solana.com/address/${row.wallet}`} target="_blank" rel="noopener noreferrer">{row.wallet}</a></td>
-                <td>{row.choice}</td><td>{row.power}</td><td>{row.status}</td>
+                <td><span className="gd-voter-choice">{row.choice === "For" ? <ThumbUpIcon aria-hidden="true" sx={{ fontSize: 14, color: "#64dfb1" }} /> : row.choice === "Against" ? <ThumbDownIcon aria-hidden="true" sx={{ fontSize: 14, color: "#ef9199" }} /> : null}{row.choice}</span></td><td className="gd-voter-power" title={row.power}>{formatVoterPower(row.power)}</td><td>{row.status}</td>
               </tr>)}</tbody>
             </table>
           </div>}
