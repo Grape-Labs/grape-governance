@@ -4,6 +4,7 @@ import ProposalPreviewBoundary from "./ProposalPreviewBoundary";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import DaoPageLayout from "./DaoPageLayout";
 import ProposalShare from "./ProposalShare";
+import ProposalSettings from "./ProposalSettings";
 import VoterBreakdown from "./VoterBreakdown";
 import { recordedVoteLabel, proposalListStatus, compareProposalPriority } from "./proposalListStatus";
 import {
@@ -508,6 +509,7 @@ export default function GovernanceDemo({
                                 </p>
                               )}
                               <div className="gd-actions">
+                                <ProposalSettings settings={view.settings} />
                                 <button
                                   className="gd-secondary"
                                   aria-expanded={expanded}

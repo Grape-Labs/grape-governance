@@ -7,7 +7,7 @@ const {JSDOM}=require('jsdom');
 function load(file) {
  const module={exports:{}};
  const code=transformSync(fs.readFileSync(file,'utf8'),{filename:file,configFile:false,babelrc:false,presets:['@babel/preset-typescript','@babel/preset-react'],plugins:['@babel/plugin-transform-modules-commonjs']}).code;
- new Function('module','exports','require',code)(module,module.exports,id=>id==='./proposalListStatus'?load(path.resolve('src/Governance/Demo/proposalListStatus.ts')):require(id));
+ new Function('module','exports','require',code)(module,module.exports,id=>id==='./WalletActions'?load(path.resolve('src/Governance/Demo/WalletActions.tsx')):id==='./proposalListStatus'?load(path.resolve('src/Governance/Demo/proposalListStatus.ts')):require(id));
  return module.exports;
 }
 const {voterRows,voterWorkbook}=load(path.resolve('src/Governance/Demo/VoterBreakdown.tsx'));

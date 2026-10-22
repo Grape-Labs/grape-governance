@@ -1,4 +1,6 @@
 import React from "react";
+import WalletActions from "./WalletActions";
+import { distinctVoterSentiment } from "./proposalListStatus";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from "@mui/material";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbDownIcon from "@mui/icons-material/ThumbDown";
@@ -59,6 +61,7 @@ export function voterWorkbook(rows: ReturnType<typeof voterRows>) {
 export default function VoterBreakdown({ records, proposal, count }: { records: any[] | null; proposal: any; count?: number }) {
   const [open, setOpen] = React.useState(false);
   const rows = React.useMemo(() => voterRows(records || [], proposal.account), [records, proposal]);
+  const stats = React.useMemo(() => distinctVoterSentiment(records || []), [records]);
   const download = () => {
     const blob = new Blob([voterWorkbook(rows)], { type: "application/vnd.ms-excel;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -76,12 +79,19 @@ export default function VoterBreakdown({ records, proposal, count }: { records: 
       <DialogTitle id="gd-voters-title" sx={{ fontSize: 18 }}>Voter breakdown</DialogTitle>
       <DialogContent>
         <p style={{ fontSize: 12, color: "#a6b3c7" }}>Voting power recorded with each vote. Relinquished records are marked separately.</p>
+        {records != null && <div className="gd-voter-stats">
+          <span><strong>{stats.total}</strong> wallets</span>
+          <span><strong>{stats.for}</strong> For</span>
+          <span><strong>{stats.against}</strong> Against</span>
+          {stats.other > 0 && <span><strong>{stats.other}</strong> Other</span>}
+          <span><strong>{stats.total ? (stats.for / stats.total * 100).toFixed(1) : "0"}%</strong> wallets For</span>
+        </div>}
         {records == null ? <p>Voter records unavailable.</p> : rows.length === 0 ? <p>No voter records yet.</p> :
           <div style={{ overflowX: "auto" }}>
             <table className="gd-voters-table">
               <thead><tr><th>Wallet</th><th>Vote</th><th className="gd-voter-power" aria-sort="descending">Voting power ↓</th><th>Status</th></tr></thead>
               <tbody>{rows.map((row, index) => <tr key={row.record || index}>
-                <td><a href={`https://explorer.solana.com/address/${row.wallet}`} target="_blank" rel="noopener noreferrer">{row.wallet}</a></td>
+                <td><WalletActions address={row.wallet} /></td>
                 <td><span className="gd-voter-choice">{row.choice === "For" ? <ThumbUpIcon aria-hidden="true" sx={{ fontSize: 14, color: "#64dfb1" }} /> : row.choice === "Against" ? <ThumbDownIcon aria-hidden="true" sx={{ fontSize: 14, color: "#ef9199" }} /> : null}{row.choice}</span></td><td className="gd-voter-power" title={row.power}>{formatVoterPower(row.power)}</td><td>{row.status}</td>
               </tr>)}</tbody>
             </table>

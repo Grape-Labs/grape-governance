@@ -8052,6 +8052,25 @@ export function GovernanceProposalV2View(props: any){
             proposal: thisitem,
             stateLabel: GOVERNANCE_STATE[thisitem.account.state] || 'Unknown',
             timeline: timelineEntries,
+            settings: {
+                values: [
+                    ['Status', GOVERNANCE_STATE[thisitem.account.state] || 'Unknown'],
+                    ['Approval target', totalQuorum ? formatMetricValue(Number(totalQuorum)) : 'Unavailable'],
+                    ['Vote threshold', totalVoteThresholdPercentage != null ? totalVoteThresholdPercentage + '%' : 'Unavailable'],
+                    ['Base voting period', baseVotingTime ? (baseVotingTime / 3600).toLocaleString() + ' hours' : 'Unavailable'],
+                    ['Cool-off period', governanceConfig ? (coolOffTime / 3600).toLocaleString() + ' hours' : 'Unavailable'],
+                    ['Council vetoes', String(vetoCount ?? 0)],
+                ],
+                addresses: [
+                    ['Voting mint', normalizePkString(thisitem.account.governingTokenMint)],
+                    ['Treasury wallet', normalizePkString(governanceNativeWallet)],
+                    ['Governance rules', normalizePkString(thisitem.account.governance)],
+                ],
+                signers: (proposalSignatories || []).map(item => ({
+                    address: normalizePkString(item.account?.signatory),
+                    signed: !!item.account?.signedOff,
+                })).filter(item => item.address),
+            },
             author: proposalAuthorAddress ? {
                 address: proposalAuthorAddress,
                 power: authorVotingMeta.hasMemberRecord && tokenDecimals !== null
