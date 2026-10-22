@@ -1100,15 +1100,23 @@ function RenderGovernanceTable(props:any) {
                     </Box>
                 </Box>
                 
-                <TableContainer component={Paper} sx={{background:'none', overflowX:'auto'}}>
+                <TableContainer component={Paper} sx={{background:'none', overflowX:'auto', width:'100%', display:'block'}}>
                         <StyledTable sx={{
-                            minWidth: 900, width: '100%', tableLayout: 'fixed',
+                            minWidth: 960, width: '100%', display: 'table', tableLayout: 'fixed',
+                            '& > thead': { display: 'table-header-group' },
+                            '& > tbody': { display: 'table-row-group' },
+                            '& > tfoot': { display: 'table-footer-group' },
+                            '& tr': { display: 'table-row' },
+                            '& th, & td': { display: 'table-cell' },
                             '& .MuiTableCell-root': { px: 1.5, py: 1.25 },
-                            '& .MuiTableCell-root:nth-of-type(2)': { width: 170 },
-                            '& .MuiTableCell-root:nth-of-type(3)': { width: 220 },
-                            '& .MuiTableCell-root:nth-of-type(4)': { width: 160, whiteSpace: 'nowrap' },
                             '& .MuiTableCell-root:not(:first-of-type) .MuiTypography-root': { overflowWrap: 'normal', fontSize: 12 },
                         }} size="small" aria-label="Portfolio Table">
+                            <colgroup>
+                                <col style={{ width: 'calc(100% - 550px)' }} />
+                                <col style={{ width: 170 }} />
+                                <col style={{ width: 220 }} />
+                                <col style={{ width: 160 }} />
+                            </colgroup>
                             <TableHead>
                                 <TableRow>
                                     <TableCell><Typography variant="caption">Title</Typography></TableCell>
