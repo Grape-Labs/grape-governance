@@ -29,6 +29,41 @@ const states = [
 ];
 const address = (value: any) => value?.toBase58?.() || String(value || "");
 
+function ProposalTimeline({ entries, state }: { entries: any[]; state: number }) {
+  const [now, setNow] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    const update = () => setNow(Date.now() / 1000);
+    update();
+    const timer = window.setInterval(update, 30000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const active = state === 2;
+  const current = now == null ? -1 : entries.reduce((last, entry, index) =>
+    entry.at && entry.at <= now ? index : last, -1);
+  return <ol className="gd-proposal-timeline" aria-label="Proposal timeline">
+    {entries.map((entry, index) => {
+      const next = entries[index + 1];
+      const reached = now != null && entry.at && entry.at <= now;
+      const progress = reached && next?.at > entry.at
+        ? Math.max(0, Math.min(1, (now! - entry.at) / (next.at - entry.at))) : 0;
+      const isCurrent = current === index && active;
+      return <li key={entry.key} className={isCurrent ? "is-current" : reached ? "is-reached" : ""}
+        aria-current={isCurrent ? "step" : undefined}>
+        <div className="gd-timeline-track" aria-hidden="true">
+          <i /><span style={{ width: `${progress * 100}%` }} />
+        </div>
+        <span>{entry.label}{isCurrent ? " · Now" : ""}</span>
+        {entry.at ? <time dateTime={new Date(entry.at * 1000).toISOString()}
+          title={new Date(entry.at * 1000).toLocaleString(undefined, { dateStyle: "full", timeStyle: "long" })}>
+          {new Date(entry.at * 1000).toLocaleString(undefined, {
+            month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short",
+          })}
+        </time> : <span className="gd-timeline-pending">Pending</span>}
+      </li>;
+    })}
+  </ol>;
+}
+
 export default function GovernanceDemo({
   landing = false,
 }: {
@@ -323,22 +358,7 @@ export default function GovernanceDemo({
                                 </details>
                               )}
                               {view.timeline?.length > 0 && (
-                                <ol className="gd-proposal-timeline" aria-label="Proposal timeline">
-                                  {view.timeline.map((entry: any) => (
-                                    <li key={entry.key}>
-                                      <span>{entry.label}</span>
-                                      {entry.at ? (
-                                        <time dateTime={new Date(entry.at * 1000).toISOString()}
-                                          title={new Date(entry.at * 1000).toLocaleString(undefined, { dateStyle: "full", timeStyle: "long" })}>
-                                          {new Date(entry.at * 1000).toLocaleString(undefined, {
-                                            month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
-                                            timeZoneName: "short",
-                                          })}
-                                        </time>
-                                      ) : <span className="gd-timeline-pending">Pending</span>}
-                                    </li>
-                                  ))}
-                                </ol>
+                                <ProposalTimeline entries={view.timeline} state={view.proposal.account.state} />
                               )}
                               {view.warning && (
                                 <div className="gd-live-warning" role="alert">
