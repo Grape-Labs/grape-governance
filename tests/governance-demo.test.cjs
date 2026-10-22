@@ -62,6 +62,7 @@ loaded.require = function (id) {
   if (
     id === "./ProposalPreviewBoundary" ||
     id === "./ProposalShare" ||
+    id === "./VoterBreakdown" ||
     id === "./GrapeDaoNavigation" ||
     id === "./DaoPageLayout" ||
     id === "./proposalListStatus"

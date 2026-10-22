@@ -4,6 +4,7 @@ import ProposalPreviewBoundary from "./ProposalPreviewBoundary";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import DaoPageLayout from "./DaoPageLayout";
 import ProposalShare from "./ProposalShare";
+import VoterBreakdown from "./VoterBreakdown";
 import { recordedVoteLabel, proposalListStatus, compareProposalPriority } from "./proposalListStatus";
 import {
   getVoteRecordsByVoterIndexed,
@@ -423,6 +424,7 @@ export default function GovernanceDemo({
                                         {view.sentiment.other > 0 && <span>{view.sentiment.other} Other</span>}
                                       </div>
                                     </> : <p>Voter counts unavailable</p>}
+                                    <VoterBreakdown records={view.voterRecords ?? null} proposal={view.proposal} />
                                   </section>
                                 </div>
                               )}
