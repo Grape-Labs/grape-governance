@@ -8076,6 +8076,7 @@ export function GovernanceProposalV2View(props: any){
             } : null,
             forVotes: tokenDecimals === null ? 'Loading…' : formatMetricValue(forUi), againstVotes: tokenDecimals === null ? 'Loading…' : formatMetricValue(againstUi),
             forPct, totalCastUi, isMultiChoiceProposal,
+            voterRecords: solanaVotingResultRows,
             sentiment: Array.isArray(solanaVotingResultRows) ? distinctVoterSentiment(solanaVotingResultRows) : null,
             approval: tokenDecimals !== null && Number(totalQuorum) > 0 ? {
                 progress: approvalProgressPct,

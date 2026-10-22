@@ -1330,3 +1330,18 @@
     max-width: none; width: auto; min-height: 44px;
   }
 }
+
+.gd-voter-link { border: 0; background: none; color: #b6ecd5; font-size: 11px; padding: 6px 0 0; }
+.gd-voters-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.gd-voters-table th, .gd-voters-table td { padding: 10px 8px; border-bottom: 1px solid #ffffff15; text-align: left; }
+.gd-voters-table th { color: #a6b3c7; font-weight: 500; }
+.gd-voters-table td:first-child { overflow-wrap: anywhere; max-width: 260px; }
+.gd-voters-table a { color: #b6ecd5; }
+.gd-live .gd-full-details { font-size: 12px; }
+.gd-live .gd-full-details > .MuiBox-root { padding: 14px; }
+.gd-live .gd-full-details .MuiTypography-root { font-family: inherit; font-size: 12px; line-height: 1.5; }
+.gd-live .gd-full-details .MuiTypography-h6 { font-size: 14px; font-weight: 600; }
+.gd-live .gd-full-details .MuiTypography-subtitle2 { font-size: 13px; }
+.gd-live .gd-full-details .MuiAlert-root { padding: 4px 10px; font-size: 12px; line-height: 1.5; }
+.gd-live .gd-full-details .MuiAlert-message { padding: 4px 0; }
+.gd-live .gd-full-details .MuiButton-root { font-size: 12px; padding: 5px 10px; min-height: 36px; text-transform: none; }
