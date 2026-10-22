@@ -11,6 +11,7 @@ const dom = new JSDOM("<html><body></body></html>", {
 for (const key of [
   "window",
   "document",
+  "DocumentFragment",
   "HTMLElement",
   "Node",
   "Event",
@@ -216,6 +217,7 @@ test("loads actual realm proposals, prioritizes active votes, and preserves the 
       screen.getByRole("heading", { name: "Existing treasury allocation" })
     );
     assert.equal(screen.queryByText("Existing instruction review"), null);
+    fireEvent.click(screen.getByRole("button", { name: "Proposal tools" }));
     assert.equal(
       screen
         .getByRole("link", { name: /Advanced proposal/ })

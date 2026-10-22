@@ -2,6 +2,7 @@ import React from "react";
 import WalletActions from "./WalletActions";
 import { distinctVoterSentiment } from "./proposalListStatus";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from "@mui/material";
+import PeopleOutlineIcon from "@mui/icons-material/PeopleOutline";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbDownIcon from "@mui/icons-material/ThumbDown";
 import { recordedVoteLabel } from "./proposalListStatus";
@@ -62,6 +63,7 @@ export default function VoterBreakdown({ records, proposal, count }: { records: 
   const [open, setOpen] = React.useState(false);
   const rows = React.useMemo(() => voterRows(records || [], proposal.account), [records, proposal]);
   const stats = React.useMemo(() => distinctVoterSentiment(records || []), [records]);
+  const support = stats.total ? stats.for / stats.total * 100 : 0;
   const download = () => {
     const blob = new Blob([voterWorkbook(rows)], { type: "application/vnd.ms-excel;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -80,9 +82,20 @@ export default function VoterBreakdown({ records, proposal, count }: { records: 
       <DialogContent>
         <p style={{ fontSize: 12, color: "#a6b3c7" }}>Voting power recorded with each vote. Relinquished records are marked separately.</p>
         {records != null && <div className="gd-voter-stats">
-          <div><span>Participating wallets</span><strong>{stats.total}</strong></div>
-          <div><span>For / Against</span><strong><span className="gd-stat-for">{stats.for}</span><span className="gd-stat-divider"> / </span>{stats.against}</strong>{stats.other > 0 && <small>{stats.other} other</small>}</div>
-          <div><span>Wallet support</span><strong>{stats.total ? (stats.for / stats.total * 100).toFixed(1) : "0"}<small>%</small></strong></div>
+          <section className="gd-voter-stat-card">
+            <span className="gd-stat-label"><PeopleOutlineIcon sx={{ fontSize: 16 }} /> Participating wallets</span>
+            <strong className="gd-stat-value">{stats.total.toLocaleString()}</strong>
+            <small>Unique wallets · active records</small>
+          </section>
+          <section className="gd-voter-stat-card">
+            <span className="gd-stat-label">Vote split</span>
+            <div className="gd-stat-split"><div><strong className="gd-stat-for">{stats.for.toLocaleString()}</strong><span>For</span></div><div><strong className="gd-stat-against">{stats.against.toLocaleString()}</strong><span>Against</span></div>{stats.other > 0 && <div><strong>{stats.other.toLocaleString()}</strong><span>Other</span></div>}</div>
+            <div className="gd-stat-bar" aria-hidden="true"><span style={{ width: `${support}%` }} /><span style={{ width: `${stats.total ? stats.against / stats.total * 100 : 0}%` }} /></div>
+          </section>
+          <section className="gd-voter-stat-card gd-voter-support">
+            <div><span className="gd-stat-label">Wallet support</span><strong className="gd-stat-value">{support.toFixed(1)}<small>%</small></strong><small>{stats.total ? "Of participating wallets voted for" : "No active votes yet"}</small></div>
+            <svg className="gd-support-ring" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="26" /><circle className="gd-support-ring-fill" cx="32" cy="32" r="26" pathLength="100" strokeDasharray={`${support} 100`} /><path d="m23 32 6 6 12-13" /></svg>
+          </section>
         </div>}
         {records == null ? <p>Voter records unavailable.</p> : rows.length === 0 ? <p>No voter records yet.</p> :
           <div style={{ overflowX: "auto" }}>
