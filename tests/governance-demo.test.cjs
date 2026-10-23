@@ -460,3 +460,32 @@ test('each DAO section shares one navigation and disables the legacy header/menu
     } finally {cleanup();}
   }
 });
+
+
+test("mobile starts with the list and opens each proposal in a dismissible panel", async () => {
+  const previous = window.matchMedia;
+  window.matchMedia = query => ({
+    matches: query === "(max-width:950px)", media: query,
+    addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {},
+  });
+  try {
+    mount();
+    const first = await screen.findByRole("button", { name: /Grape community grant/ });
+    assert.equal(screen.queryByRole("heading", { name: "Grape community grant" }), null);
+    assert.equal(screen.queryByRole("dialog"), null);
+    fireEvent.click(first);
+    assert.ok(await screen.findByRole("dialog", { name: "Selected proposal" }));
+    assert.ok(screen.getByRole("heading", { name: "Grape community grant" }));
+    assert.ok(screen.getByRole("region", { name: "Proposal voting" }));
+    assert.ok(screen.getByText("Voting controls unavailable"));
+    fireEvent.click(screen.getByRole("button", { name: /Back to proposals/ }));
+    await waitFor(() => assert.equal(screen.queryByRole("dialog"), null));
+    fireEvent.click(screen.getByRole("button", { name: /Existing treasury allocation/ }));
+    assert.ok(await screen.findByRole("heading", { name: "Existing treasury allocation" }));
+    assert.ok(screen.getByText("Voting is closed"));
+    assert.equal(screen.queryByRole("heading", { name: "Grape community grant" }), null);
+  } finally {
+    cleanup();
+    window.matchMedia = previous;
+  }
+});
