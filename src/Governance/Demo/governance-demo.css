@@ -1436,3 +1436,15 @@
 .gd-settings-management > h3 { margin: 12px 0; }
 .gd-settings-management .MuiButton-root { font-size: 12px; border-radius: 8px; text-transform: none; }
 .gd-settings-management .MuiTypography-root { font-size: 12px; }
+
+.gd-voting-section { scroll-margin-top: 76px; }
+.gd-vote-unavailable { margin: 18px 0; padding: 16px; border: 1px solid #ffffff20; border-radius: 12px; background: #ffffff04; }
+.gd-vote-unavailable p { color: var(--gd-muted); font-size: 13px; }
+.gd-vote-unavailable a { display: inline-flex; text-decoration: none; }
+.governance-demo.gd-mobile-proposal-dialog { padding: 0 12px 24px; min-height: 0; }
+.gd-mobile-proposal-toolbar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; background: #0b111c; }
+.gd-mobile-proposal-toolbar a { color: #b6ecd5; font-size: 13px; padding: 10px; }
+@media (max-width: 950px) {
+  .gd-live .gd-proposal-list { max-height: none; overflow: visible; }
+  .gd-live .gd-sidebar { grid-column: 1; grid-row: 1; }
+}

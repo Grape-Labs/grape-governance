@@ -1,4 +1,5 @@
 import React from "react";
+import { Dialog, useMediaQuery } from "@mui/material";
 import { useWallet } from "@solana/wallet-adapter-react";
 import ProposalPreviewBoundary from "./ProposalPreviewBoundary";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
@@ -66,11 +67,26 @@ function ProposalTimeline({ entries, state }: { entries: any[]; state: number })
   </ol>;
 }
 
+function ProposalFrame({ mobile, open, onClose, children }: {
+  mobile: boolean; open: boolean; onClose: () => void; children: React.ReactNode;
+}) {
+  if (!mobile) return <>{children}</>;
+  return <Dialog open={open} onClose={onClose} fullScreen
+    PaperProps={{ className: "governance-demo gd-live gd-mobile-proposal-dialog", "aria-label": "Selected proposal" }}>
+    <div className="gd-mobile-proposal-toolbar">
+      <button type="button" className="gd-secondary" onClick={onClose}>← Back to proposals</button>
+      <a href="#gd-proposal-vote">Voting ↓</a>
+    </div>
+    {children}
+  </Dialog>;
+}
+
 export default function GovernanceDemo({
   landing = false,
 }: {
   landing?: boolean;
 }) {
+  const mobile = useMediaQuery("(max-width:950px)");
   const route = useParams();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -201,6 +217,12 @@ export default function GovernanceDemo({
     setExpanded(false);
   };
 
+  const closeProposal = () => {
+    if (landing || route.proposal) navigate(`/dao/${GRAPE_REALM}`);
+    else setParams({});
+    setExpandedFor(null);
+  };
+
   return (
     <DaoPageLayout experimental={!landing}>
       <main>
@@ -227,11 +249,8 @@ export default function GovernanceDemo({
           </div>
         ) : (
           <>
-            <a className="gd-mobile-proposals" href="#gd-proposal-browser">
-              Browse proposals · {activeCount} active{" "}
-              <span aria-hidden="true">↓</span>
-            </a>
             <div className="gd-workspace">
+              <ProposalFrame key={mobile ? requested || "list" : "desktop"} mobile={mobile} open={!!requested} onClose={closeProposal}>
               <section
                 aria-label="Selected proposal"
                 className="gd-live-proposal"
@@ -490,7 +509,8 @@ export default function GovernanceDemo({
                                   Review instructions & recipient checks
                                 </button>
                               </section>
-                              {view.actions && (
+                              <section id="gd-proposal-vote" className="gd-voting-section" aria-label="Proposal voting">
+                              {view.actions ? (
                                 <>
                                   <div className="gd-live-actions">
                                     {view.actions}
@@ -500,14 +520,13 @@ export default function GovernanceDemo({
                                     wallet transaction before signing.
                                   </p>
                                 </>
-                              )}
-                              {view.isMultiChoiceProposal && (
-                                <p className="gd-note">
-                                  This proposal has multiple options. Use the
-                                  original page to review and vote on each
-                                  option.
-                                </p>
-                              )}
+                              ) : (
+                              <div className="gd-vote-unavailable" role="status">
+                                <strong>{view.warning ? "Review required before voting" : view.isMultiChoiceProposal ? "Choose your voting option" : view.proposal.account.state !== 2 ? "Voting is closed" : "Voting controls unavailable"}</strong>
+                                <p>{view.warning ? "Review the security findings and proposal instructions before continuing to the advanced voting view." : view.isMultiChoiceProposal ? "This proposal uses multiple voting options. Open the advanced view to review and vote." : view.proposal.account.state !== 2 ? `Proposal status: ${view.stateLabel}.` : "Open the advanced view to check voting availability for this proposal."}</p>
+                                {view.proposal.account.state === 2 && <a className="gd-secondary" href={`/proposal/${GRAPE_REALM}/${selectedAddress}?view=advanced`}>Review proposal & voting options ↗</a>}
+                              </div>)}
+                              </section>
                               <div className="gd-actions gd-proposal-footer">
                                 <button
                                   className="gd-secondary"
@@ -541,6 +560,7 @@ export default function GovernanceDemo({
                   </ProposalPreviewBoundary>
                 )}
               </section>
+              </ProposalFrame>
               <aside
                 id="gd-proposal-browser"
                 tabIndex={-1}
