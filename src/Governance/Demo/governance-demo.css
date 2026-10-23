@@ -1448,3 +1448,13 @@
   .gd-live .gd-proposal-list { max-height: none; overflow: visible; }
   .gd-live .gd-sidebar { grid-column: 1; grid-row: 1; }
 }
+
+@media (max-width: 950px) {
+  .gd-live .gd-dao-nav { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) 44px; gap: 2px; align-items: center; padding: 10px 0; }
+  .gd-live .gd-dao-nav > a { min-width: 0; min-height: 60px; padding: 8px 2px; flex-direction: column; justify-content: center; gap: 5px; font-size: 10px; text-align: center; white-space: nowrap; }
+  .gd-dao-nav .gd-nav-icon { font-size: 22px; }
+  .gd-nav-more { display: flex; align-items: center; justify-content: center; min-height: 44px; width: 44px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: #a6b3c7; }
+  .gd-nav-more:hover, .gd-nav-more[aria-expanded="true"] { background: #ffffff0c; color: #edf2fa; }
+}
+
+@media (max-width: 380px) { .gd-live .gd-dao-nav > a { font-size: 9px; letter-spacing: -0.3px; white-space: normal; } }

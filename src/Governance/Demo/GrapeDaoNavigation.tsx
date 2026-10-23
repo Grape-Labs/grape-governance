@@ -1,4 +1,11 @@
 import React from "react";
+import { Menu, MenuItem, useMediaQuery } from "@mui/material";
+import HowToVoteOutlinedIcon from "@mui/icons-material/HowToVoteOutlined";
+import PeopleOutlineIcon from "@mui/icons-material/PeopleOutline";
+import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
+import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
+import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import { Link } from "react-router-dom";
 import "./governance-demo.css";
 const realm = "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip";
@@ -16,6 +23,10 @@ export default function GrapeDaoNavigation({
   section?: DaoSection;
   advanced?: boolean;
 }) {
+  const mobile = useMediaQuery("(max-width:950px)");
+  const [menuAnchor, setMenuAnchor] = React.useState<HTMLElement | null>(null);
+  const icons = { proposals: HowToVoteOutlinedIcon, members: PeopleOutlineIcon,
+    treasury: AccountBalanceWalletOutlinedIcon, stats: BarChartOutlinedIcon, advanced: MoreHorizIcon };
   const current = advanced ? "advanced" : section;
   return (
     <nav className="gd-dao-nav" aria-label="Grape DAO navigation">
@@ -27,7 +38,7 @@ export default function GrapeDaoNavigation({
           ["stats", "Stats", "stats"],
           ["advanced", "Show old view", "governance"],
         ] as const
-      ).map(([key, label, path]) => (
+      ).filter(([key]) => !mobile || key !== "advanced").map(([key, label, path]) => (
         <Link
           key={key}
           to={`/${path}/${realm}`}
@@ -36,7 +47,8 @@ export default function GrapeDaoNavigation({
           }`}
           aria-current={current === key ? "page" : undefined}
         >
-          {label}
+          {mobile && React.createElement(icons[key], { className: "gd-nav-icon", "aria-hidden": true })}
+          <span>{label}</span>
         </Link>
       ))}
       <a
@@ -45,8 +57,19 @@ export default function GrapeDaoNavigation({
         target="_blank"
         rel="noopener noreferrer"
       >
-        Vine / OG Reputation ↗
+        {mobile && <WorkspacePremiumOutlinedIcon className="gd-nav-icon" aria-hidden="true" />}
+        <span>{mobile ? "Reputation" : "Vine / OG Reputation"} <span>↗</span></span>
       </a>
+      {mobile && <>
+        <button className="gd-nav-more" type="button" aria-label="More navigation options"
+          aria-haspopup="menu" aria-expanded={!!menuAnchor} aria-controls={menuAnchor ? "gd-nav-overflow" : undefined}
+          onClick={event => setMenuAnchor(event.currentTarget)}><MoreHorizIcon aria-hidden="true" /></button>
+        <Menu id="gd-nav-overflow" anchorEl={menuAnchor} open={!!menuAnchor} onClose={() => setMenuAnchor(null)}
+          PaperProps={{ sx: { bgcolor: "#141e2b", color: "#edf2fa", border: "1px solid #ffffff20", borderRadius: 2 } }}>
+          <MenuItem component={Link} to={`/governance/${realm}`} onClick={() => setMenuAnchor(null)}
+            aria-current={current === "advanced" ? "page" : undefined}>Show old view</MenuItem>
+        </Menu>
+      </>}
     </nav>
   );
 }
