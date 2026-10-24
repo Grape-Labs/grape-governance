@@ -1,3 +1,5 @@
+import { VSR_PLUGIN_PKS } from "./client";
+import { ballotChoices, ballotRules } from "../../ballotRules";
 import {
     PublicKey,
     ConfirmedSignatureInfo,
@@ -65,6 +67,17 @@ export const createCastVoteTransaction = async (
     //votePlugin?: VotingClient | undefined
 ) => {
     const { proposal, action } = transactionData;
+      const ballotAccount = multiChoice?.proposal?.account || proposal;
+      if (type !== 0 && type !== 1 && type !== 3) throw new Error('Unsupported electorate vote.');
+      if (type === 1 && !ballotRules(ballotAccount).canDeny) throw new Error('This poll does not allow Against votes.');
+      const voteDirection = type === 3
+        ? new Vote({ voteType: VoteKind.Veto, approveChoices: undefined, deny: undefined, veto: true })
+        : type === 0
+        ? new Vote({ voteType: VoteKind.Approve,
+            approveChoices: ballotChoices(ballotAccount, multiChoice).map(choice => new VoteChoice(choice)),
+            deny: undefined, veto: undefined })
+        : new Vote({ voteType: VoteKind.Deny, approveChoices: undefined, deny: true, veto: undefined });
+
     const walletPubkey = new PublicKey(walletPublicKey);
     let tokenOwnerRecord = null;
     const governanceAuthority = walletPubkey;
@@ -154,10 +167,18 @@ export const createCastVoteTransaction = async (
         hasMaxVoterWeight = true;
       }
 
-      const communityVoterWeightAddin = realmConfig?.account?.communityTokenConfig?.voterWeightAddin;
-      const communityMaxVoterWeightAddin = realmConfig?.account?.communityTokenConfig?.maxVoterWeightAddin;
+      const tokenConfig = isCommunityVote ? realmConfig?.account?.communityTokenConfig : realmConfig?.account?.councilTokenConfig;
+      const communityVoterWeightAddin = tokenConfig?.voterWeightAddin;
+      const communityMaxVoterWeightAddin = tokenConfig?.maxVoterWeightAddin;
+      if (communityVoterWeightAddin && !isStakingVoterPlugin(communityVoterWeightAddin) &&
+          !VSR_PLUGIN_PKS.includes(communityVoterWeightAddin.toBase58())) {
+        throw new Error('This DAO uses a voting plugin that this client does not support. No vote was submitted.');
+      }
+      if (communityMaxVoterWeightAddin && !communityVoterWeightAddin) {
+        throw new Error('This DAO requires a max-voter-weight plugin that this client does not support. No vote was submitted.');
+      }
       const canCreateTokenOwnerRecordForPluginVote =
-        isCommunityVote && communityVoterWeightAddin && !tokenOwnerRecord && !selectedDelegate;
+        communityVoterWeightAddin && !tokenOwnerRecord && !selectedDelegate;
 
       if (!tokenOwnerRecord) {
         if (!canCreateTokenOwnerRecordForPluginVote) {
@@ -178,7 +199,7 @@ export const createCastVoteTransaction = async (
         }
       }
 
-      if (isCommunityVote && communityVoterWeightAddin && isStakingVoterPlugin(communityVoterWeightAddin)) {
+      if (communityVoterWeightAddin && isStakingVoterPlugin(communityVoterWeightAddin)) {
         stakingVoterUpdate = await createStakingVoterUpdateInstruction(
           RPC_CONNECTION,
           realmPk,
@@ -198,7 +219,7 @@ export const createCastVoteTransaction = async (
           votePlugin = await getVotingPluginWithUpdate(
             selectedRealm,
             proposal.governingTokenMint,
-            walletPublicKey,
+            governingTokenOwner,
             communityVoterWeightAddin
           );
           
@@ -253,43 +274,6 @@ export const createCastVoteTransaction = async (
       console.log("multiChoice: " +multiChoice);
       */
     
-      let rank = 0;
-      let weightPercentage = 100;
-      if (multiChoice){
-        //rank = multiChoice;
-        //weightPercentage = 0;
-      }
-
-      const voteDirection = (type === 0 && multiChoice) ?
-            new Vote({
-              voteType: VoteKind.Approve,
-              approveChoices: 
-                multiChoice.proposal.account.options.map((_o, index) => {
-                  if (multiChoice.index === index)
-                    return new VoteChoice({ rank: 0, weightPercentage: 100 })
-                  else
-                    return new VoteChoice({ rank: 0, weightPercentage: 0 })
-                }),
-              deny: undefined,
-              veto: undefined,
-          })
-      :
-        type === 0 ?
-          new Vote({
-              voteType: VoteKind.Approve,
-              approveChoices: [new VoteChoice({ rank: rank, weightPercentage: weightPercentage })],
-              deny: undefined,
-              veto: undefined,
-          })
-          :
-            new Vote({
-              voteType: VoteKind.Deny,
-              approveChoices: undefined,
-              deny: true,
-              veto: undefined,
-          })
-        
-
 
       //will run only if any plugin is connected with realm
       /*

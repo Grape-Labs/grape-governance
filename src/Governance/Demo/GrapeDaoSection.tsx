@@ -1,14 +1,15 @@
 import React from "react";
+import { useParams } from "react-router-dom";
 import DaoPageLayout from "./DaoPageLayout";
 import { GovernanceMembersView } from "../GovernanceMembers";
 import { GovernanceTreasuryView } from "../GovernanceTreasury";
 import { GovernanceStatsView } from "../GovernanceStats";
-function VineReputationView(_props: any) {
+function VineReputationView({ governanceAddress }: any) {
   return (
     <div className="gd-main gd-content">
       <p>DAO reputation is available on Vine / OG Reputation.</p>
       <a
-        href="https://vine.governance.so/dao/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip"
+        href={`https://vine.governance.so/dao/${governanceAddress}`}
         target="_blank"
         rel="noopener noreferrer"
       >
@@ -44,14 +45,17 @@ export default function GrapeDaoSection({
 }: {
   section: keyof typeof pages;
 }) {
+  const route = useParams();
+  const realm = route.handlekey || route.governance || route.address || "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip";
   const { title, description, View } = pages[section];
   return (
-    <DaoPageLayout section={section} title={title} description={description}>
+    <DaoPageLayout governanceAddress={realm} section={section} title={title} description={description}>
       <main className="gd-section-content">
         <View
           compactLayout
           showGovernanceNavigation={false}
-          governanceAddress="By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip"
+          key={realm}
+          governanceAddress={realm}
         />
       </main>
     </DaoPageLayout>

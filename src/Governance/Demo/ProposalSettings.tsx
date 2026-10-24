@@ -30,7 +30,7 @@ export default function ProposalSettings({ settings, management, advancedUrl }: 
               <strong className="gd-settings-metric">{value("Vote threshold")}</strong>
               <p>Vote threshold</p>
               <div><span>Target power</span><b>{value("Approval target")}</b></div>
-              <div><span>Council vetoes</span><b>{value("Council vetoes")}</b></div>
+              <div><span>Veto votes</span><b>{value("Veto votes")}</b></div>
             </section>
             <section>
               <h3><ScheduleIcon sx={{ fontSize: 16 }} /> Voting window</h3>

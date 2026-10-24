@@ -6,9 +6,9 @@ import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalance
 import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import "./governance-demo.css";
-const realm = "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip";
+const defaultRealm = "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip";
 export type DaoSection =
   | "proposals"
   | "members"
@@ -19,17 +19,21 @@ export type DaoSection =
 export default function GrapeDaoNavigation({
   section = "proposals",
   advanced = false,
+  governanceAddress,
 }: {
+  governanceAddress?: string;
   section?: DaoSection;
   advanced?: boolean;
 }) {
+  const route = useParams();
+  const realm = governanceAddress || route.governance || route.handlekey || route.address || defaultRealm;
   const mobile = useMediaQuery("(max-width:950px)");
   const [menuAnchor, setMenuAnchor] = React.useState<HTMLElement | null>(null);
   const icons = { proposals: HowToVoteOutlinedIcon, members: PeopleOutlineIcon,
     treasury: AccountBalanceWalletOutlinedIcon, stats: BarChartOutlinedIcon, advanced: MoreHorizIcon };
   const current = advanced ? "advanced" : section;
   return (
-    <nav className="gd-dao-nav" aria-label="Grape DAO navigation">
+    <nav className="gd-dao-nav" aria-label="DAO navigation">
       {(
         [
           ["proposals", "Proposals", "dao"],

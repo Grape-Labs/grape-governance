@@ -83,11 +83,14 @@ function ProposalFrame({ mobile, open, onClose, children }: {
 
 export default function GovernanceDemo({
   landing = false,
+  governanceAddress,
 }: {
   landing?: boolean;
+  governanceAddress?: string;
 }) {
   const mobile = useMediaQuery("(max-width:950px)");
   const route = useParams();
+  const realmAddress = governanceAddress || route.governance || route.handlekey || GRAPE_REALM;
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const { publicKey } = useWallet();
@@ -111,14 +114,14 @@ export default function GovernanceDemo({
     setError("");
     (async () => {
       try {
-        const liveRealm = await getRealmIndexed(GRAPE_REALM);
-        if (!liveRealm) throw new Error("Grape DAO could not be loaded.");
+        const liveRealm = await getRealmIndexed(realmAddress);
+        if (!liveRealm) throw new Error("DAO could not be loaded.");
         const owner = address(liveRealm.owner);
-        const rules = await getAllGovernancesIndexed(GRAPE_REALM, owner);
+        const rules = await getAllGovernancesIndexed(realmAddress, owner);
         const rows = await getAllProposalsIndexed(
           rules.map((rule) => address(rule.pubkey)),
           owner,
-          GRAPE_REALM
+          realmAddress
         );
         const sorted = [...rows].sort(compareProposalPriority);
         if (!cancelled) {
@@ -137,7 +140,7 @@ export default function GovernanceDemo({
     return () => {
       cancelled = true;
     };
-  }, [revision]);
+  }, [revision, realmAddress]);
   React.useEffect(() => {
     if (!walletAddress || !realm) return;
     let cancelled = false;
@@ -153,7 +156,7 @@ export default function GovernanceDemo({
       try {
         const records = await getVoteRecordsByVoterIndexed(
           address(realm.owner),
-          GRAPE_REALM,
+          realmAddress,
           walletAddress
         );
         if (!Array.isArray(records))
@@ -184,7 +187,7 @@ export default function GovernanceDemo({
       window.clearInterval(timer);
       window.removeEventListener("focus", load);
     };
-  }, [walletAddress, realm, revision]);
+  }, [walletAddress, realm, revision, realmAddress]);
   const voteLabel = (id: string) =>
     !walletAddress
       ? null
@@ -195,6 +198,7 @@ export default function GovernanceDemo({
       : voteHistory.voted.has(id)
       ? recordedVoteLabel(voteHistory.voted.get(id), proposals.find((item) => address(item.pubkey) === id)?.account)
       : "Not voted";
+  const daoName = realm?.account?.name || "DAO";
   const activeCount = proposals.filter(
     (item) => item.account.state === 2
   ).length;
@@ -212,22 +216,22 @@ export default function GovernanceDemo({
     String(item.account.name).toLowerCase().includes(filter.toLowerCase())
   );
   const select = (id: string) => {
-    if (landing) navigate(`/proposal/${GRAPE_REALM}/${id}`);
+    if (landing) navigate(`/proposal/${realmAddress}/${id}`);
     else setParams({ proposal: id });
     setExpanded(false);
   };
 
   const closeProposal = () => {
-    if (landing || route.proposal) navigate(`/dao/${GRAPE_REALM}`);
+    if (landing || route.proposal) navigate(`/dao/${realmAddress}`);
     else setParams({});
     setExpandedFor(null);
   };
 
   return (
-    <DaoPageLayout experimental={!landing}>
+    <DaoPageLayout experimental={!landing} governanceAddress={realmAddress}>
       <main>
         <div className="gd-intro">
-          <span className="gd-eyebrow">GRAPE GOVERNANCE</span>
+          <span className="gd-eyebrow">{daoName} GOVERNANCE</span>
           <h1>
             Your DAO.
             <br />
@@ -236,7 +240,7 @@ export default function GovernanceDemo({
           <p>Real proposals. Real votes.</p>
         </div>
         {loading ? (
-          <p role="status">Loading Grape DAO proposals…</p>
+          <p role="status">Loading DAO proposals…</p>
         ) : error ? (
           <div role="alert">
             <p>{error}</p>
@@ -304,14 +308,14 @@ export default function GovernanceDemo({
                   <div className="gd-main gd-content">
                     <h2>
                       {requested
-                        ? "Proposal not found in Grape DAO"
+                        ? "Proposal not found in this DAO"
                         : "No proposals found"}
                     </h2>
                     <p>Select a proposal from the list or refresh.</p>
                     <button
                       className="gd-secondary"
                       onClick={() => {
-                        if (landing) navigate(`/dao/${GRAPE_REALM}`);
+                        if (landing) navigate(`/dao/${realmAddress}`);
                         else setParams({});
                         setRevision((n) => n + 1);
                       }}
@@ -322,12 +326,12 @@ export default function GovernanceDemo({
                 ) : (
                   <ProposalPreviewBoundary
                     key={`${selectedAddress}:${revision}`}
-                    originalUrl={`/proposal/${GRAPE_REALM}/${selectedAddress}?view=advanced`}
+                    originalUrl={`/proposal/${realmAddress}/${selectedAddress}?view=advanced`}
                     onRetry={() => setRevision((n) => n + 1)}
                   >
                     <GovernanceProposalV2View
                       key={`${selectedAddress}:${revision}`}
-                      governanceAddress={GRAPE_REALM}
+                      governanceAddress={realmAddress}
                       governanceProposal={selectedAddress}
                       item={selected}
                       showGovernanceTitle={false}
@@ -336,11 +340,12 @@ export default function GovernanceDemo({
                           <article className="gd-main">
                             <div className="gd-card-top">
                               <span className="gd-eyebrow">
-                                GRAPE DAO PROPOSAL
+                                {daoName} PROPOSAL
                               </span>
                               <div className="gd-proposal-tools">
                                 <span className="gd-pill">{view.stateLabel}</span>
-                                <ProposalShare realm={GRAPE_REALM} proposal={selectedAddress} title={view.proposal.account.name} />
+                                {view.electorate && <span className="gd-pill">{view.electorate}{view.isPoll ? " poll" : " vote"}</span>}
+                                <ProposalShare realm={realmAddress} proposal={selectedAddress} title={view.proposal.account.name} />
                               </div>
                             </div>
                             <div className="gd-content">
@@ -361,13 +366,13 @@ export default function GovernanceDemo({
                                       <div className="gd-author-providers" aria-label="Verified with">
                                         <span>Verified with</span>
                                         {view.author.verificationProviders.map((provider: string) => (
-                                          <a key={provider} href={`https://verification.governance.so/dao/${GRAPE_REALM}/wallet/${view.author.address}`}
+                                          <a key={provider} href={`https://verification.governance.so/dao/${realmAddress}/wallet/${view.author.address}`}
                                             target="_blank" rel="noopener noreferrer">{provider} ↗</a>
                                         ))}
                                       </div>
                                     )}
                                     <span>Power reflects current deposits, excluding delegation and plugin adjustments.</span>
-                                    <a href={`https://vine.governance.so/dao/${GRAPE_REALM}`} target="_blank" rel="noopener noreferrer">
+                                    <a href={`https://vine.governance.so/dao/${realmAddress}`} target="_blank" rel="noopener noreferrer">
                                       Vine / OG Reputation{view.author.season != null ? ` · Season ${view.author.season}${view.author.previousSeason ? " (previous)" : ""}` : ""} ↗
                                     </a>
                                   </div>
@@ -446,6 +451,7 @@ export default function GovernanceDemo({
                                   </section>
                                 </div>
                               )}
+                              {view.isMultiChoiceProposal && <VoterBreakdown records={view.voterRecords ?? null} proposal={view.proposal} count={view.sentiment?.total} />}
                               <section
                                 className="gd-live-power"
                                 aria-label="Your participation"
@@ -457,7 +463,7 @@ export default function GovernanceDemo({
                                   {!view.connected
                                     ? "Connect your wallet to check your vote."
                                     : view.hasVoted
-                                    ? `Vote recorded${
+                                    ? view.recordedChoice || `Vote recorded${
                                         view.hasVotedSide
                                           ? ` · ${view.hasVotedSide}`
                                           : ""
@@ -512,7 +518,7 @@ export default function GovernanceDemo({
                               <section id="gd-proposal-vote" className="gd-voting-section" aria-label="Proposal voting">
                               {view.actions ? (
                                 <>
-                                  <div className="gd-live-actions">
+                                  <div className={view.isMultiChoiceProposal ? "gd-ballot-container" : "gd-live-actions"}>
                                     {view.actions}
                                   </div>
                                   <p className="gd-footnote">
@@ -524,7 +530,7 @@ export default function GovernanceDemo({
                               <div className="gd-vote-unavailable" role="status">
                                 <strong>{view.warning ? "Review required before voting" : view.isMultiChoiceProposal ? "Choose your voting option" : view.proposal.account.state !== 2 ? "Voting is closed" : "Voting controls unavailable"}</strong>
                                 <p>{view.warning ? "Review the security findings and proposal instructions before continuing to the advanced voting view." : view.isMultiChoiceProposal ? "This proposal uses multiple voting options. Open the advanced view to review and vote." : view.proposal.account.state !== 2 ? `Proposal status: ${view.stateLabel}.` : "Open the advanced view to check voting availability for this proposal."}</p>
-                                {view.proposal.account.state === 2 && <a className="gd-secondary" href={`/proposal/${GRAPE_REALM}/${selectedAddress}?view=advanced`}>Review proposal & voting options ↗</a>}
+                                {view.proposal.account.state === 2 && <a className="gd-secondary" href={`/proposal/${realmAddress}/${selectedAddress}?view=advanced`}>Review proposal & voting options ↗</a>}
                               </div>)}
                               </section>
                               <div className="gd-actions gd-proposal-footer">
@@ -540,7 +546,7 @@ export default function GovernanceDemo({
                                 </button>
                                 <div className="gd-proposal-footer-tools">
                                 <ProposalSettings settings={view.settings} management={view.management}
-                                  advancedUrl={`/proposal/${GRAPE_REALM}/${selectedAddress}?view=advanced`} />
+                                  advancedUrl={`/proposal/${realmAddress}/${selectedAddress}?view=advanced`} />
                                 </div>
                               </div>
                             </div>
@@ -567,7 +573,7 @@ export default function GovernanceDemo({
                 className="gd-sidebar"
               >
                 <section className="gd-scenarios">
-                  <span className="gd-eyebrow">GRAPE DAO</span>
+                  <span className="gd-eyebrow">{daoName}</span>
                   <h3>
                     {activeCount ? "Proposals" : "Proposal history"}{" "}
                     <span className="gd-active-count">
@@ -638,7 +644,7 @@ export default function GovernanceDemo({
       <footer className="gd-footer">
         <span>
           {landing
-            ? "Grape DAO governance"
+            ? `${daoName} governance`
             : "Experimental presentation · Existing governance transactions"}
         </span>
       </footer>

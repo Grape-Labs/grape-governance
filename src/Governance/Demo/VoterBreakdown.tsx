@@ -63,6 +63,7 @@ export default function VoterBreakdown({ records, proposal, count }: { records: 
   const [open, setOpen] = React.useState(false);
   const rows = React.useMemo(() => voterRows(records || [], proposal.account), [records, proposal]);
   const stats = React.useMemo(() => distinctVoterSentiment(records || []), [records]);
+  const binary = (!proposal.account?.options || (proposal.account.options.length === 1 && proposal.account.denyVoteWeight != null)) && Number(proposal.account?.voteType?.type || 0) === 0;
   const support = stats.total ? stats.for / stats.total * 100 : 0;
   const download = () => {
     const blob = new Blob([voterWorkbook(rows)], { type: "application/vnd.ms-excel;charset=utf-8" });
@@ -74,7 +75,7 @@ export default function VoterBreakdown({ records, proposal, count }: { records: 
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   return <>
-    <h3 className="gd-sentiment-heading">Voter sentiment <button className="gd-voter-icon" type="button" aria-label="Open voter breakdown" title="Voter breakdown" onClick={() => setOpen(true)}>↗</button></h3>
+    <h3 className="gd-sentiment-heading">{binary ? "Voter sentiment" : "Voter records"} <button className="gd-voter-icon" type="button" aria-label="Open voter breakdown" title="Voter breakdown" onClick={() => setOpen(true)}>↗</button></h3>
     {count != null && <button type="button" className="gd-voter-count gd-voter-count-button" title="Open voter breakdown · One count per token-owner wallet" onClick={() => setOpen(true)}>{count} wallets</button>}
     <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md"
       aria-labelledby="gd-voters-title" PaperProps={{ sx: { bgcolor: "#141e2b", color: "#edf2fa", borderRadius: 3 } }}>
@@ -87,7 +88,7 @@ export default function VoterBreakdown({ records, proposal, count }: { records: 
             <strong className="gd-stat-value">{stats.total.toLocaleString()}</strong>
             <small>Unique wallets · active records</small>
           </section>
-          <section className="gd-voter-stat-card">
+          {binary && <><section className="gd-voter-stat-card">
             <span className="gd-stat-label">Vote split</span>
             <div className="gd-stat-split"><div><strong className="gd-stat-for">{stats.for.toLocaleString()}</strong><span>For</span></div><div><strong className="gd-stat-against">{stats.against.toLocaleString()}</strong><span>Against</span></div>{stats.other > 0 && <div><strong>{stats.other.toLocaleString()}</strong><span>Other</span></div>}</div>
             <div className="gd-stat-bar" aria-hidden="true"><span style={{ width: `${support}%` }} /><span style={{ width: `${stats.total ? stats.against / stats.total * 100 : 0}%` }} /></div>
@@ -95,7 +96,7 @@ export default function VoterBreakdown({ records, proposal, count }: { records: 
           <section className="gd-voter-stat-card gd-voter-support">
             <div><span className="gd-stat-label">Wallet support</span><strong className="gd-stat-value">{support.toFixed(1)}<small>%</small></strong><small>{stats.total ? "Of participating wallets voted for" : "No active votes yet"}</small></div>
             <svg className="gd-support-ring" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="26" /><circle className="gd-support-ring-fill" cx="32" cy="32" r="26" pathLength="100" strokeDasharray={`${support} 100`} /><path d="m23 32 6 6 12-13" /></svg>
-          </section>
+          </section></>}
         </div>}
         {records == null ? <p>Voter records unavailable.</p> : rows.length === 0 ? <p>No voter records yet.</p> :
           <div style={{ overflowX: "auto" }}>

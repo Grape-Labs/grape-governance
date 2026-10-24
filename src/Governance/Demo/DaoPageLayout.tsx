@@ -7,7 +7,9 @@ export default function DaoPageLayout({
   title,
   description,
   children,
+  governanceAddress,
 }: {
+  governanceAddress?: string;
   section?: DaoSection;
   title?: string;
   description?: string;
@@ -17,7 +19,7 @@ export default function DaoPageLayout({
   return (
     <div className="governance-demo gd-live">
       <div className="gd-shell">
-        <GrapeDaoNavigation section={section} />
+        <GrapeDaoNavigation section={section} governanceAddress={governanceAddress} />
         {title && (
           <div className="gd-intro">
             <span className="gd-eyebrow">GRAPE GOVERNANCE</span>

@@ -171,7 +171,7 @@ loaded.require = function (id) {
 };
 loaded._compile(compiled, filename);
 const Demo = loaded.exports.default;
-const { MemoryRouter } = require("react-router-dom");
+const { MemoryRouter, Routes, Route } = require("react-router-dom");
 const { waitFor } = require("@testing-library/react");
 const mount = () =>
   render(React.createElement(MemoryRouter, null, React.createElement(Demo)));
@@ -273,8 +273,8 @@ test("both demo URLs are active JSX routes, not commented-out declarations", () 
   assert.equal(routes.get("/demo/governance"), "GovernanceDemo");
   assert.equal(routes.get(`/demo/governance/dao/${realm}`), "GovernanceDemo");
   assert.equal(routes.get("proposal/*"), "GovernanceProposalWrapper");
-  assert.equal(routes.get(`dao/${realm}`), "GrapeDaoPage");
-  assert.equal(routes.get(`proposal/${realm}/:proposal`), "GrapeDaoPage");
+  assert.equal(routes.get("dao/:handlekey"), "GrapeDaoPage");
+  assert.equal(routes.get("proposal/:governance/:proposal"), "GrapeDaoPage");
   assert.equal(routes.get(`governance/${realm}`), "GrapeDaoPage");
 });
 
@@ -393,7 +393,7 @@ test("DAO landing and direct proposal URLs use simple view; advanced routes reta
         React.createElement(
           MemoryRouter,
           { initialEntries: [url] },
-          React.createElement(Page, { advanced })
+          React.createElement(Routes, null, React.createElement(Route, { path: url.split("?")[0].startsWith("/proposal/") ? "/proposal/:governance/:proposal" : url.split("?")[0].startsWith("/governance/") ? "/governance/:handlekey" : "/dao/:handlekey", element: React.createElement(Page, { advanced }) }))
         )
       );
       assert.ok(screen.getByText(expected));

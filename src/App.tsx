@@ -344,14 +344,15 @@ function DashboardContent() {
                                                   <Route path=":walletAddress" element={<MyGovernanceView />} />
                                               </Route>
 
-                                              <Route path="dao/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip" element={<GrapeDaoPage />} />
-                                              <Route path="proposal/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip/:proposal" element={<GrapeDaoPage />} />
+                                              <Route path="dao/:handlekey" element={<GrapeDaoPage />} />
+                                              <Route path="proposal/:governance/:proposal" element={<GrapeDaoPage />} />
                                               <Route path="governance/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip" element={<GrapeDaoPage advanced />} />
                                               <Route path="governance/*" element={<GovernanceCachedView />} >
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
                                                   <Route path=":handlekey/:proposal" element={<GovernanceCachedView />} />
                                               </Route>
                                               
+                                              <Route path="dao/:handlekey/:proposal" element={<GrapeDaoPage />} />
                                               <Route path="dao/*" element={<GovernanceCachedView />} >
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
                                                   <Route path=":handlekey/:proposal" element={<GovernanceCachedView />} />
@@ -374,17 +375,17 @@ function DashboardContent() {
                                               <Route path="metrics/*" element={<PremiumView />} >
                                                   <Route path=":handlekey" element={<PremiumView />} />
                                               </Route>
-                                              <Route path="members/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip" element={<GrapeDaoSection section="members" />} />
-                                              <Route path="treasury/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip" element={<GrapeDaoSection section="treasury" />} />
-                                              <Route path="stats/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip" element={<GrapeDaoSection section="stats" />} />
-                                              <Route path="reputation/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip" element={<GrapeDaoSection section="reputation" />} />
+                                              <Route path="members/:handlekey" element={<GrapeDaoSection section="members" />} />
+                                              <Route path="treasury/:address" element={<GrapeDaoSection section="treasury" />} />
+                                              <Route path="stats/:handlekey" element={<GrapeDaoSection section="stats" />} />
+                                              <Route path="reputation/:handlekey" element={<GrapeDaoSection section="reputation" />} />
                                               <Route path="members/*" element={<GovernanceMembersView />} >
                                                   <Route path=":handlekey" element={<GovernanceMembersView />} />
                                               </Route>
                                               <Route path="stats/*" element={<GovernanceStatsView />} >
                                                   <Route path=":handlekey" element={<GovernanceStatsView />} />
                                               </Route>
-                                              <Route path="treasury/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip/:rules" element={<GrapeDaoSection section="treasury" />} />
+                                              <Route path="treasury/:address/:rules" element={<GrapeDaoSection section="treasury" />} />
                                               <Route path="treasury/*" element={<GovernanceTreasuryView />} >
                                                   <Route path=":address" element={<GovernanceTreasuryView />} />
                                                   <Route path=":address/:rules" element={<GovernanceTreasuryView />} />
