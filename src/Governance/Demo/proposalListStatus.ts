@@ -9,7 +9,7 @@ export function recordedVoteLabel(record: any, proposal?: any): string {
     if (Number(kind) === 3) return "Voted Veto";
     if (Number(kind) === 0) {
       const options = proposal?.options;
-      if (!options || options.length === 1) return "Voted For";
+      if (!options || (options.length === 1 && proposal?.denyVoteWeight != null)) return "Voted For";
       const selected = (vote.approveChoices || [])
         .map((choice: any, index: number) => Number(choice.weightPercentage) > 0 ? options[index]?.label : null)
         .filter(Boolean);
@@ -36,7 +36,7 @@ const percentage = (part: bigint, total: bigint) =>
 
 export function proposalListStatus(account: any): { label: string; detail: string } | null {
   if (account?.state !== 2) return null;
-  if (account.options && account.options.length !== 1) return null;
+  if (account.options && (account.options.length !== 1 || account.denyVoteWeight == null || Number(account.voteType?.type || 0) !== 0)) return null;
   const yes = weight(account.options?.[0]?.voteWeight ?? account.yesVotesCount);
   const no = weight(account.denyVoteWeight ?? account.noVotesCount);
   if (yes == null || no == null) return null;

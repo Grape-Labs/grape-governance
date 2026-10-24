@@ -1458,3 +1458,16 @@
 }
 
 @media (max-width: 380px) { .gd-live .gd-dao-nav > a { font-size: 9px; letter-spacing: -0.3px; white-space: normal; } }
+
+.gd-ballot { margin: 20px 0; }
+.gd-ballot > p { color: #a6b3c7; font-size: 13px; }
+.gd-ballot fieldset { border: 0; margin: 12px 0; padding: 0; min-width: 0; }
+.gd-ballot legend { font-size: 12px; color: #a6b3c7; margin-bottom: 8px; }
+.gd-ballot-option { display: flex; align-items: center; gap: 12px; padding: 14px; margin-bottom: 8px; border: 1px solid #ffffff20; border-radius: 10px; background: #ffffff04; }
+.gd-ballot-option > span:first-of-type { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.gd-ballot-option strong, .gd-ballot-option small { display: block; }
+.gd-ballot-option small { color: #a6b3c7; margin-top: 4px; }
+.gd-ballot-option input { accent-color: #64dfb1; }
+.gd-ballot-weight { white-space: nowrap; }
+.gd-ballot-weight input { width: 64px; padding: 8px; border: 1px solid #ffffff30; border-radius: 6px; background: #111c29; color: #edf2fa; }
+.gd-ballot-actions { display: flex; flex-wrap: wrap; gap: 12px; }

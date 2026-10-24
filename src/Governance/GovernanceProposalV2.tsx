@@ -1,3 +1,6 @@
+import { recordedVoteLabel } from "./Demo/proposalListStatus";
+import ProposalBallot from "./Demo/ProposalBallot";
+import { ballotRules } from "../utils/governanceTools/ballotRules";
 import { distinctVoterSentiment } from "./Demo/proposalListStatus";
 import { GRAPE_VERIFICATION_PROGRAM_ID, parseVerificationSpace, deriveVerificationSpacePda, hashVerificationWallet, parseVerificationLink, parseVerificationIdentity } from './api/grapeVerification';
 import ProposalGrantReview from './Members/ProposalGrantReview';
@@ -1332,7 +1335,7 @@ export function GovernanceProposalV2View(props: any){
                 const councilVoteThreshold = governance.account.config.councilVoteThreshold
                 
                 const voteThresholdPercentage=
-                    new PublicKey(realm.account.config?.councilMint).toBase58() === new PublicKey(thisitem.account.governingTokenMint).toBase58()
+                    normalizePkString(realm.account.config?.councilMint) === normalizePkString(thisitem.account.governingTokenMint)
                     ? councilVoteThreshold.value
                     : communityVoteThreshold.value
                 
@@ -1344,7 +1347,7 @@ export function GovernanceProposalV2View(props: any){
 
                 setTotalSupply(tSupply);
                 
-                let totalVotes = new PublicKey(realm.account.config?.councilMint).toBase58() === new PublicKey(thisitem.account.governingTokenMint).toBase58() ?
+                let totalVotes = normalizePkString(realm.account.config?.councilMint) === normalizePkString(thisitem.account.governingTokenMint) ?
                     tSupply  *
                     (voteThresholdPercentage / 100)
                     :
@@ -1569,7 +1572,7 @@ export function GovernanceProposalV2View(props: any){
             }
             
             if (realm.account.config?.councilMint){
-                if (new PublicKey(realm.account.config?.councilMint).toBase58() === new PublicKey(thisitem.account.governingTokenMint).toBase58()){
+                if (normalizePkString(realm.account.config?.councilMint) === normalizePkString(thisitem.account.governingTokenMint)){
                     vType = 'Council';
                     //td = 0;
                 }
@@ -3452,7 +3455,7 @@ export function GovernanceProposalV2View(props: any){
         return acc + (isVeto ? 1 : 0);
         }, 0);
 
-        // If you want it in React state (so you can pass it to <VetoVoteRow />)
+        // If you want it in React state (so you can pass it to <VetoVoteRow governanceConfig={governanceConfig} />)
         setVetoCount?.(vetoCount); // or setProposalVetoCount(vetoCount)
 
         const vetoWalletMap = new Map<string, any>();
@@ -5309,18 +5312,19 @@ export function GovernanceProposalV2View(props: any){
     const timelineAccent = 'rgba(61, 167, 255, 0.96)';
     const createdAt = toPositiveUnix(thisitem?.account?.draftAt);
     const votingStartedAt =
-        toPositiveUnix(thisitem?.account?.signingOffAt) ??
         toPositiveUnix(thisitem?.account?.votingAt) ??
+        toPositiveUnix(thisitem?.account?.signingOffAt) ??
         toPositiveUnix(thisitem?.account?.startVotingAt);
     const governanceConfig = thisGovernance?.account?.config;
     const baseVotingTime =
+        toPositiveUnix(thisitem?.account?.maxVotingTime) ??
         toPositiveUnix(governanceConfig?.baseVotingTime) ??
         toPositiveUnix(governanceConfig?.votingBaseTime) ??
         0;
     const coolOffTime = toPositiveUnix(governanceConfig?.votingCoolOffTime) ?? 0;
     const votingCompletedAt = toPositiveUnix(thisitem?.account?.votingCompletedAt);
     const scheduledEndsAt =
-        votingStartedAt && baseVotingTime > 0 ? votingStartedAt + baseVotingTime : null;
+        votingStartedAt && baseVotingTime > 0 ? votingStartedAt + baseVotingTime + coolOffTime : null;
     const resolvedEndsAt = votingCompletedAt ?? scheduledEndsAt;
     const coolOffStartsAt =
         coolOffTime > 0 && resolvedEndsAt
@@ -5502,7 +5506,8 @@ export function GovernanceProposalV2View(props: any){
         border: '1px solid rgba(255,255,255,0.08)',
         boxShadow: '0 14px 34px rgba(0,0,0,0.22)',
     };
-    const isMultiChoiceProposal = thisitem?.account?.voteType?.type === 1;
+    const ballot = ballotRules(thisitem?.account);
+    const isMultiChoiceProposal = !ballot.binary;
 
     const fullProposalView = (
         <>
@@ -6649,7 +6654,7 @@ export function GovernanceProposalV2View(props: any){
                                                                 </Box>
                                                                 : <></>}
 
-                                                            <VetoVoteRow
+                                                            <VetoVoteRow governanceConfig={governanceConfig}
                                                                 realm={realm}
                                                                 proposal={thisitem}
                                                                 memberMap={memberMap}
@@ -8059,12 +8064,14 @@ export function GovernanceProposalV2View(props: any){
             (proposalSignatories || []).some(record =>
                 normalizePkString(record.account?.signatory) === normalizePkString(publicKey) &&
                 record.account?.signedOff === false);
-        const finalizeStart = Number(thisitem.account?.signingOffAt || thisitem.account?.votingAt || 0);
+        const finalizeStart = Number(thisitem.account?.votingAt || thisitem.account?.signingOffAt || 0);
         const canFinalize = !!publicKey && !!governingMintInfo && Number(thisitem.account.state) === 2 &&
             finalizeStart > 0 && baseVotingTime > 0 &&
             moment().unix() >= finalizeStart + baseVotingTime + coolOffTime;
         return props.renderSimple({
             proposal: thisitem,
+            electorate: normalizePkString(realm?.account?.config?.councilMint) === normalizePkString(thisitem.account.governingTokenMint) ? 'Council' : 'Community',
+            isPoll: ballot.poll,
             management: <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {!publicKey ? <Typography>Connect your wallet to see available actions.</Typography> : <>
                     {canManageDraftProposal && <ManageGovernanceProposal {...managementProps} mode={2} />}
@@ -8072,7 +8079,7 @@ export function GovernanceProposalV2View(props: any){
                     {canFinalize && <ManageGovernanceProposal {...managementProps} mode={5} />}
                     {!canManageDraftProposal && !pendingSigner && !canFinalize &&
                         <Typography color="text.secondary">No signatory, sign-off, or finalize actions are available for this wallet at this stage.</Typography>}
-                    {realm && <VetoVoteRow realm={realm} proposal={thisitem} memberMap={memberMap}
+                    {realm && <VetoVoteRow governanceConfig={governanceConfig} realm={realm} proposal={thisitem} memberMap={memberMap}
                         councilVoterRecord={councilVoterRecord} publicKey={publicKey}
                         sendTransaction={sendTransaction} getVotingParticipants={getVotingParticipants}
                         vetoCount={vetoCount ?? undefined} vetoVoters={vetoVoters} />}
@@ -8087,7 +8094,7 @@ export function GovernanceProposalV2View(props: any){
                     ['Vote threshold', totalVoteThresholdPercentage != null ? totalVoteThresholdPercentage + '%' : 'Unavailable'],
                     ['Base voting period', baseVotingTime ? (baseVotingTime / 3600).toLocaleString() + ' hours' : 'Unavailable'],
                     ['Cool-off period', governanceConfig ? (coolOffTime / 3600).toLocaleString() + ' hours' : 'Unavailable'],
-                    ['Council vetoes', String(vetoCount ?? 0)],
+                    ['Veto votes', String(vetoCount ?? 0)],
                 ],
                 addresses: [
                     ['Voting mint', normalizePkString(thisitem.account.governingTokenMint)],
@@ -8136,6 +8143,11 @@ export function GovernanceProposalV2View(props: any){
                 remainingCompact: formatCompactNumber(votesRequiredToPass),
             } : null,
             hasVoted, hasVotedSide, connected: !!publicKey,
+            recordedChoice: (() => {
+                const own = (solanaVotingResultRows || []).find(row => !row.isRelinquished && normalizePkString(row.governingTokenOwner) === normalizePkString(publicKey));
+                if (!own) return null;
+                return recordedVoteLabel({ account: { vote: own.vote?.vote, voteWeight: { yes: own.vote?.legacyYes, no: own.vote?.legacyNo } } }, thisitem.account);
+            })(),
             instructionCount: proposalInstructions ? proposalTransactionCount : null,
             instructionDetails: instructionTransferDetails || [],
             assetSummary: getGroupedInstructions(instructionTransferDetails || []).filter((item: any) => item.totalAmount > 0).map((item: any) => ({
@@ -8151,14 +8163,19 @@ export function GovernanceProposalV2View(props: any){
             warning: showProminentSecurityWarning ? (grapeDaoSafetySignals.isBlockedProposal
                 ? 'Known malicious proposal. Review the security findings before taking any action.'
                 : 'This proposal requires careful security review. Inspect its instructions before voting.') : null,
-            actions: realm && !isMultiChoiceProposal && !showProminentSecurityWarning && thisitem.account.state === 2 ?
-                [0, 1].map(type => <VoteForProposal key={type}
+            actions: realm && !showProminentSecurityWarning ? (isMultiChoiceProposal
+                ? <ProposalBallot key={normalizePkString(thisitem.pubkey)}
+                    decimals={tokenDecimals} realm={realm} governanceAddress={governanceAddress} thisitem={thisitem}
+                    votingResultRows={solanaVotingResultRows} getVotingParticipants={getVotingParticipants}
+                    hasVotedVotes={hasVotedVotes} hasVoted={hasVoted} hasVotedSide={hasVotedSide}
+                    state={thisitem.account.state} governanceRules={thisGovernance} />
+                : [0, 1].map(type => <VoteForProposal key={type}
                     title={type === 0 ? 'YES' : 'NO'} subtitle={type === 0 ? 'Support this proposal' : 'Oppose this proposal'}
                     hovertext="" showIcon={true} actionOnly={true}
                     votingResultRows={solanaVotingResultRows} getVotingParticipants={getVotingParticipants}
                     hasVotedVotes={hasVotedVotes} hasVoted={hasVoted} hasVotedSide={hasVotedSide}
                     realm={realm} governanceAddress={governanceAddress} thisitem={thisitem}
-                    type={type} quorum={totalQuorum} state={thisitem.account.state} governanceRules={thisGovernance}/>) : null,
+                    type={type} quorum={totalQuorum} state={thisitem.account.state} governanceRules={thisGovernance}/>)) : null,
             details: <Box sx={{p:2}}>
                 <Typography variant="h6">What this proposal can execute</Typography>
                 <Typography variant="body2" sx={{mb:2}}>Approval authorizes these instructions. Review assets, amounts, recipients, and permission changes before voting.</Typography>

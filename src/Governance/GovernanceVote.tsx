@@ -1,3 +1,4 @@
+import { voteAvailability } from "../utils/governanceTools/ballotRules";
 import { 
     withRelinquishVote,
     Vote, 
@@ -446,18 +447,24 @@ export function VoteForProposal(props:any){
     const voteMagnitude = Math.abs(Number(hasVotedVotes || 0));
     const voteDirectionLabel = hasVotedSide === 'yes' ? 'for' : hasVotedSide === 'no' ? 'against' : null;
     const votedForThisOption = (hasVotedSide === 'yes' && type === 0) || (hasVotedSide === 'no' && type === 1);
+    const [voteNow, setVoteNow] = React.useState(() => Date.now() / 1000);
+    React.useEffect(() => {
+      const timer = window.setInterval(() => setVoteNow(Date.now() / 1000), 15000);
+      return () => window.clearInterval(timer);
+    }, []);
+    const disabledReason = props.castDisabledReason || voteAvailability(thisitem.account, props.governanceRules?.account?.config, Number(type), voteNow);
     const actionOnly = !!props.actionOnly;
     const isCompactPollVote = !!multiChoice;
     const useCompactVoteSizing = isCompactPollVote || actionOnly;
     const currentSideLabel = type === 0 ? 'For' : 'Against';
-    const minimalVotePrimaryLabel = votedForThisOption
+    const minimalVotePrimaryLabel = props.ballotLabel || (votedForThisOption
         ? `Voted ${currentSideLabel}`
         : hasVoted && voteDirectionLabel && !hasCastedVotesForCurrentOption
         ? 'Not selected'
         : hasCastedVotesForCurrentOption
         ? `Manage ${currentSideLabel}`
-        : `Vote ${currentSideLabel}`;
-    const minimalVoteSecondaryLabel = votedForThisOption
+        : `Vote ${currentSideLabel}`);
+    const minimalVoteSecondaryLabel = disabledReason && !hasVoted ? disabledReason : votedForThisOption
         ? 'Your vote'
         : hasVoted && voteDirectionLabel
         ? `You voted ${voteDirectionLabel}`
@@ -542,6 +549,9 @@ export function VoteForProposal(props:any){
         //console.log("tokenOwnerRecord: "+JSON.stringify(thisitem.account.tokenOwnerRecord));
         
         const proposal = {
+        options: thisitem.account.options,
+        voteType: thisitem.account.voteType,
+        denyVoteWeight: thisitem.account.denyVoteWeight,
             governanceId: thisitem.account.governance,
             proposalId: thisitem.pubkey,
             tokenOwnerRecord: thisitem.account.tokenOwnerRecord,
@@ -756,6 +766,11 @@ export function VoteForProposal(props:any){
     withAllDelegates?: boolean
     ) => {
     try {
+        const castError = props.castDisabledReason || voteAvailability(thisitem.account, props.governanceRules?.account?.config, Number(type));
+        if (castError) {
+          enqueueSnackbar(castError, { variant: "warning" });
+          return;
+        }
         if (isBlacklisted) {
         enqueueSnackbar("An error occured, please try again later!", { variant: "error" });
         return;
@@ -795,6 +810,9 @@ export function VoteForProposal(props:any){
         console.log("delegatedItems:", delegatedItems);
 
         const proposal = {
+        options: thisitem.account.options,
+        voteType: thisitem.account.voteType,
+        denyVoteWeight: thisitem.account.denyVoteWeight,
         governanceId: thisitem.account.governance,
         proposalId: thisitem.pubkey,
         tokenOwnerRecord: thisitem.account.tokenOwnerRecord,
@@ -1224,7 +1242,7 @@ export function VoteForProposal(props:any){
 
     return (
   <>
-    {!publicKey || thisitem.account?.state !== 2 ? (
+    {!publicKey || (thisitem.account?.state !== 2 && !hasAnyCastedVotes) ? (
       <>
         {type === 0 ? (
           <Button
@@ -1261,6 +1279,7 @@ export function VoteForProposal(props:any){
                   >
                     <Button
                       onClick={handleVoteYes}
+                      disabled={!!disabledReason}
                       sx={splitVoteMainButtonSx}
                     >
                       {renderVoteButtonContent(<ThumbUpIcon fontSize="small" sx={{ mr: actionOnly ? 0 : 0.5 }} />) || (
@@ -1367,6 +1386,7 @@ export function VoteForProposal(props:any){
                   >
                     <Button
                       onClick={handleVoteNo}
+                      disabled={!!disabledReason}
                       sx={splitVoteMainButtonSx}
                     >
                       {renderVoteButtonContent(<ThumbDownIcon fontSize="small" sx={{ mr: actionOnly ? 0 : 0.5 }} />) || (
@@ -1480,7 +1500,6 @@ export function VoteForProposal(props:any){
                   <Button
                     variant="outlined"
                     onClick={() =>
-                      state === 2 &&
                       hasAnyCastedVotes &&
                       handleClickOpen()
                     }

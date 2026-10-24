@@ -1,3 +1,5 @@
+import { createCastVoteTransaction } from "../utils/governanceTools/components/instructions/createVote";
+import { voteAvailability } from "../utils/governanceTools/ballotRules";
 // src/utils/governanceTools/votes/VetoVote.tsx
 //
 // Drop-in “Veto” row + canonical Veto Vote builder for SPL-Governance.
@@ -65,6 +67,7 @@ export type VetoVoteRowProps = {
 
   // Optional fast-path for council veto only (kept for backwards compatibility)
   councilVoterRecord?: any | null;
+  governanceConfig?: any;
 
   publicKey: PublicKey | null;
   sendTransaction: (tx: Transaction, connection: any, opts?: any) => Promise<string>;
@@ -210,10 +213,16 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
   );
   const hasVetoVoters = vetoVoters.length > 0;
   const proposalWasVetoed = proposal?.account?.state === 9;
-  const canCastNow = isVotingState(proposal);
+  const vetoThreshold = vetoMintForThreshold();
+  function vetoMintForThreshold() {
+    return mode.ok && mode.vetoMint58 === getCouncilMint58(realm)
+      ? props.governanceConfig?.councilVetoVoteThreshold : props.governanceConfig?.communityVetoVoteThreshold;
+  }
+  const vetoDisabled = Number(vetoThreshold?.type) === 2;
+  const canCastNow = isVotingState(proposal) && !vetoDisabled && !voteAvailability(proposal.account, props.governanceConfig, 1);
 
   // Don’t render unless it applies
-  if (!canShowVetoRow(realm, proposal, vetoCount, vetoVoters)) return null;
+  if (!canShowVetoRow(realm, proposal, vetoCount, vetoVoters) || (vetoDisabled && !hasVetoVoters && !proposalWasVetoed)) return null;
 
   const title = props.title ?? (mode.ok ? mode.label : "Veto");
   const caption =
@@ -229,6 +238,10 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
 
   const handleVetoVote = async () => {
     try {
+      if (!canCastNow || voteAvailability(proposal.account, props.governanceConfig, 1)) {
+        enqueueSnackbar('Veto voting is unavailable for this proposal.', { variant: 'warning' });
+        return;
+      }
       if (!mode.ok) {
         enqueueSnackbar("Veto mode is not available for this proposal.", { variant: "error" });
         return;
@@ -278,33 +291,13 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
         persist: true,
       });
 
-      const programId = new PublicKey(realm.owner);
-      const realmPk = new PublicKey(realm.pubkey);
-
-      const programVersion = await getGrapeGovernanceProgramVersion(
-        RPC_CONNECTION,
-        programId,
-        realmPk
-      );
-
-      const instructions: TransactionInstruction[] = [];
-
-      await withCastVote(
-        instructions,
-        programId,
-        programVersion,
-        realmPk,
-        new PublicKey(proposal.account.governance),
-        new PublicKey(proposal.pubkey),
-        new PublicKey(proposal.account.tokenOwnerRecord), // proposal owner record (same field for both cases)
-        new PublicKey(vetoVoterRecord.pubkey),            // voter TOR (auto-selected)
-        publicKey,                                        // governanceAuthority
-        new PublicKey(vetoMint58),                         // voteGoverningTokenMint (auto-selected)
-        makeVetoVote(),                                   // vote
-        publicKey                                         // payer
-      );
-
-      const tx = new Transaction().add(...instructions);
+      const owner = vetoVoterRecord.account?.governingTokenOwner?.toBase58?.();
+      const tx = await createCastVoteTransaction(realm, publicKey, {
+        proposal: { governanceId: proposal.account.governance, proposalId: proposal.pubkey,
+          tokenOwnerRecord: proposal.account.tokenOwnerRecord, governingTokenMint: new PublicKey(vetoMint58) }, action: 3,
+      }, vetoVoterRecord, owner && owner !== walletPk58 ? owner : null,
+        vetoMint58 === getCommunityMint58(realm), null, 3);
+      if (!tx) throw new Error('Veto voting power is unavailable.');
       const { blockhash, lastValidBlockHeight } =
         await RPC_CONNECTION.getLatestBlockhash("confirmed");
 
