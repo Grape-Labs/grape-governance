@@ -1,22 +1,28 @@
 import React from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import DaoPageLayout from "./DaoPageLayout";
 import { GovernanceMembersView } from "../GovernanceMembers";
 import { GovernanceTreasuryView } from "../GovernanceTreasury";
 import { GovernanceStatsView } from "../GovernanceStats";
-function VineReputationView({ governanceAddress }: any) {
-  return (
-    <div className="gd-main gd-content">
-      <p>DAO reputation is available on Vine / OG Reputation.</p>
-      <a
-        href={`https://vine.governance.so/dao/${governanceAddress}`}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Open Vine / OG Reputation ↗
-      </a>
-    </div>
-  );
+function OgReputationView({ governanceAddress }: any) {
+  const enabled = governanceAddress === "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip";
+  return <div className="gd-main gd-content gd-reputation-onboarding">
+    <span className="gd-eyebrow">OG REPUTATION</span>
+    <h2>{enabled ? 'Your community’s contributions' : 'Bring contribution-based reputation to your DAO'}</h2>
+    {enabled ? <>
+      <p>Explore your DAO’s member reputation and seasons.</p>
+      <a className="gd-secondary" href={`https://vine.governance.so/dao/${governanceAddress}`} target="_blank" rel="noopener noreferrer">Open OG Reputation ↗</a>
+    </> : <>
+      <p>Recognize contributions with points and seasons managed by your DAO. OG Reputation is not enabled for this DAO in the directory yet.</p>
+      <ol className="gd-reputation-steps">
+        <li><h3>Define what earns reputation</h3><p>Agree on contributions to recognize, who reviews them, and how points are awarded each season.</p></li>
+        <li><h3>Prepare your reputation space</h3><p>Choose the DAO treasury that will manage the space, a REP mint, and an initial season. Your DAO address is:</p><code>{governanceAddress}</code></li>
+        <li><h3>Propose and activate</h3><p>From your treasury’s extensions, open IntraDAO tools → OG Reputation Spaces and choose Initialize Space. Review the configuration, then create a governance proposal. The space is initialized after the proposal passes and its instruction is executed.</p></li>
+      </ol>
+      <Link className="gd-secondary" to={`/treasury/${governanceAddress}`}>Continue to treasury setup →</Link>
+      <p className="gd-footnote">This guide does not enable reputation or submit a transaction. After setup, the directory integration must also be enabled for your DAO.</p>
+    </>}
+  </div>;
 }
 const pages = {
   members: {
@@ -35,9 +41,9 @@ const pages = {
     View: GovernanceStatsView,
   },
   reputation: {
-    title: "Vine / OG Reputation",
+    title: "OG Reputation",
     description: "Community contributions and reputation.",
-    View: VineReputationView,
+    View: OgReputationView,
   },
 };
 export default function GrapeDaoSection({
