@@ -142,8 +142,8 @@ function isValidSolanaPublicKey(publicKeyString: string): boolean {
   }
 }
 
-function ScrollTop(props: Props) {
-  const { children, window } = props;
+function ScrollTop(props: Props & { topRef: React.RefObject<HTMLDivElement> }) {
+  const { children, window, topRef } = props;
 
   const trigger = useScrollTrigger({
     target: window ? window() : undefined,
@@ -151,14 +151,9 @@ function ScrollTop(props: Props) {
     threshold: 100,
   });
 
-  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    const anchor = ((event.target as HTMLDivElement).ownerDocument || document).querySelector(
-      '#back-to-top-anchor'
-    );
-
-    if (anchor) {
-      anchor.scrollIntoView({ block: 'center' });
-    }
+  const handleClick = () => {
+    // Scroll all containing viewports, including mobile embedded browsers.
+    topRef.current?.scrollIntoView({ block: 'start', behavior: 'auto' });
   };
 
   return (
@@ -171,6 +166,7 @@ function ScrollTop(props: Props) {
 }
 
 export function GovernanceDirectoryView(props: Props) {
+  const topRef = React.useRef<HTMLDivElement>(null);
   const { publicKey } = useWallet();
   const [metadataMap, setMetadataMap] = React.useState<{ [key: string]: any }>({});
   const [mythicMetadataMap, setMythicMetadataMap] = React.useState<{ [key: string]: any }>({});
@@ -918,7 +914,9 @@ export function GovernanceDirectoryView(props: Props) {
 
   return (
     <Box
+      ref={topRef}
       sx={{
+        scrollMarginTop: "90px",
         mt: { xs: 1, md: 2 },
         borderRadius: { xs: '16px', md: '24px' },
         p: { xs: 2, sm: 3, md: 5 },
@@ -944,9 +942,13 @@ export function GovernanceDirectoryView(props: Props) {
       <Stack direction="row" spacing={3} useFlexGap flexWrap="wrap" sx={{ mb: 2.5, color: 'text.secondary' }}>
         <Typography variant="body2"><strong style={{ color: '#eef4fa' }}>{summary.daos.toLocaleString()}</strong> DAOs in directory</Typography>
         <Typography variant="body2"><strong style={{ color: '#eef4fa' }}>{summary.verified.toLocaleString()}</strong> verified</Typography>
-        {walletAddress && <Typography variant="body2"><strong style={{ color: '#eef4fa' }}>{favoriteGovernances.length}</strong> memberships</Typography>}
       </Stack>
-      <Typography variant="caption" title="Uses the same cached proposal feed as Realtime. Coverage depends on available governance programs." sx={{ display: 'block', mb: 1.5, color: '#89a8bd' }}>{activityStatus}</Typography>
+      <Box sx={{ width: '100%', mb: 1.5, textAlign: 'center' }}>
+        <Typography component="span" variant="caption" role="status" aria-live="polite"
+          sx={{ color: '#89a8bd', fontSize: 11, lineHeight: 1.5 }}>
+          {activityStatus}
+        </Typography>
+      </Box>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center" sx={{ mb: 2.5 }}>
         <TextField fullWidth size="small" placeholder="Find a DAO" value={searchFilter}
           onChange={event => setSearchFilter(event.target.value)}
@@ -1049,6 +1051,7 @@ export function GovernanceDirectoryView(props: Props) {
       )}
 
 
+      <Box component="section" aria-label="Explore DAOs" sx={{ width: '100%' }}>
       {nonFavoriteGovernances.length > 0 && (
         <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: -0.25, mt: 3, mb: 1.5 }}>
           {walletAddress ? 'Explore more DAOs' : 'Explore DAOs'}
@@ -1111,6 +1114,7 @@ export function GovernanceDirectoryView(props: Props) {
         </Box>
       )}
 
+      </Box>
 
       <Stack component="footer" direction="row" spacing={2.5} useFlexGap flexWrap="wrap"
         sx={{ mt: 5, pt: 2.5, borderTop: '1px solid #ffffff12' }}>
@@ -1127,8 +1131,8 @@ export function GovernanceDirectoryView(props: Props) {
         ))}
       </Stack>
 
-      <ScrollTop {...props}>
-        <Fab size="small" aria-label="scroll back to top">
+      <ScrollTop {...props} topRef={topRef}>
+        <Fab type="button" size="small" aria-label="scroll back to top">
           <KeyboardArrowUpIcon />
         </Fab>
       </ScrollTop>
