@@ -45,6 +45,26 @@ function getBannerSrc(metadata: any) {
   return toRealmsV2Image(banner.startsWith("http") ? banner : banner);
 }
 
+function DirectoryArtwork({ logo, banner, name, tint }: { logo: string | null; banner: string | null; name: string; tint: string }) {
+  const [failedSource, setFailedSource] = React.useState<string | null>(null);
+  const source = banner || logo;
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map(word => word[0]).join('').toUpperCase();
+  return <Box aria-hidden="true" sx={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden',
+    background: `radial-gradient(ellipse at 100% 0%, ${tint}, transparent 70%)` }}>
+    {source && source !== failedSource ? <Box component="img" src={source} alt="" loading="lazy" decoding="async"
+      onError={() => setFailedSource(source)}
+      sx={{ position: 'absolute', top: banner ? 0 : -24, right: banner ? 0 : -35,
+        width: banner ? '100%' : 240, height: banner ? 220 : 240,
+        objectFit: banner ? 'cover' : 'contain', opacity: banner ? 0.10 : 0.09,
+        transform: banner ? 'none' : 'rotate(-14deg)',
+        maskImage: 'linear-gradient(180deg, #000 15%, transparent 100%)',
+        WebkitMaskImage: 'linear-gradient(180deg, #000 15%, transparent 100%)',
+      }} /> : <Box sx={{ position: 'absolute', right: -8, top: -40, fontSize: 160, lineHeight: 1.3,
+        fontWeight: 800, letterSpacing: '-12px', color: '#c6d8e8', opacity: 0.045,
+        transform: 'rotate(-12deg)', userSelect: 'none' }}>{initials}</Box>}
+  </Box>;
+}
+
 const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardView(props: any) {
   const { item, metadata, directoryOnly = false } = props;
   const navigate = useNavigate();
@@ -79,17 +99,19 @@ const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardV
       <Card sx={{
         display: 'flex', flexDirection: 'column', height: '100%',
         color: '#edf2fa', borderRadius: '20px', position: 'relative', overflow: 'hidden',
-        background: '#111c29', boxShadow: '0 8px 24px #00000018',
+        background: '#111c29', isolation: 'isolate', boxShadow: '0 8px 24px #00000018',
         border: '1px solid #ffffff12',
         transition: 'border-color 180ms, box-shadow 180ms',
         '&:hover': { borderColor: '#b6ecd550', boxShadow: '0 12px 32px #00000030' },
         '& a:focus-visible': { outline: '2px solid #84beff', outlineOffset: -3 },
       }}>
         <Box sx={{ position: 'relative', p: 2.5, pb: 2.25, overflow: 'hidden',
-          background: `radial-gradient(ellipse at 0% 0%, ${tint}, transparent 85%), linear-gradient(120deg, #ffffff04, transparent)`,
+          background: '#111c29',
           borderBottom: '1px solid #ffffff0a',
-          '&::after': { content: '\"\"', position: 'absolute', width: 150, height: 150, border: `1px solid ${tint}`, borderRadius: '50%', right: -35, top: -85, boxShadow: `0 0 0 22px ${tint}`, opacity: 0.3, pointerEvents: 'none' },
         }}>
+          <DirectoryArtwork logo={ogSrc} banner={bannerSrc} name={name} tint={tint} />
+          <Box aria-hidden="true" sx={{ position: 'absolute', inset: 0, pointerEvents: 'none',
+            background: 'linear-gradient(90deg, #111c29f5 0%, #111c29d9 50%, #111c294d 100%)' }} />
           <Stack component={Link} to={"/dao/" + item.governanceAddress} direction="row" spacing={1.5} alignItems="center" sx={{ position: 'relative', zIndex: 1, color: 'inherit', textDecoration: 'none' }}>
             <Avatar src={ogSrc || undefined} variant="rounded" sx={{ width: 52, height: 52, borderRadius: '16px', bgcolor: tint, color: '#fff', fontSize: 24, fontWeight: 600, border: '1px solid #ffffff20', boxShadow: '0 4px 12px #00000020' }}>{name[0]}</Avatar>
             <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -101,7 +123,7 @@ const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardV
             </Box>
           </Stack>
         </Box>
-        <Box sx={{ px: 2.5, pt: 2, pb: 1, flex: 1 }}>
+        <Box sx={{ position: 'relative', px: 2.5, pt: 2, pb: 1, flex: 1 }}>
           {activity?.count ? (
             <>
               <Stack direction="row" flexWrap="wrap" gap={1} justifyContent="space-between" alignItems="center" sx={{ mb: 1.25 }}>
@@ -128,7 +150,7 @@ const GovernanceDirectoryCardView = React.memo(function GovernanceDirectoryCardV
             <Typography variant="body2" sx={{ mb: 1, color: '#a5b5c5', fontSize: 13, lineHeight: 1.7, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{desc}</Typography>
           ) : null}
         </Box>
-        <Box sx={{ px: 2.5, pb: 2.25, pt: 1 }}>
+        <Box sx={{ position: 'relative', px: 2.5, pb: 2.25, pt: 1 }}>
           <Box component={Link} to={"/dao/" + item.governanceAddress} sx={{ px: 1.5, py: 1, minHeight: 42, borderRadius: '10px', border: '1px solid #ffffff0e', background: '#ffffff04', display: 'flex', alignItems: 'center', justifyContent: 'space-between', textDecoration: 'none', color: '#b6ecd5', fontSize: 12, fontWeight: 600, '&:hover': { color: '#e8fff5', background: '#64dfb114', borderColor: '#64dfb130' } }}>
             <span>Explore DAO</span><span aria-hidden="true">→</span>
           </Box>

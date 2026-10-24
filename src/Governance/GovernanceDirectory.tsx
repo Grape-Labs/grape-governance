@@ -1051,6 +1051,7 @@ export function GovernanceDirectoryView(props: Props) {
       )}
 
 
+      <Box component="section" aria-label="Explore DAOs" sx={{ width: '100%' }}>
       {nonFavoriteGovernances.length > 0 && (
         <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: -0.25, mt: 3, mb: 1.5 }}>
           {walletAddress ? 'Explore more DAOs' : 'Explore DAOs'}
@@ -1113,6 +1114,7 @@ export function GovernanceDirectoryView(props: Props) {
         </Box>
       )}
 
+      </Box>
 
       <Stack component="footer" direction="row" spacing={2.5} useFlexGap flexWrap="wrap"
         sx={{ mt: 5, pt: 2.5, borderTop: '1px solid #ffffff12' }}>
