@@ -753,7 +753,7 @@
 .gd-live-actions .MuiButtonGroup-root > button:first-of-type {
   flex: 1;
 }
-.gd-live-actions .MuiButtonGroup-root > button:last-of-type {
+.gd-live-actions .MuiButtonGroup-root > button + button {
   width: 44px;
   min-width: 44px;
   flex: none;
@@ -1471,3 +1471,19 @@
 .gd-ballot-weight { white-space: nowrap; }
 .gd-ballot-weight input { width: 64px; padding: 8px; border: 1px solid #ffffff30; border-radius: 6px; background: #111c29; color: #edf2fa; }
 .gd-ballot-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+
+.gd-live-actions .gd-vote-control { min-width: 0; align-items: stretch; gap: 4px; }
+.gd-vote-control > .MuiButton-root, .gd-vote-control > .MuiButtonGroup-root { flex: 1; min-width: 0; }
+.gd-live-actions .gd-vote-control > .gd-vote-delegate-trigger { order: 2; width: 44px; min-width: 44px; flex: 0 0 44px; }
+.gd-ballot-actions .gd-vote-control { flex: 1; gap: 4px; }
+@media (max-width: 650px) { .gd-ballot-actions { flex-direction: column; } }
+
+.gd-reputation-onboarding { padding: 28px; }
+.gd-reputation-onboarding > p, .gd-reputation-steps p { color: #a6b3c7; line-height: 1.7; }
+.gd-reputation-steps { margin: 24px 0; padding-left: 24px; }
+.gd-reputation-steps li { padding: 0 0 20px 12px; }
+.gd-reputation-steps li::marker { color: #64dfb1; font-weight: 700; }
+.gd-reputation-steps h3 { margin: 0 0 6px; font-size: 16px; }
+.gd-reputation-steps p { margin: 0; font-size: 14px; }
+.gd-reputation-steps code { display: block; margin-top: 8px; overflow-wrap: anywhere; font-size: 12px; }
+.gd-reputation-onboarding > a { display: inline-flex; text-decoration: none; }

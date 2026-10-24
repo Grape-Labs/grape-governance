@@ -55,15 +55,19 @@ export default function GrapeDaoNavigation({
           <span>{label}</span>
         </Link>
       ))}
-      <a
+      {realm === defaultRealm ? <a
         className="gd-vine-link"
         href={`https://vine.governance.so/dao/${realm}`}
         target="_blank"
         rel="noopener noreferrer"
       >
         {mobile && <WorkspacePremiumOutlinedIcon className="gd-nav-icon" aria-hidden="true" />}
-        <span>{mobile ? "Reputation" : "Vine / OG Reputation"} <span>↗</span></span>
-      </a>
+        <span>{mobile ? "Reputation" : "OG Reputation"} <span>↗</span></span>
+      </a> : <Link to={`/reputation/${realm}`} className={`gd-vine-link ${section === "reputation" ? "is-current" : ""}`}
+        aria-current={section === "reputation" ? "page" : undefined}>
+        {mobile && <WorkspacePremiumOutlinedIcon className="gd-nav-icon" aria-hidden="true" />}
+        <span>{mobile ? "Add OG" : "Add OG Reputation"}</span>
+      </Link>}
       {mobile && <>
         <button className="gd-nav-more" type="button" aria-label="More navigation options"
           aria-haspopup="menu" aria-expanded={!!menuAnchor} aria-controls={menuAnchor ? "gd-nav-overflow" : undefined}

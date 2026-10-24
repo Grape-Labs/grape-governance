@@ -358,7 +358,7 @@ export default function GovernanceDemo({
                                       {view.author.power == null ? "Power unavailable" : `${view.author.power} ${view.author.powerType.toLowerCase()} power`}
                                     </span>
                                     <span className={view.author.verification === "Verified" ? "gd-author-verified" : ""}>{view.author.verification}</span>
-                                    <span>{view.author.reputation}</span>
+                                    {realmAddress === GRAPE_REALM && <span>{view.author.reputation}</span>}
                                   </summary>
                                   <div className="gd-author-details">
                                     <a href={`https://explorer.solana.com/address/${view.author.address}`} target="_blank" rel="noopener noreferrer">{view.author.address} ↗</a>
@@ -372,9 +372,9 @@ export default function GovernanceDemo({
                                       </div>
                                     )}
                                     <span>Power reflects current deposits, excluding delegation and plugin adjustments.</span>
-                                    <a href={`https://vine.governance.so/dao/${realmAddress}`} target="_blank" rel="noopener noreferrer">
-                                      Vine / OG Reputation{view.author.season != null ? ` · Season ${view.author.season}${view.author.previousSeason ? " (previous)" : ""}` : ""} ↗
-                                    </a>
+                                    {realmAddress === GRAPE_REALM && <a href={`https://vine.governance.so/dao/${realmAddress}`} target="_blank" rel="noopener noreferrer">
+                                      OG Reputation{view.author.season != null ? ` · Season ${view.author.season}${view.author.previousSeason ? " (previous)" : ""}` : ""} ↗
+                                    </a>}
                                   </div>
                                 </details>
                               )}

@@ -1241,7 +1241,7 @@ export function VoteForProposal(props:any){
     };
 
     return (
-  <>
+  <Box className={actionOnly ? "gd-vote-control" : undefined} sx={{ display: actionOnly ? "flex" : "contents" }}> 
     {!publicKey || (thisitem.account?.state !== 2 && !hasAnyCastedVotes) ? (
       <>
         {type === 0 ? (
@@ -1290,6 +1290,7 @@ export function VoteForProposal(props:any){
                     {(delegatedVoterRecord && delegatedVoterRecord.length > 0) && (
                       <Button
                         size="small"
+                        aria-label="For vote delegation options"
                         aria-controls={openDelegateYes ? "basic-yes-menu" : undefined}
                         aria-haspopup="true"
                         aria-expanded={openDelegateYes ? "true" : undefined}
@@ -1306,10 +1307,12 @@ export function VoteForProposal(props:any){
                     <Button
                       size="small"
                       color="success"
-                      aria-controls={openDelegateYes ? "basic-yes-menu" : undefined}
+                      aria-label="For vote delegation options"
+                        aria-controls={openDelegateYes ? "basic-yes-menu" : undefined}
                       aria-haspopup="true"
                       aria-expanded={openDelegateYes ? "true" : undefined}
                       onClick={handleDelegateOpenYesToggle}
+                      className="gd-vote-delegate-trigger"
                       sx={{
                         ...inactiveVoteButtonSx,
                         minWidth: 48,
@@ -1397,6 +1400,7 @@ export function VoteForProposal(props:any){
                     {(delegatedVoterRecord && delegatedVoterRecord.length > 0) && (
                       <Button
                         size="small"
+                        aria-label="Against vote delegation options"
                         aria-controls={openDelegateNo ? "basic-no-menu" : undefined}
                         aria-haspopup="true"
                         aria-expanded={openDelegateNo ? "true" : undefined}
@@ -1412,10 +1416,12 @@ export function VoteForProposal(props:any){
                     <Button
                       size="small"
                       color="error"
-                      aria-controls={openDelegateNo ? "basic-no-menu" : undefined}
+                      aria-label="Against vote delegation options"
+                        aria-controls={openDelegateNo ? "basic-no-menu" : undefined}
                       aria-haspopup="true"
                       aria-expanded={openDelegateNo ? "true" : undefined}
                       onClick={handleDelegateOpenNoToggle}
+                      className="gd-vote-delegate-trigger"
                       sx={{
                         ...inactiveVoteButtonSx,
                         minWidth: 48,
@@ -1747,6 +1753,6 @@ export function VoteForProposal(props:any){
         )}
       </>
     )}
-  </>
+  </Box>
 );
 }

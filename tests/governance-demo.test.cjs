@@ -454,7 +454,7 @@ test('each DAO section shares one navigation and disables the legacy header/menu
       assert.ok(screen.getByRole('heading',{name:section[0].toUpperCase()+section.slice(1)}));
       assert.equal(screen.getByRole('link',{name:section[0].toUpperCase()+section.slice(1)}).getAttribute('aria-current'),'page');
       assert.ok(screen.getByText('Existing tools'));
-      assert.equal(screen.getByRole('link',{name:'Vine / OG Reputation ↗'}).getAttribute('href'),`https://vine.governance.so/dao/${realm}`);
+      assert.equal(screen.getByRole('link',{name:'OG Reputation ↗'}).getAttribute('href'),`https://vine.governance.so/dao/${realm}`);
       assert.match(screen.getByRole('link',{name:'Show old view'}).className,/gd-old-view/);
       assert.equal(screen.queryByText('Live DAO governance'),null);
     } finally {cleanup();}
@@ -487,5 +487,22 @@ test("mobile starts with the list and opens each proposal in a dismissible panel
   } finally {
     cleanup();
     window.matchMedia = previous;
+  }
+});
+
+test('OG Reputation is active only for Grape; other DAOs get a local onboarding link', () => {
+  const Navigation = loaded.require('./GrapeDaoNavigation').default;
+  for (const dao of [realm, 'another-dao']) {
+    try {
+      render(React.createElement(MemoryRouter, null, React.createElement(Navigation, { governanceAddress: dao })));
+      assert.equal(screen.getByRole('link', {name:'Proposals'}).getAttribute('href'), `/dao/${dao}`);
+      if (dao === realm) {
+        assert.equal(screen.getByRole('link', {name:'OG Reputation ↗'}).getAttribute('href'), `https://vine.governance.so/dao/${dao}`);
+        assert.equal(screen.queryByRole('link', {name:'Add OG Reputation'}), null);
+      } else {
+        assert.equal(screen.queryByRole('link', {name:'OG Reputation ↗'}), null);
+        assert.equal(screen.getByRole('link', {name:'Add OG Reputation'}).getAttribute('href'), `/reputation/${dao}`);
+      }
+    } finally { cleanup(); }
   }
 });

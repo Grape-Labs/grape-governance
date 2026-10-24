@@ -1120,7 +1120,7 @@ export function GovernanceDirectoryView(props: Props) {
         sx={{ mt: 5, pt: 2.5, borderTop: '1px solid #ffffff12' }}>
         {[
           { name: 'Verification', href: 'https://verification.governance.so' },
-          { name: 'Vine / OG Reputation', href: 'https://vine.governance.so' },
+          { name: 'OG Reputation', href: 'https://vine.governance.so' },
           { name: 'About Grape', href: 'https://grapedao.org' },
         ].map(service => (
           <Box key={service.href} component="a" href={service.href} target="_blank" rel="noopener noreferrer"
