@@ -528,9 +528,9 @@ export default function GovernanceDemo({
                                 </>
                               ) : (
                               <div className="gd-vote-unavailable" role="status">
-                                <strong>{view.warning ? "Review required before voting" : view.isMultiChoiceProposal ? "Choose your voting option" : view.proposal.account.state !== 2 ? "Voting is closed" : "Voting controls unavailable"}</strong>
-                                <p>{view.warning ? "Review the security findings and proposal instructions before continuing to the advanced voting view." : view.isMultiChoiceProposal ? "This proposal uses multiple voting options. Open the advanced view to review and vote." : view.proposal.account.state !== 2 ? `Proposal status: ${view.stateLabel}.` : "Open the advanced view to check voting availability for this proposal."}</p>
-                                {view.proposal.account.state === 2 && <a className="gd-secondary" href={`/proposal/${realmAddress}/${selectedAddress}?view=advanced`}>Review proposal & voting options ↗</a>}
+                                <strong>{view.votingBlocked ? "Voting blocked" : view.isMultiChoiceProposal ? "Choose your voting option" : view.proposal.account.state !== 2 ? "Voting is closed" : "Voting controls unavailable"}</strong>
+                                <p>{view.votingBlocked ? "Voting is blocked for this known malicious proposal. Review the security findings above." : view.isMultiChoiceProposal ? "This proposal uses multiple voting options. Open the advanced view to review and vote." : view.proposal.account.state !== 2 ? `Proposal status: ${view.stateLabel}.` : "Open the advanced view to check voting availability for this proposal."}</p>
+                                {!view.votingBlocked && view.proposal.account.state === 2 && <a className="gd-secondary" href={`/proposal/${realmAddress}/${selectedAddress}?view=advanced`}>Review proposal & voting options ↗</a>}
                               </div>)}
                               </section>
                               <div className="gd-actions gd-proposal-footer">

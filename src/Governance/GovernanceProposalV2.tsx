@@ -8163,7 +8163,8 @@ export function GovernanceProposalV2View(props: any){
             warning: showProminentSecurityWarning ? (grapeDaoSafetySignals.isBlockedProposal
                 ? 'Known malicious proposal. Review the security findings before taking any action.'
                 : 'This proposal requires careful security review. Inspect its instructions before voting.') : null,
-            actions: realm && !showProminentSecurityWarning ? (isMultiChoiceProposal
+            votingBlocked: grapeDaoSafetySignals.isBlockedProposal,
+            actions: realm && !grapeDaoSafetySignals.isBlockedProposal ? (isMultiChoiceProposal
                 ? <ProposalBallot key={normalizePkString(thisitem.pubkey)}
                     decimals={tokenDecimals} realm={realm} governanceAddress={governanceAddress} thisitem={thisitem}
                     votingResultRows={solanaVotingResultRows} getVotingParticipants={getVotingParticipants}
