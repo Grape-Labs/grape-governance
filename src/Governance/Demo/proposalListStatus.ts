@@ -101,3 +101,16 @@ export function compareProposalPriority(a: any, b: any): number {
   return timestamp(b, bVoting) - timestamp(a, aVoting) ||
     (Number(b.account.draftAt) || 0) - (Number(a.account.draftAt) || 0);
 }
+
+export function proposalOutcome(account: any): { label: string; detail: string; tone: string } {
+  const state = Number(account?.state);
+  const poll = Array.isArray(account?.options) && account.denyVoteWeight == null;
+  if ([3, 4, 5, 8].includes(state)) {
+    if (poll) return { label: 'Poll closed', detail: 'View results', tone: 'neutral' };
+    return { label: 'Passed', detail: ({ 3: 'Awaiting execution', 4: 'Executing', 5: 'Completed', 8: 'Execution error' })[state], tone: 'passed' };
+  }
+  if (state === 7) return { label: 'Defeated', detail: 'Did not pass', tone: 'failed' };
+  if (state === 9) return { label: 'Vetoed', detail: 'Blocked by veto', tone: 'failed' };
+  if (state === 6) return { label: 'Cancelled', detail: 'Withdrawn before completion', tone: 'neutral' };
+  return { label: ({ 0: 'Draft', 1: 'Signing off', 2: 'Voting' })[state] || 'Unknown', detail: 'No final outcome', tone: 'neutral' };
+}

@@ -60,3 +60,14 @@ test('all voting proposals lead, ordered by voting start rather than draft age',
   assert.deepEqual(rows.sort(mod.exports.compareProposalPriority).map(row => row.id),
     ['old-draft-new-vote','older-vote','missing-start','new-draft','completed']);
 });
+
+test('recent decisions distinguish passage from execution and do not imply polls passed', () => {
+ const outcome = mod.exports.proposalOutcome;
+ for (const state of [3,4,5,8]) assert.equal(outcome({state}).label,'Passed');
+ assert.equal(outcome({state:8}).detail,'Execution error');
+ assert.equal(outcome({state:7}).label,'Defeated');
+ assert.equal(outcome({state:9}).label,'Vetoed');
+ assert.equal(outcome({state:6}).label,'Cancelled');
+ for (const state of [0,1,2,99]) assert.equal(outcome({state}).detail,'No final outcome');
+ assert.equal(outcome({state:5,options:[{label:'A'}],denyVoteWeight:null}).label,'Poll closed');
+});
