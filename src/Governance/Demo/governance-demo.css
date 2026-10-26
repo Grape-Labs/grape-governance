@@ -1487,3 +1487,10 @@
 .gd-reputation-steps p { margin: 0; font-size: 14px; }
 .gd-reputation-steps code { display: block; margin-top: 8px; overflow-wrap: anywhere; font-size: 12px; }
 .gd-reputation-onboarding > a { display: inline-flex; text-decoration: none; }
+
+.gd-recent-decisions .gd-decision-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px; font-size: 11px; }
+.gd-decision-outcome { padding: 2px 7px; border-radius: 5px; background: #ffffff08; color: #a6b3c7; font-weight: 600; }
+.gd-decision-outcome.is-passed { color: #8ee5c6; background: #64dfb112; }
+.gd-decision-outcome.is-failed { color: #efabb1; background: #ef919910; }
+.gd-recent-decisions button > span:first-child { min-width: 0; flex: 1; }
+.gd-recent-decisions button > span:last-child { flex-shrink: 0; }

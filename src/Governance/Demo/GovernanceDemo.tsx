@@ -7,7 +7,7 @@ import DaoPageLayout from "./DaoPageLayout";
 import ProposalShare from "./ProposalShare";
 import ProposalSettings from "./ProposalSettings";
 import VoterBreakdown from "./VoterBreakdown";
-import { recordedVoteLabel, proposalListStatus, compareProposalPriority } from "./proposalListStatus";
+import { recordedVoteLabel, proposalListStatus, compareProposalPriority, proposalOutcome } from "./proposalListStatus";
 import {
   getVoteRecordsByVoterIndexed,
   getRealmIndexed,
@@ -276,20 +276,23 @@ export default function GovernanceDemo({
                       <>
                         <h3>Recent decisions</h3>
                         <div className="gd-scenario-list gd-recent-decisions">
-                          {proposals.slice(0, 3).map((item) => (
+                          {proposals.slice(0, 3).map((item) => {
+                            const outcome = proposalOutcome(item.account);
+                            return (
                             <button
                               key={address(item.pubkey)}
                               onClick={() => select(address(item.pubkey))}
                             >
                               <span>
                                 <strong>{item.account.name}</strong>
-                                <small>
-                                  {states[item.account.state] || "Unknown"}
+                                <small className="gd-decision-meta">
+                                  <span className={`gd-decision-outcome is-${outcome.tone}`}>{outcome.label}</span>
+                                  <span>{outcome.detail}</span>
                                 </small>
                               </span>
                               <span aria-hidden="true">↗</span>
                             </button>
-                          ))}
+                          );})}
                         </div>
                       </>
                     ) : (
