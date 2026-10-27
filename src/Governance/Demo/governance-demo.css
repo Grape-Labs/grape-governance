@@ -1541,3 +1541,51 @@
 .gd-scenario-list button.is-dismissed:hover,
 .gd-scenario-list button.is-dismissed:focus-visible,
 .gd-scenario-list button.is-dismissed.is-selected { opacity: 1; }
+
+/* A quiet activity list within the empty state, rather than nested cards. */
+.gd-empty-heading { display: flex; align-items: flex-start; gap: 14px; }
+.gd-empty-heading .gd-empty-icon { flex: 0 0 36px; margin: 0; }
+.gd-empty-heading h2 { font-size: 22px; margin: 0 0 6px; }
+.gd-empty-heading p { margin: 0; font-size: 13px; line-height: 1.6; color: var(--gd-muted); }
+.gd-empty-state h3 { margin: 28px 0 8px; font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; }
+.gd-empty-state .gd-recent-decisions { gap: 0; margin-bottom: 14px; }
+.gd-empty-state .gd-recent-decisions button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px;
+  gap: 20px;
+  padding: 18px 4px;
+  border: 0;
+  border-bottom: 1px solid #ffffff0c;
+  border-radius: 0;
+  background: transparent;
+}
+.gd-empty-state .gd-recent-decisions button:hover,
+.gd-empty-state .gd-recent-decisions button:focus-visible { background: #ffffff04; }
+.gd-empty-state .gd-decision-arrow { justify-self: end; margin: 0; }
+.gd-empty-state .gd-decision-meta { margin-top: 7px; gap: 6px 10px; }
+.gd-empty-state .gd-decision-outcome { padding: 0; background: transparent; }
+.gd-empty-state .gd-decision-outcome::before { content: "•"; margin-right: 5px; }
+.gd-empty-state .gd-recent-decisions button.is-dismissed { padding-block: 13px; }
+.gd-empty-state .gd-decisions-refresh {
+  min-height: 36px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+  color: #a6b3c7;
+}
+.gd-empty-state .gd-decisions-refresh:hover { color: #b6ecd5; }
+@media (max-width: 600px) {
+  .gd-empty-heading h2 { font-size: 20px; }
+  .gd-empty-state .gd-recent-decisions button { gap: 12px; padding-block: 15px; }
+}
+
+.gd-recent-decisions .gd-decision-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #8fa2b9;
+}
