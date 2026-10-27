@@ -7,7 +7,7 @@ import DaoPageLayout from "./DaoPageLayout";
 import ProposalShare from "./ProposalShare";
 import ProposalSettings from "./ProposalSettings";
 import VoterBreakdown from "./VoterBreakdown";
-import { recordedVoteLabel, proposalListStatus, compareProposalPriority, proposalOutcome } from "./proposalListStatus";
+import { recordedVoteLabel, proposalListStatus, compareProposalPriority, proposalOutcome, recentDecisionResult } from "./proposalListStatus";
 import {
   getVoteRecordsByVoterIndexed,
   getRealmIndexed,
@@ -264,20 +264,24 @@ export default function GovernanceDemo({
                     className="gd-main gd-empty-state"
                     aria-labelledby="gd-empty-title"
                   >
-                    <span className="gd-empty-icon" aria-hidden="true">
-                      ✓
-                    </span>
-                    <h2 id="gd-empty-title">No active votes</h2>
-                    <p>
-                      You’re all caught up. There’s nothing open for voting
-                      right now.
-                    </p>
+                    <header className="gd-empty-heading">
+                      <span className="gd-empty-icon" aria-hidden="true">✓</span>
+                      <div>
+                        <h2 id="gd-empty-title">No active votes</h2>
+                        <p>You’re all caught up. Nothing is open for voting right now.</p>
+                      </div>
+                    </header>
                     {proposals.length > 0 ? (
                       <>
                         <h3>Recent decisions</h3>
                         <div className="gd-scenario-list gd-recent-decisions">
                           {proposals.slice(0, 3).map((item) => {
                             const outcome = proposalOutcome(item.account);
+                            const result = recentDecisionResult(item.account);
+                            const participation = voteLabel(address(item.pubkey));
+                            const personalVote = participation?.startsWith("Voted")
+                              ? `You ${participation.charAt(0).toLowerCase()}${participation.slice(1)}`
+                              : participation === "Not voted" ? "You didn’t vote" : participation;
                             const completedAt = Number(item.account.votingCompletedAt?.toString() || 0);
                             const completedDate = new Date(completedAt * 1000);
                             const hasCompletedDate = completedAt > 0 && Number.isFinite(completedDate.getTime());
@@ -291,13 +295,19 @@ export default function GovernanceDemo({
                                 <strong>{item.account.name}</strong>
                                 <small className="gd-decision-meta">
                                   <span className={`gd-decision-outcome is-${outcome.tone}`}>{outcome.label}</span>
-                                  <span>{outcome.detail}</span>
+                                  {![6, 9].includes(Number(item.account.state)) && <span>{outcome.detail}</span>}
                                   {hasCompletedDate && (
                                     <time dateTime={completedDate.toISOString()} title={`Voting ended ${completedDate.toLocaleString()}`}>
                                       {completedDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                                     </time>
                                   )}
                                 </small>
+                                {(result || personalVote) && (
+                                  <small className="gd-decision-summary">
+                                    {result && <span title="Recorded ballot result; For percentage is based on For and Against voting power cast.">{result}</span>}
+                                    {personalVote && <span>{personalVote}</span>}
+                                  </small>
+                                )}
                               </span>
                               <span className="gd-decision-arrow" aria-hidden="true">↗</span>
                             </button>
@@ -310,7 +320,7 @@ export default function GovernanceDemo({
                       </p>
                     )}
                     <button
-                      className="gd-secondary"
+                      className="gd-secondary gd-decisions-refresh"
                       onClick={() => setRevision((n) => n + 1)}
                     >
                       Check for new proposals

@@ -119,3 +119,22 @@ export function proposalOutcome(account: any): { label: string; detail: string; 
   if (state === 6) return { label: 'Cancelled', detail: 'Withdrawn before completion', tone: 'neutral' };
   return { label: ({ 0: 'Draft', 1: 'Signing off', 2: 'Voting' })[state] || 'Unknown', detail: 'No final outcome', tone: 'neutral' };
 }
+
+// Summarize finalized ballots only; support is a share of votes cast, not quorum.
+export function recentDecisionResult(account: any): string | null {
+  if (![3, 4, 5, 7, 8].includes(Number(account?.state))) return null;
+  const options = account.options;
+  const binary = (!options || options.length === 1) &&
+    (account.denyVoteWeight != null || account.noVotesCount != null) &&
+    Number(account.voteType?.type || 0) === 0;
+  if (binary) {
+    const yes = weight(options?.[0]?.voteWeight ?? account.yesVotesCount);
+    const no = weight(account.denyVoteWeight ?? account.noVotesCount);
+    if (yes == null || no == null || yes + no === 0n) return null;
+    return `${percentage(yes, yes + no).toFixed(1)}% For`;
+  }
+  // Use the recorded result instead of guessing a winner from vote totals.
+  const winners = (options || []).filter((option: any) => Number(option.voteResult) === 1 && option.label);
+  if (!winners.length) return null;
+  return `${winners.length === 1 ? "Selected" : "Selected options"}: ${winners.map((option: any) => option.label).join(", ")}`;
+}

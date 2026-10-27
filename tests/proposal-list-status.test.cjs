@@ -89,3 +89,16 @@ test('past proposals also use voting start ahead of draft age', () => {
   ];
   assert.equal(rows.sort(mod.exports.compareProposalPriority)[0].id, 'old-draft-recent-vote');
 });
+
+test('recent results report final support and recorded option outcomes safely', () => {
+  const result = mod.exports.recentDecisionResult;
+  assert.equal(result(account('87', '13', {state:5})), '87.0% For');
+  assert.equal(result(account('87', '13')), null);
+  assert.equal(result(account('0', '0', {state:5})), null);
+  assert.equal(result(account('87', '13', {state:9})), null);
+  assert.equal(result(account('87', '13', {state:6})), null);
+  assert.equal(result(account(Number.MAX_SAFE_INTEGER+1, '13', {state:5})), null);
+  assert.equal(result({state:5, options:[{label:'A', voteResult:1},{label:'B', voteResult:2}]}), 'Selected: A');
+  assert.equal(result({state:5, options:[{label:'A', voteResult:0, voteWeight:'100'}]}), null);
+  assert.equal(result({state:5, options:[{label:'A', voteResult:1},{label:'B', voteResult:1}]}), 'Selected options: A, B');
+});
