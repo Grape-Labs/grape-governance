@@ -278,9 +278,13 @@ export default function GovernanceDemo({
                         <div className="gd-scenario-list gd-recent-decisions">
                           {proposals.slice(0, 3).map((item) => {
                             const outcome = proposalOutcome(item.account);
+                            const completedAt = Number(item.account.votingCompletedAt?.toString() || 0);
+                            const completedDate = new Date(completedAt * 1000);
+                            const hasCompletedDate = completedAt > 0 && Number.isFinite(completedDate.getTime());
                             return (
                             <button
                               key={address(item.pubkey)}
+                              className={[6, 9].includes(Number(item.account.state)) ? "is-dismissed" : undefined}
                               onClick={() => select(address(item.pubkey))}
                             >
                               <span>
@@ -288,9 +292,14 @@ export default function GovernanceDemo({
                                 <small className="gd-decision-meta">
                                   <span className={`gd-decision-outcome is-${outcome.tone}`}>{outcome.label}</span>
                                   <span>{outcome.detail}</span>
+                                  {hasCompletedDate && (
+                                    <time dateTime={completedDate.toISOString()} title={`Voting ended ${completedDate.toLocaleString()}`}>
+                                      {completedDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                                    </time>
+                                  )}
                                 </small>
                               </span>
-                              <span aria-hidden="true">↗</span>
+                              <span className="gd-decision-arrow" aria-hidden="true">↗</span>
                             </button>
                           );})}
                         </div>
@@ -609,7 +618,7 @@ export default function GovernanceDemo({
                             : ""
                         } ${
                           item.account.state === 2 ? "is-voting" : "is-past"
-                        }`}
+                        } ${[6, 9].includes(Number(item.account.state)) ? "is-dismissed" : ""}`}
                         onClick={() => select(address(item.pubkey))}
                       >
                         <span>

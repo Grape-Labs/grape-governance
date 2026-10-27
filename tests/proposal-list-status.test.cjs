@@ -71,3 +71,21 @@ test('recent decisions distinguish passage from execution and do not imply polls
  for (const state of [0,1,2,99]) assert.equal(outcome({state}).detail,'No final outcome');
  assert.equal(outcome({state:5,options:[{label:'A'}],denyVoteWeight:null}).label,'Poll closed');
 });
+
+test('missing or zero voting starts cannot outrank known starts using draft dates', () => {
+  const rows = [
+    { id: 'unknown', account: { state: 2, draftAt: 9999 } },
+    { id: 'zero', account: { state: 2, votingAt: 0, draftAt: 9999 } },
+    { id: 'old-draft', account: { state: 2, votingAt: '900', draftAt: 1 } },
+    { id: 'earlier', account: { state: 2, votingAt: '800', draftAt: 700 } },
+  ];
+  assert.deepEqual(rows.sort(mod.exports.compareProposalPriority).map(row => row.id),
+    ['old-draft', 'earlier', 'unknown', 'zero']);
+});
+test('past proposals also use voting start ahead of draft age', () => {
+  const rows = [
+    { id: 'older-vote', account: { state: 5, votingAt: 800, draftAt: 700 } },
+    { id: 'old-draft-recent-vote', account: { state: 5, votingAt: 900, draftAt: 1 } },
+  ];
+  assert.equal(rows.sort(mod.exports.compareProposalPriority)[0].id, 'old-draft-recent-vote');
+});

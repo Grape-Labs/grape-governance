@@ -896,7 +896,13 @@
   margin: 0 0 20px;
 }
 .gd-recent-decisions button {
-  color: #a6b3c7;
+  width: 100%;
+  padding: 16px 18px;
+  color: #dce5f0;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.gd-recent-decisions strong {
+  line-height: 1.5;
 }
 .gd-recent-decisions button:hover,
 .gd-recent-decisions button:focus-visible {
@@ -1493,4 +1499,45 @@
 .gd-decision-outcome.is-passed { color: #8ee5c6; background: #64dfb112; }
 .gd-decision-outcome.is-failed { color: #efabb1; background: #ef919910; }
 .gd-recent-decisions button > span:first-child { min-width: 0; flex: 1; }
-.gd-recent-decisions button > span:last-child { flex-shrink: 0; }
+.gd-recent-decisions button > .gd-decision-arrow {
+  flex: 0 0 28px;
+  margin-left: auto;
+  text-align: center;
+  font-size: 18px;
+}
+.gd-decision-meta time {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #8fa2b9;
+}
+.gd-decision-meta time::before {
+  content: "";
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .6;
+}
+.gd-recent-decisions button:focus-visible {
+  outline: 2px solid #8ee5c6;
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .gd-recent-decisions button { padding: 14px 12px; gap: 10px; }
+}
+
+/* Withdrawn and vetoed items remain available without competing with decisions. */
+.gd-scenario-list button.is-dismissed {
+  opacity: .42;
+  background: transparent;
+  border-color: #ffffff0a;
+}
+.gd-recent-decisions button.is-dismissed { padding-block: 12px; }
+.gd-recent-decisions button.is-dismissed .gd-decision-outcome {
+  color: #a6b3c7;
+  background: #ffffff06;
+}
+.gd-scenario-list button.is-dismissed:hover,
+.gd-scenario-list button.is-dismissed:focus-visible,
+.gd-scenario-list button.is-dismissed.is-selected { opacity: 1; }

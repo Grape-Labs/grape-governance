@@ -96,8 +96,13 @@ export function compareProposalPriority(a: any, b: any): number {
   const aVoting = Number(a.account.state) === 2;
   const bVoting = Number(b.account.state) === 2;
   if (aVoting !== bVoting) return aVoting ? -1 : 1;
-  const timestamp = (item: any, voting: boolean) =>
-    Number((voting ? item.account.votingAt : null) ?? item.account.draftAt ?? 0) || 0;
+  const timestamp = (item: any, voting: boolean) => {
+    const started = Number(item.account.votingAt);
+    if (Number.isFinite(started) && started > 0) return started;
+    // An unknown voting start must not masquerade as a newly opened vote.
+    if (voting) return 0;
+    return Number(item.account.draftAt) || 0;
+  };
   return timestamp(b, bVoting) - timestamp(a, aVoting) ||
     (Number(b.account.draftAt) || 0) - (Number(a.account.draftAt) || 0);
 }
