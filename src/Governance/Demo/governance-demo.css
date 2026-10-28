@@ -1589,3 +1589,24 @@
   line-height: 1.5;
   color: #8fa2b9;
 }
+
+/* Proposal navigator: readable history, quiet boundaries, clear selection. */
+.gd-proposal-filters { display: flex; gap: 4px; margin-top: 14px; flex-wrap: wrap; }
+.gd-proposal-filters button { border: 1px solid transparent; border-radius: 6px; background: transparent; color: #8fa2b9; padding: 6px 10px; font-size: 11px; cursor: pointer; }
+.gd-proposal-filters button[aria-pressed="true"] { background: #64dfb112; color: #b6ecd5; border-color: #64dfb120; }
+.gd-proposal-list { gap: 4px; margin-top: 12px; scrollbar-width: thin; scrollbar-color: #52647750 transparent; }
+.gd-proposal-list button { display: grid; grid-template-columns: minmax(0, 1fr) 12px; gap: 10px; padding: 14px 12px; border: 1px solid transparent; border-bottom-color: #ffffff09; border-radius: 8px; background: transparent; }
+.gd-proposal-list button.is-past { opacity: 1; }
+.gd-proposal-list strong { color: #c7d2e0; line-height: 1.5; font-size: 12px; font-weight: 500; }
+.gd-proposal-list small { margin-top: 7px; font-size: 10px; }
+.gd-proposal-list button.is-selected { border-color: #64dfb125; box-shadow: inset 3px 0 #8ee5c6; background: #64dfb10b; }
+.gd-proposal-list button.is-selected strong { color: #edf2fa; }
+.gd-proposal-list button:hover { background: #ffffff05; }
+.gd-proposal-list button.is-dismissed { opacity: .42; }
+.gd-proposal-list button.is-dismissed:hover,
+.gd-proposal-list button.is-dismissed:focus-visible,
+.gd-proposal-list button.is-dismissed.is-selected { opacity: 1; }
+.gd-proposal-row-arrow { justify-self: end; font-size: 20px; opacity: .5; }
+.gd-proposal-list button.is-selected .gd-proposal-row-arrow { opacity: 1; color: #8ee5c6; }
+.gd-proposal-filters button:focus-visible,
+.gd-proposal-list button:focus-visible { outline: 2px solid #8ee5c6; outline-offset: -2px; }
