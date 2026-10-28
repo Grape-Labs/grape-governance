@@ -106,6 +106,7 @@ export default function GovernanceDemo({
   const [error, setError] = React.useState("");
   const [revision, setRevision] = React.useState(0);
   const [filter, setFilter] = React.useState("");
+  const [proposalFilter, setProposalFilter] = React.useState("all");
   const [expandedFor, setExpandedFor] = React.useState<string | null>(null);
   const requested = route.proposal || params.get("proposal");
   React.useEffect(() => {
@@ -206,14 +207,19 @@ export default function GovernanceDemo({
   const selected = requested
     ? proposals.find((item) => address(item.pubkey) === requested)
     : proposals[0];
-  const selectedAddress = selected ? address(selected.pubkey) : "";
+  const selectedAddress = !noActiveVotes && selected ? address(selected.pubkey) : "";
   const expanded = expandedFor === selectedAddress;
   const setExpanded = (value: boolean | ((previous: boolean) => boolean)) => {
     const next = typeof value === "function" ? value(expanded) : value;
     setExpandedFor(next ? selectedAddress : null);
   };
+  const recentDecisions = proposals.filter((item) => [3, 4, 5, 6, 7, 8, 9].includes(Number(item.account.state)));
   const visible = proposals.filter((item) =>
-    String(item.account.name).toLowerCase().includes(filter.toLowerCase())
+    String(item.account.name).toLowerCase().includes(filter.toLowerCase()) &&
+    (proposalFilter === "all" ||
+      (proposalFilter === "voting" && Number(item.account.state) === 2) ||
+      (proposalFilter === "drafts" && [0, 1].includes(Number(item.account.state))) ||
+      (proposalFilter === "history" && Number(item.account.state) > 2))
   );
   const select = (id: string) => {
     if (landing) navigate(`/proposal/${realmAddress}/${id}`);
@@ -271,11 +277,11 @@ export default function GovernanceDemo({
                         <p>You’re all caught up. Nothing is open for voting right now.</p>
                       </div>
                     </header>
-                    {proposals.length > 0 ? (
+                    {recentDecisions.length > 0 ? (
                       <>
                         <h3>Recent decisions</h3>
                         <div className="gd-scenario-list gd-recent-decisions">
-                          {proposals.slice(0, 3).map((item) => {
+                          {recentDecisions.slice(0, 3).map((item) => {
                             const outcome = proposalOutcome(item.account);
                             const result = recentDecisionResult(item.account);
                             const participation = voteLabel(address(item.pubkey));
@@ -316,7 +322,7 @@ export default function GovernanceDemo({
                       </>
                     ) : (
                       <p className="gd-footnote">
-                        No proposals have been found for this DAO yet.
+                        No completed decisions yet. Browse drafts in the proposal list.
                       </p>
                     )}
                     <button
@@ -615,6 +621,11 @@ export default function GovernanceDemo({
                       placeholder="Search by title"
                     />
                   </label>
+                  <div className="gd-proposal-filters" role="group" aria-label="Filter proposals">
+                    {[["all", "All"], ["voting", "Voting"], ["drafts", "Drafts"], ["history", "History"]].map(([value, label]) => (
+                      <button key={value} aria-pressed={proposalFilter === value} onClick={() => setProposalFilter(value)}>{label}</button>
+                    ))}
+                  </div>
                   <div className="gd-scenario-list gd-proposal-list">
                     {visible.map((item) => {
                       const tally = proposalListStatus(item.account);
@@ -631,7 +642,7 @@ export default function GovernanceDemo({
                         } ${[6, 9].includes(Number(item.account.state)) ? "is-dismissed" : ""}`}
                         onClick={() => select(address(item.pubkey))}
                       >
-                        <span>
+                        <span className="gd-proposal-row-body">
                           <strong>{item.account.name}</strong>
                           <small>
                             <span className="gd-list-state">
@@ -647,6 +658,7 @@ export default function GovernanceDemo({
                           </small>
                           {tally && <small className="gd-list-tally" title={tally.detail}>{tally.label}</small>}
                         </span>
+                        <span className="gd-proposal-row-arrow" aria-hidden="true">›</span>
                       </button>
                     );})}
                     {!visible.length && <p>No matching proposals.</p>}

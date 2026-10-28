@@ -8180,7 +8180,17 @@ export function GovernanceProposalV2View(props: any){
             details: <Box sx={{p:2}}>
                 <Typography variant="h6">What this proposal can execute</Typography>
                 <Typography variant="body2" sx={{mb:2}}>Approval authorizes these instructions. Review assets, amounts, recipients, and permission changes before voting.</Typography>
-                {proposalRiskAssessment.findings.map((finding, index) => <Alert key={index} severity={finding.severity === 'high' || finding.severity === 'critical' ? 'warning' : 'info'} sx={{mb:1}}><strong>{finding.title}</strong>: {finding.evidence}</Alert>)}
+                {proposalRiskAssessment.findings.map((finding, index) => {
+                    const warning = finding.severity === 'high' || finding.severity === 'critical';
+                    const confirmed = finding.title === 'Proposal author has active Grape Verification';
+                    const pending = /pending/i.test(finding.title);
+                    const severity = warning ? 'error' : confirmed ? 'success' : finding.severity === 'medium' || pending ? 'warning' : 'info';
+                    const neutral = severity === 'info';
+                    return <Alert key={index} severity={severity} variant="outlined" sx={{mb:1,
+                        bgcolor: neutral ? 'rgba(255,255,255,0.025)' : severity === 'error' ? 'rgba(239,83,80,0.06)' : severity === 'success' ? 'rgba(72,187,120,0.06)' : 'rgba(245,158,11,0.06)',
+                        ...(neutral ? {color:'text.secondary',borderColor:'rgba(255,255,255,0.1)','& .MuiAlert-icon':{color:'text.secondary'}} : {})
+                    }}><strong>{finding.title}</strong>: {finding.evidence}</Alert>;
+                })}
                 {instructionTransferDetails?.length > 0 && realm && <>
                     <Typography variant="subtitle2" sx={{mt:2}}>Recipient checks</Typography>
                     <Typography variant="body2" color="text.secondary">Check current DAO deposits, grant retention, reputation, and address verification. Unchecked recipients are not verified.</Typography>

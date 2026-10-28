@@ -1,5 +1,6 @@
 import React from 'react';
-import {Box,Button,Typography,TableContainer,Table,TableHead,TableRow,TableCell,TableBody,Chip,Stack,LinearProgress} from '@mui/material';
+import BigNumber from 'bignumber.js';
+import {Box,Button,Typography,TableContainer,Table,TableHead,TableRow,TableCell,TableBody,Chip,Stack,LinearProgress,Tooltip} from '@mui/material';
 import GrantTrackingView from './GrantTrackingView';
 
 export default function ProposalGrantReview({details,realm,mint,grantor}:{details:any[];realm:string;mint:string;grantor:string}){
@@ -46,13 +47,22 @@ export default function ProposalGrantReview({details,realm,mint,grantor}:{detail
     </Box>
     {started && <>
     <GrantTrackingView mint={mint} realm={realm} grantors={grantor?[grantor]:[]} loadWallets={async()=>grantor?[grantor]:[]}>
-      {(cell,exportMembers,qualify)=><>
+      {(cell,exportMembers,qualify,history)=><>
         <Typography variant="body2" color="text.secondary" sx={{mb:1}}>Load previous grants above to complete the retention check. Include older history before relying on a passing result.</Typography>
         <Button onClick={()=>exportMembers(wallets.map(address=>({address,staked:{depositedAmountExact:positions[address]}})))}>Export recipients CSV</Button>
         <TableContainer><Table size="small" aria-label="Recipient deposit checks"><TableHead><TableRow><TableCell>Recipient</TableCell><TableCell align="right">Tokens staked</TableCell><TableCell align="right">Previous grants</TableCell><TableCell>Retention check</TableCell></TableRow></TableHead><TableBody>
           {wallets.map(wallet=>{
             const result=positions[wallet]===undefined?(errors[wallet]?'Position unavailable':busy?'Checking…':'Not checked'):qualify(wallet,positions[wallet]);
-            return <TableRow key={wallet}><TableCell sx={{overflowWrap:'anywhere',maxWidth:240}}>{wallet}</TableCell><TableCell align="right" title={errors[wallet]}>{positions[wallet]??'—'}</TableCell><TableCell>{cell(wallet,positions[wallet])}</TableCell><TableCell><Chip size="small" label={result} color={result==='Below retention requirement'?'warning':result==='Meets retention requirement'?'success':'default'}/></TableCell></TableRow>;
+            const position = positions[wallet] == null ? null : new BigNumber(positions[wallet]);
+            const validPosition = position?.isFinite() && position.gte(0);
+            const formattedPosition = validPosition
+              ? position.gt(0) && position.lt('0.01') ? '<0.01' : position.toFormat(2)
+              : '—';
+            return <TableRow key={wallet}><TableCell sx={{overflowWrap:'anywhere',maxWidth:240}}>{wallet}</TableCell><TableCell align="right" sx={{fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>
+              <Tooltip title={validPosition ? `${position.toFormat()} tokens staked` : errors[wallet] || 'Position unavailable'} enterTouchDelay={0}>
+                <span tabIndex={0} aria-label={validPosition ? `${position.toFormat()} tokens staked` : 'Position unavailable'}>{formattedPosition}</span>
+              </Tooltip>
+            </TableCell><TableCell>{cell(wallet,positions[wallet])}</TableCell><TableCell>{result==='Load grant history' ? <Button size="small" variant="outlined" disabled={history.busy} onClick={history.load}>{history.busy?'Loading grant history…':'Load grant history'}</Button> : <Chip size="small" label={result} color={result==='Below retention requirement'?'error':result==='Meets retention requirement'?'success':'default'}/>}</TableCell></TableRow>;
           })}
         </TableBody></Table></TableContainer>
       </>}

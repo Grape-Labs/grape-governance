@@ -243,7 +243,7 @@ function RecipientActivity({wallet,mint,realm,since,grants,onClose,onAssessment,
   </Box>;
 }
 
-export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],children}:{children:(renderGrantCell:(wallet:string,staked?:string|number)=>React.ReactNode,exportMembers:(rows:any[])=>void,qualify:(wallet:string,staked?:string)=>string)=>React.ReactNode;mint:string;realm:string;loadWallets:()=>Promise<string[]>;grantors?:string[]}) {
+export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],children}:{children:(renderGrantCell:(wallet:string,staked?:string|number)=>React.ReactNode,exportMembers:(rows:any[])=>void,qualify:(wallet:string,staked?:string)=>string,history:{load:()=>void;busy:boolean})=>React.ReactNode;mint:string;realm:string;loadWallets:()=>Promise<string[]>;grantors?:string[]}) {
   const [defaultSince]=React.useState(()=>Math.floor(Date.now()/1000)-90*86400);
   const [thresholdInput,setThresholdInput]=React.useState('30');
   const enteredThreshold=Number(thresholdInput);
@@ -261,6 +261,7 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
     finally {setWalletsLoading(false);}
   };
   const [assessments,setAssessments]=React.useState<Record<string,string>>({});
+  const [historyOpen,setHistoryOpen]=React.useState(false);
   const [source,setSource]=React.useState(grantors[0] || '');
   const [active,setActive]=React.useState('');
   const [grants,setGrants]=React.useState<Grant[]>([]);
@@ -320,7 +321,7 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
   const assessmentKey=JSON.stringify([active,selected,mint,threshold,grants.filter(g=>g.recipient===selected).map(g=>g.id)]);
   const recordAssessment=React.useCallback((status:string)=>setAssessments(previous=>previous[assessmentKey]===status?previous:{...previous,[assessmentKey]:status}),[assessmentKey]);
   const since=recipientGrants.length?Math.min(...recipientGrants.map(p=>p.timestamp)):defaultSince;
-  return <><Accordion onChange={(_,expanded)=>{if(expanded)void loadSuggestions();}} sx={{my:2,background:'rgba(255,255,255,0.03)'}}>
+  return <><Accordion expanded={historyOpen} onChange={(_,expanded)=>{setHistoryOpen(expanded);if(expanded)void loadSuggestions();}} sx={{my:2,background:'rgba(255,255,255,0.03)'}}>
     <AccordionSummary expandIcon={<ExpandMoreIcon/>}><Box><Typography variant="h6">Member grants</Typography><Typography variant="body2" color="text.secondary">{loaded?`${grants.length.toLocaleString()} grants loaded · ${next?'More history available':'Available history loaded'}`:'Choose a grantor → Load grants → Review the table'}</Typography></Box></AccordionSummary>
     <AccordionDetails>
       <Typography variant="body2" color="text.secondary" sx={{mb:2}}>Choose the wallet that distributed the tokens. Loading grants adds totals and staking shortfalls to the table below.</Typography>
@@ -361,7 +362,7 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
     <Box><Typography variant="body2">Warn when staked tokens are {Number((100-threshold).toFixed(2))}% or less of loaded grants.</Typography><Typography variant="caption" color="text.secondary">Also applies to individual swaps in activity reviews. Reopen previous reviews after changing this setting.</Typography></Box>
   </Stack>
   </Box>
-  {children(renderGrantCell,rows=>downloadMembersCsv(membersCsv(rows,{grants,loaded,grantor:active,partial:!!next,threshold}),realm),(wallet,staked)=>grantQualification(grants,wallet,staked,loaded,!!next,threshold))}
+  {children(renderGrantCell,rows=>downloadMembersCsv(membersCsv(rows,{grants,loaded,grantor:active,partial:!!next,threshold}),realm),(wallet,staked)=>grantQualification(grants,wallet,staked,loaded,!!next,threshold),{load:()=>{setHistoryOpen(true);void load();},busy})}
   <Dialog open={!!selected} onClose={()=>setSelected('')} fullWidth maxWidth="lg">
     <DialogContent>
       {selected && <RecipientActivity key={`${active}:${selected}:${since}:${mint}`} wallet={selected} mint={mint} realm={realm} since={since} grants={recipientGrants} threshold={threshold} grantsLoaded={loaded} grantorWallets={Array.from(new Set([...grantors,...(active?[active]:[])]))} onAssessment={recordAssessment} onClose={()=>setSelected('')}/>}
