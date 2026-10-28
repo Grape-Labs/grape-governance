@@ -381,28 +381,45 @@ export default function GovernanceDemo({
                               {view.author && (
                                 <details className="gd-author">
                                   <summary>
-                                    <span>By <strong>{view.author.address.slice(0, 4)}…{view.author.address.slice(-4)}</strong></span>
-                                    <span title="Current deposited voting power; excludes delegated power and plugin adjustments">
-                                      {view.author.power == null ? "Power unavailable" : `${view.author.power} ${view.author.powerType.toLowerCase()} power`}
+                                    <span className="gd-author-name"><span className="gd-author-chevron" aria-hidden="true">›</span> By <strong>{view.author.address.slice(0, 4)}…{view.author.address.slice(-4)}</strong></span>
+                                    <span className="gd-author-highlights">
+                                      <span title="Current deposited voting power; excludes delegated power and plugin adjustments">
+                                        {view.author.power == null ? "Power unavailable" : `${view.author.power} ${view.author.powerType.toLowerCase()} power`}
+                                      </span>
+                                      <span className={view.author.verification === "Verified" ? "gd-author-verified" : ""}>{view.author.verification === "Verified" ? "✓ Verified" : view.author.verification}</span>
+                                      {realmAddress === GRAPE_REALM && <span>{view.author.reputation.replace(" reputation", " OG Reputation")}</span>}
                                     </span>
-                                    <span className={view.author.verification === "Verified" ? "gd-author-verified" : ""}>{view.author.verification}</span>
-                                    {realmAddress === GRAPE_REALM && <span>{view.author.reputation}</span>}
                                   </summary>
                                   <div className="gd-author-details">
-                                    <a href={`https://explorer.solana.com/address/${view.author.address}`} target="_blank" rel="noopener noreferrer">{view.author.address} ↗</a>
-                                    {view.author.verificationProviders?.length > 0 && (
-                                      <div className="gd-author-providers" aria-label="Verified with">
-                                        <span>Verified with</span>
-                                        {view.author.verificationProviders.map((provider: string) => (
-                                          <a key={provider} href={`https://verification.governance.so/dao/${realmAddress}/wallet/${view.author.address}`}
-                                            target="_blank" rel="noopener noreferrer">{provider} ↗</a>
-                                        ))}
-                                      </div>
-                                    )}
-                                    <span>Power reflects current deposits, excluding delegation and plugin adjustments.</span>
-                                    {realmAddress === GRAPE_REALM && <a href={`https://vine.governance.so/dao/${realmAddress}`} target="_blank" rel="noopener noreferrer">
-                                      OG Reputation{view.author.season != null ? ` · Season ${view.author.season}${view.author.previousSeason ? " (previous)" : ""}` : ""} ↗
-                                    </a>}
+                                    <div className="gd-author-signals">
+                                      <section className="gd-author-signal" aria-label="Proposer voting power">
+                                        <span className="gd-author-label">Voting power</span>
+                                        <strong className="gd-author-value">{view.author.power ?? "Unavailable"}</strong>
+                                        <span>{view.author.powerType}</span>
+                                        <p>Current deposits only. Delegation and plugin adjustments are excluded.</p>
+                                      </section>
+                                      <section className="gd-author-signal" aria-label="Proposer identity verification">
+                                        <span className="gd-author-label">Identity</span>
+                                        <strong className={`gd-author-value ${view.author.verification === "Verified" ? "gd-author-verified" : ""}`}>
+                                          {view.author.verification === "Verified" ? "✓ Verified" : view.author.verification}
+                                        </strong>
+                                        {view.author.verificationProviders?.length > 0 && (
+                                          <div className="gd-author-providers" aria-label="Verified with">
+                                            {view.author.verificationProviders.map((provider: string) => (
+                                              <a key={provider} href={`https://verification.governance.so/dao/${realmAddress}/wallet/${view.author.address}`} target="_blank" rel="noopener noreferrer">{provider} ↗</a>
+                                            ))}
+                                          </div>
+                                        )}
+                                        <p>Identity verification in this DAO does not certify the proposal.</p>
+                                      </section>
+                                      {realmAddress === GRAPE_REALM && <section className="gd-author-signal" aria-label="Proposer OG Reputation">
+                                        <span className="gd-author-label">OG Reputation</span>
+                                        <strong className="gd-author-value">{view.author.reputation.replace(" reputation", " points")}</strong>
+                                        <span>{view.author.season != null ? `Season ${view.author.season}${view.author.previousSeason ? " (previous)" : ""} · ${daoName}` : daoName}</span>
+                                        <a href={`https://vine.governance.so/dao/${realmAddress}`} target="_blank" rel="noopener noreferrer">View OG Reputation ↗</a>
+                                      </section>}
+                                    </div>
+                                    <a className="gd-author-address" href={`https://explorer.solana.com/address/${view.author.address}`} target="_blank" rel="noopener noreferrer">{view.author.address} ↗</a>
                                   </div>
                                 </details>
                               )}
