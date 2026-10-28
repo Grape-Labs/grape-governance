@@ -1610,3 +1610,30 @@
 .gd-proposal-list button.is-selected .gd-proposal-row-arrow { opacity: 1; color: #8ee5c6; }
 .gd-proposal-filters button:focus-visible,
 .gd-proposal-list button:focus-visible { outline: 2px solid #8ee5c6; outline-offset: -2px; }
+
+/* Proposer highlights stay compact until the reader asks for evidence. */
+.gd-author > summary { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; list-style: none; }
+.gd-author > summary::-webkit-details-marker { display: none; }
+.gd-author > summary > span { margin: 0; }
+.gd-author .gd-author-name { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.gd-author .gd-author-highlights { display: inline-flex; flex-wrap: wrap; gap: 6px 16px; }
+.gd-author-chevron { display: inline-block; font-size: 18px; }
+.gd-author[open] > summary .gd-author-chevron { transform: rotate(90deg); }
+.gd-author[open] > summary .gd-author-highlights { display: none; }
+.gd-author .gd-author-details { padding-top: 16px; gap: 12px; }
+.gd-author-signals { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); border-block: 1px solid #ffffff12; }
+.gd-author-signal { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 16px; border-right: 1px solid #ffffff12; min-width: 0; }
+.gd-author-signal:first-child { padding-left: 0; }
+.gd-author-signal:last-child { border-right: 0; }
+.gd-author-label { font-size: 12px; }
+.gd-author .gd-author-value { font-size: 20px; line-height: 1.3; }
+.gd-author .gd-author-value.gd-author-verified { color: var(--gd-green); }
+.gd-author-signal p { margin: 0; font-size: 11px; line-height: 1.6; }
+.gd-author .gd-author-address { font-size: 11px; color: var(--gd-muted); }
+.gd-author > summary:focus-visible { outline: 2px solid #8ee5c6; outline-offset: 4px; border-radius: 4px; }
+@media (max-width: 600px) {
+  .gd-author-signals { grid-template-columns: 1fr; }
+  .gd-author-signal, .gd-author-signal:first-child { padding: 14px 0; border-right: 0; border-bottom: 1px solid #ffffff12; }
+  .gd-author-signal:last-child { border-bottom: 0; }
+  .gd-author .gd-author-highlights { gap: 5px 12px; }
+}
