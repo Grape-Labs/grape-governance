@@ -46,3 +46,15 @@ test('multiple selection and weighted inputs enforce configured limits',()=>{
 test('closed polls retain results and do not offer a new ballot',()=>{
  try{mount({type:0},{state:5});assert.equal(screen.queryByRole('button',{name:'Submit choices'}),null);assert.match(screen.getByRole('status').textContent,/Voting is closed/);}finally{cleanup();}
 });
+
+test('closed weighted poll shows result shares instead of allocation inputs',()=>{
+ try{mount({type:1,choiceType:1,minVoterOptions:1,maxVoterOptions:3},{state:5});
+ assert.equal(screen.queryByRole('spinbutton'),null);
+ assert.equal(screen.queryByRole('radio'),null);
+ assert.ok(screen.getByText('50.0%'));
+ assert.ok(screen.getByText('Poll results'));
+ }finally{cleanup();}
+});
+test('draft poll is pending rather than closed',()=>{
+ try{mount({type:0},{state:0});assert.match(screen.getByRole('status').textContent,/not started/);}finally{cleanup();}
+});

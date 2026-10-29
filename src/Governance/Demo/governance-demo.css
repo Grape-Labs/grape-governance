@@ -1640,3 +1640,10 @@
   .gd-author-signal:last-child { border-bottom: 0; }
   .gd-author .gd-author-highlights { gap: 5px 12px; }
 }
+
+.gd-ballot-result { padding: 16px 0; border-bottom: 1px solid #ffffff12; }
+.gd-ballot-result > div:first-child { display: flex; justify-content: space-between; gap: 16px; }
+.gd-ballot-result small { display: block; color: var(--gd-muted); margin-top: 6px; }
+.gd-ballot-result-track { height: 5px; background: #ffffff0c; margin-top: 10px; border-radius: 4px; overflow: hidden; }
+.gd-ballot-result-track > span { display: block; height: 100%; background: #91acc2; }
+.gd-ballot-results > p { color: var(--gd-muted); font-size: 11px; }

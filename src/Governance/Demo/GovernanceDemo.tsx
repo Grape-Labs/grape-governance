@@ -47,8 +47,10 @@ function ProposalTimeline({ entries, state }: { entries: any[]; state: number })
     {entries.map((entry, index) => {
       const next = entries[index + 1];
       const reached = now != null && entry.at && entry.at <= now;
-      const progress = reached && next?.at > entry.at
-        ? Math.max(0, Math.min(1, (now! - entry.at) / (next.at - entry.at))) : 0;
+      const progress = reached && next?.at
+        ? next.at <= now! ? 1
+          : next.at > entry.at ? Math.max(0, Math.min(1, (now! - entry.at) / (next.at - entry.at))) : 0
+        : 0;
       const isCurrent = current === index && active;
       return <li key={entry.key} className={isCurrent ? "is-current" : reached ? "is-reached" : ""}
         aria-current={isCurrent ? "step" : undefined}>
