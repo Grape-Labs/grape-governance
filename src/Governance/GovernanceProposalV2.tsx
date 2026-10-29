@@ -8178,14 +8178,14 @@ export function GovernanceProposalV2View(props: any){
                         ? `No OG Reputation · Season ${proposalAuthorReputation.season}` : finding.title,
                     evidence: finding.evidence,
                 })),
-            oppositionActions: grapeDaoSafetySignals.isBlockedProposal && realm ? <Box sx={{mt:1}}>
+            oppositionActions: showProminentSecurityWarning && realm ? <Box sx={{mt:1}}>
                 {grapeDaoSafetySignals.isBlockedProposal && ballot.canDeny && <VoteForProposal
                     title="NO" subtitle="Oppose this proposal" hovertext="" showIcon actionOnly type={1}
                     votingResultRows={solanaVotingResultRows} getVotingParticipants={getVotingParticipants}
                     hasVotedVotes={hasVotedVotes} hasVoted={hasVoted} hasVotedSide={hasVotedSide}
                     realm={realm} governanceAddress={governanceAddress} thisitem={thisitem}
                     quorum={totalQuorum} state={thisitem.account.state} governanceRules={thisGovernance}/>}
-                <VetoVoteRow prominent={grapeDaoSafetySignals.isBlockedProposal} governanceConfig={governanceConfig} realm={realm} proposal={thisitem} memberMap={memberMap}
+                <VetoVoteRow eligibleOnly prominent={grapeDaoSafetySignals.isBlockedProposal} governanceConfig={governanceConfig} realm={realm} proposal={thisitem} memberMap={memberMap}
                     councilVoterRecord={councilVoterRecord} publicKey={publicKey}
                     sendTransaction={sendTransaction} getVotingParticipants={getVotingParticipants}
                     vetoCount={vetoCount ?? undefined} vetoVoters={vetoVoters}/>
