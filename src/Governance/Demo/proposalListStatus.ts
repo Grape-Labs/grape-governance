@@ -82,10 +82,11 @@ export function distinctVoterSentiment(records: any[]) {
     if (!wallets.has(key)) wallets.set(key, new Set());
     wallets.get(key)!.add(side);
   }
-  const counts = { total: wallets.size, for: 0, against: 0, other: 0 };
+  const counts = { total: wallets.size, for: 0, against: 0, veto: 0, other: 0 };
   for (const sides of wallets.values()) {
     if (sides.size === 1 && sides.has("for")) counts.for++;
     else if (sides.size === 1 && sides.has("against")) counts.against++;
+    else if (sides.size === 1 && sides.has("veto")) counts.veto++;
     else counts.other++;
   }
   return counts;

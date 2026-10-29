@@ -106,6 +106,8 @@ export default function GovernanceDemo({
   const [realm, setRealm] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
+  const [refreshNote, setRefreshNote] = React.useState("");
+  const loadedRealm = React.useRef("");
   const [revision, setRevision] = React.useState(0);
   const [filter, setFilter] = React.useState("");
   const [proposalFilter, setProposalFilter] = React.useState("all");
@@ -113,9 +115,14 @@ export default function GovernanceDemo({
   const requested = route.proposal || params.get("proposal");
   React.useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    let running = false;
+    let lastAttempt = 0;
+    setLoading(loadedRealm.current !== realmAddress);
     setError("");
-    (async () => {
+    const load = async () => {
+      if (running || cancelled) return;
+      running = true;
+      lastAttempt = Date.now();
       try {
         const liveRealm = await getRealmIndexed(realmAddress);
         if (!liveRealm) throw new Error("DAO could not be loaded.");
@@ -128,20 +135,33 @@ export default function GovernanceDemo({
         );
         const sorted = [...rows].sort(compareProposalPriority);
         if (!cancelled) {
+          loadedRealm.current = realmAddress;
           setRealm(liveRealm);
           setProposals(sorted);
+          setRefreshNote("");
         }
       } catch (e) {
-        if (!cancelled)
-          setError(
-            e instanceof Error ? e.message : "Unable to load proposals."
-          );
+        if (!cancelled) {
+          if (loadedRealm.current === realmAddress) setRefreshNote("Refresh failed. Showing previous results; retrying automatically.");
+          else setError(e instanceof Error ? e.message : "Unable to load proposals.");
+        }
       } finally {
+        running = false;
         if (!cancelled) setLoading(false);
       }
-    })();
+    };
+    void load();
+    const refreshVisible = () => {
+      if (document.visibilityState !== "hidden" && Date.now() - lastAttempt >= 5000) void load();
+    };
+    const timer = window.setInterval(refreshVisible, 60000);
+    window.addEventListener("focus", refreshVisible);
+    document.addEventListener("visibilitychange", refreshVisible);
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshVisible);
+      document.removeEventListener("visibilitychange", refreshVisible);
     };
   }, [revision, realmAddress]);
   React.useEffect(() => {
@@ -437,6 +457,9 @@ export default function GovernanceDemo({
                                   >
                                     Review security and instructions
                                   </button>
+                                  {view.proposal.account.state === 2 && <a className="gd-secondary" href="#gd-proposal-vote">Review Against / veto options ↓</a>}
+                                  {view.oppositionActions}
+
                                 </div>
                               )}
                               <div className="gd-live-description">
@@ -492,6 +515,7 @@ export default function GovernanceDemo({
                                       <div className="gd-vote-metrics">
                                         <span>{view.sentiment.for} For</span>
                                         <span>{view.sentiment.against} Against</span>
+                                        {view.sentiment.veto > 0 && <span>{view.sentiment.veto} Veto</span>}
                                         {view.sentiment.other > 0 && <span>{view.sentiment.other} Other</span>}
                                       </div>
                                     </> : <p>Voter counts unavailable</p>}
@@ -576,7 +600,7 @@ export default function GovernanceDemo({
                               ) : (
                               <div className="gd-vote-unavailable" role="status">
                                 <strong>{view.votingBlocked ? "Voting blocked" : view.isMultiChoiceProposal ? "Choose your voting option" : view.proposal.account.state !== 2 ? "Voting is closed" : "Voting controls unavailable"}</strong>
-                                <p>{view.votingBlocked ? "Voting is blocked for this known malicious proposal. Review the security findings above." : view.isMultiChoiceProposal ? "This proposal uses multiple voting options. Open the advanced view to review and vote." : view.proposal.account.state !== 2 ? `Proposal status: ${view.stateLabel}.` : "Open the advanced view to check voting availability for this proposal."}</p>
+                                <p>{view.votingBlocked ? "Approval is blocked for this known malicious proposal. Review opposition options in the security notice above." : view.isMultiChoiceProposal ? "This proposal uses multiple voting options. Open the advanced view to review and vote." : view.proposal.account.state !== 2 ? `Proposal status: ${view.stateLabel}.` : "Open the advanced view to check voting availability for this proposal."}</p>
                                 {!view.votingBlocked && view.proposal.account.state === 2 && <a className="gd-secondary" href={`/proposal/${realmAddress}/${selectedAddress}?view=advanced`}>Review proposal & voting options ↗</a>}
                               </div>)}
                               </section>
@@ -688,6 +712,7 @@ export default function GovernanceDemo({
                   >
                     Refresh proposals
                   </button>
+                  <p className="gd-footnote" role="status">{refreshNote || "Updates every minute while this tab is visible."}</p>
                 </section>
               </aside>
             </div>
