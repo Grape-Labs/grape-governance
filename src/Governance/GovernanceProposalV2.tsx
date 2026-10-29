@@ -5326,10 +5326,13 @@ export function GovernanceProposalV2View(props: any){
     const scheduledEndsAt =
         votingStartedAt && baseVotingTime > 0 ? votingStartedAt + baseVotingTime + coolOffTime : null;
     const resolvedEndsAt = votingCompletedAt ?? scheduledEndsAt;
-    const coolOffStartsAt =
-        coolOffTime > 0 && resolvedEndsAt
-            ? Math.max(votingStartedAt ?? resolvedEndsAt, resolvedEndsAt - coolOffTime)
-            : null;
+    // Cool-off starts at the scheduled base-period boundary, not a duration
+    // before actual completion: council votes can tip and complete early.
+    const scheduledCoolOffAt = votingStartedAt && baseVotingTime > 0 && coolOffTime > 0
+        ? votingStartedAt + baseVotingTime : null;
+    const coolOffStartsAt = scheduledCoolOffAt &&
+        (!votingCompletedAt || votingCompletedAt > scheduledCoolOffAt)
+        ? scheduledCoolOffAt : null;
     const timelineEntries = [
         {
             key: 'created',
