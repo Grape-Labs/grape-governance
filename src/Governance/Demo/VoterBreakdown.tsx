@@ -76,7 +76,7 @@ export default function VoterBreakdown({ records, proposal, count }: { records: 
   };
   return <>
     <h3 className="gd-sentiment-heading">{binary ? "Voter sentiment" : "Voter records"} <button className="gd-voter-icon" type="button" aria-label="Open voter breakdown" title="Voter breakdown" onClick={() => setOpen(true)}>↗</button></h3>
-    {count != null && <button type="button" className="gd-voter-count gd-voter-count-button" title="Open voter breakdown · One count per token-owner wallet" onClick={() => setOpen(true)}>{count} wallets</button>}
+    {count != null && <button type="button" className="gd-voter-count gd-voter-count-button" title="Open voter breakdown · One count per token-owner wallet" onClick={() => setOpen(true)}>{count} {count === 1 ? "wallet" : "wallets"}</button>}
     <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md"
       aria-labelledby="gd-voters-title" PaperProps={{ sx: { bgcolor: "#141e2b", color: "#edf2fa", borderRadius: 3 } }}>
       <DialogTitle id="gd-voters-title" sx={{ fontSize: 18 }}>Voter breakdown</DialogTitle>

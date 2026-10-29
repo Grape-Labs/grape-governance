@@ -74,6 +74,7 @@ export type VetoVoteRowProps = {
   getVotingParticipants?: () => void;
 
   // UI (optional override; if omitted we auto-label)
+  prominent?: boolean;
   title?: string;
   caption?: string;
 
@@ -221,6 +222,26 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
   const vetoDisabled = Number(vetoThreshold?.type) === 2;
   const canCastNow = isVotingState(proposal) && !vetoDisabled && !voteAvailability(proposal.account, props.governanceConfig, 1);
 
+  const [authorityRecords, setAuthorityRecords] = React.useState<any[]>([]);
+  React.useEffect(() => {
+    let cancelled = false;
+    setAuthorityRecords([]);
+    if (walletPk58 && mode.ok) {
+      getAllTokenOwnerRecordsIndexed(new PublicKey(realm.pubkey).toBase58(), new PublicKey(realm.owner).toBase58(), walletPk58)
+        .then(records => { if (!cancelled) setAuthorityRecords(Array.isArray(records) ? records : []); })
+        .catch(() => { /* Keep eligibility unavailable; retry when submitting. */ });
+    }
+    return () => { cancelled = true; };
+  }, [walletPk58, realm.pubkey?.toString(), realm.owner?.toString(), mode.ok]);
+  const authorized = (record: any) => {
+    const key = (value: any) => value?.toBase58?.() || String(value || '');
+    return mode.ok && key(record?.account?.governingTokenMint) === mode.vetoMint58 &&
+      (key(record?.account?.governingTokenOwner) === walletPk58 || key(record?.account?.governanceDelegate) === walletPk58);
+  };
+  const knownRecords = [...authorityRecords, ...(Array.isArray(memberMap) ? memberMap : []), ...(councilVoterRecord ? [councilVoterRecord] : [])].filter(authorized);
+  const eligible = knownRecords.some(record => Number(record.account?.governingTokenDepositAmount?.toString() || 0) > 0);
+  const prominent = !!props.prominent && eligible && canCastNow && !isBlacklisted;
+
   // Don’t render unless it applies
   if (!canShowVetoRow(realm, proposal, vetoCount, vetoVoters) || (vetoDisabled && !hasVetoVoters && !proposalWasVetoed)) return null;
 
@@ -257,29 +278,15 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
 
       setBusy(true);
 
-      // Load TORs if needed
-      let rawTokenOwnerRecords: any[] = Array.isArray(memberMap) ? memberMap : [];
-      if (!rawTokenOwnerRecords.length) {
-        rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(
-          new PublicKey(realm.pubkey).toBase58(),
-          new PublicKey(realm.owner).toBase58(),
-          walletPk58
-        );
-      }
-
-      // Optional fast path ONLY if veto mint is council
-      const canUseCouncilFastPath = !!councilVoterRecord && vetoMint58 === councilMint58;
-
-      // Veto TOR for THIS wallet (council or community depending on mode)
-      const vetoAuthorityResolution = findProposalAuthorCandidates(
-        rawTokenOwnerRecords,
-        walletPk58,
-        vetoMint58
+      // Fetch fresh owner AND delegate records; never choose an unrelated
+      // council member or prefer an empty direct record over a delegation.
+      const rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(
+        new PublicKey(realm.pubkey).toBase58(), new PublicKey(realm.owner).toBase58(), walletPk58
       );
-
-      const vetoVoterRecord =
-        (canUseCouncilFastPath ? councilVoterRecord : null) ||
-        vetoAuthorityResolution.bestRecord;
+      const vetoAuthorityResolution = findProposalAuthorCandidates(
+        (Array.isArray(rawTokenOwnerRecords) ? rawTokenOwnerRecords : []).filter(authorized), walletPk58, vetoMint58
+      );
+      const vetoVoterRecord = vetoAuthorityResolution.bestRecord;
 
       if (!vetoVoterRecord) {
         enqueueSnackbar("You do not have veto power for this proposal.", { variant: "error" });
@@ -291,7 +298,7 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
         persist: true,
       });
 
-      const owner = vetoVoterRecord.account?.governingTokenOwner?.toBase58?.();
+      const owner = vetoVoterRecord.account?.governingTokenOwner?.toBase58?.() || String(vetoVoterRecord.account?.governingTokenOwner || '');
       const tx = await createCastVoteTransaction(realm, publicKey, {
         proposal: { governanceId: proposal.account.governance, proposalId: proposal.pubkey,
           tokenOwnerRecord: proposal.account.tokenOwnerRecord, governingTokenMint: new PublicKey(vetoMint58) }, action: 3,
@@ -342,7 +349,7 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
   return (
     <>
       {/* Row wrapper (matches your right panel “block” layout) */}
-      <Box sx={{ my: 2, mx: 2 }}>
+      <Box sx={{ my: 2, mx: prominent ? 0 : 2, ...(prominent ? {p:2,border:'1px solid #ef919966',borderRadius:2,backgroundColor:'rgba(239,83,80,0.06)'} : {}) }}>
         <Grid container alignItems="center" spacing={1}>
           <Grid item xs>
             <Grid container alignItems="center" spacing={1}>
@@ -407,8 +414,8 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
                     <span>
                       <Button
                         size="small"
-                        variant="outlined"
-                        color="inherit"
+                        variant={prominent ? "contained" : "outlined"}
+                        color={prominent ? "error" : "inherit"}
                         onClick={() => setOpenConfirm(true)}
                         disabled={busy || !publicKey}
                         endIcon={busy ? <CircularProgress size={14} /> : <ChevronRightIcon fontSize="small" />}
@@ -418,7 +425,7 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
                           borderColor: "rgba(255,255,255,0.12)",
                         }}
                       >
-                        Veto
+                        {prominent ? "Veto flagged proposal" : "Veto"}
                       </Button>
                     </span>
                   </Tooltip>

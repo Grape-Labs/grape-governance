@@ -4819,7 +4819,7 @@ export function GovernanceProposalV2View(props: any){
         if (grapeDaoSafetySignals.usesIrysDescription) {
             addFinding('high', 'Unexpected Grape DAO description source', `The description is hosted on ${grapeDaoSafetySignals.descriptionHost || 'Irys'}, while established Grape DAO proposals use GitHub. Treat the text as untrusted and verify it against official DAO channels.`);
         }
-        if (proposalAuthorVerification.checked && proposalAuthorVerification.spaceExists) {
+        if (grapeDaoSafetySignals.isGrapeDao && proposalAuthorVerification.checked && proposalAuthorVerification.spaceExists) {
             const activeMatches = proposalAuthorVerification.matches.filter((match) => match.active);
             if (activeMatches.length > 0) {
                 const platforms = Array.from(new Set(activeMatches.map((match) => VERIFICATION_PLATFORM_LABELS[match.platform] || `Platform ${match.platform}`)));
@@ -4854,7 +4854,7 @@ export function GovernanceProposalV2View(props: any){
                 : '';
             addFinding('info', 'Recurring proposal pattern recognized', `Matches successful proposal “${recurringProposalMatch.name}” from the same token owner ${recurringProposalMatch.ageDays} days earlier.${reputationEvidence} The unusual transfer-count warning is suppressed; review any changed recipients, assets, and amounts.`);
         }
-        if (proposalAuthorReputation.checked && proposalAuthorReputation.spaceExists && proposalAuthorReputation.baselineAvailable) {
+        if (grapeDaoSafetySignals.isGrapeDao && proposalAuthorReputation.checked && proposalAuthorReputation.spaceExists && proposalAuthorReputation.baselineAvailable) {
             const reputationPoints = parseRawVoteWeight(proposalAuthorReputation.points);
             const seasonContext = proposalAuthorReputation.usingPreviousSeason ? 'previous populated season' : 'current season';
             addFinding(
@@ -8164,8 +8164,22 @@ export function GovernanceProposalV2View(props: any){
                 proposalDescription ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{proposalDescription}</ReactMarkdown> : null,
             power: realm ? <GovernancePower summaryOnly governingTokenMint={thisitem.account.governingTokenMint} governanceAddress={governanceAddress} realm={realm}/> : null,
             warning: showProminentSecurityWarning ? (grapeDaoSafetySignals.isBlockedProposal
-                ? 'Known malicious proposal. Review the security findings before taking any action.'
-                : 'This proposal requires careful security review. Inspect its instructions before voting.') : null,
+                ? 'Flagged as malicious by Grape DAO maintainers. Do not approve or execute. Review the evidence and use Against or veto if eligible.'
+                : (grapeDaoSafetySignals.isGrapeDao
+                    ? proposalRiskAssessment.findings.filter(finding => finding.severity === 'high' || finding.severity === 'critical').map(finding => `${finding.title}: ${finding.evidence}`).join(' ')
+                    : 'This proposal requires careful security review. Inspect its instructions before voting.')) : null,
+            oppositionActions: showProminentSecurityWarning && realm ? <Box sx={{mt:1}}>
+                {grapeDaoSafetySignals.isBlockedProposal && ballot.canDeny && <VoteForProposal
+                    title="NO" subtitle="Oppose this proposal" hovertext="" showIcon actionOnly type={1}
+                    votingResultRows={solanaVotingResultRows} getVotingParticipants={getVotingParticipants}
+                    hasVotedVotes={hasVotedVotes} hasVoted={hasVoted} hasVotedSide={hasVotedSide}
+                    realm={realm} governanceAddress={governanceAddress} thisitem={thisitem}
+                    quorum={totalQuorum} state={thisitem.account.state} governanceRules={thisGovernance}/>}
+                <VetoVoteRow prominent={grapeDaoSafetySignals.isBlockedProposal} governanceConfig={governanceConfig} realm={realm} proposal={thisitem} memberMap={memberMap}
+                    councilVoterRecord={councilVoterRecord} publicKey={publicKey}
+                    sendTransaction={sendTransaction} getVotingParticipants={getVotingParticipants}
+                    vetoCount={vetoCount ?? undefined} vetoVoters={vetoVoters}/>
+            </Box> : null,
             votingBlocked: grapeDaoSafetySignals.isBlockedProposal,
             actions: realm && !grapeDaoSafetySignals.isBlockedProposal ? (isMultiChoiceProposal
                 ? <ProposalBallot key={normalizePkString(thisitem.pubkey)}

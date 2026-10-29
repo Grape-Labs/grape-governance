@@ -43,7 +43,7 @@ test('sentiment deduplicates wallets and excludes withdrawn votes', () => {
     row('a',0),row('a',0),row('b',1),row('c',2),row('d',0,{isRelinquished:true}),
     {governingTokenOwner:'e',vote:{legacyYes:12}},
     row(null,0),
-  ]), {total:4,for:2,against:1,other:1});
+  ]), {total:4,for:2,against:1,veto:0,other:1});
 });
 test('all voting proposals lead, ordered by voting start rather than draft age', () => {
   const proposal = (id, state, draftAt, votingAt) => ({ id, account: { state, draftAt, votingAt } });
@@ -101,4 +101,8 @@ test('recent results report final support and recorded option outcomes safely', 
   assert.equal(result({state:5, options:[{label:'A', voteResult:1},{label:'B', voteResult:2}]}), 'Selected: A');
   assert.equal(result({state:5, options:[{label:'A', voteResult:0, voteWeight:'100'}]}), null);
   assert.equal(result({state:5, options:[{label:'A', voteResult:1},{label:'B', voteResult:1}]}), 'Selected options: A, B');
+});
+
+test('veto sentiment is explicit rather than Other', () => {
+ assert.deepEqual(mod.exports.distinctVoterSentiment([{account:{governingTokenOwner:'v',vote:{voteType:3}}}]),{total:1,for:0,against:0,veto:1,other:0});
 });
