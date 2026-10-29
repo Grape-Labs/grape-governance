@@ -349,7 +349,7 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
   return (
     <>
       {/* Row wrapper (matches your right panel “block” layout) */}
-      <Box sx={{ my: 2, mx: prominent ? 0 : 2, ...(prominent ? {p:2,border:'1px solid #ef919966',borderRadius:2,backgroundColor:'rgba(239,83,80,0.06)'} : {}) }}>
+      <Box className="gd-veto-row" sx={{ my: 2, mx: prominent ? 0 : 2, ...(prominent ? {p:2,border:'1px solid #ef919966',borderRadius:2,backgroundColor:'rgba(239,83,80,0.06)'} : {}) }}>
         <Grid container alignItems="center" spacing={1}>
           <Grid item xs>
             <Grid container alignItems="center" spacing={1}>

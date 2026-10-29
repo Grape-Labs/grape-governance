@@ -450,15 +450,21 @@ export default function GovernanceDemo({
                               )}
                               {view.warning && (
                                 <div className="gd-live-warning" role="alert">
-                                  {view.warning}
-                                  <button
-                                    className="gd-secondary"
-                                    onClick={() => setExpanded(true)}
-                                  >
-                                    Review security and instructions
-                                  </button>
-                                  {view.proposal.account.state === 2 && <a className="gd-secondary" href="#gd-proposal-vote">Review Against / veto options ↓</a>}
-                                  {view.oppositionActions}
+                                  <div className="gd-security-heading">
+                                    <span className="gd-security-icon" aria-hidden="true">!</span>
+                                    <strong>{view.warningTitle || "Review before voting"}</strong>
+                                  </div>
+                                  {view.warningFindings?.length > 0 ? <ul className="gd-security-findings">
+                                    {view.warningFindings.map((finding: any, index: number) => <li key={index}>{finding.title}</li>)}
+                                  </ul> : <p className="gd-security-copy">{view.warning}</p>}
+                                  <p className="gd-security-copy">{view.votingBlocked
+                                    ? "Do not approve or execute. Review the evidence; use Against or veto if eligible."
+                                    : "Verify the author and executable instructions before approving."}</p>
+                                  <div className="gd-security-actions">
+                                    <button className="gd-secondary" onClick={() => setExpanded(true)}>Review evidence & instructions</button>
+                                    {view.proposal.account.state === 2 && !view.votingBlocked && <a href="#gd-proposal-vote">Voting options ↓</a>}
+                                  </div>
+                                  {view.oppositionActions && <div className="gd-security-opposition">{view.oppositionActions}</div>}
 
                                 </div>
                               )}

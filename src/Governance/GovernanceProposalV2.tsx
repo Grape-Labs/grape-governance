@@ -4846,7 +4846,7 @@ export function GovernanceProposalV2View(props: any){
             }
         }
         if (grapeDaoSafetySignals.isGrapeDao && transferDetails.length >= GRAPE_DAO_LARGE_TRANSFER_COUNT && !recurringProposalMatch) {
-            addFinding('high', 'Unusually broad asset movement for Grape DAO', `${transferDetails.length} decoded transfers meet the Grape DAO large-plan warning threshold of ${GRAPE_DAO_LARGE_TRANSFER_COUNT}. Review every asset, amount, and destination before voting or executing.`);
+            addFinding('info', 'Batch transfer review', `${transferDetails.length} decoded transfers. Review the assets, amounts, and recipients in the execution plan. Transfer count alone is not evidence of malicious activity.`);
         }
         if (grapeDaoSafetySignals.isGrapeDao && transferDetails.length >= GRAPE_DAO_LARGE_TRANSFER_COUNT && recurringProposalMatch) {
             const reputationEvidence = proposalAuthorReputation.checked && proposalAuthorReputation.spaceExists && proposalAuthorReputation.baselineAvailable && parseRawVoteWeight(proposalAuthorReputation.points) > 0n
@@ -8168,7 +8168,17 @@ export function GovernanceProposalV2View(props: any){
                 : (grapeDaoSafetySignals.isGrapeDao
                     ? proposalRiskAssessment.findings.filter(finding => finding.severity === 'high' || finding.severity === 'critical').map(finding => `${finding.title}: ${finding.evidence}`).join(' ')
                     : 'This proposal requires careful security review. Inspect its instructions before voting.')) : null,
-            oppositionActions: showProminentSecurityWarning && realm ? <Box sx={{mt:1}}>
+            warningTitle: grapeDaoSafetySignals.isBlockedProposal ? 'Flagged as malicious' : 'Review before voting',
+            warningFindings: proposalRiskAssessment.findings
+                .filter(finding => finding.severity === 'high' || finding.severity === 'critical')
+                .map(finding => ({
+                    title: finding.title === 'Proposal author has no active Grape Verification'
+                        ? 'No active Grape identity verification'
+                        : finding.title === 'Proposal author has no Grape DAO reputation in the active baseline season'
+                        ? `No OG Reputation · Season ${proposalAuthorReputation.season}` : finding.title,
+                    evidence: finding.evidence,
+                })),
+            oppositionActions: grapeDaoSafetySignals.isBlockedProposal && realm ? <Box sx={{mt:1}}>
                 {grapeDaoSafetySignals.isBlockedProposal && ballot.canDeny && <VoteForProposal
                     title="NO" subtitle="Oppose this proposal" hovertext="" showIcon actionOnly type={1}
                     votingResultRows={solanaVotingResultRows} getVotingParticipants={getVotingParticipants}
