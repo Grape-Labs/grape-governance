@@ -75,6 +75,7 @@ export type VetoVoteRowProps = {
 
   // UI (optional override; if omitted we auto-label)
   prominent?: boolean;
+  eligibleOnly?: boolean;
   title?: string;
   caption?: string;
 
@@ -241,6 +242,8 @@ export function VetoVoteRow(props: VetoVoteRowProps) {
   const knownRecords = [...authorityRecords, ...(Array.isArray(memberMap) ? memberMap : []), ...(councilVoterRecord ? [councilVoterRecord] : [])].filter(authorized);
   const eligible = knownRecords.some(record => Number(record.account?.governingTokenDepositAmount?.toString() || 0) > 0);
   const prominent = !!props.prominent && eligible && canCastNow && !isBlacklisted;
+
+  if (props.eligibleOnly && (!eligible || !canCastNow || isBlacklisted)) return null;
 
   // Don’t render unless it applies
   if (!canShowVetoRow(realm, proposal, vetoCount, vetoVoters) || (vetoDisabled && !hasVetoVoters && !proposalWasVetoed)) return null;
