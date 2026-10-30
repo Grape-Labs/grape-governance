@@ -10,6 +10,81 @@ Governance.so by Grape is a fast SPL Governance interface focused on proposal ex
 - Extension system for protocol-specific actions.
 - Governance stats, participation views, and realtime monitoring.
 
+## DAO and Proposal Experience
+
+The DAO view supports community and council proposals across DAOs. Desktop uses
+proposal details alongside a searchable navigator with **All**, **Voting**,
+**Drafts**, and **History** filters. Mobile opens with the proposal list; selecting
+an item opens its details with a back-to-list control.
+
+- Active votes appear first, ordered by voting start rather than draft creation.
+  An old draft entering voting can therefore appear at the top.
+- The proposal list refreshes every 60 seconds while the tab is visible and when
+  returning to it. Refreshes preserve search and selection; failed background
+  requests retain previous results and show a retry notice.
+- Recent decisions exclude drafts and show outcome, execution status, recorded
+  voting end date, available results, and the connected wallet's participation.
+- Vetoed and cancelled proposals are visually secondary in lists. Opened vetoed
+  proposals show **Vetoed · Voting closed**, a veto timeline endpoint, and an
+  execution-blocked notice. Closed proposals show recorded votes rather than
+  approval progress or large binary voting buttons.
+- A compact proposer summary expands to deposited voting power, identity
+  verification evidence, and applicable OG Reputation details. Deposited power
+  excludes delegation and voting-plugin adjustments; these are not a trust score.
+- Voter sentiment counts distinct token-owner wallets and separates For, Against,
+  and Veto. Vote weight and wallet counts are separate measures.
+
+### Ballots and voting eligibility
+
+The interface supports single-choice, full-weight multiple-choice, and weighted
+ballots. Weighted allocations must total 100%; selection limits come from the
+proposal configuration. Polls without a deny option do not expose an Against
+vote. Closed polls display recorded option totals and shares instead of allocation
+inputs. Shares use power allocated to options, not wallet counts or eligible supply.
+
+Voting controls check proposal state, voting duration, and cool-off rules before
+submission. The proposal's governing mint determines the community or council
+configuration, including the applicable voter-weight plugin. Supported plugin
+paths include VSR and staking integrations; unsupported configurations remain
+unavailable rather than being treated as ordinary token voting.
+
+Veto follows the DAO's configured electorate and threshold. Eligible council
+members and delegates can veto community proposals where enabled; the signer
+must own or be delegated the selected token-owner record. Confirmation and wallet
+signing are required. Existing recorded-vote management is separate from casting
+a new vote after voting closes.
+
+### Grape-specific security and reputation
+
+Grape identity/reputation expectations apply to realm
+`By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip`, not automatically to other DAOs.
+
+- Security notices summarize concrete findings and link to executable instruction
+  review. Full evidence remains available in the expanded review.
+- Missing Grape verification or baseline-season reputation can prompt review;
+  neither alone establishes that a proposal is malicious.
+- Transfer count alone produces an informational batch-review note, not a
+  malicious-proposal warning. Independent security findings still apply.
+- Explicitly blocked proposals hide approval controls in the simple view while
+  retaining applicable Against and veto actions. Eligible wallets get a prominent
+  veto action on flagged proposals; review warnings also expose eligible veto.
+- Routine information is neutral, pending/review notes yellow, confirmed checks
+  green, and warnings red. Identity verification does not certify instructions.
+
+The active **OG Reputation** navigation link is enabled for Grape. Other DAOs get
+an onboarding guide for creating an OG Reputation space through treasury
+extensions and governance approval. Creating a space does not automatically
+activate the navigation integration. OG Reputation was previously called Vine
+Reputation.
+
+### Recipient checks
+
+Proposal instruction review includes recipient deposits and on-demand grant
+history. **Load grant history** opens the grant controls and starts loading.
+Staked amounts use thousands separators and two decimal places; hover, keyboard
+focus, or touch reveals the exact value. Calculations and CSV exports retain full
+precision. Partial history does not establish a confirmed retention result.
+
 ## Governance Tooling (Extensions)
 
 ### Governance Tools
@@ -64,6 +139,9 @@ Governance.so by Grape is a fast SPL Governance interface focused on proposal ex
 
 ## Core URLs
 
+- DAO: `https://governance.so/dao/:realm`
+- Proposal: `https://governance.so/proposal/:realm/:proposal`
+- Advanced proposal view: append `?view=advanced` to a proposal URL.
 - Realtime: `https://governance.so/realtime`
 - Profile: `https://governance.so/profile`
 - Admin: `https://governance.so/admin`
@@ -74,7 +152,7 @@ Governance.so by Grape is a fast SPL Governance interface focused on proposal ex
 - Solana Wallet Adapter
 - React + Material UI
 - GraphQL + indexed account queries
-- Protocol SDK integrations (Jupiter, Streamflow, Sanctum, Vine Reputation)
+- Protocol SDK integrations (Jupiter, Streamflow, Sanctum, OG Reputation)
 
 ## Local Development
 
@@ -141,7 +219,7 @@ granted tokens were sold. Only decoded swaps with the recipient's community-toke
 input count as confirmed swaps; other outgoing transfers stay separate. Balances
 exclude governance deposits, staking, escrow, and other wallets.
 
-The **swap review threshold** defaults to 10% and can be changed (for example,
+The **swap review threshold** defaults to 30% and can be changed (for example,
 to 30%) in Members. It is a review preference, not an enforced DAO policy.
 Each confirmed swap transaction is compared with the
 member's native community-token deposit position in the selected DAO, not their
@@ -205,3 +283,15 @@ The peak-setting deposit is already in the starting position and is not counted
 again. Other deposits and missing authority attribution remain separate. Each
 included grant has transaction evidence; direct wallet grants are not included,
 and issuing-authority attribution is not verification of a grant proposal.
+
+## Governance UI Checks
+
+Run the focused UI, ballot, and transaction regression tests:
+
+```sh
+node --test tests/governance-demo.test.cjs tests/proposal-list-status.test.cjs tests/proposal-ballot.test.cjs tests/ballot-rules.test.cjs tests/cast-ballot.test.cjs tests/proposal-vote-visibility.test.cjs
+```
+
+These tests use fixtures and mocks; passing them does not verify live RPC data,
+deployed rendering, or a wallet-signed transaction. Validate those separately
+when reviewing a deployment.
