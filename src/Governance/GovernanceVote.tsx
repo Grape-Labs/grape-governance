@@ -473,7 +473,7 @@ export function VoteForProposal(props:any){
         : !publicKey
         ? 'Connect wallet'
         : state === 2
-        ? 'Cast vote'
+        ? hasVoted && hasPendingDelegatedVotes ? 'Choose delegated power' : 'Own power only'
         : 'Voting closed';
     /*
     console.log("memberMap: "+JSON.stringify(memberMap));
@@ -497,12 +497,18 @@ export function VoteForProposal(props:any){
     //console.log(">>>  realm.account.config?.councilMint?.toBase58(): "+JSON.stringify(realm.account.config?.councilMint?.toBase58()));
     //console.log(">>>  thisitem?.account.governingTokenMint: "+JSON.stringify(thisitem?.account.governingTokenMint));
     
-    const handleVoteYes = async () => {
-        await handleVote(0, null, true, true)
+    // Main action never silently casts ballots for delegators. Wallets with
+    // only delegated records choose an authority from the menu first.
+    const chooseDelegatedAuthority = hasAnyDelegatedVotes &&
+        (hasVoted || !voterRecord || Number(voterRecord.account?.governingTokenDepositAmount?.toString() || 0) === 0);
+    const handleVoteYes = async (event: React.MouseEvent<HTMLElement>) => {
+        if (chooseDelegatedAuthority) { handleDelegateOpenYesToggle(event); return; }
+        await handleVote(0, null, true, false)
     }
 
-    const handleVoteNo = async () => {
-        await handleVote(1, null, true, true)
+    const handleVoteNo = async (event: React.MouseEvent<HTMLElement>) => {
+        if (chooseDelegatedAuthority) { handleDelegateOpenNoToggle(event); return; }
+        await handleVote(1, null, true, false)
     }
 
     const handleRelinquishVotes = async (delegate?: string, withOwnerRecord?:boolean, withAllDelegates?:boolean) => {
@@ -1335,14 +1341,14 @@ export function VoteForProposal(props:any){
                 >
                   <ClickAwayListener onClickAway={handleDelegateCloseYesToggle}>
                     <MenuList id="split-yes-menu" autoFocusItem>
-                      <MenuItem disabled={!canCastCombinedVote} onClick={() => handleVote(0, null, true, true)}>
-                        Vote with all Voting Power
+                      <MenuItem disabled={!!disabledReason || !canCastCombinedVote} onClick={() => handleVote(0, null, true, true)}>
+                        Vote with all my power (own + delegated)
                       </MenuItem>
 
                       <Divider />
 
-                      <MenuItem disabled={hasVoted} onClick={() => handleVote(0, null, true)}>
-                        Vote only with my Voting Power
+                      <MenuItem disabled={!!disabledReason || hasVoted} onClick={() => handleVote(0, null, true)}>
+                        Vote with my own power only
                       </MenuItem>
 
                       <Divider />
@@ -1443,14 +1449,14 @@ export function VoteForProposal(props:any){
                 >
                   <ClickAwayListener onClickAway={handleDelegateCloseNoToggle}>
                     <MenuList id="split-no-menu" autoFocusItem>
-                      <MenuItem disabled={!canCastCombinedVote} onClick={() => handleVote(1, null, true, true)}>
-                        Vote with all Voting Power
+                      <MenuItem disabled={!!disabledReason || !canCastCombinedVote} onClick={() => handleVote(1, null, true, true)}>
+                        Vote with all my power (own + delegated)
                       </MenuItem>
 
                       <Divider />
 
-                      <MenuItem disabled={hasVoted} onClick={() => handleVote(1, null, true)}>
-                        Vote only with my Voting Power
+                      <MenuItem disabled={!!disabledReason || hasVoted} onClick={() => handleVote(1, null, true)}>
+                        Vote with my own power only
                       </MenuItem>
 
                       <Divider />
