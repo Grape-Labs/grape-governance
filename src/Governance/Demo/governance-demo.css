@@ -1664,3 +1664,12 @@
 .gd-security-opposition .MuiTypography-subtitle1 { font-size: 13px; font-weight: 600; }
 .gd-security-opposition .MuiTypography-caption { font-size: 11px; }
 .gd-live .gd-security-opposition .MuiButton-root { margin-top: 0; width: auto; border-radius: 7px; font-size: 12px; padding: 6px 12px; min-height: 36px; }
+
+.gd-final-outcome { margin: 12px 0 16px; padding: 14px 16px; border: 1px solid #ef919940; border-radius: 12px; background: #ef919909; color: #efabb1; }
+.gd-final-outcome p { margin: 6px 0; font-size: 12px; color: var(--gd-muted); }
+.gd-security-summary { cursor: pointer; font-size: 13px; font-weight: 600; color: #efabb1; }
+.gd-live-warning[open] > .gd-security-summary { margin-bottom: 12px; }
+.gd-proposal-timeline.is-vetoed .gd-timeline-track span,
+.gd-proposal-timeline.is-vetoed .gd-timeline-track i { background: #637388; }
+.gd-proposal-timeline.is-vetoed li:last-child .gd-timeline-track i { background: #ef9199; }
+.gd-proposal-timeline.is-vetoed li:last-child > span { color: #efabb1; }

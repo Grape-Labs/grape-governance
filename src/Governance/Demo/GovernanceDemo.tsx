@@ -43,7 +43,7 @@ function ProposalTimeline({ entries, state }: { entries: any[]; state: number })
   const active = state === 2;
   const current = now == null ? -1 : entries.reduce((last, entry, index) =>
     entry.at && entry.at <= now ? index : last, -1);
-  return <ol className="gd-proposal-timeline" aria-label="Proposal timeline">
+  return <ol className={`gd-proposal-timeline ${state === 9 ? "is-vetoed" : ""}`} aria-label="Proposal timeline">
     {entries.map((entry, index) => {
       const next = entries[index + 1];
       const reached = now != null && entry.at && entry.at <= now;
@@ -57,7 +57,7 @@ function ProposalTimeline({ entries, state }: { entries: any[]; state: number })
         <div className="gd-timeline-track" aria-hidden="true">
           <i /><span style={{ width: `${progress * 100}%` }} />
         </div>
-        <span>{entry.label}{isCurrent ? " · Now" : ""}</span>
+        <span>{state === 9 && entry.key === "ends" ? "Vetoed" : entry.label}{isCurrent ? " · Now" : ""}</span>
         {entry.at ? <time dateTime={new Date(entry.at * 1000).toISOString()}
           title={new Date(entry.at * 1000).toLocaleString(undefined, { dateStyle: "full", timeStyle: "long" })}>
           {new Date(entry.at * 1000).toLocaleString(undefined, {
@@ -400,6 +400,7 @@ export default function GovernanceDemo({
                             </div>
                             <div className="gd-content">
                               <h2>{view.proposal.account.name}</h2>
+                              {view.proposal.account.state === 9 && <div className="gd-final-outcome" role="status"><strong>Vetoed · Voting closed</strong><p>This proposal cannot proceed to execution.</p><VoterBreakdown records={view.voterRecords ?? null} proposal={view.proposal} count={view.sentiment?.total} /></div>}
                               {view.author && (
                                 <details className="gd-author">
                                   <summary>
@@ -449,7 +450,8 @@ export default function GovernanceDemo({
                                 <ProposalTimeline entries={view.timeline} state={view.proposal.account.state} />
                               )}
                               {view.warning && (
-                                <div className="gd-live-warning" role="alert">
+                                <details className="gd-live-warning" open={view.proposal.account.state === 2}>
+                                  <summary className="gd-security-summary">{view.proposal.account.state === 2 ? "Review before voting" : "Security findings"}</summary>
                                   <div className="gd-security-heading">
                                     <span className="gd-security-icon" aria-hidden="true">!</span>
                                     <strong>{view.warningTitle || "Review before voting"}</strong>
@@ -459,14 +461,14 @@ export default function GovernanceDemo({
                                   </ul> : <p className="gd-security-copy">{view.warning}</p>}
                                   <p className="gd-security-copy">{view.votingBlocked
                                     ? "Do not approve or execute. Review the evidence; use Against or veto if eligible."
-                                    : "Verify the author and executable instructions before approving."}</p>
+                                    : view.proposal.account.state === 2 ? "Verify the author and executable instructions before approving." : "Recorded findings for this closed proposal."}</p>
                                   <div className="gd-security-actions">
                                     <button className="gd-secondary" onClick={() => setExpanded(true)}>Review evidence & instructions</button>
                                     {view.proposal.account.state === 2 && !view.votingBlocked && <a href="#gd-proposal-vote">Voting options ↓</a>}
                                   </div>
-                                  {view.oppositionActions && <div className="gd-security-opposition">{view.oppositionActions}</div>}
+                                  {view.proposal.account.state === 2 && view.oppositionActions && <div className="gd-security-opposition">{view.oppositionActions}</div>}
 
-                                </div>
+                                </details>
                               )}
                               <div className="gd-live-description">
                                 {view.description || (
@@ -490,9 +492,9 @@ export default function GovernanceDemo({
                               {!view.isMultiChoiceProposal && (
                                 <div className="gd-vote-overview">
                                   <section className="gd-vote-panel" aria-label="Approval progress">
-                                    <h3>Approval</h3>
+                                    <h3>{view.proposal.account.state === 2 ? "Approval" : "Recorded votes"}</h3>
 
-                                    <div className="gd-bar" role="progressbar" aria-label="Approval progress"
+                                    <div hidden={view.proposal.account.state !== 2} className="gd-bar" role="progressbar" aria-label="Approval progress"
                                       aria-valuemin={0} aria-valuemax={100}
                                       aria-valuenow={view.approval ? Math.min(100, Math.max(0, view.approval.progress)) : undefined}
                                       aria-valuetext={view.approval ? `${view.forVotes} For; ${view.approval.target} target` : "Threshold unavailable"}>
@@ -556,13 +558,13 @@ export default function GovernanceDemo({
                                     : view.instructionCount > 0
                                     ? `${
                                         view.instructionCount
-                                      } executable transaction${
+                                      } ${view.proposal.account.state === 9 ? "proposed" : "executable"} transaction${
                                         view.instructionCount === 1 ? "" : "s"
                                       }`
                                     : "No executable transactions attached"}
                                 </h3>
                                 <p>
-                                  {view.instructionCount > 0
+                                  {view.proposal.account.state === 9 ? "Execution blocked — this proposal was vetoed." : view.instructionCount > 0
                                     ? "Approval authorizes these actions. Review amounts, recipients, and permission changes."
                                     : "The proposal description is not a substitute for checking its on-chain instructions."}
                                 </p>
@@ -593,7 +595,7 @@ export default function GovernanceDemo({
                                 </button>
                               </section>
                               <section id="gd-proposal-vote" className="gd-voting-section" aria-label="Proposal voting">
-                              {view.actions ? (
+                              {view.proposal.account.state !== 2 && !view.isMultiChoiceProposal ? <div className="gd-footnote"><strong>{[0, 1].includes(view.proposal.account.state) ? "Voting has not started" : "Voting is closed"}</strong><span> · {view.stateLabel}</span>{view.hasVoted && <div><a href={`/proposal/${realmAddress}/${selectedAddress}?view=advanced`}>Manage recorded vote ↗</a></div>}</div> : view.actions ? (
                                 <>
                                   <div className={view.isMultiChoiceProposal ? "gd-ballot-container" : "gd-live-actions"}>
                                     {view.actions}
