@@ -348,7 +348,7 @@ const formatCompactNumber = (value: any): string => {
     return compact.replace(/K/g, 'k').replace(/M/g, 'm').replace(/B/g, 'b').replace(/T/g, 't');
 };
 
-const getVoteSideFromRecord = (record: any): 'yes' | 'no' | 'unknown' | null => {
+const getVoteSideFromRecord = (record: any): 'yes' | 'no' | 'veto' | 'abstain' | 'unknown' | null => {
     const vote =
         record?.account?.vote ??
         record?.vote?.vote ??
@@ -357,6 +357,8 @@ const getVoteSideFromRecord = (record: any): 'yes' | 'no' | 'unknown' | null => 
         const voteType = Number(vote.voteType);
         if (voteType === 0) return 'yes';
         if (voteType === 1) return 'no';
+        if (voteType === 3) return 'veto';
+        if (voteType === 2) return 'abstain';
         return 'unknown';
     }
 
@@ -502,7 +504,7 @@ export function GovernanceProposalV2View(props: any){
     const [multiVoteSentiment, setMultiVoteSentiment] = React.useState(null);
     const [hasVoted, setHasVoted] = React.useState(false);
     const [hasVotedVotes, setHasVotedVotes] = React.useState(null);
-    const [hasVotedSide, setHasVotedSide] = React.useState<'yes' | 'no' | 'unknown' | null>(null);
+    const [hasVotedSide, setHasVotedSide] = React.useState<'yes' | 'no' | 'veto' | 'abstain' | 'unknown' | null>(null);
     const [cachedTokenMeta, setCachedTokenMeta] = React.useState([{mint: "A6GComqUgUZ7mTqZcDrgnigPEdYDcw5yCumbHaaQxVKK", logo: "https://arweave.net/4-3-xg9otuhR3BZ72MVk6-QB0tqBZAniXfsvAawEdHI", name: "VINE"}]);
     //const cachedTokenMeta = new Array();
     const [castedYesVotes, setCastedYesVotes] = React.useState(null);
@@ -3519,7 +3521,7 @@ export function GovernanceProposalV2View(props: any){
                         
                             //voterVotes = +(Number(item.account?.voterWeight) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
                             //castedYes += +(Number(item.account?.voterWeight) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
-                        }else{
+                        }else if (Number(item.account.vote.voteType) === 1){
                             uNo++;
                             voterVotes = -1 * (Number(item.account?.voterWeight));
                             castedNo += (Number(item.account?.voterWeight));
@@ -3674,7 +3676,7 @@ export function GovernanceProposalV2View(props: any){
                         if (voteType === 0)
                             voteDirection = 'Yes';
                         else
-                            voteDirection = 'No';
+                            voteDirection = voteType === 3 ? 'Veto' : voteType === 2 ? 'Abstain' : 'No';
                     } else{
                         if (item.account?.voteWeight?.yes && item.account?.voteWeight?.yes > 0){
                             voteType = 0
@@ -3696,7 +3698,7 @@ export function GovernanceProposalV2View(props: any){
                         if (voteType === 0)
                             voteDirection = 'Yes';
                         else
-                            voteDirection = 'No';
+                            voteDirection = voteType === 3 ? 'Veto' : voteType === 2 ? 'Abstain' : 'No';
                     } else{
                         if (item.vote?.voteWeight?.yes && item.account?.voteWeight?.yes > 0){
                             voteType = 0
@@ -5478,8 +5480,8 @@ export function GovernanceProposalV2View(props: any){
         thisitem?.account?.denyVoteWeight !== undefined && thisitem?.account?.denyVoteWeight !== null
             ? parseProposalVoteRaw(thisitem.account.denyVoteWeight)
             : parseProposalVoteRaw(thisitem?.account?.noVotesCount);
-    const forRaw = Number(forVotes) > 0 ? Number(forVotes) : legacyForRaw;
-    const againstRaw = Number(againstVotes) > 0 ? Number(againstVotes) : legacyAgainstRaw;
+    const forRaw = legacyForRaw;
+    const againstRaw = legacyAgainstRaw;
     const forUi = tokenScale > 0 ? forRaw / tokenScale : forRaw;
     const againstUi = tokenScale > 0 ? againstRaw / tokenScale : againstRaw;
     const totalCastUi = forUi + againstUi;
