@@ -272,6 +272,7 @@ export async function getJupiterPrices(tokens:string[], vsToken?:string, strict?
     finalUrl = apiUrl + finalTokenList+"&vsToken="+vsToken;
   const resp = await window.fetch(finalUrl, {
   })
+  if (!resp.ok) throw new Error(`Jupiter prices: HTTP ${resp.status}`);
   const json = await resp.json(); 
   if (json?.data)
     return json.data;
