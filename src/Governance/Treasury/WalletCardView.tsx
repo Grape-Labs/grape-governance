@@ -1,3 +1,4 @@
+import { treasuryRpcRequest, treasuryPriceRequest } from './requestQueue';
 import { useGrapeProposalEligibility, GrapeProposalEligibilityContext } from '../GrapeProposalEligibilityNotice';
 import { assertGrapeProposalEligibility } from '../api/grapeProposalEligibility';
 import * as React from 'react';
@@ -1304,20 +1305,29 @@ export default function WalletCardView(props:any) {
 
     const getWalletValue = async() => {
         setLoadingPrices(true);
-        const cgp = await getJupiterPrices(tokenMintArray);
+        try {
+            const mints = [...new Set<string>(tokenMintArray)].sort();
+            const cgp = await treasuryPriceRequest(mints.join(','), async () => {
+                const prices = await getJupiterPrices(mints);
+                if (prices?.error || prices?.message || prices?.status === 429) {
+                    throw new Error(JSON.stringify(prices));
+                }
+                return prices;
+            });
+            setUsdcValue(cgp);
 
-        //const solToUsd = cgp['So11111111111111111111111111111111111111112'].price;
-        //const solUsdValue = (ia.solBalance > 0 ? cgp['So11111111111111111111111111111111111111112'].price*(ia.solBalance/(10 ** 9)) : 0);
-        setUsdcValue(cgp);
-
-        setLoadingPrices(false);
+        } catch (error) {
+            console.error('Treasury price lookup failed', error);
+        } finally {
+            setLoadingPrices(false);
+        }
     }
     
     const getWalletAllTokenBalance = async(tokenOwnerRecord: PublicKey) => {
         try {
             const responses = await Promise.all([
-                RPC_CONNECTION.getParsedTokenAccountsByOwner(tokenOwnerRecord, { programId: TOKEN_PROGRAM_ID }),
-                RPC_CONNECTION.getParsedTokenAccountsByOwner(tokenOwnerRecord, { programId: TOKEN_2022_PROGRAM_ID }),
+                treasuryRpcRequest(`${RPC_CONNECTION.rpcEndpoint}:tokens:${tokenOwnerRecord.toBase58()}:${TOKEN_PROGRAM_ID.toBase58()}`, () => RPC_CONNECTION.getParsedTokenAccountsByOwner(tokenOwnerRecord, { programId: TOKEN_PROGRAM_ID })),
+                treasuryRpcRequest(`${RPC_CONNECTION.rpcEndpoint}:tokens:${tokenOwnerRecord.toBase58()}:${TOKEN_2022_PROGRAM_ID.toBase58()}`, () => RPC_CONNECTION.getParsedTokenAccountsByOwner(tokenOwnerRecord, { programId: TOKEN_2022_PROGRAM_ID })),
             ]);
 
             return responses.flatMap((response) => response.value).map((tokenAccount) => {
@@ -1343,7 +1353,7 @@ export default function WalletCardView(props:any) {
     
     const getWalletBalance = async(tokenOwnerRecord: PublicKey) => {
         try {
-            const lamports = await RPC_CONNECTION.getBalance(tokenOwnerRecord, 'confirmed');
+            const lamports = await treasuryRpcRequest(`${RPC_CONNECTION.rpcEndpoint}:sol:${tokenOwnerRecord.toBase58()}`, () => RPC_CONNECTION.getBalance(tokenOwnerRecord, 'confirmed'));
             return lamports / LAMPORTS_PER_SOL;
         } catch (error) {
             console.error('RPC wallet balance lookup failed', error);
@@ -1901,7 +1911,7 @@ export default function WalletCardView(props:any) {
             //await sleep(2000); // Delay of 2 seconds
             //const nft2 = await getWalletNftBalance(new PublicKey(rulesWalletAddress));
 
-            getWalletProposals();
+
 
             // Populate unified arrays
             setNativeSol(sol1);
@@ -1926,7 +1936,7 @@ export default function WalletCardView(props:any) {
             setLoading(false);
             isLoading.current = false;
 
-            getAllWalletDomains(); // Push this after loading
+
         } catch (error) {
             // Handle errors
             console.error(error);
@@ -2448,7 +2458,7 @@ const StakeAccountsView = () => {
     React.useEffect(() => { 
         
         if (usdcValue && 
-            (nativeSol && nativeSol > 0 || rulesSol && rulesSol > 0) &&
+            (nativeSol !== null && rulesSol !== null) &&
             (nativeTokens && rulesTokens)){
             let totalVal = 0;
             let tokenStableAccountVal = 0;
@@ -2566,6 +2576,18 @@ const StakeAccountsView = () => {
         }
     }, [walletAddress, rulesWalletAddress]);
     
+    React.useEffect(() => {
+        if (expanded && walletAddress && !nativeDomains) {
+            void getAllWalletDomains().catch(console.error);
+        }
+    }, [expanded, walletAddress]);
+
+    React.useEffect(() => {
+        if (expandedProps && rulesWalletAddress && !proposals) {
+            void getWalletProposals().catch(console.error);
+        }
+    }, [expandedProps, rulesWalletAddress]);
+
     const handleExpandClick = () => {
         setExpanded(!expanded);
     };
