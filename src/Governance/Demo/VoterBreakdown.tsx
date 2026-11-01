@@ -49,9 +49,13 @@ export function formatVoterPower(power: string) {
   return integer + (decimal ? "." + decimal : "");
 }
 
-export function voterWorkbook(rows: ReturnType<typeof voterRows>) {
+export function voterWorkbook(rows: ReturnType<typeof voterRows>, signers: Record<string, { address: string; signature: string } | null> = {}) {
   const escape = (value: string) => value.replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[char]!));
-  const data = [["Wallet", "Vote", "Voting power", "Record status", "Vote record"], ...rows.map(row => [row.wallet, row.choice, row.power, row.status, row.record])];
+  const data = [["Wallet", "Vote", "Voting power", "Record status", "Vote record", "Vote signer", "Cast by", "Vote transaction"], ...rows.map(row => {
+    const signer = signers[row.record];
+    return [row.wallet, row.choice, row.power, row.status, row.record, signer?.address || "Unavailable",
+      signer ? (signer.address === row.wallet ? "Owner" : "Delegate") : "Unavailable", signer?.signature || ""];
+  })];
   // SpreadsheetML: explicit string cells preserve wallet IDs and exact voting weights.
   return '<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>' +
     '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Voters"><Table>' +
@@ -62,11 +66,40 @@ export function voterWorkbook(rows: ReturnType<typeof voterRows>) {
 export default function VoterBreakdown({ records, proposal, count }: { records: any[] | null; proposal: any; count?: number }) {
   const [open, setOpen] = React.useState(false);
   const rows = React.useMemo(() => voterRows(records || [], proposal.account), [records, proposal]);
+  const [signers, setSigners] = React.useState<Record<string, { address: string; signature: string } | null>>({});
+  const [loadingSigners, setLoadingSigners] = React.useState(false);
+  const proposalAddress = String(proposal.pubkey?.toBase58?.() || proposal.pubkey || "");
+  React.useEffect(() => {
+    setSigners({});
+  }, [proposalAddress, records]);
+  React.useEffect(() => {
+    if (!open || !proposalAddress || !rows.length) return;
+    let cancelled = false;
+    setLoadingSigners(true);
+    void (async () => {
+      try {
+        const [{ lookupVoteSigner }, { RPC_CONNECTION }] = await Promise.all([
+          import("./voteSigner"), import("../../utils/grapeTools/constants"),
+        ]);
+        for (const row of rows) {
+          if (cancelled) break;
+          let signer = null;
+          try {
+            if (row.record) signer = await lookupVoteSigner(RPC_CONNECTION, proposalAddress, row.record);
+          } catch { /* History may be unavailable on the configured RPC. */ }
+          if (!cancelled) setSigners(previous => ({ ...previous, [row.record]: signer }));
+        }
+      } finally {
+        if (!cancelled) setLoadingSigners(false);
+      }
+    })().catch(() => { if (!cancelled) setLoadingSigners(false); });
+    return () => { cancelled = true; };
+  }, [open, proposalAddress, rows]);
   const stats = React.useMemo(() => distinctVoterSentiment(records || []), [records]);
   const binary = (!proposal.account?.options || (proposal.account.options.length === 1 && proposal.account.denyVoteWeight != null)) && Number(proposal.account?.voteType?.type || 0) === 0;
   const support = stats.total ? stats.for / stats.total * 100 : 0;
   const download = () => {
-    const blob = new Blob([voterWorkbook(rows)], { type: "application/vnd.ms-excel;charset=utf-8" });
+    const blob = new Blob([voterWorkbook(rows, signers)], { type: "application/vnd.ms-excel;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -81,7 +114,7 @@ export default function VoterBreakdown({ records, proposal, count }: { records: 
       aria-labelledby="gd-voters-title" PaperProps={{ sx: { bgcolor: "#141e2b", color: "#edf2fa", borderRadius: 3 } }}>
       <DialogTitle id="gd-voters-title" sx={{ fontSize: 18 }}>Voter breakdown</DialogTitle>
       <DialogContent>
-        <p style={{ fontSize: 12, color: "#a6b3c7" }}>Voting power recorded with each vote. Relinquished records are marked separately.</p>
+        <p style={{ fontSize: 12, color: "#a6b3c7" }}>Voting power recorded with each vote. Relinquished records are marked separately. Vote signer identifies the owner or delegate who authorized the vote.</p>
         {records != null && <div className="gd-voter-stats">
           <section className="gd-voter-stat-card">
             <span className="gd-stat-label"><PeopleOutlineIcon sx={{ fontSize: 16 }} /> Participating wallets</span>
@@ -101,16 +134,22 @@ export default function VoterBreakdown({ records, proposal, count }: { records: 
         {records == null ? <p>Voter records unavailable.</p> : rows.length === 0 ? <p>No voter records yet.</p> :
           <div style={{ overflowX: "auto" }}>
             <table className="gd-voters-table">
-              <thead><tr><th>Wallet</th><th>Vote</th><th className="gd-voter-power" aria-sort="descending">Voting power ↓</th><th>Status</th></tr></thead>
+              <thead><tr><th>Wallet</th><th>Vote signer</th><th>Vote</th><th className="gd-voter-power" aria-sort="descending">Voting power ↓</th><th>Status</th></tr></thead>
               <tbody>{rows.map((row, index) => <tr key={row.record || index}>
                 <td><WalletActions address={row.wallet} /></td>
+                <td>{signers[row.record] ? <>
+                  <WalletActions address={signers[row.record]!.address} />
+                  <small style={{ display: "block", color: "#a6b3c7" }}>
+                    {signers[row.record]!.address === row.wallet ? "Owner" : "Delegate"} · <a href={`https://explorer.solana.com/tx/${signers[row.record]!.signature}`} target="_blank" rel="noopener noreferrer" style={{ color: "#b6ecd5" }}>Vote transaction</a>
+                  </small>
+                </> : <span style={{ color: "#a6b3c7" }}>{loadingSigners && !(row.record in signers) ? "Loading…" : "Unavailable"}</span>}</td>
                 <td><span className="gd-voter-choice">{row.choice === "For" ? <ThumbUpIcon aria-hidden="true" sx={{ fontSize: 14, color: "#64dfb1" }} /> : row.choice === "Against" ? <ThumbDownIcon aria-hidden="true" sx={{ fontSize: 14, color: "#ef9199" }} /> : null}{row.choice}</span></td><td className="gd-voter-power" title={row.power}>{formatVoterPower(row.power)}</td><td>{row.status}</td>
               </tr>)}</tbody>
             </table>
           </div>}
       </DialogContent>
       <DialogActions>
-        <Button onClick={download} disabled={!rows.length} title="Excel-compatible XML workbook">Export to Excel</Button>
+        <Button onClick={download} disabled={!rows.length || loadingSigners} title="Excel-compatible XML workbook">Export to Excel</Button>
         <Button onClick={() => setOpen(false)}>Close</Button>
       </DialogActions>
     </Dialog>
