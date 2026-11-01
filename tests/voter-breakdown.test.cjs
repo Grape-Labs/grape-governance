@@ -30,3 +30,11 @@ test('sorts exact power descending and formats grouped rounded values',()=>{
  assert.equal(formatVoterPower('999.999'),'1,000');
  assert.equal(formatVoterPower('Unavailable'),'Unavailable');
 });
+test('Excel export includes verified signer, delegate classification and transaction',()=>{
+ const rows=[{wallet:'owner',record:'record',choice:'For',power:'1',status:'Recorded'}];
+ const xml=voterWorkbook(rows,{record:{address:'delegate',signature:'signature'}});
+ const doc=new JSDOM(xml,{contentType:'text/xml'}).window.document;
+ const values=[...doc.querySelectorAll('Row')[1].querySelectorAll('Data')].map(node=>node.textContent);
+ assert.deepEqual(values.slice(-3),['delegate','Delegate','signature']);
+ assert.ok(voterWorkbook(rows).includes('Unavailable'));
+});
