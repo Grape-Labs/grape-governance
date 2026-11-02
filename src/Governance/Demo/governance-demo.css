@@ -1673,3 +1673,21 @@
 .gd-proposal-timeline.is-vetoed .gd-timeline-track i { background: #637388; }
 .gd-proposal-timeline.is-vetoed li:last-child .gd-timeline-track i { background: #ef9199; }
 .gd-proposal-timeline.is-vetoed li:last-child > span { color: #efabb1; }
+
+/* Council delegation follows the DAO's existing panel and typography system. */
+.gd-council-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.gd-council-panel { padding: 24px; margin-bottom: 20px; min-width: 0; }
+.gd-council-panel p { color: #a6b3c7; line-height: 1.6; }
+.gd-council-panel h2 { margin: 12px 0; }
+.gd-council-panel li { margin: 10px 0; }
+.gd-council-current { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.gd-council-search { display: block; box-sizing: border-box; width: 100%; margin-top: 10px; padding: 14px; border: 1px solid #ffffff30; border-radius: 10px; background: #0c1420; color: #edf2fa; font: inherit; }
+.gd-council-members { max-height: 280px; overflow: auto; margin: 16px 0; }
+.gd-council-member { display: flex; justify-content: space-between; gap: 16px; width: 100%; padding: 14px; margin: 4px 0; text-align: left; background: #ffffff05; color: #edf2fa; border: 1px solid #ffffff15; border-radius: 10px; cursor: pointer; font: inherit; }
+.gd-council-member span:first-child { overflow-wrap: anywhere; }
+.gd-council-member.is-selected { border-color: #64dfb1; background: #64dfb110; }
+.gd-council-review { border-top: 1px solid #ffffff20; padding-top: 16px; }
+.gd-council-pass { color: #64dfb1; }
+.gd-council-fail { color: #ef9199; }
+.gd-council-panel button:disabled { opacity: .5; cursor: default; }
+@media (max-width: 700px) { .gd-council-summary { grid-template-columns: 1fr; gap: 0; } .gd-council-panel { padding: 18px; } }

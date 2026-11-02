@@ -1,3 +1,4 @@
+import { useCouncilDelegation } from "./useCouncilDelegation";
 import React from "react";
 import { Menu, MenuItem, useMediaQuery } from "@mui/material";
 import HowToVoteOutlinedIcon from "@mui/icons-material/HowToVoteOutlined";
@@ -10,6 +11,7 @@ import { Link, useParams } from "react-router-dom";
 import "./governance-demo.css";
 const defaultRealm = "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip";
 export type DaoSection =
+  | "council"
   | "proposals"
   | "members"
   | "treasury"
@@ -27,10 +29,11 @@ export default function GrapeDaoNavigation({
 }) {
   const route = useParams();
   const realm = governanceAddress || route.governance || route.handlekey || route.address || defaultRealm;
+  const council = useCouncilDelegation(realm);
   const mobile = useMediaQuery("(max-width:950px)");
   const [menuAnchor, setMenuAnchor] = React.useState<HTMLElement | null>(null);
   const icons = { proposals: HowToVoteOutlinedIcon, members: PeopleOutlineIcon,
-    treasury: AccountBalanceWalletOutlinedIcon, stats: BarChartOutlinedIcon, advanced: MoreHorizIcon };
+    council: PeopleOutlineIcon, treasury: AccountBalanceWalletOutlinedIcon, stats: BarChartOutlinedIcon, advanced: MoreHorizIcon };
   const current = advanced ? "advanced" : section;
   return (
     <nav className="gd-dao-nav" aria-label="DAO navigation">
@@ -40,9 +43,10 @@ export default function GrapeDaoNavigation({
           ["members", "Members", "members"],
           ["treasury", "Treasury", "treasury"],
           ["stats", "Stats", "stats"],
+          ["council", "Council", "council"],
           ["advanced", "Show old view", "governance"],
         ] as const
-      ).filter(([key]) => !mobile || key !== "advanced").map(([key, label, path]) => (
+      ).filter(([key]) => (key !== "council" || council.allowed) && (!mobile || (key !== "advanced" && key !== "council"))).map(([key, label, path]) => (
         <Link
           key={key}
           to={`/${path}/${realm}`}
@@ -74,6 +78,7 @@ export default function GrapeDaoNavigation({
           onClick={event => setMenuAnchor(event.currentTarget)}><MoreHorizIcon aria-hidden="true" /></button>
         <Menu id="gd-nav-overflow" anchorEl={menuAnchor} open={!!menuAnchor} onClose={() => setMenuAnchor(null)}
           PaperProps={{ sx: { bgcolor: "#141e2b", color: "#edf2fa", border: "1px solid #ffffff20", borderRadius: 2 } }}>
+          {council.allowed && <MenuItem component={Link} to={`/council/${realm}`} onClick={() => setMenuAnchor(null)} aria-current={current === "council" ? "page" : undefined}>Council delegation</MenuItem>}
           <MenuItem component={Link} to={`/governance/${realm}`} onClick={() => setMenuAnchor(null)}
             aria-current={current === "advanced" ? "page" : undefined}>Show old view</MenuItem>
         </Menu>

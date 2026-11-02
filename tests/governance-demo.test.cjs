@@ -38,6 +38,7 @@ const loaded = new Module(filename, module);
 loaded.filename = filename;
 loaded.paths = Module._nodeModulePaths(path.dirname(filename));
 let walletAddress = "test-wallet";
+let councilAllowed = false;
 let voteFailure = false;
 let fail = false;
 let renderFailure = false;
@@ -53,6 +54,7 @@ const rows = [
   },
 ];
 loaded.require = function (id) {
+  if (id === "./useCouncilDelegation") return { useCouncilDelegation: () => ({ allowed: councilAllowed }) };
   if (id.endsWith(".css")) return {};
   if (id === "../../utils/grapeTools/Explorer") return { default: () => null, __esModule: true };
   if (id === "@solana/wallet-adapter-react")
@@ -505,4 +507,18 @@ test('OG Reputation is active only for Grape; other DAOs get a local onboarding 
       }
     } finally { cleanup(); }
   }
+});
+
+test('Council navigation is visible only after council access is verified', () => {
+  const Navigation = loaded.require('./GrapeDaoNavigation').default;
+  try {
+    for (const allowed of [false, true]) {
+      councilAllowed = allowed;
+      render(React.createElement(MemoryRouter, null, React.createElement(Navigation, { governanceAddress: realm })));
+      const link = screen.queryByRole('link', { name: 'Council' });
+      assert.equal(!!link, allowed);
+      if (link) assert.equal(link.getAttribute('href'), `/council/${realm}`);
+      cleanup();
+    }
+  } finally { councilAllowed = false; cleanup(); }
 });
