@@ -1,3 +1,4 @@
+import CouncilDelegationPage from "./Governance/Demo/CouncilDelegationPage";
 import React, { useMemo, Suspense } from 'react';
 import GovernanceDemo from './Governance/Demo/GovernanceDemo';
 import GrapeDaoPage from './Governance/Demo/GrapeDaoPage';
@@ -375,6 +376,7 @@ function DashboardContent() {
                                               <Route path="metrics/*" element={<PremiumView />} >
                                                   <Route path=":handlekey" element={<PremiumView />} />
                                               </Route>
+                                              <Route path="council/:handlekey" element={<CouncilDelegationPage />} />
                                               <Route path="members/:handlekey" element={<GrapeDaoSection section="members" />} />
                                               <Route path="treasury/:address" element={<GrapeDaoSection section="treasury" />} />
                                               <Route path="stats/:handlekey" element={<GrapeDaoSection section="stats" />} />
