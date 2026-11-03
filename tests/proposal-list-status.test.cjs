@@ -106,3 +106,12 @@ test('recent results report final support and recorded option outcomes safely', 
 test('veto sentiment is explicit rather than Other', () => {
  assert.deepEqual(mod.exports.distinctVoterSentiment([{account:{governingTokenOwner:'v',vote:{voteType:3}}}]),{total:1,for:0,against:0,veto:1,other:0});
 });
+
+test('overview hides vetoed proposals and history includes every state', () => {
+  for (let state = 0; state <= 9; state++) {
+    assert.equal(mod.exports.matchesProposalFilter({state}, 'all'), state !== 9);
+    assert.equal(mod.exports.matchesProposalFilter({state: String(state)}, 'history'), true);
+    assert.equal(mod.exports.matchesProposalFilter({state}, 'voting'), state === 2);
+    assert.equal(mod.exports.matchesProposalFilter({state}, 'drafts'), state < 2);
+  }
+});

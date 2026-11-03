@@ -7,7 +7,7 @@ import DaoPageLayout from "./DaoPageLayout";
 import ProposalShare from "./ProposalShare";
 import ProposalSettings from "./ProposalSettings";
 import VoterBreakdown from "./VoterBreakdown";
-import { recordedVoteLabel, proposalListStatus, compareProposalPriority, proposalOutcome, recentDecisionResult } from "./proposalListStatus";
+import { recordedVoteLabel, proposalListStatus, compareProposalPriority, proposalOutcome, recentDecisionResult, matchesProposalFilter } from "./proposalListStatus";
 import {
   getVoteRecordsByVoterIndexed,
   getRealmIndexed,
@@ -238,10 +238,7 @@ export default function GovernanceDemo({
   const recentDecisions = proposals.filter((item) => [3, 4, 5, 6, 7, 8, 9].includes(Number(item.account.state)));
   const visible = proposals.filter((item) =>
     String(item.account.name).toLowerCase().includes(filter.toLowerCase()) &&
-    (proposalFilter === "all" ||
-      (proposalFilter === "voting" && Number(item.account.state) === 2) ||
-      (proposalFilter === "drafts" && [0, 1].includes(Number(item.account.state))) ||
-      (proposalFilter === "history" && Number(item.account.state) > 2))
+    matchesProposalFilter(item.account, proposalFilter)
   );
   const select = (id: string) => {
     if (landing) navigate(`/proposal/${realmAddress}/${id}`);
@@ -595,7 +592,12 @@ export default function GovernanceDemo({
                                 </button>
                               </section>
                               <section id="gd-proposal-vote" className="gd-voting-section" aria-label="Proposal voting">
-                              {view.proposal.account.state !== 2 && !view.isMultiChoiceProposal ? <div className="gd-footnote"><strong>{[0, 1].includes(view.proposal.account.state) ? "Voting has not started" : "Voting is closed"}</strong><span> · {view.stateLabel}</span>{view.hasVoted && <div><a href={`/proposal/${realmAddress}/${selectedAddress}?view=advanced`}>Manage recorded vote ↗</a></div>}</div> : view.actions ? (
+                              {view.finalizeAction && <div className="gd-vote-unavailable">
+                                <strong>Voting ended · Ready to finalize</strong>
+                                <p>Finalize to record the outcome before executing any approved instructions.</p>
+                                {view.finalizeAction}
+                              </div>}
+                              {view.finalizeAction ? null : view.proposal.account.state !== 2 && !view.isMultiChoiceProposal ? <div className="gd-footnote"><strong>{[0, 1].includes(view.proposal.account.state) ? "Voting has not started" : "Voting is closed"}</strong><span> · {view.stateLabel}</span>{view.hasVoted && <div><a href={`/proposal/${realmAddress}/${selectedAddress}?view=advanced`}>Manage recorded vote ↗</a></div>}</div> : view.actions ? (
                                 <>
                                   <div className={view.isMultiChoiceProposal ? "gd-ballot-container" : "gd-live-actions"}>
                                     {view.actions}
@@ -673,7 +675,7 @@ export default function GovernanceDemo({
                     />
                   </label>
                   <div className="gd-proposal-filters" role="group" aria-label="Filter proposals">
-                    {[["all", "All"], ["voting", "Voting"], ["drafts", "Drafts"], ["history", "History"]].map(([value, label]) => (
+                    {[["all", "Overview"], ["voting", "Voting"], ["drafts", "Drafts"], ["history", "History"]].map(([value, label]) => (
                       <button key={value} aria-pressed={proposalFilter === value} onClick={() => setProposalFilter(value)}>{label}</button>
                     ))}
                   </div>
