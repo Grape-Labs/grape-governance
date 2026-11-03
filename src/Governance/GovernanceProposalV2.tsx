@@ -8077,6 +8077,7 @@ export function GovernanceProposalV2View(props: any){
             proposal: thisitem,
             electorate: normalizePkString(realm?.account?.config?.councilMint) === normalizePkString(thisitem.account.governingTokenMint) ? 'Council' : 'Community',
             isPoll: ballot.poll,
+            finalizeAction: canFinalize ? <ManageGovernanceProposal {...managementProps} mode={5} /> : null,
             management: <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {!publicKey ? <Typography>Connect your wallet to see available actions.</Typography> : <>
                     {canManageDraftProposal && <ManageGovernanceProposal {...managementProps} mode={2} />}

@@ -139,3 +139,13 @@ export function recentDecisionResult(account: any): string | null {
   if (!winners.length) return null;
   return `${winners.length === 1 ? "Selected" : "Selected options"}: ${winners.map((option: any) => option.label).join(", ")}`;
 }
+
+// History is the complete archive; keep vetoed proposals out of the overview.
+export function matchesProposalFilter(account: any, filter: string): boolean {
+  const state = Number(account?.state);
+  if (filter === "history") return true;
+  if (filter === "all") return state !== 9;
+  if (filter === "voting") return state === 2;
+  if (filter === "drafts") return state === 0 || state === 1;
+  return false;
+}
