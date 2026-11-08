@@ -8,7 +8,7 @@ import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import "./governance-demo.css";
+
 const defaultRealm = "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip";
 export type DaoSection =
   | "council"

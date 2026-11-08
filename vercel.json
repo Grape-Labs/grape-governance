@@ -1,55 +1,10 @@
 {
   "version": 2,
-
-  "buildCommand": "yarn build:client",
-  "outputDirectory": "dist",
+  "framework": "nextjs",
+  "buildCommand": "yarn build",
   "functions": {
-    "api/grant-tracking.js": { "maxDuration": 30 },
-    "api/proposal-preview.js": { "includeFiles": "dist/index.html" }
-  },
-  "crons": [
-  ],
-
-  "rewrites": [
-    { "source": "/proposal/:realm/:proposal", "destination": "/api/proposal-preview?realm=:realm&proposal=:proposal" },
-    { "source": "/embedproposal/:realm/:proposal", "destination": "/api/proposal-preview?realm=:realm&proposal=:proposal" },
-    { "source": "/api/v1/:path*", "destination": "/api/v1?path=:path*" },
-    { "source": "/api/:path*", "destination": "/api/:path*" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ],
-
-  "headers": [
-    {
-      "source": "/manifest.webmanifest",
-      "headers": [
-        { "key": "Content-Type", "value": "application/manifest+json; charset=utf-8" },
-        { "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" }
-      ]
-    },
-    {
-      "source": "/:path*.webmanifest",
-      "headers": [
-        { "key": "Content-Type", "value": "application/manifest+json; charset=utf-8" },
-        { "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" }
-      ]
-    },
-    {
-      "source": "/(icons|shortcuts|screens)/:file*\\.(png|jpg|jpeg|webp|svg)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    },
-    {
-      "source": "/sw.js",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-cache" }
-      ]
-    },
-    {
-      "source": "/index.html",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
-      ]
+    "src/pages/api/grant-tracking.ts": {
+      "maxDuration": 30
     }
-  ]
+  }
 }

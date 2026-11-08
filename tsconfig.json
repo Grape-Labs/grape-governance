@@ -16,7 +16,7 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "downlevelIteration": true,
     "resolveJsonModule": true,
     "noEmit": true,
@@ -26,9 +26,13 @@
     ],
     "jsx": "react-jsx",
     "isolatedModules": true,
+    "incremental": true
   },
   "include": [
     "src"
   ],
+  "exclude": [
+    "node_modules"
+  ]
   //"extends": "expo/tsconfig.base"
 }

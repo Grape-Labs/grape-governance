@@ -1,4 +1,4 @@
-import LOCAL_APP_ICON from 'url:../public/icon.png';
+import LOCAL_APP_ICON from '../public/icon.png?url';
 import * as React from 'react';
 import { styled, alpha } from '@mui/material/styles';
 import { Link, useLocation, NavLink } from 'react-router-dom';

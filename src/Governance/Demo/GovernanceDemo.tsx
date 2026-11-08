@@ -15,7 +15,7 @@ import {
   getAllProposalsIndexed,
 } from "../api/queries";
 import { GovernanceProposalV2View } from "../GovernanceProposalV2";
-import "./governance-demo.css";
+
 
 export const GRAPE_REALM = "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip";
 const states = [

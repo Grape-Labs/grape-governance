@@ -9,7 +9,7 @@ function load(file, mocks = {}) {
     presets:['@babel/preset-typescript'], plugins:['@babel/plugin-transform-modules-commonjs']}).code;
   new Function('module','exports','require',code)(mod,mod.exports,id => {
     if (id in mocks) return mocks[id];
-    if (id.endsWith('.png')) return '/assets/'+id.split('/').pop();
+    if (id.endsWith('.png?url')) return '/assets/'+id.split('/').pop().split('?')[0];
     return require(id);
   });
   return mod.exports;

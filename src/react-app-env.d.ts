@@ -1,1 +1,1 @@
-/// <reference types="react-scripts" />
+// Framework types are provided by next-env.d.ts.

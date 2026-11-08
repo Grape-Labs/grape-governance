@@ -64,11 +64,17 @@ test('generates a 1200 x 630 PNG including long titles', async () => {
   assert.equal(buffer.readUInt32BE(20),630);
 });
 
-test('Vercel serves proposal metadata before SPA fallback and bundles built HTML', async () => {
+test('Next owns page metadata without a static SPA HTML rewrite', async () => {
   const config=JSON.parse(await readFile(new URL('../vercel.json',import.meta.url),'utf8'));
-  assert.equal(config.functions['api/proposal-preview.js'].includeFiles,'dist/index.html');
-  assert.equal(config.rewrites[0].source,'/proposal/:realm/:proposal');
-  assert.equal(config.rewrites[1].source,'/embedproposal/:realm/:proposal');
+  assert.equal(config.framework, 'nextjs');
+  assert.equal(config.rewrites, undefined);
+  const page=await readFile(new URL('../src/pages/[[...path]].tsx',import.meta.url),'utf8');
+  assert.match(page, /getServerSideProps/);
+  assert.match(page, /loadProposalPreview/);
+  const {default: redirect}=await import('../api/proposal-preview.js');
+  let destination;
+  redirect({url:'/api/proposal-preview',query:{realm,proposal}}, {redirect(status,url){assert.equal(status,307);destination=url;}});
+  assert.equal(destination, `/proposal/${realm}/${proposal}`);
 });
 
 test('image endpoint serves PNG bytes and uncached fallback; invalid keys return 400', async () => {
