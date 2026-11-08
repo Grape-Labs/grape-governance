@@ -3,12 +3,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
-const { createRequire } = require('node:module');
 const { gzipSync } = require('node:zlib');
 
-// Resolve exactly as the legacy download helper does.
-const downloadRequire = createRequire(require.resolve('download'));
-const decompress = downloadRequire('decompress');
+// The legacy xNFT download helper is no longer installed; test the retained adapter directly.
+const decompress = require('../vendor/decompress/index.cjs');
 const tar = require('tar-stream');
 
 async function archive(entries) {

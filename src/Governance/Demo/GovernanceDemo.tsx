@@ -476,16 +476,21 @@ export default function GovernanceDemo({
                                         "No inline description available."}
                                   </p>
                                 )}
-                                {view.descriptionUrl && (
+                              </div>
+                              {view.descriptionUrl && (
+                                <div className="gd-actions gd-description-source">
                                   <a
+                                    className="gd-secondary"
                                     href={view.descriptionUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                   >
-                                    Read original description ↗
+                                    {/^https?:\/\/gist\.github\.com\//i.test(view.descriptionUrl)
+                                      ? "Open GIST ↗"
+                                      : "Read original description ↗"}
                                   </a>
-                                )}
-                              </div>
+                                </div>
+                              )}
                               {!view.isMultiChoiceProposal && (
                                 <div className="gd-vote-overview">
                                   <section className="gd-vote-panel" aria-label="Approval progress">
