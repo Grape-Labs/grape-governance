@@ -7,7 +7,7 @@ import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalance
 import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import "./governance-demo.css";
 const defaultRealm = "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip";
 export type DaoSection =
@@ -28,13 +28,24 @@ export default function GrapeDaoNavigation({
   advanced?: boolean;
 }) {
   const route = useParams();
+  const [params] = useSearchParams();
   const realm = governanceAddress || route.governance || route.handlekey || route.address || defaultRealm;
   const council = useCouncilDelegation(realm);
   const mobile = useMediaQuery("(max-width:950px)");
   const [menuAnchor, setMenuAnchor] = React.useState<HTMLElement | null>(null);
   const icons = { proposals: HowToVoteOutlinedIcon, members: PeopleOutlineIcon,
     council: PeopleOutlineIcon, treasury: AccountBalanceWalletOutlinedIcon, stats: BarChartOutlinedIcon, advanced: MoreHorizIcon };
-  const current = advanced ? "advanced" : section;
+  const oldUi = advanced || section === "advanced";
+  const current = oldUi ? "advanced" : section;
+  const proposal = route.proposal || params.get("proposal");
+  const toggleParams = new URLSearchParams(params);
+  toggleParams.delete("proposal");
+  if (oldUi) toggleParams.delete("view");
+  else toggleParams.set("view", "advanced");
+  const togglePath = proposal ? `/proposal/${realm}/${proposal}` : `/dao/${realm}`;
+  const toggleQuery = toggleParams.toString();
+  const toggleUrl = `${togglePath}${toggleQuery ? `?${toggleQuery}` : ""}`;
+  const toggleLabel = oldUi ? "New UI" : "Old UI";
   return (
     <nav className="gd-dao-nav" aria-label="DAO navigation">
       {(
@@ -44,16 +55,16 @@ export default function GrapeDaoNavigation({
           ["treasury", "Treasury", "treasury"],
           ["stats", "Stats", "stats"],
           ["council", "Council", "council"],
-          ["advanced", "Show old view", "governance"],
+          ["advanced", toggleLabel, "governance"],
         ] as const
       ).filter(([key]) => (key !== "council" || council.allowed) && (!mobile || (key !== "advanced" && key !== "council"))).map(([key, label, path]) => (
         <Link
           key={key}
-          to={`/${path}/${realm}`}
-          className={`${current === key ? "is-current" : ""} ${
+          to={key === "advanced" ? toggleUrl : `/${path}/${realm}`}
+          className={`${current === key && key !== "advanced" ? "is-current" : ""} ${
             key === "advanced" ? "gd-old-view" : ""
           }`}
-          aria-current={current === key ? "page" : undefined}
+          aria-current={current === key && key !== "advanced" ? "page" : undefined}
         >
           {mobile && React.createElement(icons[key], { className: "gd-nav-icon", "aria-hidden": true })}
           <span>{label}</span>
@@ -79,8 +90,7 @@ export default function GrapeDaoNavigation({
         <Menu id="gd-nav-overflow" anchorEl={menuAnchor} open={!!menuAnchor} onClose={() => setMenuAnchor(null)}
           PaperProps={{ sx: { bgcolor: "#141e2b", color: "#edf2fa", border: "1px solid #ffffff20", borderRadius: 2 } }}>
           {council.allowed && <MenuItem component={Link} to={`/council/${realm}`} onClick={() => setMenuAnchor(null)} aria-current={current === "council" ? "page" : undefined}>Council delegation</MenuItem>}
-          <MenuItem component={Link} to={`/governance/${realm}`} onClick={() => setMenuAnchor(null)}
-            aria-current={current === "advanced" ? "page" : undefined}>Show old view</MenuItem>
+          <MenuItem component={Link} to={toggleUrl} onClick={() => setMenuAnchor(null)}>{toggleLabel}</MenuItem>
         </Menu>
       </>}
     </nav>

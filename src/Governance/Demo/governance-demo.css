@@ -1691,3 +1691,10 @@
 .gd-council-fail { color: #ef9199; }
 .gd-council-panel button:disabled { opacity: .5; cursor: default; }
 @media (max-width: 700px) { .gd-council-summary { grid-template-columns: 1fr; gap: 0; } .gd-council-panel { padding: 18px; } }
+
+.gd-description-source {
+  margin: 0 0 20px;
+}
+.gd-description-source .gd-secondary {
+  text-decoration: none;
+}
