@@ -125,7 +125,6 @@ import {
     FRICTIONLESS_BG,
     APP_ICON,
     APP_LOGO,
-    GIST_LOGO,
 } from '../../utils/grapeTools/constants';
 
 import { 
@@ -962,16 +961,7 @@ function TablePaginationActions(props) {
     
                         const rpd = await resolveProposalDescription(cleanString);
     
-                        const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
-                        const targetUrl =
-                        "https://shdw-drive.genesysgo.net/4HMWqo1YLwnxuVbh4c8KXMcZvQj4aw7oxnNmWVm4RmVV/Screenshot_2023-05-28_at_10.43.34.png";
-    
-                        const stringWithPreviews = rpd.replace(imageUrlRegex, (match: string) => {
-                        if (match === targetUrl) return GIST_LOGO;
-                        return `![Image X](${match})`;
-                        });
-    
-                        setDescriptionMarkdown(stringWithPreviews);
+                        setDescriptionMarkdown(rpd);
                     } else if (hostname === "docs.google.com") {
                         setGoogleDocs(cleanString); // store the URL (or a flag if you prefer)
                     } else if (hostname.includes("gitbook.io")) {

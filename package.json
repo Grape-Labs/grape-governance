@@ -24,7 +24,7 @@
     ],
     "scripts": {
         "clean": "shx rm -rf dist dist-server .parcel-cache",
-        "build:client": "yarn clean && parcel build --target client",
+        "build:client": "yarn clean && parcel build --target client && node bin/check-client-assets.cjs",
         "build:server": "parcel build src/server/index.js --target server --dist-dir dist-server",
         "build": "yarn build:client && yarn build:server",
         "release:patch": "npm version patch --no-git-tag-version && yarn build",
@@ -150,7 +150,7 @@
         "dotenv": "^16.4.5",
         "esm": "^3.2.25",
         "ethers": "^5.5.4",
-        "express": "^4.21.1",
+        "express": "^4.22.3",
         "file_size_url": "^1.0.4",
         "firebase": "^10.10.0",
         "formidable": "3.5.2",
@@ -283,7 +283,7 @@
         "**/read-yaml-file/js-yaml": "3.15.2",
         "js-yaml": "4.3.2",
         "linkify-it": "5.0.2",
-        "node-forge": "1.4.0",
+        "node-forge": "1.4.3",
         "path-to-regexp": "0.1.12",
         "picomatch": "2.3.2",
         "shell-quote": "1.8.4",
@@ -309,7 +309,12 @@
         "jose": "2.0.7",
         "**/jsdom/tough-cookie": "4.1.4",
         "**/simple-update-notifier/semver": "7.8.6",
-        "resolve-url-loader": "5.0.0"
+        "resolve-url-loader": "5.0.0",
+        "protobufjs": "7.6.6",
+        "joi": "17.13.9",
+        "body-parser": "1.20.9",
+        "source-map-js": "1.2.2",
+        "compression": "1.8.2"
     },
     "staticFiles": {
         "staticPath": [

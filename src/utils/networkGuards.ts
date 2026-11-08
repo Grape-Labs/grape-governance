@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { replaceLegacyAssetUrl } from './legacyAssets';
 
 const BLOCKED_HOSTS = new Set(['shdw-drive.genesysgo.net', 'shadow-storage.genesysgo.net']);
 const BLOCKED_HOST_SUFFIXES = ['genesysgo.net'];
@@ -51,6 +52,8 @@ function createBlockedResponse(): Response {
 }
 
 function sanitizeDomUrl(value: string, baseUrl: string, attrName: string): string {
+  const replacement = replaceLegacyAssetUrl(value);
+  if (replacement !== value) return replacement;
   const resolved = resolveUrl(value, baseUrl);
   if (!isBlockedHostUrl(resolved)) return value;
   if (attrName === 'href') return 'about:blank';
@@ -68,6 +71,11 @@ export function installNetworkGuards() {
   const guardedFetch: typeof fetch = (input: RequestInfo | URL, init?: RequestInit) => {
     const rawUrl = getUrlFromFetchInput(input);
     const resolved = rawUrl ? resolveUrl(rawUrl, window.location.href) : null;
+    const replacement = resolved ? replaceLegacyAssetUrl(resolved) : null;
+    if (replacement && replacement !== resolved &&
+        (init?.method || (typeof Request !== 'undefined' && input instanceof Request ? input.method : 'GET')).toUpperCase() === 'GET') {
+      return originalFetch(typeof Request !== 'undefined' && input instanceof Request ? new Request(new URL(replacement, window.location.href), input) : replacement, init);
+    }
     if (isBlockedHostUrl(resolved)) {
       return Promise.resolve(createBlockedResponse());
     }
@@ -99,6 +107,12 @@ export function installNetworkGuards() {
         ? config.baseURL
         : window.location.href;
     const resolved = rawUrl ? resolveUrl(rawUrl, baseUrl) : null;
+    const replacement = resolved ? replaceLegacyAssetUrl(resolved) : null;
+    if (replacement && replacement !== resolved && (!config.method || config.method.toLowerCase() === 'get')) {
+      config.url = replacement;
+      config.baseURL = undefined;
+      return config;
+    }
     if (isBlockedHostUrl(resolved)) {
       const error = new Error(`Blocked outbound request: ${resolved}`);
       (error as Error & { code?: string }).code = 'HOST_BLOCKED';

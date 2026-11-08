@@ -1,3 +1,4 @@
+import LOCAL_GRAPE_LOGO from 'url:../../public/apple-grape-touch-icon.png';
 import React, { useState } from 'react';
 import { PublicKey, Signer, TransactionInstruction, Transaction, Keypair, TransactionMessage, VersionedTransaction, SystemProgram } from '@solana/web3.js';
 import { styled, useTheme } from '@mui/material/styles';
@@ -322,7 +323,7 @@ function MultiChainOathView(props:any) {
                               environmentId: DYNAMICXYZ_KEY,
                               walletConnectors: [ EthereumWalletConnectors, SolanaWalletConnectors ],
                               appName: "Governance by Grape",
-                              appLogoUrl: "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/logo_grape.png",
+                              appLogoUrl: LOCAL_GRAPE_LOGO,
                               siweStatement: "You will need to sign this message to continue. *** Frictionless Pin: "+generatedPin+" ***",
                               eventsCallbacks: {
                                 onSignedMessage: ({ messageToSign, signedMessage }) => {

@@ -167,7 +167,7 @@ import {
     SHYFT_KEY,
     HELIUS_API,
     BLACKLIST_WALLETS,
-    GIST_LOGO } from '../utils/grapeTools/constants';
+    } from '../utils/grapeTools/constants';
 import { 
     formatAmount, 
     getFormattedNumberToLocale,
@@ -3801,16 +3801,7 @@ export function GovernanceProposalV2View(props: any){
 
                         const rpd = await resolveProposalDescription(descriptionUrl);
 
-                        const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
-                        const targetUrl =
-                        "https://shdw-drive.genesysgo.net/4HMWqo1YLwnxuVbh4c8KXMcZvQj4aw7oxnNmWVm4RmVV/Screenshot_2023-05-28_at_10.43.34.png";
-
-                        const stringWithPreviews = rpd.replace(imageUrlRegex, (match: string) => {
-                        if (match === targetUrl) return GIST_LOGO;
-                        return `![Image X](${match})`;
-                        });
-
-                        setProposalDescription(stringWithPreviews);
+                        setProposalDescription(rpd);
                     } else if (hostname === "docs.google.com") {
                         setGoogleDocs(descriptionUrl); // store the URL (or a flag if you prefer)
                     } else if (hostname.includes("gitbook.io")) {

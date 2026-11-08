@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { replaceLegacyAssetsInText } from '../legacyAssets';
 
 type GistFile = {
   filename: string;
@@ -48,7 +49,7 @@ export const gistApi = {
         signal: controller.signal,
         timeout: 15_000,
       });
-      return res.data;
+      return typeof res.data === 'string' ? replaceLegacyAssetsInText(res.data) : res.data;
     } finally {
       // clear after completion (success or throw)
       if (this.abortController === controller) this.abortController = null;
@@ -94,7 +95,7 @@ export const gistApi = {
         signal: controller.signal,
         timeout: 15_000,
       });
-      return fileRes.data;
+      return typeof fileRes.data === 'string' ? replaceLegacyAssetsInText(fileRes.data) : fileRes.data;
     } catch (err: any) {
       // Optional: inspect err.response?.status for 403/404 if you want different fallbacks
       return undefined;
