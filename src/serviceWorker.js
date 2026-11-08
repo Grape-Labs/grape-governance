@@ -1,5 +1,5 @@
 // Service worker tuned to avoid stale HTML/chunk mismatches.
-const CACHE_PREFIX = "governance-offline-v2";
+const CACHE_PREFIX = "governance-offline-next-v1";
 const PAGE_CACHE = `${CACHE_PREFIX}-pages`;
 const ASSET_CACHE = `${CACHE_PREFIX}-assets`;
 

@@ -1,5 +1,24 @@
 # Governance.so
 
+
+## Running with Next.js
+
+The app now uses Next.js 16 (Pages Router), with native API routes and server-rendered proposal share metadata. Existing governance screens and the wallet providers remain client-rendered and keep their React Router navigation.
+
+Use Node.js 22.12+ or Node.js 24 and Yarn 1:
+
+```bash
+yarn install --frozen-lockfile
+yarn dev              # local development
+yarn build            # production build and image URL validation
+yarn start            # production server
+```
+
+Vercel uses the Next.js framework preset and `yarn build`; remove any project-level `dist` output-directory override. Keep the existing environment variables. `REACT_APP_*` values and the existing public GitHub client/Jupiter/Sanctum identifiers are browser-visible; Firebase admin credentials, API access tokens, and cron secrets stay server-only. Generated static assets, translations, manifest, and the service worker are prepared under `public/` during development/build.
+
+See [the migration notes](docs/nextjs-migration.md) for routing, deployment, and verification details.
+
+
 Governance.so by Grape is a fast SPL Governance interface focused on proposal execution, treasury operations, and DAO automation on Solana.
 
 ## Key Features
@@ -175,9 +194,10 @@ Optional env flags used by specific extensions:
 
 ### Proposal link previews
 
-Vercel routes `/proposal/:realm/:proposal` and `/embedproposal/:realm/:proposal`
-through `api/proposal-preview.js`. It injects proposal metadata into the built
-app shell, so Discord and other crawlers receive it without running JavaScript.
+Next.js server-renders metadata for `/proposal/:realm/:proposal` and
+`/embedproposal/:realm/:proposal`, so Discord and other crawlers receive it
+without running JavaScript. The old `/api/proposal-preview` URL redirects to
+the proposal page; it no longer reads a Parcel `dist/index.html` file.
 `api/proposal-image.js` renders a 1200 × 630 PNG with the title, DAO, and status.
 Both read Solana directly, including draft proposals that are not indexed yet.
 

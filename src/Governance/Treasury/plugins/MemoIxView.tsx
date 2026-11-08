@@ -1,5 +1,5 @@
-import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 "use client";
+import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { PublicKey, Transaction, TransactionInstruction, TransactionMessage, VersionedTransaction } from "@solana/web3.js";

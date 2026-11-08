@@ -1,6 +1,6 @@
 import React from "react";
 import GrapeDaoNavigation, { DaoSection } from "./GrapeDaoNavigation";
-import "./governance-demo.css";
+
 
 export default function DaoPageLayout({
   section = "proposals",

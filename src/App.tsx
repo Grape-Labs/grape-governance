@@ -185,7 +185,7 @@ function DashboardContent() {
       }
 
       try {
-        unsubscribe = listenForForegroundMessages((payload: any) => {
+        unsubscribe = await listenForForegroundMessages((payload: any) => {
           const title = payload?.notification?.title || 'Governance Update';
           const body = payload?.notification?.body || '';
           const icon = payload?.notification?.image || '/icons/icon-192x192.png';
@@ -210,7 +210,7 @@ function DashboardContent() {
       }
     })();
 
-    inject();
+    if (process.env.NEXT_PUBLIC_VERCEL_ANALYTICS_ENABLED === 'true') inject();
     return () => {
       if (typeof unsubscribe === 'function') unsubscribe();
     };

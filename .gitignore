@@ -96,3 +96,8 @@ build
 # IDE files
 .idea
 src/Admin/keypair.json
+
+# Next.js output and generated public files
+.next/
+/public/
+next-env.d.ts

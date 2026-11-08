@@ -1,4 +1,4 @@
-import LOCAL_GRAPE_LOGO from 'url:../../public/apple-grape-touch-icon.png';
+import LOCAL_GRAPE_LOGO from '../../public/apple-grape-touch-icon.png?url';
 import React, { useState } from 'react';
 import { PublicKey, Signer, TransactionInstruction, Transaction, Keypair, TransactionMessage, VersionedTransaction, SystemProgram } from '@solana/web3.js';
 import { styled, useTheme } from '@mui/material/styles';

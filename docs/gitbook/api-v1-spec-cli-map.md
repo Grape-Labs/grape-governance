@@ -66,7 +66,7 @@ Breaking changes require `/v2`.
 To stay under Hobby function limits, v1 is deployed as a single function:
 
 - entrypoint: `/api/v1` (file: `api/v1.js`)
-- all `/api/v1/*` routes are rewritten to that entrypoint via `vercel.json`
+- all `/api/v1/*` routes are handled by the Next.js optional catch-all API route in `src/pages/api/v1/[[...path]].ts`
 
 ---
 

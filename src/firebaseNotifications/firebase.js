@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -23,7 +23,14 @@ const hasFirebaseConfig = Boolean(
 const vapidKey = process.env.REACT_APP_FIREBASE_VAPID_KEY;
 
 const firebaseApp = hasFirebaseConfig ? initializeApp(firebaseConfig) : null;
-const messaging = firebaseApp ? getMessaging(firebaseApp) : null;
+let messagingPromise;
+async function getMessagingClient() {
+  if (!firebaseApp || typeof window === 'undefined') return null;
+  if (!messagingPromise) {
+    messagingPromise = isSupported().then(supported => supported ? getMessaging(firebaseApp) : null).catch(() => null);
+  }
+  return messagingPromise;
+}
 
 async function getMessagingServiceWorkerRegistration() {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return undefined;
@@ -37,6 +44,7 @@ async function getMessagingServiceWorkerRegistration() {
 
 export const fetchToken = async (setTokenFound) => {
   try {
+    const messaging = await getMessagingClient();
     if (!messaging || !vapidKey) {
       if (typeof setTokenFound === 'function') setTokenFound(false);
       console.warn('Firebase messaging is not configured. Missing Firebase config or VAPID key.');
@@ -65,22 +73,16 @@ export const fetchToken = async (setTokenFound) => {
   }
 };
 
-export const onMessageListener = () =>
-  new Promise((resolve, reject) => {
-    if (!messaging) {
-      reject(new Error('Firebase messaging is not configured.'));
-      return;
-    }
-    onMessage(messaging, (payload) => {
-      resolve(payload);
-    });
-  });
+export const onMessageListener = async () => {
+  const messaging = await getMessagingClient();
+  if (!messaging) throw new Error('Firebase messaging is unavailable in this browser.');
+  return new Promise(resolve => onMessage(messaging, resolve));
+};
 
-export const listenForForegroundMessages = (handler) => {
-  if (!messaging) {
-    return () => {};
-  }
-  return onMessage(messaging, (payload) => {
+export const listenForForegroundMessages = async (handler) => {
+  const messaging = await getMessagingClient();
+  if (!messaging) return () => {};
+  return onMessage(messaging, payload => {
     if (typeof handler === 'function') handler(payload);
   });
 };

@@ -1,14 +1,14 @@
-import appIcon from 'url:../public/icon.png';
-import grapeLogo from 'url:../public/apple-grape-touch-icon.png';
-import socialSplash from 'url:../public/governancesocialsplashv2.png';
-import shortcutFeed from 'url:../public/shortcut_feed.png';
-import shortcutUser from 'url:../public/shortcut_user.png';
-import touchIcon from 'url:../public/touch-icon.png';
-import proposalScreen from 'url:../public/scrn_proposal.png';
-import realtimeScreen from 'url:../public/scrn_realtime.png';
-import governanceScreen from 'url:../public/scrn_governance.png';
-import walletScreen from 'url:../public/scrn_wallet.png';
-import connectScreen from 'url:../public/scrn_connect_tools.png';
+import appIcon from '../public/icon.png?url';
+import grapeLogo from '../public/apple-grape-touch-icon.png?url';
+import socialSplash from '../public/governancesocialsplashv2.png?url';
+import shortcutFeed from '../public/shortcut_feed.png?url';
+import shortcutUser from '../public/shortcut_user.png?url';
+import touchIcon from '../public/touch-icon.png?url';
+import proposalScreen from '../public/scrn_proposal.png?url';
+import realtimeScreen from '../public/scrn_realtime.png?url';
+import governanceScreen from '../public/scrn_governance.png?url';
+import walletScreen from '../public/scrn_wallet.png?url';
+import connectScreen from '../public/scrn_connect_tools.png?url';
 
 const appStorage = '/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/';
 const replacements: Record<string, string> = {

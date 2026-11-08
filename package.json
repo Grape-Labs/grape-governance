@@ -23,39 +23,27 @@
         "vendor/decode-uri-component"
     ],
     "scripts": {
-        "clean": "shx rm -rf dist dist-server .parcel-cache",
-        "build:client": "yarn clean && parcel build --target client && node bin/check-client-assets.cjs",
-        "build:server": "parcel build src/server/index.js --target server --dist-dir dist-server",
-        "build": "yarn build:client && yarn build:server",
+        "clean": "shx rm -rf .next public dist dist-server .parcel-cache",
+        "build:client": "yarn build",
+        "build:server": "yarn build",
+        "build": "node bin/prepare-next-public.cjs && next build --webpack && node bin/check-client-assets.cjs",
         "release:patch": "npm version patch --no-git-tag-version && yarn build",
         "release:minor": "npm version minor --no-git-tag-version && yarn build",
         "release:major": "npm version major --no-git-tag-version && yarn build",
         "govso": "node ./bin/govso.mjs",
-        "startServer": "node -r esm dist-server/index.js",
-        "buildOld": "yarn clean && parcel build src/index.html --no-source-maps",
-        "start": "yarn clean && parcel src/index.html",
+        "startServer": "next start",
+        "start": "next start",
         "fmt": "prettier --write '{*,**/*}.{js,ts,jsx,tsx,json}'",
         "lint": "eslint . && prettier --check '{*,**/*}.{js,ts,jsx,tsx,json}'",
         "lint:fix": "eslint --fix . && yarn fmt",
-        "nuke": "shx rm -rf node_modules yarn.lock"
+        "nuke": "shx rm -rf node_modules yarn.lock",
+        "dev": "node bin/prepare-next-public.cjs && next dev --webpack",
+        "test": "node --test --experimental-test-module-mocks tests/*.test.cjs tests/*.test.mjs"
     },
     "bin": {
         "govso": "./bin/govso.mjs"
     },
     "type": "module",
-    "targets": {
-        "server": {
-            "context": "node",
-            "distDir": "dist-server",
-            "outputFormat": "esmodule",
-            "scopeHoist": false
-        },
-        "client": {
-            "source": "src/index.html",
-            "distDir": "dist",
-            "scopeHoist": false
-        }
-    },
     "peerDependencies": {
         "react": "^17.0.0 || ^18.0.0"
     },
@@ -192,7 +180,6 @@
         "react-query": "^4.0.0",
         "react-router": "^6.23.1",
         "react-router-dom": "^6.23.1",
-        "react-scripts": "^5.0.1",
         "react-share": "^4.4.1",
         "react-simple-image-viewer": "^1.1.1",
         "react-use": "^17.5.0",
@@ -212,19 +199,12 @@
         "web3modal": "^1.9.12",
         "weighted": "^1.0.0",
         "yarn": "^1.22.19",
-        "zustand": "^3.6.8"
-    },
-    "@parcel/resolver-default": {
-        "packageExports": true
+        "zustand": "^3.6.8",
+        "next": "16.4.5",
+        "html-entities": "2.6.0",
+        "highlight.js": "11.11.1"
     },
     "devDependencies": {
-        "@parcel/compressor-brotli": "2.16.4",
-        "@parcel/compressor-gzip": "2.16.4",
-        "@parcel/packager-raw-url": "2.16.4",
-        "@parcel/resolver-default": "2.16.4",
-        "@parcel/resolver-glob": "2.16.4",
-        "@parcel/transformer-less": "2.16.4",
-        "@parcel/transformer-webmanifest": "2.16.4",
         "@types/bn.js": "^5.1.1",
         "@types/bs58": "^4.0.1",
         "@types/eslint": "^8.2.2",
@@ -252,7 +232,6 @@
         "https-browserify": "^1.0.0",
         "nodemon": "^2.0.7",
         "os-browserify": "^0.3.0",
-        "parcel": "2.16.4",
         "path-browserify": "^1.0.1",
         "prettier": "^2.5.1",
         "punycode": "^1.4.1",
@@ -263,7 +242,15 @@
         "url": "^0.11.4",
         "util": "^0.12.4",
         "vm-browserify": "^1.1.2",
-        "assert": "^2.1.0"
+        "assert": "^2.1.0",
+        "typescript": "5.9.3",
+        "@babel/core": "7.29.13",
+        "@babel/parser": "7.29.13",
+        "@babel/preset-typescript": "7.29.7",
+        "@babel/preset-react": "7.29.7",
+        "@babel/plugin-transform-modules-commonjs": "7.29.7",
+        "jsdom": "27.4.0",
+        "tar-stream": "^3.1.7"
     },
     "resolutions": {
         "@types/react": "17.0.40",
@@ -307,7 +294,6 @@
         "axios": "1.21.0",
         "es5-ext": "0.10.64",
         "jose": "2.0.7",
-        "**/jsdom/tough-cookie": "4.1.4",
         "**/simple-update-notifier/semver": "7.8.6",
         "resolve-url-loader": "5.0.0",
         "protobufjs": "7.6.6",
@@ -316,11 +302,7 @@
         "source-map-js": "1.2.2",
         "compression": "1.8.2"
     },
-    "staticFiles": {
-        "staticPath": [
-            "static",
-            "public"
-        ],
-        "watcherGlob": "**"
+    "engines": {
+        "node": "^22.12.0 || >=24.0.0"
     }
 }
