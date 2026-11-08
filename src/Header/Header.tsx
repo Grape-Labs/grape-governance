@@ -1,3 +1,4 @@
+import LOCAL_APP_ICON from 'url:../public/icon.png';
 import * as React from 'react';
 import { styled, alpha } from '@mui/material/styles';
 import { Link, useLocation, NavLink } from 'react-router-dom';
@@ -393,7 +394,7 @@ const rowSX = { display: "flex", alignItems: "center", gap: 1 };
           const notificationData = {
             title: "Test Notification",
             body: "This is a simulated push notification!",
-            icon: "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governanceicon.png", // Replace with your icon URL
+            icon: LOCAL_APP_ICON, // Replace with your icon URL
           };
           const notification = new Notification(notificationData.title, {
             body: notificationData.body,

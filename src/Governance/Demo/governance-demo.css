@@ -1693,8 +1693,26 @@
 @media (max-width: 700px) { .gd-council-summary { grid-template-columns: 1fr; gap: 0; } .gd-council-panel { padding: 18px; } }
 
 .gd-description-source {
-  margin: 0 0 20px;
+  display: flex;
+  justify-content: flex-end;
+  margin: -4px 0 16px;
 }
-.gd-description-source .gd-secondary {
+.gd-live .gd-description-source-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: var(--gd-muted);
+  font-size: 12px;
+  font-weight: 500;
   text-decoration: none;
+}
+.gd-live .gd-description-source-link:hover {
+  color: var(--gd-text);
+  background: #ffffff08;
+}
+.gd-description-source-link:focus-visible {
+  outline: 2px solid #b6ecd5;
+  outline-offset: 2px;
 }

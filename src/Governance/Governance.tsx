@@ -1,3 +1,12 @@
+import LOCAL_SOCIAL_SPLASH from 'url:../public/governancesocialsplashv2.png';
+import LOCAL_SHORTCUT_FEED from 'url:../public/shortcut_feed.png';
+import LOCAL_SHORTCUT_USER from 'url:../public/shortcut_user.png';
+import LOCAL_TOUCH_ICON from 'url:../public/touch-icon.png';
+import LOCAL_PROPOSAL_SCREEN from 'url:../public/scrn_proposal.png';
+import LOCAL_REALTIME_SCREEN from 'url:../public/scrn_realtime.png';
+import LOCAL_GOVERNANCE_SCREEN from 'url:../public/scrn_governance.png';
+import LOCAL_WALLET_SCREEN from 'url:../public/scrn_wallet.png';
+import LOCAL_CONNECT_SCREEN from 'url:../public/scrn_connect_tools.png';
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -1629,7 +1638,7 @@ export function GovernanceCachedView(props: any) {
         ? toRealmsV2Image(gsplMetadata.metadata.bannerImage)
         : gsplMetadata?.metadata?.ogImage
         ? toRealmsV2Image(gsplMetadata.metadata.ogImage)
-        : 'https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplashv2.png';
+        : new URL(LOCAL_SOCIAL_SPLASH, 'https://governance.so').href;
 
     const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
@@ -2110,7 +2119,7 @@ export function GovernanceCachedView(props: any) {
                     description: "See what is going on in realtime from all DAOs on Solana",
                     icons: [
                         {
-                        src: "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/shortcut_feed.png",
+                        src: LOCAL_SHORTCUT_FEED,
                         sizes: "192x192"
                         }
                     ]
@@ -2121,7 +2130,7 @@ export function GovernanceCachedView(props: any) {
                     description: "View the DAOs you are participating in",
                     icons: [
                         {
-                        src: "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/shortcut_user.png",
+                        src: LOCAL_SHORTCUT_USER,
                         sizes: "192x192"
                         }
                     ]
@@ -2132,7 +2141,7 @@ export function GovernanceCachedView(props: any) {
                 ],
                 screenshots : [
                 {
-                    src: "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/scrn_proposal.png",
+                    src: LOCAL_PROPOSAL_SCREEN,
                     sizes: "1290x2796",
                     type: "image/png",
                     platform: "android",
@@ -2140,7 +2149,7 @@ export function GovernanceCachedView(props: any) {
                     label: "Proposal View"
                 },
                 {
-                    src: "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/scrn_realtime.png",
+                    src: LOCAL_REALTIME_SCREEN,
                     sizes: "1290x2796",
                     type: "image/png",
                     platform: "android",
@@ -2148,7 +2157,7 @@ export function GovernanceCachedView(props: any) {
                     label: "Realtime"
                 },
                 {
-                    src: "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/scrn_governance.png",
+                    src: LOCAL_GOVERNANCE_SCREEN,
                     sizes: "1290x2796",
                     type: "image/png",
                     platform: "android",
@@ -2156,7 +2165,7 @@ export function GovernanceCachedView(props: any) {
                     label: "Directory"
                 },
                 {
-                    src: "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/scrn_wallet.png",
+                    src: LOCAL_WALLET_SCREEN,
                     sizes: "1290x2796",
                     type: "image/png",
                     platform: "android",
@@ -2164,7 +2173,7 @@ export function GovernanceCachedView(props: any) {
                     label: "Mobile Wallet"
                 },
                 {
-                    src: "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/scrn_connect_tools.png",
+                    src: LOCAL_CONNECT_SCREEN,
                     sizes: "2796x1290",
                     type: "image/png",
                     platform: "android",
@@ -2212,7 +2221,7 @@ export function GovernanceCachedView(props: any) {
             element = document.createElement('link');
             element.setAttribute('rel', 'apple-touch-icon');
             element.setAttribute('sizes', '512x512');
-            element.setAttribute('href', 'https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/touch-icon.png');
+            element.setAttribute('href', LOCAL_TOUCH_ICON);
             document.querySelector('head').appendChild(element);
         }
     }, [daoName, daoIcon]);

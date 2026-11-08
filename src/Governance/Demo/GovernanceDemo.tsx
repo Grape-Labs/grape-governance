@@ -478,9 +478,9 @@ export default function GovernanceDemo({
                                 )}
                               </div>
                               {view.descriptionUrl && (
-                                <div className="gd-actions gd-description-source">
+                                <div className="gd-description-source">
                                   <a
-                                    className="gd-secondary"
+                                    className="gd-description-source-link"
                                     href={view.descriptionUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"

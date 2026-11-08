@@ -1,3 +1,4 @@
+import LOCAL_SOCIAL_SPLASH from 'url:../public/governancesocialsplashv2.png';
 import express from 'express';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
@@ -10,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 const SITE_ORIGIN = process.env.SITE_ORIGIN || 'https://governance.so';
 const GRAPHQL_ENDPOINT = 'https://grape.shyft.to/v1/graphql/';
 const DEFAULT_OG_IMAGE =
-  'https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplashv2.png';
+  new URL(LOCAL_SOCIAL_SPLASH, SITE_ORIGIN).href;
 
 const PROGRAM_NAME_CANDIDATES = [
   'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw',

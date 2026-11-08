@@ -19,3 +19,20 @@ The test command is `node --test --experimental-test-module-mocks tests/*.test.c
 Final checks: 157 tests pass, with the two independently reproduced pre-existing failures above. Both client and server production bundles pass with scope hoisting disabled. Frozen-lockfile installation and `git diff --check` pass.
 
 Use a clean Parcel cache after the toolchain upgrade. Cache reuse caused native crashes during verification; clean-cache builds completed successfully. The standard client build script already cleans `.parcel-cache`.
+
+## Additional six Dependabot alerts — 8 November 2026
+
+Updated all locked copies while retaining their existing major versions:
+
+| Package | Patched version |
+| --- | --- |
+| protobufjs | 7.6.6 |
+| joi | 17.13.9 |
+| node-forge | 1.4.3 |
+| body-parser | 1.20.9 |
+| source-map-js | 1.2.2 |
+| compression | 1.8.2 |
+
+Express was refreshed to 4.22.3 so its exact body-parser dependency uses the patched release. Exact transitive resolutions prevent older Firebase, gRPC, build-tool, and development-server consumers from retaining vulnerable copies. The npm bulk advisory endpoint returned an empty advisory result for the six actual locked versions.
+
+Validation: both production bundles pass; the client asset URL check passes. The full suite has 169 passing tests and the same two pre-existing grant-provider failures described above. Added compatibility tests cover protobuf schema/binary conversion with large integer weights, Joi validation, RSA signatures, source-map lookups, compressed JSON parsing and responses, malformed JSON, request size limits, and rejection of garbage appended to compressed request bodies.

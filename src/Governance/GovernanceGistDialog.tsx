@@ -59,7 +59,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import IconButton from '@mui/material/IconButton';
 
 import { 
-    GIST_LOGO } from '../utils/grapeTools/constants';
+    } from '../utils/grapeTools/constants';
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
@@ -168,18 +168,6 @@ export function GovernanceGistDialog(props: any){
       if (gist){
         const rpd = await resolveProposalDescription(gist);
 
-        const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
-        const targetUrl = "https://shdw-drive.genesysgo.net/4HMWqo1YLwnxuVbh4c8KXMcZvQj4aw7oxnNmWVm4RmVV/Screenshot_2023-05-28_at_10.43.34.png";
-        
-        const stringWithPreviews = rpd.replace(imageUrlRegex, (match: string) => {
-            // Special case: shdw-drive images → replace with GIST_LOGO
-            if (match === targetUrl) {
-                return GIST_LOGO;
-            }
-            // Default case: keep as Markdown image
-            return `![Image X](${match})`;
-        });
-        
         setProposalDescription(rpd);
       }
 

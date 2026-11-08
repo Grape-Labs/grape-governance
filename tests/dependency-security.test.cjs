@@ -10,6 +10,8 @@ const entries = lock.split('\n\n').flatMap(block => {
 });
 test('reported vulnerable dependencies stay patched or absent', () => {
   const ranges = {
+    protobufjs: '<7.6.6', joi: '<17.13.9', 'node-forge': '<1.4.3',
+    'body-parser': '<1.20.9', 'source-map-js': '<1.2.2', compression: '<1.8.2',
     'node-fetch': '<2.6.7', got: '<11.8.5', 'git-clone': '*', taffydb: '*', ip: '*',
     'decode-uri-component': '<0.5.1', jsonwebtoken: '<9.0.0', json5: '>=2 <2.2.2',
     luxon: '>=2 <2.5.2', '@sideway/formula': '<3.0.1', webpack: '>=5 <5.112.2',
