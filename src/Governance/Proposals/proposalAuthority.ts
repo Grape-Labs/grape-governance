@@ -243,3 +243,26 @@ export const resolveProposalAuthorRecord = async (
     governingTokenMint.toBase58()
   )
 }
+
+// Mirrors SPL Governance cancellation: owner/delegate, and no completed vote.
+export const canCancelProposal = (
+  proposal: any,
+  ownerRecord: any,
+  authority58: string | null | undefined,
+  config?: any,
+  now = Math.floor(Date.now() / 1000)
+): boolean => {
+  const account = proposal?.account
+  if (account?.state == null || !hasGovernanceAuthorityForRecord(ownerRecord, authority58)) return false
+  const record58 = toBase58Safe(ownerRecord?.pubkey)
+  if (!record58 || record58 !== toBase58Safe(account.tokenOwnerRecord)) return false
+  const state = Number(account.state)
+  if (state === 0 || state === 1) return true
+  if (state !== 2 || !config) return false
+  const start = Number(account.votingAt ?? account.signingOffAt)
+  const base = Number(config.votingBaseTime ?? config.baseVotingTime)
+  const coolOff = Number(config.votingCoolOffTime ?? 0)
+  if (!Number.isFinite(start) || start <= 0 || !Number.isFinite(base) || base <= 0 ||
+      !Number.isFinite(coolOff) || coolOff < 0 || !Number.isFinite(now)) return false
+  return now <= start + base + coolOff
+}

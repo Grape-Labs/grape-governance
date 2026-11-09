@@ -33,18 +33,18 @@ function links(pathParams, query, props = {}, isMobile = false) {
 }
 test('desktop switch opens old UI and returns to new UI for the same proposal', () => {
   assert.deepEqual(links({governance: 'realm', proposal: 'ballot'}, 'tab=details')
-    .find(link => link.text === 'Old UI'), {href: '/proposal/realm/ballot?tab=details&view=advanced', text: 'Old UI'});
+    .find(link => link.text === 'Switch to old UI'), {href: '/proposal/realm/ballot?tab=details&view=advanced', text: 'Switch to old UI'});
   assert.deepEqual(links({governance: 'realm', proposal: 'ballot'}, 'tab=details&view=advanced', {section: 'advanced'})
-    .find(link => link.text === 'New UI'), {href: '/proposal/realm/ballot?tab=details', text: 'New UI'});
+    .find(link => link.text === 'Switch to new UI'), {href: '/proposal/realm/ballot?tab=details', text: 'Switch to new UI'});
 });
 test('overview switch works in both directions and preserves query-selected proposals', () => {
-  assert.equal(links({handlekey: 'realm'}, '').find(link => link.text === 'Old UI').href, '/dao/realm?view=advanced');
-  assert.equal(links({handlekey: 'realm'}, 'view=advanced', {section: 'advanced'}).find(link => link.text === 'New UI').href, '/dao/realm');
-  assert.equal(links({handlekey: 'realm'}, 'proposal=ballot').find(link => link.text === 'Old UI').href, '/proposal/realm/ballot?view=advanced');
+  assert.equal(links({handlekey: 'realm'}, '').find(link => link.text === 'Switch to old UI').href, '/dao/realm?view=advanced');
+  assert.equal(links({handlekey: 'realm'}, 'view=advanced', {section: 'advanced'}).find(link => link.text === 'Switch to new UI').href, '/dao/realm');
+  assert.equal(links({handlekey: 'realm'}, 'proposal=ballot').find(link => link.text === 'Switch to old UI').href, '/proposal/realm/ballot?view=advanced');
 });
 test('mobile overflow provides the same bidirectional switch', () => {
   for (const old of [false, true]) {
-    const label = old ? 'New UI' : 'Old UI';
+    const label = old ? 'Switch to new UI' : 'Switch to old UI';
     const link = links({governance: 'realm', proposal: 'ballot'}, old ? 'view=advanced' : '', {advanced: old}, true)
       .find(link => link.text === label);
     assert.equal(link.href, `/proposal/realm/ballot${old ? '' : '?view=advanced'}`);

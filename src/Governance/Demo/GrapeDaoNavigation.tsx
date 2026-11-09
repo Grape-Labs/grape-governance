@@ -45,7 +45,7 @@ export default function GrapeDaoNavigation({
   const togglePath = proposal ? `/proposal/${realm}/${proposal}` : `/dao/${realm}`;
   const toggleQuery = toggleParams.toString();
   const toggleUrl = `${togglePath}${toggleQuery ? `?${toggleQuery}` : ""}`;
-  const toggleLabel = oldUi ? "New UI" : "Old UI";
+  const toggleLabel = oldUi ? "Switch to new UI" : "Switch to old UI";
   return (
     <nav className="gd-dao-nav" aria-label="DAO navigation">
       {(
