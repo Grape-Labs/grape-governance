@@ -1,3 +1,4 @@
+import { sortTreasuryTokens } from './tokenPrices';
 import { treasuryRpcRequest, treasuryPriceRequest } from './requestQueue';
 import { useGrapeProposalEligibility, GrapeProposalEligibilityContext } from '../GrapeProposalEligibilityNotice';
 import { assertGrapeProposalEligibility } from '../api/grapeProposalEligibility';
@@ -478,6 +479,7 @@ export default function WalletCardView(props:any) {
     const [loading, setLoading] = React.useState(false);
     const isLoading = React.useRef(false);
     const [loadingPrices, setLoadingPrices] = React.useState(false);
+    const [priceError, setPriceError] = React.useState(false);
     const [isCopied, setIsCopied] = React.useState(false);
     const [selectedNativeWallet, setSelectedNativeWallet] = React.useState(null);
 
@@ -1305,11 +1307,12 @@ export default function WalletCardView(props:any) {
 
     const getWalletValue = async() => {
         setLoadingPrices(true);
+        setPriceError(false);
         try {
             const mints = [...new Set<string>(tokenMintArray)].sort();
             const cgp = await treasuryPriceRequest(mints.join(','), async () => {
                 const prices = await getJupiterPrices(mints);
-                if (prices?.error || prices?.message || prices?.status === 429) {
+                if (!prices || typeof prices !== 'object' || Array.isArray(prices) || prices?.error || prices?.message || prices?.status === 429) {
                     throw new Error(JSON.stringify(prices));
                 }
                 return prices;
@@ -1317,6 +1320,7 @@ export default function WalletCardView(props:any) {
             setUsdcValue(cgp);
 
         } catch (error) {
+            setPriceError(true);
             console.error('Treasury price lookup failed', error);
         } finally {
             setLoadingPrices(false);
@@ -5076,32 +5080,15 @@ const StakeAccountsView = () => {
                 <Skeleton variant="rounded" width={'100%'} height={50} />
             :
                 <CardContent sx={{ p:0, '& .MuiCardContent-root:last-child': { pb: 0,}, }}>
+                    {priceError && <Typography role="status" variant="caption" color="text.secondary" sx={{display: 'block', px: 2, py: 1}}>
+                        USD prices are temporarily unavailable. Token balances are still shown.
+                    </Typography>}
                     <List sx={{ width: '100%' }} component="div" disablePadding>
                         <Divider light>
                             <Chip label={`Tokens ${nativeTokens && nativeTokens.length}`} size="small" />
                         </Divider>
                         
-                        {nativeTokens && nativeTokens
-                            //.sort((a:any,b:any) => (b.balance - a.balance))
-                            .sort((a, b) => {
-                                const priceA = usdcValue[a.address]?.usdPrice;
-                                const priceB = usdcValue[b.address]?.usdPrice;
-                                
-                                if (priceA !== undefined && priceB !== undefined) {
-                                    return (b.balance * priceB) - (a.balance * priceA);
-                                  } else if (priceA !== undefined) {
-                                    // If only the first token has a price, it should come first
-                                    return -1;
-                                  } else if (priceB !== undefined) {
-                                    // If only the second token has a price, it should come first
-                                    return 1;
-                                  } else {
-                                    // If neither has a price, fall back to sorting by balance
-                                    return b.balance - a.balance;
-                                  }
-                            })
-                            //.sort((a:any,b:any) => ((usdcValue && (usdcValue[b.address] && usdcValue[a.address]) && (b.balance * usdcValue[b.address]?.price)-(a.balance * usdcValue[a.address]?.price))) || (b.balance - a.balance))
-                            //.sort((a:any,b:any) => (b.balance - a.balance))
+                        {sortTreasuryTokens(nativeTokens, usdcValue)
                             .map((item: any,key:number) => (   
                                 <>
                                     
@@ -5231,25 +5218,7 @@ const StakeAccountsView = () => {
                             </Divider>
                         }
 
-                        {rulesTokens && rulesTokens
-                            //.sort((a:any,b:any) => (b.balance - a.balance))
-                            .sort((a, b) => {
-                                const priceA = usdcValue[a.address]?.usdPrice;
-                                const priceB = usdcValue[b.address]?.usdPrice;
-                                
-                                if (priceA !== undefined && priceB !== undefined) {
-                                    return (b.balance * priceB) - (a.balance * priceA);
-                                  } else if (priceA !== undefined) {
-                                    // If only the first token has a price, it should come first
-                                    return -1;
-                                  } else if (priceB !== undefined) {
-                                    // If only the second token has a price, it should come first
-                                    return 1;
-                                  } else {
-                                    // If neither has a price, fall back to sorting by balance
-                                    return b.balance - a.balance;
-                                  }
-                            })
+                        {sortTreasuryTokens(rulesTokens, usdcValue)
                             .map((item: any,key:number) => (   
                                 <>
                                 <ListItem

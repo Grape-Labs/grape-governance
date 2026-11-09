@@ -2,6 +2,7 @@ const {JSDOM, ResourceLoader, VirtualConsole} = require('jsdom');
 const {TextEncoder, TextDecoder} = require('node:util');
 const {webcrypto} = require('node:crypto');
 const base = new URL(process.argv[2] || 'http://127.0.0.1:3100').origin;
+const route = process.argv[3] || '/directory';
 const errors=[];
 process.on('unhandledRejection', error => errors.push(error?.message || String(error)));
 class LocalResources extends ResourceLoader {
@@ -10,7 +11,7 @@ class LocalResources extends ResourceLoader {
 const virtualConsole = new VirtualConsole();
 virtualConsole.on('jsdomError', error => {if(error.type==='unhandled-exception')errors.push(error.cause?.message || error.message);});
 (async () => {
-  const dom = await JSDOM.fromURL(base + '/directory', {
+  const dom = await JSDOM.fromURL(base + route, {
     runScripts:'dangerously',resources:new LocalResources(),virtualConsole,pretendToBeVisual:true,
     beforeParse(window) {
       Object.assign(window,{TextEncoder,TextDecoder,Buffer,Headers,Request,Response,AbortController,AbortSignal});

@@ -18,6 +18,8 @@ import { useParams } from "react-router-dom";
 
 import {
   Typography,
+  Alert,
+  Button,
   Grid,
   Box,
   Paper,
@@ -69,6 +71,8 @@ export function GovernanceTreasuryView(props: any) {
   const [endTime, setEndTime] = React.useState<number | null>(null);
 
   const [loading, setLoading] = React.useState(false);
+  const [realmLoadError, setRealmLoadError] = React.useState(false);
+  const [realmLoadRevision, setRealmLoadRevision] = React.useState(0);
 
   const [realm, setRealm] = React.useState<any>(null);
   const [realmName, setRealmName] = React.useState<string | null>(null);
@@ -230,8 +234,13 @@ export function GovernanceTreasuryView(props: any) {
     setStartTime(null);
     setEndTime(null);
 
-    if (governanceAddress) fetchRealm(governanceAddress);
-  }, [governanceAddress, fetchRealm]);
+    setRealmLoadError(false);
+    let active = true;
+    if (governanceAddress) void fetchRealm(governanceAddress).catch(() => {
+      if (active) setRealmLoadError(true);
+    });
+    return () => {active = false;};
+  }, [governanceAddress, fetchRealm, realmLoadRevision]);
 
   // when realm is available, fetch governances (and treasuries)
   React.useEffect(() => {
@@ -247,6 +256,7 @@ export function GovernanceTreasuryView(props: any) {
       try {
         await fetchGovernances(governanceAddress, realm, filterRulesWallet || null);
       } catch (e) {
+        if (!cancelled) setRealmLoadError(true);
         console.log("ERR(fetchGovernances effect): " + e);
       } finally {
         if (!cancelled) {
@@ -298,6 +308,10 @@ export function GovernanceTreasuryView(props: any) {
       return "";
     }
   };
+
+  if (realmLoadError) return <Alert severity="warning" action={
+    <Button color="inherit" onClick={() => setRealmLoadRevision(value => value + 1)}>Retry</Button>
+  }>Treasury data is temporarily unavailable. Please try again.</Alert>;
 
   return (
     <>
