@@ -1,3 +1,4 @@
+import ProposalManagementActions from './Demo/ProposalManagementActions';
 import { recordedVoteLabel } from "./Demo/proposalListStatus";
 import ProposalBallot from "./Demo/ProposalBallot";
 import { ballotRules } from "../utils/governanceTools/ballotRules";
@@ -131,7 +132,7 @@ import { InstructionTableView } from './GovernanceInstructionTableView';
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
-import { hasGovernanceAuthorityForRecord } from './Proposals/proposalAuthority';
+import { canCancelProposal, hasGovernanceAuthorityForRecord } from './Proposals/proposalAuthority';
 
 import ShareIcon from '@mui/icons-material/Share';
 import ArticleIcon from '@mui/icons-material/Article';
@@ -8054,7 +8055,7 @@ export function GovernanceProposalV2View(props: any){
             governingTokenMint: thisitem.account.governingTokenMint,
             proposalAuthor: thisitem.account.tokenOwnerRecord, payerWallet: publicKey,
             governanceLookup, editProposalAddress: thisitem.pubkey, realm, memberMap,
-            setReload, proposalSignatories, proposal: thisitem, state: thisitem.account.state,
+            setReload, proposalSignatories, proposalInstructions, proposal: thisitem, state: thisitem.account.state,
         };
         const pendingSigner = !!publicKey && [0, 1].includes(Number(thisitem.account.state)) &&
             (proposalSignatories || []).some(record =>
@@ -8064,24 +8065,18 @@ export function GovernanceProposalV2View(props: any){
         const canFinalize = !!publicKey && !!governingMintInfo && Number(thisitem.account.state) === 2 &&
             finalizeStart > 0 && baseVotingTime > 0 &&
             moment().unix() >= finalizeStart + baseVotingTime + coolOffTime;
+        const canCancel = canCancelProposal(thisitem, proposalAuthorityRecord, publicKey?.toBase58?.(), governanceConfig);
         return props.renderSimple({
             proposal: thisitem,
             electorate: normalizePkString(realm?.account?.config?.councilMint) === normalizePkString(thisitem.account.governingTokenMint) ? 'Council' : 'Community',
             isPoll: ballot.poll,
             finalizeAction: canFinalize ? <ManageGovernanceProposal {...managementProps} mode={5} /> : null,
-            management: <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {!publicKey ? <Typography>Connect your wallet to see available actions.</Typography> : <>
-                    {canManageDraftProposal && <ManageGovernanceProposal {...managementProps} mode={2} />}
-                    {(canManageDraftProposal || pendingSigner) && <ManageGovernanceProposal {...managementProps} mode={1} />}
-                    {canFinalize && <ManageGovernanceProposal {...managementProps} mode={5} />}
-                    {!canManageDraftProposal && !pendingSigner && !canFinalize &&
-                        <Typography color="text.secondary">No signatory, sign-off, or finalize actions are available for this wallet at this stage.</Typography>}
-                    {realm && <VetoVoteRow governanceConfig={governanceConfig} realm={realm} proposal={thisitem} memberMap={memberMap}
-                        councilVoterRecord={councilVoterRecord} publicKey={publicKey}
-                        sendTransaction={sendTransaction} getVotingParticipants={getVotingParticipants}
-                        vetoCount={vetoCount ?? undefined} vetoVoters={vetoVoters} />}
-                </>}
-            </Box>,
+            management: <ProposalManagementActions connected={!!publicKey} canManageDraft={canManageDraftProposal}
+                pendingSigner={pendingSigner} canFinalize={canFinalize} canCancel={canCancel} managementProps={managementProps}
+                vetoAction={realm ? <VetoVoteRow governanceConfig={governanceConfig} realm={realm} proposal={thisitem} memberMap={memberMap}
+                    councilVoterRecord={councilVoterRecord} publicKey={publicKey}
+                    sendTransaction={sendTransaction} getVotingParticipants={getVotingParticipants}
+                    vetoCount={vetoCount ?? undefined} vetoVoters={vetoVoters} /> : null} />,
             stateLabel: GOVERNANCE_STATE[thisitem.account.state] || 'Unknown',
             timeline: timelineEntries,
             settings: {

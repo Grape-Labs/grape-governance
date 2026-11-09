@@ -457,7 +457,7 @@ test('each DAO section shares one navigation and disables the legacy header/menu
       assert.equal(screen.getByRole('link',{name:section[0].toUpperCase()+section.slice(1)}).getAttribute('aria-current'),'page');
       assert.ok(screen.getByText('Existing tools'));
       assert.equal(screen.getByRole('link',{name:'OG Reputation ↗'}).getAttribute('href'),`https://vine.governance.so/dao/${realm}`);
-      assert.match(screen.getByRole('link',{name:'Old UI'}).className,/gd-old-view/);
+      assert.match(screen.getByRole('link',{name:'Switch to old UI'}).className,/gd-old-view/);
       assert.equal(screen.queryByText('Live DAO governance'),null);
     } finally {cleanup();}
   }
