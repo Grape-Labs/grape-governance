@@ -1716,3 +1716,21 @@
   outline: 2px solid #b6ecd5;
   outline-offset: 2px;
 }
+
+.gd-draft-instructions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 24px;
+  margin: 20px 0;
+  border: 1px solid #b6ecd566;
+  border-radius: 16px;
+  background: #b6ecd510;
+}
+.gd-draft-instructions > div:first-child { flex: 1 1 280px; }
+.gd-draft-instructions h3 { margin: 8px 0; }
+.gd-draft-instructions p { margin: 0; color: var(--gd-muted); }
+.gd-draft-instructions .gd-draft-signer-note { margin-top: 12px; }
+.gd-draft-instructions-action { display: flex; flex-direction: column; gap: 10px; flex: 0 1 220px; width: 100%; }
+.gd-draft-instructions-action button { min-height: 48px; background: #b6ecd51a; }
