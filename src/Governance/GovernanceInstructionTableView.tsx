@@ -1,3 +1,4 @@
+import { decodeGovernanceConfig, governanceConfigRows } from './governanceConfigSummary';
 import { 
     withRemoveTransaction,
     withExecuteTransaction,
@@ -1445,6 +1446,7 @@ export function InstructionTableView(props: any) {
                 programId: normalizedIx.programId.toBase58(),
                 keyCount: normalizedIx.keys.length,
                 dataBase64: normalizedIx.data.toString('base64'),
+                governanceConfig: normalizedIx.programId.toBase58() === 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw' ? decodeGovernanceConfig(normalizedIx.data) : null,
                 dataHex: normalizedIx.data.toString('hex'),
                 info: rawIx?.info || inspectableTarget?.account?.instructions?.[0]?.info || null,
                 decodedIx: rawIx?.decodedIx || inspectableTarget?.account?.instructions?.[0]?.decodedIx || null,
@@ -1830,7 +1832,8 @@ export function InstructionTableView(props: any) {
 
             const descriptions = itemInstructions
                 .map((ix: any) => {
-                    const infoDescription = ix?.info?.description;
+                    const config = ix?.programId?.toBase58?.() === 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw' ? decodeGovernanceConfig(Uint8Array.from(ix.data || [])) : null;
+                    const infoDescription = config ? 'Update governance config' : ix?.info?.description;
                     if (!infoDescription) return null;
                     if (ix?.info?.destinationAta) {
                         try {
@@ -1950,6 +1953,22 @@ export function InstructionTableView(props: any) {
                     </Button>
                 </Tooltip>
             :<></>}
+            {(ixRows || []).flatMap((row: any) => getInstructionSetInstructions(row.inspector).map((ix: any, index: number) => {
+                const config = ix?.programId?.toBase58?.() === 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw'
+                    ? decodeGovernanceConfig(Uint8Array.from(ix.data || [])) : null;
+                return config ? <Box key={`${row.id}-${index}`} sx={{ my: 2, p: { xs: 2, sm: 3 }, border: '1px solid rgba(100,190,255,0.5)', borderRadius: 2, background: 'rgba(100,190,255,0.08)' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, mb: 2 }}>
+                        <Typography variant="h6">Update governance config</Typography>
+                        <Button onClick={() => handleInspectIx({ ...row.inspector, account: { ...row.inspector.account, instructions: [ix] } })}>Inspect</Button>
+                    </Box>
+                    <Box component="dl" sx={{ m: 0, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'minmax(0, 1fr) auto' }, gap: 1.5 }}>
+                        {governanceConfigRows(config).map(([label, value]) => <React.Fragment key={label}>
+                            <Typography component="dt" color="text.secondary">{label}</Typography>
+                            <Typography component="dd" sx={{ m: 0, overflowWrap: 'anywhere' }}>{value}</Typography>
+                        </React.Fragment>)}
+                    </Box>
+                </Box> : null;
+            }))}
             {ixRows &&
                 <div
                     style={{
@@ -2234,6 +2253,15 @@ export function InstructionTableView(props: any) {
                             <Typography variant="caption">
                                 Fee payer source: {inspectorFeePayerSource}
                             </Typography>
+                            {inspectorParsed?.governanceConfig && <Box sx={{ p: 2, border: '1px solid rgba(100,190,255,0.5)', borderRadius: 2, background: 'rgba(100,190,255,0.08)' }}>
+                                <Typography variant="h6" sx={{ mb: 2 }}>Update governance config</Typography>
+                                <Box component="dl" sx={{ m: 0, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'minmax(0, 1fr) auto' }, gap: 1.5 }}>
+                                    {governanceConfigRows(inspectorParsed.governanceConfig).map(([label, value]) => <React.Fragment key={label}>
+                                        <Typography component="dt" color="text.secondary">{label}</Typography>
+                                        <Typography component="dd" sx={{ m: 0, overflowWrap: 'anywhere' }}>{value}</Typography>
+                                    </React.Fragment>)}
+                                </Box>
+                            </Box>}
                             <TextField
                                 size="small"
                                 label="Instruction Info"

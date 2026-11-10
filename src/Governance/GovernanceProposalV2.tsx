@@ -1,3 +1,4 @@
+import { decodeGovernanceConfig } from './governanceConfigSummary';
 import ProposalManagementActions from './Demo/ProposalManagementActions';
 import { recordedVoteLabel } from "./Demo/proposalListStatus";
 import ProposalBallot from "./Demo/ProposalBallot";
@@ -2832,7 +2833,7 @@ export function GovernanceProposalV2View(props: any){
                                                     const amountBN = new BN(accountInstruction?.data?.slice(1), 'le');
                                                     //console.log("amount BN: "+amountBN);
 
-                                                    if (Number(amountBN) > 0){
+                                                    if (accountInstruction.data[0] !== 19 && Number(amountBN) > 0){
 
                                                         let gai = null;
                                                         if (mintResults && mintResults.length > 0){
@@ -2952,6 +2953,16 @@ export function GovernanceProposalV2View(props: any){
                                                         decodedIx,
                                                         accountInstruction
                                                     );
+                                                }
+
+                                                if (accountInstruction.data[0] === 19) {
+                                                    const config = decodeGovernanceConfig(Uint8Array.from(accountInstruction.data));
+                                                    decodedIx = config ? { name: 'setGovernanceConfig', data: { config } } : null;
+                                                    description = config ? 'Update governance config' : 'Update governance config (unable to decode settings)';
+                                                    amount = null;
+                                                    mint = null;
+                                                    symbol = null;
+                                                    destinationAta = null;
                                                 }
 
                                                 const newObject = {
