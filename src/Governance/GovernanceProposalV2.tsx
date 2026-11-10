@@ -8070,6 +8070,19 @@ export function GovernanceProposalV2View(props: any){
             proposal: thisitem,
             electorate: normalizePkString(realm?.account?.config?.councilMint) === normalizePkString(thisitem.account.governingTokenMint) ? 'Council' : 'Community',
             isPoll: ballot.poll,
+            draftInstructionAction: canManageDraftProposal ? <IntegratedGovernanceProposalDialogView
+                governanceAddress={governanceAddress}
+                governanceRulesWallet={thisitem.account.governance}
+                governingTokenMint={thisitem.account.governingTokenMint}
+                proposalAuthor={thisitem.account.tokenOwnerRecord}
+                payerWallet={publicKey}
+                governanceLookup={governanceLookup}
+                editProposalAddress={thisitem.pubkey}
+                setReload={setReload}
+                title="Add Instructions"
+                useButton={5}
+            /> : null,
+            draftSignerAction: canManageDraftProposal ? <ManageGovernanceProposal {...managementProps} mode={2} /> : null,
             finalizeAction: canFinalize ? <ManageGovernanceProposal {...managementProps} mode={5} /> : null,
             management: <ProposalManagementActions connected={!!publicKey} canManageDraft={canManageDraftProposal}
                 pendingSigner={pendingSigner} canFinalize={canFinalize} canCancel={canCancel} managementProps={managementProps}
