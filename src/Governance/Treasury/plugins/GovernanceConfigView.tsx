@@ -1187,7 +1187,7 @@ export default function GovernanceConfigView(props: any) {
         </DialogTitle>
 
         <DialogContent>
-          <DialogContentText sx={{ mb: 2, textAlign: 'center' }}>
+          <DialogContentText sx={{ mb: 2, textAlign: 'left' }}>
             Build proposal instructions to update Governance and Realm configuration.
           </DialogContentText>
 
@@ -1573,7 +1573,11 @@ export default function GovernanceConfigView(props: any) {
           )}
 
           {tabMode === 'realm' && (
-            <Grid container spacing={1.2}>
+            <Box sx={{ display: 'grid', gap: 2 }}>
+              <Box sx={{ p: { xs: 2, sm: 2.5 }, border: '1px solid rgba(100,190,255,0.3)', borderRadius: 3, background: 'rgba(100,190,255,0.04)' }}>
+                <Typography variant="overline" sx={{ color: 'primary.light', letterSpacing: 1 }}>Realm & authority</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>Accounts that identify and authorize this realm.</Typography>
+                <Grid container spacing={2}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -1643,6 +1647,12 @@ export default function GovernanceConfigView(props: any) {
                 </Typography>
               </Grid>
 
+                </Grid>
+              </Box>
+              <Box sx={{ p: { xs: 2, sm: 2.5 }, border: '1px solid rgba(100,190,255,0.3)', borderRadius: 3, background: 'rgba(100,190,255,0.04)' }}>
+                <Typography variant="overline" sx={{ color: 'primary.light', letterSpacing: 1 }}>Community</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>Governance creation, voting weight, and community token settings.</Typography>
+                <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
@@ -1730,6 +1740,12 @@ export default function GovernanceConfigView(props: any) {
                 />
               </Grid>
 
+                </Grid>
+              </Box>
+              <Box sx={{ p: { xs: 2, sm: 2.5 }, border: '1px solid rgba(100,190,255,0.3)', borderRadius: 3, background: 'rgba(100,190,255,0.04)' }}>
+                <Typography variant="overline" sx={{ color: 'primary.light', letterSpacing: 1 }}>Council</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>Council token behavior and voting add-ins.</Typography>
+                <Grid container spacing={2}>
               <Grid item xs={12} md={4}>
                 <TextField
                   select
@@ -1763,7 +1779,9 @@ export default function GovernanceConfigView(props: any) {
                 />
               </Grid>
 
-            </Grid>
+                </Grid>
+              </Box>
+            </Box>
           )}
 
           {openAdvanced ? (
