@@ -1980,6 +1980,7 @@ export function InstructionTableView(props: any) {
                 return config ? <GovernanceConfigCard
                     key={`${row.id}-${index}`}
                     config={config}
+                    executed={Number(row.status) === 1}
                     instruction={normalizeInstructionFromAny(ix)}
                     decimals={configMintDecimals}
                     onInspect={() => handleInspectIx({ ...row.inspector, account: { ...row.inspector.account, instructions: [ix] } })}
@@ -2271,6 +2272,7 @@ export function InstructionTableView(props: any) {
                             </Typography>
                             {inspectorParsed?.governanceConfig && <GovernanceConfigCard
                                 config={inspectorParsed.governanceConfig}
+                                executed={Number(inspectorTarget?.account?.executionStatus) === 1}
                                 instruction={inspectorIx}
                                 decimals={configMintDecimals}
                             />}

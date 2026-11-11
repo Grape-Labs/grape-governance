@@ -76,3 +76,22 @@ test('realm summaries handle no council, sparse add-ins, absolute weights and in
   assert.equal(decodeRealmConfig(invalid),null);
  }
 });
+
+test('compares values without treating unknown baselines as changes', () => {
+ const {compareConfigRows}=mod.exports;
+ assert.deepEqual(compareConfigRows([['Threshold','4%'],['Tipping','Disabled'],['Missing','1'],['Unknown','Unavailable']], [['Threshold','5%'],['Tipping','Disabled'],['Unknown','2']]).map(r=>r.changed),[true,false,null,null]);
+ assert.equal(compareConfigRows([['Threshold','4%']])[0].changed,null);
+});
+
+test('compares realm account state with proposed token settings and council removal', () => {
+ const {currentRealmConfigRows,realmConfigRows,compareConfigRows}=mod.exports;
+ const pk = value => ({toBase58:()=>value});
+ const current = {councilMint:pk('council'),minCommunityTokensToCreateGovernance:new BN('9007199254740993'),communityMintMaxVoteWeightSource:{type:0,value:new BN('10000000000')}};
+ const tokens = {communityTokenConfig:{tokenType:0,voterWeightAddin:pk('old-addin')},councilTokenConfig:{tokenType:1}};
+ const proposed = {...current,useCouncilMint:false,communityTokenConfigArgs:{tokenType:0,useVoterWeightAddin:true,useMaxVoterWeightAddin:false},councilTokenConfigArgs:{tokenType:1,useVoterWeightAddin:false,useMaxVoterWeightAddin:false}};
+ const comparison=compareConfigRows(realmConfigRows(proposed,{community:6},['realm','authority','system','config','new-addin']),currentRealmConfigRows(current,tokens,{community:6}));
+ assert.deepEqual(comparison.filter(r=>r.changed).map(r=>r.label),['Council mint','Community voter weight add-in']);
+ assert.equal(comparison[0].previous,'9,007,199,254.740993');
+ const partial=compareConfigRows(realmConfigRows(proposed),currentRealmConfigRows(current,undefined));
+ assert.equal(partial.find(r=>r.label==='Community token type').changed,null);
+});

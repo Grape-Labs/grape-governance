@@ -124,3 +124,26 @@ export function realmConfigRows(config: any, decimals: { community?: number } = 
   }
   return rows;
 }
+
+// Account state stores add-in public keys directly, unlike instruction arguments.
+export function currentRealmConfigRows(realmConfig: any, tokenConfig: any, decimals: { community?: number } = {}): [string, string][] {
+  const rows = realmConfigRows({ ...realmConfig, useCouncilMint: !!realmConfig.councilMint }, decimals, ['', '', realmConfig.councilMint?.toBase58()]);
+  for (const [label, token] of [['Community', tokenConfig?.communityTokenConfig], ['Council', tokenConfig?.councilTokenConfig]] as const) {
+    if (!token) continue;
+    rows.push(
+      [`${label} token type`, ['Liquid', 'Membership', 'Dormant'][token.tokenType] || 'Unavailable'],
+      [`${label} voter weight add-in`, token.voterWeightAddin?.toBase58() || 'Disabled'],
+      [`${label} max voter weight add-in`, token.maxVoterWeightAddin?.toBase58() || 'Disabled'],
+    );
+  }
+  return rows;
+}
+
+export function compareConfigRows(proposed: [string, string][], current?: [string, string][]) {
+  const before = new Map(current || []);
+  return proposed.map(([label, value]) => {
+    const previous = before.get(label);
+    const known = previous != null && previous !== 'Unavailable' && value !== 'Unavailable';
+    return { label, value, previous, changed: known ? previous !== value : null };
+  });
+}
