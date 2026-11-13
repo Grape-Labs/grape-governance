@@ -1,3 +1,9 @@
+import { parseBatchRecipients } from '../batchSummary';
+import BatchRecipientsInput from '../BatchRecipientsInput';
+import { fetchBatchTransferTokens } from './batchTransferTokens';
+import { WalletTokenOption } from './swapTokenOptions';
+import BigNumber from 'bignumber.js';
+import BatchSummaryView from '../BatchSummaryView';
 import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 // BatchSendView.tsx
 // Drop-in Extension Plugin: Batch Transfer (SOL + SPL via CSV)
@@ -31,6 +37,7 @@ import { WalletError } from "@solana/wallet-adapter-base";
 import { styled } from "@mui/material/styles";
 
 import {
+  Alert,
   Typography,
   Button,
   Grid,
@@ -46,7 +53,6 @@ import {
   FormControl,
   InputAdornment,
   ListItemIcon,
-  Chip,
 } from "@mui/material/";
 
 import { useSnackbar } from "notistack";
@@ -97,53 +103,12 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
 type ParsedRow = {
   to: string;
   amount: number;
+  exactAmount: string;
 };
 
 function parseCsvRecipients(input: string): { rows: ParsedRow[]; errors: string[] } {
-  const rows: ParsedRow[] = [];
-  const errors: string[] = [];
-
-  const lines = (input || "")
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
-
-  lines.forEach((line, i) => {
-    // allow: "address,amount" or "address amount"
-    const parts = line.includes(",")
-      ? line.split(",").map((p) => p.trim())
-      : line.split(/\s+/).map((p) => p.trim());
-
-    const addr = parts[0];
-    const amtStr = parts[1];
-
-    if (!addr || !amtStr) {
-      errors.push(`Line ${i + 1}: expected "address, amount"`);
-      return;
-    }
-
-    let pkOk = true;
-    try {
-      // eslint-disable-next-line no-new
-      new PublicKey(addr);
-    } catch {
-      pkOk = false;
-    }
-    if (!pkOk) {
-      errors.push(`Line ${i + 1}: invalid address`);
-      return;
-    }
-
-    const amt = Number(amtStr);
-    if (!Number.isFinite(amt) || amt <= 0) {
-      errors.push(`Line ${i + 1}: invalid amount`);
-      return;
-    }
-
-    rows.push({ to: addr, amount: amt });
-  });
-
-  return { rows, errors };
+  const parsed = parseBatchRecipients(input);
+  return { rows: parsed.rows.map(row => ({ to: row.wallet, amount: Number(row.amount), exactAmount: row.amount })), errors: parsed.errors };
 }
 
 async function getMintDecimalsSafe(mint: PublicKey): Promise<number> {
@@ -159,12 +124,11 @@ async function getMintDecimalsSafe(mint: PublicKey): Promise<number> {
   }
 }
 
-const toLamports = (sol: number) => Math.floor(sol * web3.LAMPORTS_PER_SOL);
-
-const toTokenAmount = (ui: number, decimals: number) => {
-  // avoid float rounding surprises for most common values; still best-effort.
-  const scale = 10 ** decimals;
-  return BigInt(Math.floor(ui * scale + 1e-9));
+const toTokenAmount = (ui: string, decimals: number) => {
+  const raw = new BigNumber(ui).shiftedBy(decimals);
+  if (!raw.isInteger()) throw new Error(`Amount has too many decimal places (maximum ${decimals})`);
+  if (raw.isGreaterThan('18446744073709551615')) throw new Error('Token amount exceeds the supported limit');
+  return BigInt(raw.toFixed());
 };
 
 // Helper function to split instructions into chunks
@@ -201,12 +165,30 @@ export default function BatchSendView(props: any) {
   // Form
   const [mode, setMode] = React.useState<"SOL" | "SPL">("SOL");
   const [mintAddress, setMintAddress] = React.useState<string>("");
+  const [treasuryTokens, setTreasuryTokens] = React.useState<WalletTokenOption[]>([]);
+  const [loadingTokens, setLoadingTokens] = React.useState(false);
+  const [tokenLoadError, setTokenLoadError] = React.useState('');
+  const [tokenRevision, setTokenRevision] = React.useState(0);
+  const selectedToken = treasuryTokens.find(token => token.mint === mintAddress);
+  React.useEffect(() => {
+    if (!open || !governanceNativeWallet) return;
+    let active = true;
+    setLoadingTokens(true);
+    setTokenLoadError('');
+    setTreasuryTokens([]);
+    fetchBatchTransferTokens(RPC_CONNECTION, governanceNativeWallet).then(tokens => {
+      if (!active) return;
+      setTreasuryTokens(tokens);
+      setMintAddress(current => tokens.some(token => token.mint === current) ? current : tokens[0]?.mint || '');
+    }).catch(() => {
+      if (active) setTokenLoadError('Could not load treasury tokens. Refresh to try again.');
+    }).finally(() => { if (active) setLoadingTokens(false); });
+    return () => { active = false; };
+  }, [open, governanceNativeWallet, tokenRevision]);
   const [csv, setCsv] = React.useState<string>("");
 
   // UX state
   const [loading, setLoading] = React.useState(false);
-  const [previewCount, setPreviewCount] = React.useState(0);
-  const [previewTotal, setPreviewTotal] = React.useState(0);
 
   const { enqueueSnackbar } = useSnackbar();
 
@@ -271,14 +253,6 @@ export default function BatchSendView(props: any) {
     }
   };
 
-  const computePreview = React.useCallback(() => {
-    const { rows } = parseCsvRecipients(csv);
-    setPreviewCount(rows.length);
-    setPreviewTotal(rows.reduce((s, r) => s + (Number.isFinite(r.amount) ? r.amount : 0), 0));
-  }, [csv]);
-
-  React.useEffect(() => computePreview(), [computePreview]);
-
   React.useEffect(() => {
     // governance mint selection logic matches your other views
     setIsGoverningMintSelectable(false);
@@ -338,7 +312,7 @@ export default function BatchSendView(props: any) {
             SystemProgram.transfer({
               fromPubkey: from,
               toPubkey: new PublicKey(r.to),
-              lamports: toLamports(r.amount),
+              lamports: toTokenAmount(r.exactAmount, 9),
             })
           );
         }
@@ -393,7 +367,7 @@ export default function BatchSendView(props: any) {
       // Note: Account existence checks are network calls; do in parallel.
       const recipients = rows.map((r) => ({
         toPk: new PublicKey(r.to),
-        uiAmount: r.amount,
+        uiAmount: r.exactAmount,
       }));
 
       const ataList = await Promise.all(
@@ -474,12 +448,15 @@ export default function BatchSendView(props: any) {
 
   return (
     <>
+      {props.useButton ? <Button variant="outlined" disabled={!publicKey || !governanceNativeWallet} onClick={handleClickOpen} sx={{ textTransform: 'none', minHeight: 48 }}>Batch token transfers</Button> : (
       <MenuItem onClick={publicKey ? handleClickOpen : undefined}>
         <ListItemIcon>
           <AccountBalanceWalletIcon fontSize="small" />
         </ListItemIcon>
         Batch Transfer
       </MenuItem>
+
+      )}
 
       <BootstrapDialog
         fullWidth
@@ -501,7 +478,7 @@ export default function BatchSendView(props: any) {
 
         <DialogContent>
           <DialogContentText sx={{ textAlign: "center", mb: 2 }}>
-            Paste recipients as <b>address, amount</b> per line. Builds a proposal with many transfers.
+            Copy wallet and amount columns from your spreadsheet and paste them below. Review totals before adding the batch.
           </DialogContentText>
 
           {loading && (
@@ -539,70 +516,31 @@ export default function BatchSendView(props: any) {
 
               {mode === "SPL" && (
                 <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Token Mint Address"
-                    value={mintAddress}
-                    onChange={(e) => setMintAddress(e.target.value)}
-                    variant="filled"
-                    sx={{ m: 0.65 }}
-                    helperText="Transfers will be sent from governance wallet’s ATA for this mint."
-                  />
+                  <TextField select fullWidth label={loadingTokens ? 'Loading treasury tokens…' : 'Treasury token'}
+                    value={selectedToken ? mintAddress : ''} disabled={loadingTokens || !treasuryTokens.length}
+                    onChange={event => setMintAddress(event.target.value)} variant="filled" sx={{ m: 0.65 }}
+                    helperText={selectedToken ? `Mint: ${selectedToken.mint} · Available: ${new BigNumber(selectedToken.balanceRaw).shiftedBy(-selectedToken.decimals).toFixed()} ${selectedToken.symbol}` : 'Named tokens appear first, then highest token balance. NFTs are excluded.'}>
+                    {treasuryTokens.map(token => <MenuItem key={token.mint} value={token.mint}>
+                      {token.symbol} · {token.name} · {new BigNumber(token.balanceRaw).shiftedBy(-token.decimals).toFixed()} available
+                    </MenuItem>)}
+                  </TextField>
+                  {tokenLoadError && <Alert severity="warning">{tokenLoadError}</Alert>}
+                  {!loadingTokens && !tokenLoadError && !treasuryTokens.length && <Alert severity="info">No transferable SPL tokens found in this treasury’s associated token accounts.</Alert>}
+                  <Button size="small" disabled={loadingTokens} onClick={() => setTokenRevision(value => value + 1)}>Refresh tokens</Button>
                 </Grid>
               )}
 
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  multiline
-                  minRows={6}
-                  label="Recipients CSV"
-                  placeholder={`Example:\n3v7G...abc, 0.25\n9kQ1...xyz, 1.5`}
-                  value={csv}
-                  onChange={(e) => setCsv(e.target.value)}
-                  variant="filled"
-                  sx={{ m: 0.65 }}
-                />
+                <BatchRecipientsInput value={csv} onChange={setCsv} />
               </Grid>
 
               <Grid item xs={12}>
-                <Box
-                  sx={{
-                    mx: 0.65,
-                    px: 1.5,
-                    py: 1,
-                    borderRadius: "12px",
-                    backgroundColor: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 1,
-                  }}
-                >
-                  <Box>
-                    <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)" }}>
-                      Preview
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: "white", fontWeight: 600 }}>
-                      {previewCount} recipient(s)
-                    </Typography>
-                  </Box>
-                  <Chip
-                    size="small"
-                    label={
-                      mode === "SOL"
-                        ? `Total: ${previewTotal.toFixed(4)} SOL`
-                        : `Total: ${previewTotal.toFixed(4)} tokens`
-                    }
-                    sx={{ backgroundColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.75)" }}
-                  />
-                </Box>
+                <BatchSummaryView input={csv} unit={mode === 'SOL' ? 'SOL' : selectedToken?.symbol || 'tokens'} allowWhitespace />
               </Grid>
             </Grid>
           </FormControl>
 
-          {openAdvanced ? (
+          {!props.editingDraft && openAdvanced ? (
             <AdvancedProposalView
               governanceAddress={(props.governanceAddress || realm?.pubkey?.toBase58?.()) ?? ""}
               rulesWallet={rulesWallet}
@@ -627,7 +565,7 @@ export default function BatchSendView(props: any) {
           <GrapeExtensionEligibilityNotice />
                     <DialogActions sx={{ display: "flex", justifyContent: "space-between", p: 0, pb: 1 }}>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              {publicKey ? (
+              {publicKey && !props.editingDraft ? (
                 <Button
                   size="small"
                   onClick={handleAdvancedToggle}
@@ -653,7 +591,7 @@ export default function BatchSendView(props: any) {
               {publicKey ? (
                 <Button
                   autoFocus
-                  disabled={loading}
+                  disabled={loading || (mode === "SPL" && (loadingTokens || !selectedToken))}
                   onClick={handleBuildBatchTransfer}
                   sx={{
                     p: 1,
@@ -662,7 +600,7 @@ export default function BatchSendView(props: any) {
                   }}
                   startIcon={<SendIcon sx={{ color: "rgba(255,255,255,0.25)", fontSize: "14px!important" }} />}
                 >
-                  Create Batch Proposal
+                  {loading ? "Building..." : props.submitLabel || "Create Batch Proposal"}
                 </Button>
               ) : null}
             </Box>

@@ -20,7 +20,7 @@ let tokenMapPromise: Promise<Map<string, any>> | null = null;
 
 const getRegistryChainId = () => (APP_CLUSTER === 'devnet' ? ENV.Devnet : ENV.MainnetBeta);
 
-async function getTokenMap(): Promise<Map<string, any>> {
+export async function getTokenMap(): Promise<Map<string, any>> {
   if (!tokenMapPromise) {
     tokenMapPromise = new TokenListProvider()
       .resolve()

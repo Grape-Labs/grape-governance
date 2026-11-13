@@ -4,6 +4,7 @@ import { Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction 
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { styled } from '@mui/material/styles';
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -112,7 +113,7 @@ const parsePublicKey = (value: string, label: string): PublicKey => {
 };
 
 const parseU16 = (value: string, label: string): number => {
-  const parsed = Number(value);
+  const parsed = value.trim() ? Number(value) : NaN;
   if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed < 0 || parsed > 65535) {
     throw new Error(`${label} must be an integer between 0 and 65535`);
   }
@@ -178,6 +179,19 @@ const actionLabel: Record<OgAction, string> = {
   close_reputation: 'Close User Reputation',
 };
 
+const actionHelp: Record<OgAction, string> = {
+  initialize: 'Create a reputation space controlled by this treasury. Choose an existing REP mint or create one below.',
+  upsert_metadata: 'Update the space profile using a public metadata URI.',
+  set_authority: 'Transfer control of this space. The new authority will be able to manage its reputation and settings.',
+  set_season: 'Choose the active season. Reputation records are tracked separately for each season.',
+  set_decay: 'Set reputation decay in basis points: 100 = 1%, 10000 = 100%.',
+  set_rep_mint: 'Replace the REP mint associated with this space.',
+  add_points: 'Award points to one wallet or a batch. The SDK calculates each new total now; execution writes that stored total, so later reputation changes may be overwritten.',
+  reset_user: 'Set this wallet’s reputation total to zero in the active season.',
+  transfer_user: 'Move reputation from the old wallet to the new wallet for the selected season.',
+  close_reputation: 'Close a wallet’s seasonal reputation account and return its rent to the recipient.',
+};
+
 export default function OgReputationView(props: any) {
   const realm = props?.realm;
   const rulesWallet = props?.rulesWallet;
@@ -191,6 +205,8 @@ export default function OgReputationView(props: any) {
   const { publicKey, sendTransaction } = useWallet();
   const { enqueueSnackbar } = useSnackbar();
 
+  const detailsRequest = React.useRef(0);
+  const [spaceError, setSpaceError] = React.useState('');
   const [open, setOpen] = React.useState(false);
   const [openAdvanced, setOpenAdvanced] = React.useState(false);
   const [loadingSpaces, setLoadingSpaces] = React.useState(false);
@@ -198,9 +214,9 @@ export default function OgReputationView(props: any) {
   const [building, setBuilding] = React.useState(false);
   const [creatingRepMint, setCreatingRepMint] = React.useState(false);
 
-  const [proposalTitle, setProposalTitle] = React.useState<string | null>('OG Reputation Action');
+  const [proposalTitle, setProposalTitle] = React.useState<string | null>('');
   const [proposalDescription, setProposalDescription] = React.useState<string | null>(
-    'Execute an OG Reputation Spaces instruction.'
+    ''
   );
   const [editProposalAddress, setEditProposalAddress] = React.useState<string | null>(null);
 
@@ -340,6 +356,10 @@ export default function OgReputationView(props: any) {
 
   const loadSpaceDetails = React.useCallback(async (spaceDaoId: string) => {
     if (!spaceDaoId) return;
+    const request = ++detailsRequest.current;
+    setSpaceError('');
+    setSpaceConfig(null);
+    setSpaceAuthorityMatch(null);
     setLoadingSpaceDetails(true);
     try {
       const daoPk = new PublicKey(spaceDaoId);
@@ -347,6 +367,7 @@ export default function OgReputationView(props: any) {
         fetchConfig(RPC_CONNECTION, daoPk),
         fetchProjectMetadata(RPC_CONNECTION, daoPk),
       ]);
+      if (request !== detailsRequest.current) return;
       setSpaceConfig(config);
       setSpaceMetadata(metadata);
       setSpaceAuthorityMatch(config ? isGovernanceAuthority(config?.authority) : null);
@@ -362,11 +383,13 @@ export default function OgReputationView(props: any) {
         setMetadataUri(metadata.metadataUri);
       }
     } catch (e) {
+      if (request !== detailsRequest.current) return;
+      setSpaceError('Unable to load this space. Check the DAO ID and refresh before continuing.');
       setSpaceConfig(null);
       setSpaceMetadata(null);
       setSpaceAuthorityMatch(null);
     } finally {
-      setLoadingSpaceDetails(false);
+      if (request === detailsRequest.current) setLoadingSpaceDetails(false);
     }
   }, [isGovernanceAuthority, metadataUri, newSeason, season]);
 
@@ -420,6 +443,12 @@ export default function OgReputationView(props: any) {
       setDaoId(governanceAddress);
     }
   }, [daoId, governanceAddress, governanceNativeWallet]);
+
+  React.useEffect(() => {
+    if (!open || !daoId) return;
+    const timer = setTimeout(() => { void loadSpaceDetails(daoId); }, 350);
+    return () => { clearTimeout(timer); detailsRequest.current += 1; };
+  }, [open, daoId, loadSpaceDetails]);
 
   const handleSetDaoToTreasury = async () => {
     if (!governanceNativeWallet) {
@@ -596,6 +625,9 @@ export default function OgReputationView(props: any) {
   };
 
   const buildInstruction = async (): Promise<TransactionInstruction[]> => {
+    if (loadingSpaceDetails || spaceError) throw new Error('Wait for space details to load successfully');
+    if (action === 'initialize' && spaceConfig) throw new Error('This space is already initialized');
+    if (action !== 'initialize' && spaceConfig && spaceConfig.authority?.toBase58?.() !== governanceNativeWallet) throw new Error('This action requires the treasury to be the space authority');
     if (!governanceNativeWallet) {
       throw new Error('Missing governance native wallet');
     }
@@ -711,9 +743,9 @@ export default function OgReputationView(props: any) {
       case 'transfer_user': {
         const oldWallet = parsePublicKey(fromUser, 'from user');
         const newWallet = parsePublicKey(toUser, 'to user');
-        const seasonValue = parseOptionalU16(season);
+        const seasonValue = parseOptionalU16(season) ?? spaceConfig?.currentSeason;
+        if (seasonValue === undefined) throw new Error('Load the space or enter a season before transferring reputation');
         return [await buildTransferReputationIx({
-          conn: RPC_CONNECTION,
           daoId: daoPk,
           authority: authorityPk,
           payer: payerPk,
@@ -761,11 +793,11 @@ export default function OgReputationView(props: any) {
 
       setInstructions({
         title:
-          proposalTitle ||
+          proposalTitle?.trim() ||
           (isBatchAdd
             ? `OG Reputation: Batch Add Points (${batchSummary?.walletCount || ixs.length})`
             : `OG Reputation: ${actionName}`),
-        description: proposalDescription || defaultDescription,
+        description: proposalDescription?.trim() || `${defaultDescription} ${actionHelp[action]}`,
         ix: ixs,
         aix: [],
         allowMissingAccountsPreflight: true,
@@ -847,8 +879,8 @@ export default function OgReputationView(props: any) {
                 <TextField
                   select
                   fullWidth
-                  label="Select Discovered Space (optional)"
-                  value={daoId}
+                  label="Select treasury-controlled space"
+                  value={spaces.some(space => space?.daoId?.toBase58?.() === daoId) ? daoId : ''}
                   onChange={(e) => onDaoChanged(e.target.value)}
                   variant="filled"
                   sx={{ m: 0.65 }}
@@ -869,7 +901,8 @@ export default function OgReputationView(props: any) {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="DAO ID"
+                  label="Space DAO ID"
+                  helperText="Identifies the reputation space; this can be your treasury address."
                   value={daoId}
                   onChange={(e) => setDaoId(e.target.value)}
                   variant="filled"
@@ -918,13 +951,13 @@ export default function OgReputationView(props: any) {
                     }}
                   >
                     <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)' }}>
-                      Space snapshot
+                      {spaceConfig ? 'Reputation space' : 'Space status'}
                     </Typography>
                     {loadingSpaceDetails ? (
                       <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.55)' }}>
                         Loading config...
                       </Typography>
-                    ) : (
+                    ) : spaceError ? <Alert severity="warning">{spaceError}</Alert> : !spaceConfig ? <Typography variant="body2">No space is initialized for this DAO ID. Choose Initialize Space to create one, or enter an existing space’s DAO ID.</Typography> : (
                       <>
                         <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.75)' }}>
                           Authority: {spaceConfig?.authority?.toBase58?.() ? shortenString(spaceConfig.authority.toBase58(), 6, 6) : 'N/A'}
@@ -981,6 +1014,12 @@ export default function OgReputationView(props: any) {
                 </TextField>
               </Grid>
 
+              <Grid item xs={12}>
+                <Alert severity={['set_authority', 'reset_user', 'close_reputation'].includes(action) ? 'warning' : 'info'} sx={{ mx: 0.65 }}>
+                  {actionHelp[action]}
+                </Alert>
+              </Grid>
+
               {(action === 'initialize' || action === 'set_rep_mint') && (
                 <>
                   <Grid item xs={12}>
@@ -1004,7 +1043,7 @@ export default function OgReputationView(props: any) {
                       }}
                     >
                       <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.65)', display: 'block', mb: 1 }}>
-                        No REP mint yet? Create one from connected wallet and auto-fill it here.
+                        Create a REP mint now with your connected wallet. This is a separate transaction: you pay rent and fees, initial supply goes to your wallet, and mint authority transfers to the treasury. Freeze authority remains with your wallet.
                       </Typography>
                       <Grid container spacing={1}>
                         <Grid item xs={12} sm={4}>
@@ -1230,6 +1269,14 @@ export default function OgReputationView(props: any) {
             </Grid>
           </FormControl>
 
+          <Box sx={{ m: 1, mt: 3, p: 2, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 2 }}>
+            <Typography variant="overline">Proposal preview</Typography>
+            <Typography variant="h6">{proposalTitle?.trim() || `OG Reputation: ${actionLabel[action]}`}</Typography>
+            <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>Space: {daoId || 'Choose a DAO ID'}</Typography>
+            <Typography variant="body2" sx={{ mt: 1 }}>{proposalDescription?.trim() || actionHelp[action]}</Typography>
+            <Typography variant="caption" color="text.secondary">Creating a proposal queues these actions for governance approval. Customize the title and description in Advanced.</Typography>
+          </Box>
+
           {openAdvanced ? (
             <AdvancedProposalView
               governanceAddress={governanceAddress}
@@ -1249,7 +1296,7 @@ export default function OgReputationView(props: any) {
           ) : null}
 
           <Box sx={{ m: 2, textAlign: 'center' }}>
-            <Typography variant="caption">Vine Reputation client integration (@grapenpm/vine-reputation-client).</Typography>
+            <Typography variant="caption">Reputation actions execute only after governance approval and execution.</Typography>
           </Box>
 
           <GrapeExtensionEligibilityNotice />

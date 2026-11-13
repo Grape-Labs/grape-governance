@@ -1,3 +1,5 @@
+import { VINE_REP_PROGRAM_ID } from '@grapenpm/vine-reputation-client';
+import { describeOgReputationInstruction } from './ogReputationInstructions';
 import { decodeGovernanceConfig } from './governanceConfigSummary';
 import ProposalManagementActions from './Demo/ProposalManagementActions';
 import { recordedVoteLabel } from "./Demo/proposalListStatus";
@@ -3383,6 +3385,8 @@ export function GovernanceProposalV2View(props: any){
                                                 console.log("System extra decode error", e);
                                                 }
                                             }   
+                                        } else if (programId === VINE_REP_PROGRAM_ID.toBase58()) {
+                                            accountInstruction.info = await describeOgReputationInstruction(accountInstruction);
                                         } else if (programId === "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s") {
                                             accountInstruction.info = describeMetaplexInstruction(
                                                 accountInstruction
@@ -8093,6 +8097,8 @@ export function GovernanceProposalV2View(props: any){
                 title="Add Instructions"
                 useButton={5}
             /> : null,
+            draftSignOffAction: (pendingSigner || (canManageDraftProposal && Number(thisitem.account.signatoriesCount) === 0))
+                ? <ManageGovernanceProposal {...managementProps} mode={1} title="Sign Off Proposal" /> : null,
             draftSignerAction: canManageDraftProposal ? <ManageGovernanceProposal {...managementProps} mode={2} /> : null,
             finalizeAction: canFinalize ? <ManageGovernanceProposal {...managementProps} mode={5} /> : null,
             management: <ProposalManagementActions connected={!!publicKey} canManageDraft={canManageDraftProposal}
