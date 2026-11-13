@@ -1628,7 +1628,13 @@ export function InstructionTableView(props: any) {
         { field: 'accounts', headerName: 'Accounts', minWidth: 70, hide: true},
         { field: 'signers', headerName: 'Signers', minWidth: 70, hide: true},
         { field: 'data', headerName: 'Data', hide: true},
-        { field: 'description', headerName: 'Description', minWidth: 500, resizable:true, hide: false},
+        { field: 'description', headerName: 'Description', minWidth: 280, flex: 1, resizable: true, hide: false,
+            renderCell: (params) => (
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', py: 1.5, width: '100%' }}>
+                    {params.value}
+                </Typography>
+            ),
+        },
         { field: 'program', headerName: 'Program', minWidth: 120, resizable:true, hide: false},
         { field: 'verification', headerName: 'Verification', minWidth: 75, hide: state !== 0,
             renderCell: (params) => {
@@ -2045,13 +2051,18 @@ export function InstructionTableView(props: any) {
                                 <DataGrid
                                     rows={ixRows}
                                     columns={ixColumns}
+                                    getRowHeight={() => 'auto'}
+                                    getEstimatedRowHeight={() => 140}
                                     pageSize={25}
                                     rowsPerPageOptions={[]}
                                     sx={{
                                         borderRadius:'17px',
                                         borderColor:'rgba(255,255,255,0.25)',
                                         '& .MuiDataGrid-cell':{
-                                            borderColor:'rgba(255,255,255,0.25)'
+                                            borderColor:'rgba(255,255,255,0.25)',
+                                            whiteSpace: 'normal',
+                                            alignItems: 'flex-start',
+                                            py: 1
                                         }}}
                                     sortingOrder={['asc', 'desc', null]}
                                     initialState={{

@@ -1,3 +1,6 @@
+import { parseBatchRecipients } from '../batchSummary';
+import BatchRecipientsInput from '../BatchRecipientsInput';
+import BatchSummaryView from '../BatchSummaryView';
 import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 import { assertGrapeProposalEligibility } from '../../api/grapeProposalEligibility';
 import React from 'react';
@@ -25,6 +28,7 @@ import {
 } from '@solana/spl-governance';
 import { getAssociatedTokenAddress, getMint } from '@solana/spl-token-v2';
 import {
+  Alert,
   Box,
   Button,
   CircularProgress,
@@ -205,15 +209,19 @@ export default function IntraDAOView(props: any) {
   const [isBuilding, setIsBuilding] = React.useState(false);
   const [isFetchingJoinedDaos, setIsFetchingJoinedDaos] = React.useState(false);
 
-  const [action, setAction] = React.useState<IntraDaoAction>('join');
-  const [targetRealm, setTargetRealm] = React.useState('');
+  const [action, setAction] = React.useState<IntraDaoAction>(props.initialAction || 'join');
+  const [targetRealm, setTargetRealm] = React.useState(props.initialTargetRealm || '');
   const [targetGovernance, setTargetGovernance] = React.useState('');
-  const [targetMint, setTargetMint] = React.useState('');
+  const [targetMint, setTargetMint] = React.useState(props.initialTargetMint || '');
   const [depositAmount, setDepositAmount] = React.useState('');
   const [grantParticipantWallet, setGrantParticipantWallet] = React.useState('');
   const [grantAmount, setGrantAmount] = React.useState('');
-  const [bulkGrantEnabled, setBulkGrantEnabled] = React.useState(false);
+  const [bulkGrantEnabled, setBulkGrantEnabled] = React.useState(!!props.initialBulkGrant);
   const [bulkGrantRows, setBulkGrantRows] = React.useState('');
+  React.useEffect(() => {
+    if (props.initialTargetMint) setTargetMint(value => value || props.initialTargetMint);
+    if (props.initialTargetRealm) setTargetRealm(value => value || props.initialTargetRealm);
+  }, [props.initialTargetMint, props.initialTargetRealm]);
   const [targetProposalName, setTargetProposalName] = React.useState('IntraDAO Proposal');
   const [targetProposalDescription, setTargetProposalDescription] = React.useState(
     'Proposal created via IntraDAO extension'
@@ -290,7 +298,7 @@ export default function IntraDAOView(props: any) {
       setProposalDescription('Deposit governance tokens from treasury into another DAO.');
     } else if (action === 'grant') {
       setProposalTitle('IntraDAO: Grant Voting Power');
-      setProposalDescription('Grant delegated voting power in a joined DAO.');
+      setProposalDescription('Deposit treasury governance tokens for DAO members to grant voting power.');
     } else if (action === 'create') {
       setProposalTitle('IntraDAO: Create External Proposal');
       setProposalDescription('Create a proposal in another DAO using queued executable instructions.');
@@ -680,22 +688,11 @@ export default function IntraDAOView(props: any) {
       return ixs;
     }
 
-    const rows = cleanValue(bulkGrantRows)
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => !!line);
-    if (rows.length === 0) throw new Error('No bulk grant rows provided');
-
-    for (let i = 0; i < rows.length; i++) {
-      const [participantRaw, amountRaw] = rows[i].split(',').map((part) => cleanValue(part));
-      if (!participantRaw || !amountRaw) {
-        throw new Error(`Invalid bulk row at line ${i + 1}. Expected: participant,amount`);
-      }
-      const participantPk = toPublicKeySafe(participantRaw);
-      if (!participantPk) {
-        throw new Error(`Invalid participant public key at line ${i + 1}`);
-      }
-      await appendGrant(participantPk, amountRaw, i + 1);
+    const parsed = parseBatchRecipients(bulkGrantRows);
+    if (parsed.errors.length) throw new Error(parsed.errors.join('; '));
+    if (!parsed.rows.length) throw new Error('Paste at least one wallet and amount');
+    for (const row of parsed.rows) {
+      await appendGrant(new PublicKey(row.wallet), row.amount, row.line);
     }
 
     return ixs;
@@ -947,19 +944,22 @@ export default function IntraDAOView(props: any) {
 
   const actionButtonLabel = React.useMemo(() => {
     if (isBuilding) return 'Building...';
+    if (props.submitLabel) return props.submitLabel;
     if (action === 'create') return 'Create IntraDAO Proposal Draft';
     return 'Create IntraDAO Proposal';
-  }, [action, isBuilding]);
+  }, [action, isBuilding, props.submitLabel]);
 
   return (
     <>
-      <Tooltip title="IntraDAO: Join/deposit/delegate/create proposal in another DAO" placement="right">
+      <Tooltip title={props.useButton ? "Deposit treasury governance tokens for multiple DAO members" : "IntraDAO: Join/deposit/delegate/create proposal in another DAO"} placement="right">
+        {props.useButton ? <Button variant="outlined" disabled={!publicKey || !governanceNativeWallet} onClick={handleClickOpen} sx={{ textTransform: 'none', minHeight: 48 }}>Batch voting-power grants</Button> : (
         <MenuItem onClick={publicKey ? handleClickOpen : undefined}>
           <ListItemIcon>
             <HubIcon fontSize="small" />
           </ListItemIcon>
           IntraDAO
-        </MenuItem>
+        </MenuItem>)}
+
       </Tooltip>
 
       <BootstrapDialog
@@ -978,17 +978,17 @@ export default function IntraDAOView(props: any) {
         }}
       >
         <BootstrapDialogTitle id="intradao-dialog" onClose={handleClose}>
-          IntraDAO
+          {props.initialAction === 'grant' ? 'Batch voting-power grants' : 'IntraDAO'}
         </BootstrapDialogTitle>
 
         <DialogContent onKeyDown={stopInputKeyPropagation}>
           <DialogContentText sx={{ textAlign: 'center', mb: 2 }}>
-            Build cross-DAO governance instructions with treasury as authority.
+            {props.initialAction === 'grant' ? 'Grant voting power to DAO members using tokens from this treasury.' : 'Build cross-DAO governance instructions with treasury as authority.'}
           </DialogContentText>
 
           <FormControl fullWidth>
             <Grid container spacing={1.25}>
-              <Grid item xs={12}>
+              {!props.initialAction && <Grid item xs={12}>
                 <FormControl fullWidth size="small">
                   <InputLabel id="intradao-action-label">Action</InputLabel>
                   <Select
@@ -1005,7 +1005,7 @@ export default function IntraDAOView(props: any) {
                     <MenuItem value="vote">5. Vote for Proposal</MenuItem>
                   </Select>
                 </FormControl>
-              </Grid>
+              </Grid>}
 
               <Grid item xs={12}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1077,6 +1077,9 @@ export default function IntraDAOView(props: any) {
               {action === 'grant' ? (
                 <>
                   <Grid item xs={12}>
+                    <Alert severity="info">Grant voting power by depositing treasury governance tokens into each member’s governance account. Members control their deposited tokens and can withdraw them subject to DAO rules. Amounts are token units, not a guaranteed final voting weight.</Alert>
+                  </Grid>
+                  <Grid item xs={12}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -1116,18 +1119,8 @@ export default function IntraDAOView(props: any) {
                     </>
                   ) : (
                     <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Bulk Rows (participant,amount)"
-                        variant="filled"
-                        value={bulkGrantRows}
-                        onChange={(event) => setBulkGrantRows(event.target.value)}
-                        onKeyDown={stopInputKeyPropagation}
-                        multiline
-                        minRows={5}
-                        helperText="One per line. Example: participantPubkey,amount"
-                      />
+                      <BatchRecipientsInput value={bulkGrantRows} onChange={setBulkGrantRows} />
+                      <BatchSummaryView input={bulkGrantRows} />
                     </Grid>
                   )}
                 </>
@@ -1275,7 +1268,7 @@ export default function IntraDAOView(props: any) {
             </Grid>
           </FormControl>
 
-          {openAdvanced ? (
+          {!props.editingDraft && openAdvanced ? (
             <AdvancedProposalView
               governanceAddress={governanceAddress}
               rulesWallet={rulesWallet}
@@ -1300,7 +1293,7 @@ export default function IntraDAOView(props: any) {
           <GrapeExtensionEligibilityNotice />
                     <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p: 0, pb: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', p: 0 }}>
-              {publicKey ? (
+              {publicKey && !props.editingDraft ? (
                 <Button
                   size="small"
                   onClick={() => setOpenAdvanced((prev) => !prev)}

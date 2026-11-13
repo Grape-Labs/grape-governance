@@ -406,11 +406,13 @@ export function ManageGovernanceProposal(props: any){
         
         const signatory = publicKey;
 
-        const signatoryRecordAddress = await getSignatoryRecordAddress(
+        const currentProposal = await getProposal(RPC_CONNECTION, proposalAddress);
+        const ownerSignOff = Number(currentProposal.account.signatoriesCount) === 0;
+        const signatoryRecordAddress = ownerSignOff ? undefined : await getSignatoryRecordAddress(
             programId,
             proposalAddress,
             signatory
-        )
+        );
 
         const beneficiary = publicKey;
         const governanceAuthority = publicKey;
@@ -424,7 +426,7 @@ export function ManageGovernanceProposal(props: any){
             proposalAddress,
             signatory,
             signatoryRecordAddress,
-            undefined, // do we need prop author?
+            ownerSignOff ? tokenOwnerRecordPk : undefined,
             /*signatoryRecordAddress,
             undefined,
             undefined,
@@ -740,7 +742,7 @@ export function ManageGovernanceProposal(props: any){
                         color='inherit'
                         fullWidth={true}
                         sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
-                        Sign Off <ApprovalIcon fontSize="small" sx={{ml:1}}/>
+                        {title || 'Sign Off'} <ApprovalIcon fontSize="small" sx={{ml:1}}/>
                     </Button>
                 </Tooltip>
             :

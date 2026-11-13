@@ -397,20 +397,21 @@ export default function GovernanceDemo({
                             </div>
                             <div className="gd-content">
                               <h2>{view.proposal.account.name}</h2>
-                              {view.draftInstructionAction && <section className="gd-draft-instructions" aria-label="Draft proposal preparation">
+                              {(view.draftInstructionAction || view.draftSignOffAction) && <section className="gd-draft-instructions" aria-label="Draft proposal preparation">
                                 <div>
                                   <span className="gd-eyebrow">PREPARE YOUR DRAFT</span>
-                                  <h3>Add instructions and signers before voting</h3>
+                                  <h3>Prepare your proposal for sign-off</h3>
                                   <p>{view.instructionCount == null
                                     ? "Add the on-chain actions this proposal should execute if approved."
                                     : view.instructionCount > 0
-                                    ? "Your draft has executable transactions attached. You can add more instructions before signing off."
+                                    ? "Your draft has executable transactions attached. You can add instructions and signers until sign-off moves the proposal into voting."
                                     : "No executable transactions are attached yet. Add the on-chain actions this proposal should execute if approved, or leave it as a vote-only proposal."}</p>
-                                  <p className="gd-draft-signer-note">Add a signer to require their sign-off before voting can start.</p>
+                                  <p className="gd-draft-signer-note">Add a signer to require their sign-off. Voting starts once all required signers have signed off; instructions and signers can no longer be added once the proposal is in voting.</p>
                                 </div>
                                 <div className="gd-draft-instructions-action">
                                   {view.draftInstructionAction}
                                   {view.draftSignerAction}
+                                  {view.draftSignOffAction}
                                 </div>
                               </section>}
                               {view.proposal.account.state === 9 && <div className="gd-final-outcome" role="status"><strong>Vetoed · Voting closed</strong><p>This proposal cannot proceed to execution.</p><VoterBreakdown records={view.voterRecords ?? null} proposal={view.proposal} count={view.sentiment?.total} /></div>}

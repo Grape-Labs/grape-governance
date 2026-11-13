@@ -1,3 +1,5 @@
+import { batchInstructionDraft } from './Treasury/batchInstructionDraft';
+import TreasuryQuickActions from './Treasury/TreasuryQuickActions';
 import { assertGrapeProposalEligibility, GRAPE_PROPOSAL_REALM } from './api/grapeProposalEligibility';
 import { PublicKey, TokenAmount, Connection, Transaction, TransactionInstruction } from '@solana/web3.js';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
@@ -2219,6 +2221,14 @@ export default function GovernanceCreateProposalView(props: any){
                           
                           {governanceWallet && 
                           <>
+                            <TreasuryQuickActions editingDraft key={governanceWallet.pubkey?.toBase58?.() || governanceWallet.nativeTreasuryAddress?.toString?.()}
+                              realm={cachedRealm} rulesWallet={governanceWallet} governanceAddress={governanceAddress}
+                              governanceNativeWallet={governanceWallet.nativeTreasuryAddress?.toBase58?.() || governanceWallet.nativeTreasuryAddress}
+                              setExpandedLoader={() => {}}
+                              setInstructions={(payload: any) => {
+                                setInstructionsObject(batchInstructionDraft(payload));
+                              }} />
+                            <Typography variant="subtitle2" sx={{ mb: 1 }}>More instruction types</Typography>
                             <FormControl fullWidth sx={{mb:2}}>
                                 <ProposalSelect />
                             </FormControl>
