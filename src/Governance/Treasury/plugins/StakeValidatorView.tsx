@@ -1,3 +1,4 @@
+import { assertTreasuryStakeAuthority, buildTreasuryStake, buildTreasurySplitDeactivate, buildTreasuryDelegateExisting, singleStakeInstruction } from './treasuryStakeSafety';
 import { GrapeExtensionEligibilityNotice } from '../../GrapeProposalEligibilityNotice';
 // FIXED VERSION - Key changes for JITO MEV Harvest:
 // 1. Use canonical field names (activeStakeLamports, rentLamports, inactiveLamports)
@@ -40,6 +41,7 @@ import React, { useCallback } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
 
 import {
+    Alert,
     Avatar,
     Chip,
     Typography,
@@ -158,12 +160,7 @@ function TabPanel(props: TabPanelProps) {
 
 // Helper to extract instruction from StakeProgram methods
 // (some @solana/web3.js versions return Transaction, others return TransactionInstruction)
-const extractInstruction = (result: any): TransactionInstruction => {
-    if ('instructions' in result) {
-        return result.instructions[0] as TransactionInstruction;
-    }
-    return result as TransactionInstruction;
-};
+const extractInstruction = singleStakeInstruction;
 
 // ========== Jito MEV Harvest Constants ==========
 const STAKE_RENT_EXEMPT_LAMPORTS = 2282880; // Rent-exempt minimum for a stake account
@@ -222,6 +219,8 @@ export default function StakeValidatorView(props: any){
     const [validatorVoteAddress, setValidatorVoteAddress] = React.useState('');
     const [stakeSeed, setStakeSeed] = React.useState<string | null>(null);
     const [amount, setAmount] = React.useState('');
+    const [stakeMode, setStakeMode] = React.useState<'new' | 'existing'>('new');
+    const [existingStakeAddress, setExistingStakeAddress] = React.useState('');
 
     // Unstaking state
     const [unstakeAddress, setUnstakeAddress] = React.useState('');
@@ -394,6 +393,7 @@ export default function StakeValidatorView(props: any){
                         RPC_CONNECTION,
                         new PublicKey(walletKey)
                     );
+                    if (controller.signal.aborted || fetchStakeAccountsKeyRef.current !== walletKey) return;
                     stakeAccountsCacheRef.current = { wallet: walletKey, accounts };
                     setStakeAccounts(accounts);
                     return;
@@ -590,84 +590,8 @@ export default function StakeValidatorView(props: any){
     );
 
     // Create staking instructions
-    const createStakingInstructions = async (stakeAmountLamports: number): Promise<TransactionInstruction[]> => {
-        try {
-            const seed = stakeSeed;
-            const nativeWalletPubkey = new PublicKey(governanceNativeWallet);
-            
-            const stakePubkey = await PublicKey.createWithSeed(
-                nativeWalletPubkey,
-                seed,
-                StakeProgram.programId
-            );
-
-            const rentExemptLamports = await RPC_CONNECTION.getMinimumBalanceForRentExemption(StakeProgram.space);
-            const existingStakeAccount = await RPC_CONNECTION.getParsedAccountInfo(stakePubkey);
-            const existingValue: any = existingStakeAccount?.value;
-            const exists = !!existingValue;
-
-            if (exists && !existingValue.owner?.equals?.(StakeProgram.programId)) {
-                throw new Error("Derived stake account exists but is not owned by Stake Program");
-            }
-
-            const existingStakeType = existingValue?.data?.parsed?.type;
-            const stakingIxs: TransactionInstruction[] = [];
-
-            if (!exists) {
-                const createStakeAccountIx = SystemProgram.createAccountWithSeed({
-                    fromPubkey: nativeWalletPubkey,
-                    newAccountPubkey: stakePubkey,
-                    basePubkey: nativeWalletPubkey,
-                    seed: seed,
-                    lamports: rentExemptLamports + stakeAmountLamports,
-                    space: StakeProgram.space,
-                    programId: StakeProgram.programId,
-                });
-                stakingIxs.push(createStakeAccountIx);
-            } else {
-                enqueueSnackbar(
-                    "Derived stake account already exists. Skipping create-account step and building remaining staking instructions.",
-                    { variant: "info" }
-                );
-            }
-
-            if (!exists || existingStakeType === "uninitialized") {
-                const initializeStakeIx = extractInstruction(
-                    StakeProgram.initialize({
-                        stakePubkey: stakePubkey,
-                        authorized: new Authorized(
-                            nativeWalletPubkey,
-                            nativeWalletPubkey
-                        ),
-                        lockup: new Lockup(0, 0, nativeWalletPubkey),
-                    })
-                );
-                stakingIxs.push(initializeStakeIx);
-            }
-
-            if (!exists || existingStakeType === "uninitialized" || existingStakeType === "initialized") {
-                const delegateStakeIx = extractInstruction(
-                    StakeProgram.delegate({
-                        stakePubkey: stakePubkey,
-                        authorizedPubkey: nativeWalletPubkey,
-                        votePubkey: new PublicKey(validatorVoteAddress),
-                    })
-                );
-                stakingIxs.push(delegateStakeIx);
-            }
-
-            if (stakingIxs.length === 0) {
-                throw new Error(
-                    "No staking instructions generated. Stake account appears already delegated or in an unsupported state."
-                );
-            }
-
-            return stakingIxs;
-        } catch (error) {
-            console.error("Error creating staking instructions:", error);
-            throw error;
-        }
-    }
+    const createStakingInstructions = (lamports: number): Promise<TransactionInstruction[]> =>
+        buildTreasuryStake(RPC_CONNECTION, new PublicKey(governanceNativeWallet), stakeSeed, lamports, new PublicKey(validatorVoteAddress));
 
     // Create deactivate instructions
     const createDeactivateInstructions = (stakeAccountPubkey: PublicKey): TransactionInstruction[] => {
@@ -690,58 +614,8 @@ export default function StakeValidatorView(props: any){
 
     // Create split + deactivate instructions for partial unstaking
     // Splits off `lamports` into a new stake account (via seed), then deactivates it
-    const createSplitDeactivateInstructions = async (
-        stakeAccountPubkey: PublicKey, 
-        lamports: number,
-        seed: string
-    ): Promise<TransactionInstruction[]> => {
-        try {
-            const nativeWalletPubkey = new PublicKey(governanceNativeWallet);
-
-            // Derive split stake account from seed
-            const splitStakePubkey = await PublicKey.createWithSeed(
-                nativeWalletPubkey,
-                seed,
-                StakeProgram.programId
-            );
-
-            const rentExemptLamports = await RPC_CONNECTION.getMinimumBalanceForRentExemption(StakeProgram.space);
-
-            // Create the split destination account (empty, rent-exempt)
-            const createSplitAccountIx = SystemProgram.createAccountWithSeed({
-                fromPubkey: nativeWalletPubkey,
-                newAccountPubkey: splitStakePubkey,
-                basePubkey: nativeWalletPubkey,
-                seed: seed,
-                lamports: rentExemptLamports,
-                space: StakeProgram.space,
-                programId: StakeProgram.programId,
-            });
-
-            // Split the stake
-            const splitIx = extractInstruction(
-                StakeProgram.split({
-                    stakePubkey: stakeAccountPubkey,
-                    authorizedPubkey: nativeWalletPubkey,
-                    splitStakePubkey: splitStakePubkey,
-                    lamports: lamports,
-                })
-            );
-
-            // Deactivate the split-off account
-            const deactivateIx = extractInstruction(
-                StakeProgram.deactivate({
-                    stakePubkey: splitStakePubkey,
-                    authorizedPubkey: nativeWalletPubkey,
-                })
-            );
-
-            return [createSplitAccountIx, splitIx, deactivateIx];
-        } catch (error) {
-            console.error("Error creating split+deactivate instructions:", error);
-            throw error;
-        }
-    }
+    const createSplitDeactivateInstructions = (source: PublicKey, lamports: number, seed: string): Promise<TransactionInstruction[]> =>
+        buildTreasurySplitDeactivate(RPC_CONNECTION, new PublicKey(governanceNativeWallet), source, seed, lamports);
 
     // Create withdraw instructions
     const createWithdrawInstructions = (stakeAccountPubkey: PublicKey, lamports: number): TransactionInstruction[] => {
@@ -859,6 +733,7 @@ export default function StakeValidatorView(props: any){
 
             for (const account of selected) {
                 const stakeAccountPubkey = new PublicKey(account.pubkey);
+                await assertTreasuryStakeAuthority(RPC_CONNECTION, stakeAccountPubkey, govWallet);
                 const withdrawIx = extractInstruction(
                     StakeProgram.withdraw({
                         stakePubkey: stakeAccountPubkey,
@@ -903,56 +778,37 @@ export default function StakeValidatorView(props: any){
     };
 
     const handleStakeIx = async () => {
-        if (handleCloseExtMenu)
-            handleCloseExtMenu();
-        setPropOpen(false);
-
+        setLoading(true);
         try {
-            const stakeAmount = parseFloat(amount);
-            if (isNaN(stakeAmount) || stakeAmount <= 0) {
-                enqueueSnackbar("Invalid amount", { variant: 'error' });
-                return;
+            if (!validatorVoteAddress) throw new Error('Enter a validator vote address');
+            const stakeAmount = Number(amount);
+            let stakingIxs: TransactionInstruction[];
+            if (stakeMode === 'existing') {
+                if (!existingStakeAddress) throw new Error('Select an existing stake account');
+                stakingIxs = await buildTreasuryDelegateExisting(RPC_CONNECTION, new PublicKey(governanceNativeWallet), new PublicKey(existingStakeAddress), new PublicKey(validatorVoteAddress));
+            } else {
+                if (!Number.isFinite(stakeAmount) || stakeAmount <= 0) throw new Error('Enter a positive SOL amount');
+                if (!stakeSeed) throw new Error('Enter a stake account seed');
+                const stakeAmountLamports = Math.round(web3.LAMPORTS_PER_SOL * stakeAmount);
+                if (!Number.isSafeInteger(stakeAmountLamports) || Math.abs(stakeAmountLamports / web3.LAMPORTS_PER_SOL - stakeAmount) > 1e-12) throw new Error('Use at most 9 decimal places and a supported SOL amount');
+                stakingIxs = await createStakingInstructions(stakeAmountLamports);
             }
-
-            if (!validatorVoteAddress) {
-                enqueueSnackbar("Please enter a validator vote address", { variant: 'error' });
-                return;
-            }
-
-            if (!stakeSeed) {
-                enqueueSnackbar("Please enter a seed for the stake account", { variant: 'error' });
-                return;
-            }
-
-            const stakeAmountLamports = Math.floor(web3.LAMPORTS_PER_SOL * stakeAmount);
-            const stakingIxs = await createStakingInstructions(stakeAmountLamports);
-
-            const status = await simulateIx(new Transaction().add(...stakingIxs));
-            if (!status) {
-                enqueueSnackbar("Transaction simulation failed", { variant: 'error' });
-                return;
-            }
-
-            const propIx = {
-                title: proposalTitle || "Stake to Validator",
-                description: proposalDescription || `Staking ${stakeAmount} SOL to validator ${validatorVoteAddress}`,
-                ix: stakingIxs,
-                aix: [],
-                ...getAtomicProposalTxConfig(stakingIxs.length),
-                nativeWallet: governanceNativeWallet,
-                governingMint: governingMint,
-                draft: isDraft,
-                editProposalAddress: editProposalAddress,
-            }
-
-            console.log("propIx: ", JSON.stringify(propIx));
-            setInstructions(propIx);
+            if (!await simulateIx(new Transaction().add(...stakingIxs))) throw new Error('Native stake simulation failed. No proposal was created.');
+            setInstructions({
+                title: proposalTitle || (stakeMode === 'existing' ? 'Delegate Existing Treasury Stake' : 'Stake to Validator'),
+                description: proposalDescription || (stakeMode === 'existing'
+                    ? `Delegate existing stake ${existingStakeAddress} to validator ${validatorVoteAddress}. Both authorities remain ${governanceNativeWallet}; no withdrawal or new stake account.`
+                    : `Stake ${stakeAmount} SOL to validator ${validatorVoteAddress}. Both authorities remain ${governanceNativeWallet}.`),
+                ix: stakingIxs, aix: [], ...getAtomicProposalTxConfig(stakingIxs.length),
+                nativeWallet: governanceNativeWallet, governingMint, draft: isDraft, editProposalAddress,
+            });
             setExpandedLoader(true);
-        } catch (error) {
-            enqueueSnackbar("Failed to create staking instructions", { variant: 'error' });
-            console.error('Failed to create staking instructions:', error);
-        }
-    }
+            setPropOpen(false);
+            if (handleCloseExtMenu) handleCloseExtMenu();
+        } catch (error: any) {
+            enqueueSnackbar(error?.message || 'Failed to build stake instructions', {variant:'error'});
+        } finally { setLoading(false); }
+    };
 
     // Handle deactivate (begin unstaking cooldown)
     const handleDeactivateIx = async (stakeAccountAddress: string) => {
@@ -962,6 +818,7 @@ export default function StakeValidatorView(props: any){
 
         try {
             const stakeAccountPubkey = new PublicKey(stakeAccountAddress);
+            await assertTreasuryStakeAuthority(RPC_CONNECTION, stakeAccountPubkey, new PublicKey(governanceNativeWallet), true);
             const deactivateIxs = createDeactivateInstructions(stakeAccountPubkey);
 
             const status = await simulateIx(new Transaction().add(...deactivateIxs));
@@ -999,6 +856,7 @@ export default function StakeValidatorView(props: any){
 
         try {
             const stakeAccountPubkey = new PublicKey(stakeAccountAddress);
+            await assertTreasuryStakeAuthority(RPC_CONNECTION, stakeAccountPubkey, new PublicKey(governanceNativeWallet));
             const withdrawIxs = createWithdrawInstructions(stakeAccountPubkey, lamports);
 
             const status = await simulateIx(new Transaction().add(...withdrawIxs));
@@ -1080,31 +938,13 @@ export default function StakeValidatorView(props: any){
             };
         }
 
-        if (!activationState) {
-            const delegation = parsedInfo?.stake?.delegation;
-            const deactivationEpochRaw = delegation?.deactivationEpoch;
-            const deactivationEpoch = Number(deactivationEpochRaw ?? 0);
-            const delegatedLamports = delegation?.stake != null ? Number(delegation.stake) : 0;
-            const U64_MAX_EPOCH = 18446744073709551615;
-
-            const appearsActive =
-                delegatedLamports > 0 &&
-                (deactivationEpochRaw == null ||
-                    deactivationEpoch >= U64_MAX_EPOCH ||
-                    deactivationEpoch > epochInfo.epoch);
-
-            if (appearsActive) {
-                return {
-                    ok: false,
-                    reason: "Stake appears active/deactivating. Wait for cooldown to finish, then close.",
-                    lamports: totalLamports,
-                };
-            }
+        if (!activationState && parsedData?.type !== 'initialized') {
+            return { ok: false, reason: 'Cooldown could not be verified. Refresh using an RPC with activation support before closing.', lamports: totalLamports };
         }
 
         const authorizedWithdrawer = parsedInfo?.meta?.authorized?.withdrawer;
         if (
-            authorizedWithdrawer &&
+            !authorizedWithdrawer ||
             new PublicKey(authorizedWithdrawer).toBase58() !== new PublicKey(governanceNativeWallet).toBase58()
         ) {
             return {
@@ -1238,8 +1078,8 @@ export default function StakeValidatorView(props: any){
                 }
                 await handleCloseStakeIx(unstakeAddress);
             }
-        } catch (error) {
-            enqueueSnackbar("Failed to process unstake action", { variant: 'error' });
+        } catch (error: any) {
+            enqueueSnackbar(error?.message || "Failed to process unstake action", { variant: 'error' });
             console.error('Failed to process unstake action:', error);
         }
     }
@@ -1375,6 +1215,20 @@ export default function StakeValidatorView(props: any){
                         <FormControl fullWidth>
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
+                                    <TextField select fullWidth label="Stake action" value={stakeMode} onChange={event => setStakeMode(event.target.value as 'new' | 'existing')} variant="filled">
+                                        <MenuItem value="new">Create a new stake account</MenuItem>
+                                        <MenuItem value="existing">Stake existing account / Change validator</MenuItem>
+                                    </TextField>
+                                </Grid>
+                                {stakeMode === 'existing' && <Grid item xs={12}>
+                                    <Alert severity="info" sx={{ mb: 1 }}>Uses the existing account’s full stake balance. Both authorities stay with the treasury. Authority verification and delegation execute atomically; no SOL is withdrawn.</Alert>
+                                    <TextField select fullWidth label={loadingStakeAccounts ? 'Loading stake accounts…' : 'Existing treasury stake account'} value={existingStakeAddress} onChange={event => setExistingStakeAddress(event.target.value)} variant="filled" disabled={loadingStakeAccounts}>
+                                        {stakeAccounts.map(account => <MenuItem key={account.pubkey} value={account.pubkey}>{account.pubkey.slice(0, 8)}…{account.pubkey.slice(-8)} · {Number(account.total_amount || 0).toFixed(4)} SOL · {account.state === 'inactive' || account.state === 'initialized' ? 'Inactive' : account.state === 'delegated' ? 'Delegated' : account.state === 'unverified' ? 'State unavailable' : account.state}</MenuItem>)}
+                                    </TextField>
+                                    <Button size="small" onClick={() => fetchStakeAccounts(true)} disabled={loadingStakeAccounts}>Refresh stake accounts</Button>
+                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>Only fully inactive accounts can change validator. If cooldown cannot be verified, proposal creation is blocked.</Typography>
+                                </Grid>}
+                                <Grid item xs={12}>
                                     <TextField 
                                         fullWidth 
                                         label="Validator Vote Address" 
@@ -1387,7 +1241,7 @@ export default function StakeValidatorView(props: any){
                                         sx={{ m: 0.65 }}
                                     />
                                 </Grid>
-                                <Grid item xs={12}>
+                                {stakeMode === 'new' && <><Grid item xs={12}>
                                     <TextField 
                                         fullWidth 
                                         label="Seed for Stake Address" 
@@ -1428,7 +1282,7 @@ export default function StakeValidatorView(props: any){
                                         inputProps={{ min: "0", step: "0.0001" }}
                                         sx={{ m: 0.65 }}
                                     />
-                                </Grid>
+                                </Grid></>}
                             </Grid>
                         </FormControl>
                     </TabPanel>
@@ -1458,7 +1312,7 @@ export default function StakeValidatorView(props: any){
                                         sx={{ m: 0.65 }}
                                         helperText={
                                             unstakeAction === 'deactivate' 
-                                                ? "Deactivate begins the cooldown period (~2-3 days). Stake remains locked until the epoch ends."
+                                                ? "Deactivate begins cooldown. Completion can take multiple epochs; withdrawal and changing validators require the appropriate on-chain stake state."
                                                 : unstakeAction === 'withdraw'
                                                 ? "Withdraw returns SOL to the governance wallet. Works when inactive/deactivated."
                                                 : "Close withdraws the full balance and removes the stake account once fully inactive and unlocked."
@@ -1573,14 +1427,14 @@ export default function StakeValidatorView(props: any){
                                 </Box>
                                 <List dense sx={{ maxHeight: 250, overflow: 'auto' }}>
                                     {stakeAccounts.map((account, index) => {
-                                        const isActive = account.state === 'active';
+                                        const isActive = ['active', 'activating', 'delegated'].includes(account.state);
                                         const isDeactivating = account.state === 'deactivating';
                                         const isInactive = account.state === 'initialized' || account.state === 'inactive';
 
-                                        let statusLabel = 'Unknown';
+                                        let statusLabel = 'State unavailable';
                                         let statusColor = 'rgba(255,255,255,0.5)';
-                                        if (isActive) { statusLabel = 'Active'; statusColor = '#4caf50'; }
-                                        else if (isDeactivating) { statusLabel = 'Deactivating'; statusColor = '#ff9800'; }
+                                        if (isActive) { statusLabel = account.state === 'delegated' ? 'Delegated' : account.state === 'activating' ? 'Activating' : 'Active'; statusColor = '#4caf50'; }
+                                        else if (isDeactivating) { statusLabel = account.activationVerified ? 'Deactivating' : 'Cooldown unverified'; statusColor = '#ff9800'; }
                                         else if (isInactive) { statusLabel = 'Inactive'; statusColor = '#f44336'; }
 
                                         const vote =
@@ -1649,7 +1503,7 @@ export default function StakeValidatorView(props: any){
                                                     secondary={
                                                         <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)" }}>
                                                         {totalSol && totalSol?.toFixed(4)} SOL
-                                                        {" • "}Withdrawable: {withdrawableSol && withdrawableSol?.toFixed(4)} SOL
+                                                        {" • "}{isInactive ? 'Inactive balance' : 'Non-active balance (not a withdrawal guarantee)'}: {Number(withdrawableSol || 0).toFixed(4)} SOL
                                                         {" • "}Rent: {rentSol && rentSol?.toFixed(4)} SOL
                                                         {vote !== "N/A" ? ` • Validator: ${vote.slice(0, 6)}...` : ""}
                                                         </Typography>
@@ -1871,6 +1725,7 @@ export default function StakeValidatorView(props: any){
                                         <Button 
                                             autoFocus 
                                             onClick={handleStakeIx}
+                                            disabled={loading}
                                             sx={{
                                                 p:1,
                                                 borderRadius:'17px',
@@ -1880,7 +1735,7 @@ export default function StakeValidatorView(props: any){
                                             }}
                                             startIcon={<LockIcon sx={{ color:'rgba(255,255,255,0.25)', fontSize:"14px!important"}} />}
                                         >
-                                            Create Stake Account
+                                            {loading ? 'Checking stake…' : stakeMode === 'existing' ? 'Delegate Existing Stake' : 'Create Stake Account'}
                                         </Button>
                                     ) : tabValue === 1 ? (
                                         <Button 

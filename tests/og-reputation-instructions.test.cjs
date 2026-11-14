@@ -57,3 +57,17 @@ test('browser Buffer decodes real SDK point totals without Node-only methods', a
  assert.equal(info.op, 'addReputation');
  assert.match(info.description, /18446744073709551615 points/);
 });
+test('decodes SDK delegate permissions and revocation without implying ownership transfer', async () => {
+ await loaded;
+ const args={daoId:key,authority:key,delegateWallet:key,payer:key,recipient:key,canAward:true,canReset:false};
+ for(const builder of ['buildAddDelegateIx','buildUpdateDelegateIx']) {
+  const info=await decode(await sdk[builder](args));
+  assert.match(info.description,/Award reputation: allowed; reset reputation: denied/);
+  assert.match(info.description,/Space authority stays with/);
+ }
+ const revoked=await decode(await sdk.buildRemoveDelegateIx(args));
+ assert.match(revoked.description,/Revoke delegate account/);
+ assert.match(revoked.description,/return account rent/);
+ const ix=await sdk.buildAddDelegateIx(args);ix.data[9]=2;
+ assert.match((await decode(ix)).description,/malformed/);
+});

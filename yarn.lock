@@ -2721,10 +2721,10 @@
     teeny-request "^8.0.0"
     uuid "^8.0.0"
 
-"@grapenpm/vine-reputation-client@^0.1.32":
-  version "0.1.32"
-  resolved "https://registry.yarnpkg.com/@grapenpm/vine-reputation-client/-/vine-reputation-client-0.1.32.tgz#adb7607c7aa77fcf4edd39768dffca996e1e8ca4"
-  integrity sha512-YqU0zpGELgWOAimcbRLFlEo9cVt+ohqz+Yqy8asAuX1P4t+JeCZhfNzvjg6C+kp9BRwuA+XEMl2GTLpyVjTHLw==
+"@grapenpm/vine-reputation-client@^0.1.38":
+  version "0.1.38"
+  resolved "https://registry.npmjs.org/@grapenpm/vine-reputation-client/-/vine-reputation-client-0.1.38.tgz#80f8e2906d96626eb6dc5270e73a65f7773bd285"
+  integrity sha512-IdZFjHPPIK/LW6wWPfyoUefwRpDu94bJrqeKAn3Kk6eH+2KqxTC4GwFrVQXTvdjxkROh2BhsC+M73cuB5zHvOA==
   dependencies:
     bs58 "^6.0.0"
 

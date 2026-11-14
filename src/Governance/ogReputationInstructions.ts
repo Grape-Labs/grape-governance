@@ -3,7 +3,7 @@ import BN from 'bn.js';
 import { PublicKey } from '@solana/web3.js';
 import { ixDiscriminator } from '@grapenpm/vine-reputation-client';
 
-const names = ['initializeConfig', 'upsertProjectMetadata', 'setAuthority', 'setSeason', 'setDecayBps', 'setRepMint', 'addReputation', 'transferReputation', 'closeReputation', 'closeConfig', 'adminCloseAny'];
+const names = ['addDelegate', 'updateDelegate', 'removeDelegate', 'initializeConfig', 'upsertProjectMetadata', 'setAuthority', 'setSeason', 'setDecayBps', 'setRepMint', 'addReputation', 'transferReputation', 'closeReputation', 'closeConfig', 'adminCloseAny'];
 const discriminators = Promise.all(names.map(async name => [name, Buffer.from(await ixDiscriminator(name)).toString('hex')]));
 
 // Decode only the bytes and accounts voters will authorize; never infer intent from proposal text.
@@ -17,11 +17,19 @@ export async function describeOgReputationInstruction(ix: any) {
   };
   try {
     const name = (await discriminators).find(([, hex]) => hex === data.subarray(0, 8).toString('hex'))?.[0];
-    const expected = { initializeConfig: 74, setAuthority: 40, setSeason: 10, setDecayBps: 10, setRepMint: 40, addReputation: 16, transferReputation: 8, closeReputation: 10, closeConfig: 8, adminCloseAny: 8 }[name || ''];
+    const expected = { addDelegate: 10, updateDelegate: 10, removeDelegate: 8, initializeConfig: 74, setAuthority: 40, setSeason: 10, setDecayBps: 10, setRepMint: 40, addReputation: 16, transferReputation: 8, closeReputation: 10, closeConfig: 8, adminCloseAny: 8 }[name || ''];
     if (!name || (expected !== undefined && data.length !== expected)) throw new Error('Unsupported layout');
     const pk = (offset: number) => new PublicKey(data.subarray(offset, offset + 32)).toBase58();
     let description: string;
     switch (name) {
+      case 'addDelegate':
+      case 'updateDelegate': {
+        if (![0, 1].includes(data[8]) || ![0, 1].includes(data[9])) throw new Error('Invalid delegate permissions');
+        const target = name === 'addDelegate' ? `wallet ${account(2)}` : `delegate account ${account(2)}`;
+        description = `${name === 'addDelegate' ? 'Add delegate' : 'Update permissions for'} ${target} in reputation space ${account(0)}. Award reputation: ${data[8] ? 'allowed' : 'denied'}; reset reputation: ${data[9] ? 'allowed' : 'denied'}. Space authority stays with ${account(1)}.`;
+        break;
+      }
+      case 'removeDelegate': description = `Revoke delegate account ${account(2)} in reputation space ${account(0)}; return account rent to ${account(3)}. Space authority stays with ${account(1)}.`; break;
       case 'initializeConfig': description = `Initialize reputation space ${pk(8)} with REP mint ${pk(40)}, season ${data.readUInt16LE(72)} and authority ${account(1)}`; break;
       case 'setAuthority': description = `Transfer control of reputation space ${account(0)} from ${account(1)} to ${pk(8)}. The new authority can manage reputation and space settings.`; break;
       case 'setSeason': description = `Set reputation space ${account(0)} to season ${data.readUInt16LE(8)}`; break;
