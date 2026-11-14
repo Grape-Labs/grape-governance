@@ -13,6 +13,8 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  FormControlLabel,
+  Checkbox,
   FormControl,
   Grid,
   IconButton,
@@ -52,6 +54,9 @@ import {
   buildInitializeConfigIx,
   buildUpsertProjectMetadataIx,
   buildSetAuthorityIx,
+  buildAddDelegateIx,
+  buildUpdateDelegateIx,
+  buildRemoveDelegateIx,
   buildSetSeasonIx,
   buildSetDecayBpsIx,
   buildSetRepMintIx,
@@ -70,6 +75,9 @@ export interface DialogTitleProps {
 type OgAction =
   | 'initialize'
   | 'upsert_metadata'
+  | 'add_delegate'
+  | 'update_delegate'
+  | 'remove_delegate'
   | 'set_authority'
   | 'set_season'
   | 'set_decay'
@@ -169,7 +177,10 @@ const parseTokenUiAmountToRawNumber = (value: string, decimals: number): number 
 const actionLabel: Record<OgAction, string> = {
   initialize: 'Initialize Space',
   upsert_metadata: 'Upsert Metadata URI',
-  set_authority: 'Set Authority',
+  add_delegate: 'Add Delegate',
+  update_delegate: 'Update Delegate Permissions',
+  remove_delegate: 'Remove Delegate',
+  set_authority: 'Transfer Space Authority',
   set_season: 'Set Season',
   set_decay: 'Set Decay BPS',
   set_rep_mint: 'Set REP Mint',
@@ -180,8 +191,11 @@ const actionLabel: Record<OgAction, string> = {
 };
 
 const actionHelp: Record<OgAction, string> = {
-  initialize: 'Create a reputation space controlled by this treasury. Choose an existing REP mint or create one below.',
+  initialize: 'Create a reputation space controlled by this treasury. The required legacy mint field is filled automatically using your DAO’s existing governance mint; no new token is needed.',
   upsert_metadata: 'Update the space profile using a public metadata URI.',
+  add_delegate: 'Authorize a wallet to award and/or reset reputation. The treasury keeps full control of the space.',
+  update_delegate: 'Change an existing delegate’s award and reset permissions. The treasury keeps full control.',
+  remove_delegate: 'Revoke a delegate’s permissions and return the delegate account rent to the treasury.',
   set_authority: 'Transfer control of this space. The new authority will be able to manage its reputation and settings.',
   set_season: 'Choose the active season. Reputation records are tracked separately for each season.',
   set_decay: 'Set reputation decay in basis points: 100 = 1%, 10000 = 100%.',
@@ -232,11 +246,16 @@ export default function OgReputationView(props: any) {
   const [spaceMetadata, setSpaceMetadata] = React.useState<any>(null);
   const [spaceAuthorityMatch, setSpaceAuthorityMatch] = React.useState<boolean | null>(null);
 
+  const defaultLegacyMint = realm?.account?.communityMint?.toBase58?.() || realm?.account?.config?.councilMint?.toBase58?.() || '';
+  const [useCustomLegacyMint, setUseCustomLegacyMint] = React.useState(false);
   const [repMint, setRepMint] = React.useState<string>('');
   const [newMintDecimals, setNewMintDecimals] = React.useState<string>('0');
   const [newMintInitialSupply, setNewMintInitialSupply] = React.useState<string>('0');
   const [initialSeason, setInitialSeason] = React.useState<string>('1');
   const [metadataUri, setMetadataUri] = React.useState<string>('');
+  const [delegateWallet, setDelegateWallet] = React.useState('');
+  const [canAward, setCanAward] = React.useState(true);
+  const [canReset, setCanReset] = React.useState(false);
   const [newAuthority, setNewAuthority] = React.useState<string>('');
   const [newSeason, setNewSeason] = React.useState<string>('');
   const [decayBps, setDecayBps] = React.useState<string>('0');
@@ -637,7 +656,7 @@ export default function OgReputationView(props: any) {
 
     switch (action) {
       case 'initialize': {
-        const repMintPk = parsePublicKey(repMint, 'REP mint');
+        const repMintPk = parsePublicKey(useCustomLegacyMint || !defaultLegacyMint ? repMint : defaultLegacyMint, 'legacy REP mint');
         const seasonValue = parseU16(initialSeason, 'Initial season');
         return [await buildInitializeConfigIx({
           daoId: daoPk,
@@ -656,6 +675,15 @@ export default function OgReputationView(props: any) {
           payer: payerPk,
           metadataUri: uri,
         })];
+      }
+      case 'add_delegate':
+      case 'update_delegate':
+      case 'remove_delegate': {
+        const delegatePk = parsePublicKey(delegateWallet, 'delegate wallet');
+        const args = { daoId: daoPk, authority: authorityPk, delegateWallet: delegatePk, canAward, canReset };
+        if (action === 'add_delegate') return [await buildAddDelegateIx({ ...args, payer: payerPk })];
+        if (action === 'update_delegate') return [await buildUpdateDelegateIx(args)];
+        return [await buildRemoveDelegateIx({ ...args, recipient: authorityPk })];
       }
       case 'set_authority': {
         const nextAuthority = parsePublicKey(newAuthority, 'new authority');
@@ -797,7 +825,7 @@ export default function OgReputationView(props: any) {
           (isBatchAdd
             ? `OG Reputation: Batch Add Points (${batchSummary?.walletCount || ixs.length})`
             : `OG Reputation: ${actionName}`),
-        description: proposalDescription?.trim() || `${defaultDescription} ${actionHelp[action]}`,
+        description: proposalDescription?.trim() || (['add_delegate', 'update_delegate', 'remove_delegate'].includes(action) ? `${actionName}: ${delegateWallet}. ${action === 'remove_delegate' ? 'Revoke permissions; rent returns to treasury.' : `Award: ${canAward ? 'allowed' : 'denied'}; reset: ${canReset ? 'allowed' : 'denied'}.`} Space ${daoShort}; treasury retains authority.` : `${defaultDescription} ${actionHelp[action]}`),
         ix: ixs,
         aix: [],
         allowMissingAccountsPreflight: true,
@@ -1003,7 +1031,10 @@ export default function OgReputationView(props: any) {
                 >
                   <MenuItem value="initialize">Initialize Space</MenuItem>
                   <MenuItem value="upsert_metadata">Upsert Metadata URI</MenuItem>
-                  <MenuItem value="set_authority">Set Authority</MenuItem>
+                  <MenuItem value="add_delegate">Add Delegate</MenuItem>
+                  <MenuItem value="update_delegate">Update Delegate Permissions</MenuItem>
+                  <MenuItem value="remove_delegate">Remove Delegate</MenuItem>
+                  <MenuItem value="set_authority">Transfer Space Authority</MenuItem>
                   <MenuItem value="set_season">Set Season</MenuItem>
                   <MenuItem value="set_decay">Set Decay BPS</MenuItem>
                   <MenuItem value="set_rep_mint">Set REP Mint</MenuItem>
@@ -1020,12 +1051,17 @@ export default function OgReputationView(props: any) {
                 </Alert>
               </Grid>
 
-              {(action === 'initialize' || action === 'set_rep_mint') && (
+              {action === 'initialize' && defaultLegacyMint && <Grid item xs={12}>
+                <Typography variant="body2" sx={{ px: 1 }}>No REP token creation needed. We’ll use the DAO’s existing mint for compatibility.</Typography>
+                <FormControlLabel sx={{ px: 1 }} control={<Checkbox checked={useCustomLegacyMint} onChange={event => setUseCustomLegacyMint(event.target.checked)} />} label="Use a custom legacy REP mint" />
+                {!useCustomLegacyMint && <Typography variant="caption" color="text.secondary" sx={{ px: 1, display: 'block', overflowWrap: 'anywhere' }}>Legacy mint: {defaultLegacyMint}</Typography>}
+              </Grid>}
+              {((action === 'initialize' && (useCustomLegacyMint || !defaultLegacyMint)) || action === 'set_rep_mint') && (
                 <>
                   <Grid item xs={12}>
                     <TextField
                       fullWidth
-                      label="REP Mint"
+                      label="Legacy REP Mint"
                       value={repMint}
                       onChange={(e) => setRepMint(e.target.value)}
                       variant="filled"
@@ -1111,6 +1147,15 @@ export default function OgReputationView(props: any) {
                 </Grid>
               )}
 
+              {['add_delegate', 'update_delegate', 'remove_delegate'].includes(action) && (
+                <Grid item xs={12}>
+                  <TextField fullWidth label="Delegate wallet" value={delegateWallet} onChange={event => setDelegateWallet(event.target.value)} variant="filled" sx={{ m: 0.65 }} />
+                  {action !== 'remove_delegate' && <Box sx={{ px: 1 }}>
+                    <FormControlLabel control={<Checkbox checked={canAward} onChange={event => setCanAward(event.target.checked)} />} label="Can award reputation" />
+                    <FormControlLabel control={<Checkbox checked={canReset} onChange={event => setCanReset(event.target.checked)} />} label="Can reset reputation" />
+                  </Box>}
+                </Grid>
+              )}
               {action === 'set_authority' && (
                 <Grid item xs={12}>
                   <TextField
@@ -1273,7 +1318,9 @@ export default function OgReputationView(props: any) {
             <Typography variant="overline">Proposal preview</Typography>
             <Typography variant="h6">{proposalTitle?.trim() || `OG Reputation: ${actionLabel[action]}`}</Typography>
             <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>Space: {daoId || 'Choose a DAO ID'}</Typography>
+            {action === 'initialize' && <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>Legacy mint: {useCustomLegacyMint || !defaultLegacyMint ? repMint || 'Choose a mint' : defaultLegacyMint}</Typography>}
             <Typography variant="body2" sx={{ mt: 1 }}>{proposalDescription?.trim() || actionHelp[action]}</Typography>
+            {['add_delegate', 'update_delegate', 'remove_delegate'].includes(action) && <Typography variant="body2" sx={{ overflowWrap: 'anywhere', mt: 1 }}>Delegate: {delegateWallet || 'Choose a wallet'}{action !== 'remove_delegate' ? ` · Award: ${canAward ? 'allowed' : 'denied'} · Reset: ${canReset ? 'allowed' : 'denied'}` : ' · Permissions revoked; rent returned to treasury'}</Typography>}
             <Typography variant="caption" color="text.secondary">Creating a proposal queues these actions for governance approval. Customize the title and description in Advanced.</Typography>
           </Box>
 

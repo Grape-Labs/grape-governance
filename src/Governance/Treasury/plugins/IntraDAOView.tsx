@@ -1,3 +1,4 @@
+import { queuedInstructionGroups } from '../queuedInstructionGroups';
 import { parseBatchRecipients } from '../batchSummary';
 import BatchRecipientsInput from '../BatchRecipientsInput';
 import BatchSummaryView from '../BatchSummaryView';
@@ -766,7 +767,8 @@ export default function IntraDAOView(props: any) {
     const proposalName = cleanValue(targetProposalName) || 'IntraDAO Proposal';
     const proposalDesc = cleanValue(targetProposalDescription) || 'Proposal created via IntraDAO extension';
 
-    const queuedIxs = getQueuedExecutableInstructions();
+    const executionGroups = queuedInstructionGroups(instructionQueue, normalizeInstructionArray);
+    const queuedIxs = executionGroups.flat();
     if (queuedIxs.length === 0) {
       throw new Error('No queued executable instructions found');
     }
@@ -827,7 +829,7 @@ export default function IntraDAOView(props: any) {
       treasuryPk
     );
 
-    for (let idx = 0; idx < queuedIxs.length; idx++) {
+    for (let idx = 0; idx < executionGroups.length; idx++) {
       await withInsertTransaction(
         ixs,
         programId,
@@ -839,7 +841,7 @@ export default function IntraDAOView(props: any) {
         idx,
         0,
         holdUpTime,
-        [createInstructionData(queuedIxs[idx])],
+        executionGroups[idx].map(createInstructionData),
         treasuryPk
       );
     }

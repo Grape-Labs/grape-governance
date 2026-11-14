@@ -66,7 +66,7 @@
         "@ellipsis-labs/phoenix-sdk": "^2.0.2",
         "@emotion/react": "^11.4.1",
         "@emotion/styled": "^11.8.1",
-        "@grapenpm/vine-reputation-client": "^0.1.32",
+        "@grapenpm/vine-reputation-client": "^0.1.38",
         "@helium/voter-stake-registry-sdk": "^0.2.1",
         "@hellomoon/api": "^1.16.7",
         "@iconify/react": "^4.1.1",

@@ -36,31 +36,53 @@ export async function fetchStakeAccountsByAuthorityRpc(
     deduped.set(account.pubkey.toBase58(), account);
   }
 
-  return Array.from(deduped.values()).map((account: any) => {
-    const info = account.account.data?.parsed?.info || {};
+  const result: any[] = [];
+  const values = Array.from(deduped.values());
+  // Bound activation lookups for treasuries with many stake accounts.
+  for (let offset = 0; offset < values.length; offset += 6) {
+    result.push(...await Promise.all(values.slice(offset, offset + 6).map(async (account: any) => {
+    const parsed = account.account.data?.parsed;
+    const info = parsed?.info || {};
+    const type = parsed?.type || info?.type;
     const delegation = info?.stake?.delegation;
     const deactivationEpoch = delegation?.deactivationEpoch ?? 'N/A';
     const totalLamports = Number(account.account.lamports || 0);
     const rentLamports = Number(info?.meta?.rentExemptReserve ?? DEFAULT_STAKE_RENT_LAMPORTS);
-    const activeStakeLamports = Number(delegation?.stake || 0);
+    const delegatedLamports = Number(delegation?.stake || 0);
+    let activeStakeLamports = delegatedLamports;
+    let state = type === 'initialized' ? 'inactive' : 'unverified';
+    let activationVerified = type === 'initialized';
+    if (type === 'delegated' || delegation) {
+      state = String(deactivationEpoch) === U64_MAX ? 'delegated' : 'deactivating';
+      try {
+        const activation = await connection.getStakeActivation(account.pubkey, 'confirmed');
+        if (['active', 'inactive', 'activating', 'deactivating'].includes(activation?.state)) {
+          state = activation.state;
+          activeStakeLamports = Number(activation.active || 0);
+          activationVerified = true;
+        }
+      } catch {
+        // Some RPCs no longer support activation lookups. Do not invent inactive
+        // readiness from epoch age or confuse excess balance with the principal.
+      }
+    }
+    if (state === 'inactive') activeStakeLamports = 0;
     const inactiveLamports = Math.max(0, totalLamports - activeStakeLamports - rentLamports);
-
-    let state = info?.type || 'unknown';
-    if (info?.type === 'delegated' && String(deactivationEpoch) === U64_MAX) state = 'active';
-    else if (info?.type === 'delegated') state = 'deactivating';
-    else if (info?.type === 'initialized') state = 'initialized';
 
     const pubkey = account.pubkey.toBase58();
     return {
       pubkey,
       stake_account_address: pubkey,
       vote_account_address: delegation?.voter || 'N/A',
-      status: info?.type || 'unknown',
+      status: type || 'unverified',
+      activationVerified,
+      staker: info?.meta?.authorized?.staker,
+      withdrawer: info?.meta?.authorized?.withdrawer,
       state,
       total_amount: totalLamports / LAMPORTS_PER_SOL,
       active_amount: activeStakeLamports / LAMPORTS_PER_SOL,
       active_stake_amount: activeStakeLamports / LAMPORTS_PER_SOL,
-      delegated_amount: activeStakeLamports / LAMPORTS_PER_SOL,
+      delegated_amount: delegatedLamports / LAMPORTS_PER_SOL,
       rent: rentLamports / LAMPORTS_PER_SOL,
       inactive_amount: inactiveLamports / LAMPORTS_PER_SOL,
       lamports: totalLamports,
@@ -68,5 +90,7 @@ export async function fetchStakeAccountsByAuthorityRpc(
       rentLamports,
       inactiveLamports,
     };
-  });
+    })));
+  }
+  return result;
 }
