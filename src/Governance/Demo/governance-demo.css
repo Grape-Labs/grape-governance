@@ -1734,3 +1734,19 @@
 .gd-draft-instructions .gd-draft-signer-note { margin-top: 12px; }
 .gd-draft-instructions-action { display: flex; flex-direction: column; gap: 10px; flex: 0 1 220px; width: 100%; }
 .gd-draft-instructions-action button { min-height: 48px; background: #b6ecd51a; }
+
+/* Uses the existing intro tagline slot; no new header row or panel. */
+.gd-live .gd-intro .gd-compact-power {
+  display: inline-flex; align-items: baseline; justify-self: end; gap: 8px;
+  min-height: 18px; max-width: 320px; min-width: 0; padding: 0;
+  border: 0; background: transparent; box-shadow: none; border-radius: 0;
+  color: #9eafc3; font: inherit; font-size: 12px; line-height: 18px;
+  white-space: nowrap; cursor: pointer;
+}
+.gd-live .gd-intro .gd-compact-power > span:first-child { overflow: hidden; text-overflow: ellipsis; }
+.gd-live .gd-intro .gd-compact-power:hover,
+.gd-live .gd-intro .gd-compact-power:focus-visible { color: #b6ecd5; }
+.gd-compact-power-deposit { color: #a9dfcd; font-size: 11px; flex-shrink: 0; }
+@media (max-width: 650px) {
+  .gd-live .gd-intro .gd-compact-power { justify-self: start; max-width: 100%; }
+}

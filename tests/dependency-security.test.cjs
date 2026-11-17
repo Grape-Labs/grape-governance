@@ -10,6 +10,14 @@ const entries = lock.split('\n\n').flatMap(block => {
 });
 test('reported vulnerable dependencies stay patched or absent', () => {
   const ranges = {
+    tar: '<7.5.23', '@solana/web3.js': '<1.98.4', 'gh-pages': '<5.0.0',
+    ws: '>=7 <7.5.14 || >=8 <8.23.0', 'fast-loops': '<1.1.4', elliptic: '<6.6.1',
+    micromatch: '<4.0.8', 'cross-spawn': '<6.0.6 || >=7 <7.0.6', nanoid: '<3.3.20',
+    'bigint-buffer': '*', '@babel/runtime': '<7.26.10', 'base-x': '>=3 <3.0.11 || >=4 <4.0.1',
+    formidable: '>=3 <3.5.3', pbkdf2: '<3.1.7', 'tiny-secp256k1': '<1.1.7',
+    'form-data': '>=3 <3.0.5 || >=4 <4.0.6', tmp: '<0.2.7', 'cipher-base': '<1.0.7',
+    'sha.js': '<2.4.12', 'min-document': '<2.19.2', glob: '>=9 <=14.0.1',
+    'mdast-util-to-hast': '>=13 <13.2.1', jws: '4.0.0', qs: '<6.17.1', '@remix-run/router': '<1.23.4',
     protobufjs: '<7.6.6', joi: '<17.13.9', 'node-forge': '<1.4.3',
     'body-parser': '<1.20.9', 'source-map-js': '<1.2.2', compression: '<1.8.2',
     'node-fetch': '<2.6.7', got: '<11.8.5', 'git-clone': '*', taffydb: '*', ip: '*',
