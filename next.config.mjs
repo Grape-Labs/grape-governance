@@ -23,6 +23,9 @@ export default {
   webpack(config, {isServer, webpack}) {
     config.resolve.alias['/src'] = path.join(root, 'src');
     config.resolve.alias.src = path.join(root, 'src');
+    // Resolve all SDK consumers to the patched root package, including when a
+    // deployment cache contains obsolete nested copies from an older lockfile.
+    config.resolve.alias['@solana/web3.js'] = path.dirname(require.resolve('@solana/web3.js/package.json'));
     const imageRule = config.module.rules.find(rule => rule.test?.test?.('.png'));
     if (imageRule) imageRule.resourceQuery = {not: [/url/]};
     config.module.rules.push({
