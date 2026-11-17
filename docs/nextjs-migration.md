@@ -42,3 +42,9 @@ The production Next build and emitted-image check pass. Production HTTP smoke ch
 The regression suite reports 173 passes and the two independently confirmed, pre-existing grant-provider failures. Frozen-lockfile installation and diff checks pass. The current npm advisory check returned no advisories for Next.js, the newly explicit build/test dependencies, or the six recently patched dependency names.
 
 The browser automation host was unavailable during this migration, so visual browser review and actual wallet signing were not performed. No deployment or domain cutover has been made.
+
+### Deployment cache and Node runtime
+
+Node is pinned to `24.x`, matching the verified build runtime and preventing Vercel from selecting a new major automatically. `bin/prepare-dependency-tree.cjs` runs before compilation, checks the pinned root Solana SDK, and removes obsolete nested SDK copies left by Yarn 1 in restored deployment caches. Webpack also resolves `@solana/web3.js` to the patched root package for both server and browser builds. Do not restore the removed `bigint-buffer` dependency to make stale cached SDKs compile.
+
+The cache regression tests recreate the Helium/Jupiter nested-package layout from the failed deployment, verify cleanup is idempotent and scoped, and check the SDK alias and runtime pin.

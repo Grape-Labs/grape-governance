@@ -27,7 +27,7 @@
         "clean": "shx rm -rf .next public dist dist-server .parcel-cache",
         "build:client": "yarn build",
         "build:server": "yarn build",
-        "build": "node bin/prepare-next-public.cjs && next build --webpack && node bin/check-client-assets.cjs",
+        "build": "node bin/prepare-next-public.cjs && node bin/prepare-dependency-tree.cjs && next build --webpack && node bin/check-client-assets.cjs",
         "release:patch": "npm version patch --no-git-tag-version && yarn build",
         "release:minor": "npm version minor --no-git-tag-version && yarn build",
         "release:major": "npm version major --no-git-tag-version && yarn build",
@@ -333,6 +333,6 @@
         "**/read-package-json/glob": "14.0.6"
     },
     "engines": {
-        "node": "^22.12.0 || >=24.0.0"
+        "node": "24.x"
     }
 }
