@@ -1,3 +1,5 @@
+import CompactGovernancePower, { VotingPowerDetails } from './Demo/CompactGovernancePower';
+import { compactGovernancePower } from './Demo/votingPowerIndicatorModel';
 
 import { PublicKey, TokenAmount, Connection, TransactionInstruction, Transaction } from '@solana/web3.js';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
@@ -262,6 +264,7 @@ export default function GovernancePower(props: any){
     const [incomingPower, setIncomingPower] = React.useState({community: 0, council: 0});
     const [isParticipatingInDao, setIsParticipatingInDao] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
+    const [powerLoadError, setPowerLoadError] = React.useState('');
     const [depositedCommunityMint, setDepositedCommunityMint] = React.useState(null);
     const [depositedCouncilMint, setDepositedCouncilMint] = React.useState(null);
     const [communityUnrelinquishedVotesCount, setCommunityUnrelinquishedVotesCount] = React.useState(0);
@@ -813,6 +816,8 @@ export default function GovernancePower(props: any){
                 }
             )
             
+            setWalletCommunityMintAmount('0');
+            setWalletCouncilMintAmount('0');
             if (tokenBalance?.value){
                 for (let titem of tokenBalance?.value){
                     if (titem.account.data.parsed.info.mint === communityMint){
@@ -861,8 +866,11 @@ export default function GovernancePower(props: any){
 
         const run = async () => {
             setLoading(true);
+            setPowerLoadError('');
             try {
                 await getWalletAndGovernanceOwner();
+            } catch {
+                if (!cancelled) setPowerLoadError('Voting power could not be loaded. Please retry.');
             } finally {
                 if (!cancelled) {
                     setLoading(false);
@@ -1406,7 +1414,7 @@ export default function GovernancePower(props: any){
         const programId = new PublicKey(realm.owner);
         console.log("programId: "+JSON.stringify(programId));
 
-        if (isVsrPlugin){
+        if (isVsrPlugin && mintAddress === walletCommunityMintAddress){
             try {
                 if (!publicKey) {
                     enqueueSnackbar(`Wallet not connected`, { variant: 'error' });
@@ -1462,7 +1470,7 @@ export default function GovernancePower(props: any){
                     variant: 'error',
                 });
             }
-        } else if (isPlugin){
+        } else if (isPlugin && mintAddress === walletCommunityMintAddress){
             alert("Plugin/NFT Deposits Coming Soon - use the Realms UI to deposit your tokens to this Governance")
         } else {
             const realmPk = new PublicKey(realm.pubkey);
@@ -1733,7 +1741,7 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
       width: "min(700px, calc(100vw - 24px))",
       maxWidth: "700px",
       maxHeight: "min(820px, calc(100vh - 24px))",
-      background: "linear-gradient(180deg, #13151C 0%, #10121A 100%)",
+      background: "linear-gradient(145deg, #192735 0%, #111b28 100%)",
       border: "1px solid rgba(255,255,255,0.10)",
       borderRadius: "18px",
       overflow: "hidden",
@@ -1775,8 +1783,9 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
   return (
     <>
       {props.triggerLabel ? <Button variant="outlined" size="small" onClick={handleClickOpen}
-        sx={{textTransform:'none',borderRadius:2,color:'inherit',borderColor:'rgba(255,255,255,0.18)'}}
-        startIcon={<SettingsIcon fontSize="small" />}>{props.triggerLabel}</Button> : <Tooltip title="Advanced (amount, delegate, withdraw)">
+        fullWidth={props.cardTrigger}
+        sx={props.cardTrigger ? {textTransform:'none',borderRadius:'10px',color:'#b6ecd5',borderColor:'rgba(130,210,185,0.25)',bgcolor:'rgba(130,210,185,0.06)',justifyContent:'space-between',px:1.5,py:0.9,fontSize:12} : {textTransform:'none',borderRadius:2,color:'inherit',borderColor:'rgba(255,255,255,0.18)'}}
+        startIcon={props.cardTrigger ? undefined : <SettingsIcon fontSize="small" />} endIcon={props.cardTrigger ? <span aria-hidden="true">↗</span> : undefined}>{props.triggerLabel}</Button> : <Tooltip title="Advanced (amount, delegate, withdraw)">
         <IconButton
           aria-label="Advanced"
           color={inlineAdvanced ? "inherit" : "success"}
@@ -2277,23 +2286,22 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
         toNumberSafe(depositedCouncilMint) > 0
     );
 
-    if (props.summaryOnly) {
-        const council = toBase58Safe(props.governingTokenMint) === toBase58Safe(realm?.account?.config?.councilMint);
+    if (props.summaryOnly || props.compact) {
+        const council = !props.compact && !!realm?.account?.config?.councilMint && toBase58Safe(props.governingTokenMint) === toBase58Safe(realm?.account?.config?.councilMint);
         const decimals = council ? 0 : displayedVsrVotingPowerDecimals;
         const own = council ? toNumberSafe(depositedCouncilMint) : isPluginVotingPower ? toNumberSafe(vsrState?.voterWeight) : displayedCommunityMintAmount;
         const delegated = council ? incomingPower.council : incomingPower.community;
         const format = (value: number) => (value / Math.pow(10, decimals)).toLocaleString(undefined, {maximumFractionDigits: 2});
-        return <Box aria-label="Your voting power">
-            {!publicKey ? <Typography>Connect your wallet to see your vote and voting power.</Typography> : loading || mintDecimals === null ? <Typography role="status">Loading your voting power…</Typography> : <>
-                <Box sx={{display:'flex',gap:2,flexWrap:'wrap','& > div':{display:'flex',alignItems:'baseline',gap:0.75},'& p':{fontSize:14,fontWeight:600}}}>
-                    <Box><Typography variant="caption">{council ? 'Council power' : 'Own power'}</Typography><Typography>{format(own)}</Typography></Box>
-                    <Box><Typography variant="caption">Delegated to you</Typography><Typography>{isPluginVotingPower && !council ? 'See plugin delegation details' : format(delegated)}</Typography></Box>
-                </Box>
-                <Box component="details" sx={{mt:1,fontSize:12}}>
-                    <Box component="summary" sx={{cursor:'pointer',color:'text.secondary',py:0.5}}>Manage voting power</Box>
-                    <Box sx={{display:'flex',gap:1,flexWrap:'wrap',mt:1}}>
-                        <AdvancedCommunityVoteDepositPrompt
-                            triggerLabel="Manage community power"
+        const compact = compactGovernancePower({
+            communityPower: isPluginVotingPower ? vsrState?.voterWeight : displayedCommunityMintAmount,
+            councilPower: depositedCouncilMint, incomingCommunity: incomingPower.community, incomingCouncil: incomingPower.council,
+            communityDelegate: currentCommunityDelegate === publicKey?.toBase58?.() ? null : currentCommunityDelegate, councilDelegate: currentCouncilDelegate === publicKey?.toBase58?.() ? null : currentCouncilDelegate,
+            availableCommunity: walletCommunityMintAmount, availableCouncil: walletCouncilMintAmount,
+            decimals: displayedVsrVotingPowerDecimals, plugin: isPlugin, pluginUnknown: isPlugin && !isPluginVotingPower,
+        });
+        const communityAction = <AdvancedCommunityVoteDepositPrompt
+                            triggerLabel={props.compact ? (toNumberSafe(walletCommunityMintAmount) > 0 ? "Deposit or manage" : "Manage community") : "Manage community power"}
+                            cardTrigger={props.compact}
                             mintVotingPower={displayedCommunityMintAmount}
                             unrelinquishedVotesCount={communityUnrelinquishedVotesCount}
                             mintAvailableAmount={walletCommunityMintAmount}
@@ -2304,20 +2312,44 @@ function AdvancedCommunityVoteDepositPrompt(props: any) {
                             vsrVotingPowerDecimals={vsrState?.votingPowerDecimals}
                             vsrVotingPower={vsrState?.voterWeight}
                             vsrWithdrawableAmount={vsrState?.withdrawableAmount}
-                            vsrDeposits={vsrState?.deposits} />
-                        {realm?.account?.config?.councilMint && <AdvancedCommunityVoteDepositPrompt
-                            triggerLabel="Manage council power" isCouncil
+                            vsrDeposits={vsrState?.deposits} />;
+        const councilAction = <AdvancedCommunityVoteDepositPrompt
+                            triggerLabel={props.compact ? (toNumberSafe(walletCouncilMintAmount) > 0 ? "Deposit or manage" : "Manage council") : "Manage council power"} cardTrigger={props.compact} isCouncil
                             mintVotingPower={depositedCouncilMint}
                             unrelinquishedVotesCount={councilUnrelinquishedVotesCount}
                             mintAvailableAmount={walletCouncilMintAmount}
                             mintAddress={walletCouncilMintAddress}
-                            mintName="Council" decimals={0} />}
+                            mintName="Council" decimals={0} />;
+        const cards = [{ title: 'Community', total: compact.communityTotal,
+            own: isPlugin && !isPluginVotingPower ? 'Plugin managed' : format(isPluginVotingPower ? vsrState?.voterWeight : displayedCommunityMintAmount),
+            incoming: isPlugin ? 'Managed by plugin' : format(incomingPower.community),
+            available: (toNumberSafe(walletCommunityMintAmount) / Math.pow(10, Number(mintDecimals || 0))).toLocaleString(undefined, { maximumFractionDigits: 4 }),
+            canDeposit: toNumberSafe(walletCommunityMintAmount) > 0, delegate: currentCommunityDelegate, action: communityAction }];
+        if (realm?.account?.config?.councilMint) cards.push({ title: 'Council', total: compact.councilTotal,
+            own: toNumberSafe(depositedCouncilMint).toLocaleString(), incoming: incomingPower.council.toLocaleString(),
+            available: toNumberSafe(walletCouncilMintAmount).toLocaleString(), canDeposit: toNumberSafe(walletCouncilMintAmount) > 0,
+            delegate: currentCouncilDelegate, action: councilAction });
+        const content = <Box aria-label="Your voting power">
+            {!publicKey ? <Typography>Connect your wallet to see your vote and voting power.</Typography> : loading || mintDecimals === null ? <Typography role="status">Loading your voting power…</Typography> : <>
+                <Box sx={{display:'flex',gap:2,flexWrap:'wrap','& > div':{display:'flex',alignItems:'baseline',gap:0.75},'& p':{fontSize:14,fontWeight:600}}}>
+                    <Box><Typography variant="caption">{council ? 'Council power' : 'Own power'}</Typography><Typography>{format(own)}</Typography></Box>
+                    <Box><Typography variant="caption">Delegated to you</Typography><Typography>{isPluginVotingPower && !council ? 'See plugin delegation details' : format(delegated)}</Typography></Box>
+                </Box>
+                <Box component="details" sx={{mt:1,fontSize:12}}>
+                    <Box component="summary" sx={{cursor:'pointer',color:'text.secondary',py:0.5}}>Manage voting power</Box>
+                    <Box sx={{display:'flex',gap:1,flexWrap:'wrap',mt:1}}>
+                        {communityAction}
+                        {realm?.account?.config?.councilMint && councilAction}
                     </Box>
                     <Typography variant="caption" color="text.secondary" sx={{display:'block',mt:1}}>Deposit, withdraw, manage delegation, and review vote records that lock withdrawals.</Typography>
                 </Box>
                 {(council ? currentCouncilDelegate : currentCommunityDelegate) && <Box component="details" sx={{mt:0.5,fontSize:12,color:'text.secondary'}}><Box component="summary" sx={{cursor:'pointer'}}>Delegated out to {(council ? currentCouncilDelegate : currentCommunityDelegate).slice(0,4)}…{(council ? currentCouncilDelegate : currentCommunityDelegate).slice(-4)}</Box><Box sx={{overflowWrap:'anywhere',mt:0.5}}>{council ? currentCouncilDelegate : currentCommunityDelegate}</Box></Box>}
             </>}
         </Box>;
+        return props.compact ? <CompactGovernancePower {...compact} loading={loading || mintDecimals === null} error={powerLoadError}
+            onRetry={() => setRefresh(value => !value)}>
+                {loading || mintDecimals === null ? <Typography role="status" sx={{color:'text.secondary',py:3}}>Loading your voting power…</Typography> : <VotingPowerDetails cards={cards} />}
+            </CompactGovernancePower> : content;
     }
     return(
         <Grid xs={12}>

@@ -1,3 +1,4 @@
+import GovernancePower from '../GovernancePower';
 import React from "react";
 import { Dialog, useMediaQuery } from "@mui/material";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -262,7 +263,7 @@ export default function GovernanceDemo({
             <br />
             <span>A clearer decision.</span>
           </h1>
-          <p>Real proposals. Real votes.</p>
+          {realm && publicKey ? <GovernancePower key={`${realmAddress}:${walletAddress}`} compact realm={realm} governanceAddress={realmAddress} /> : <p>Real proposals. Real votes.</p>}
         </div>
         {loading ? (
           <p role="status">Loading DAO proposals…</p>
@@ -568,7 +569,6 @@ export default function GovernanceDemo({
                                       }`
                                     : "You have not voted on this proposal."}
                                 </p>
-                                {view.power}
                               </section>
                               <section className="gd-execution-summary">
                                 <h3>
