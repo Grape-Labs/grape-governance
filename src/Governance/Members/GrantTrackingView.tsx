@@ -1,3 +1,4 @@
+import { readGrantHistory, writeGrantHistory } from './grantHistoryCache';
 import { grantQualification } from './qualification';
 import { membersCsv, downloadMembersCsv } from './membersCsv';
 import React from 'react';
@@ -273,25 +274,50 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
   const [scanned,setScanned]=React.useState(0);
   const [oldest,setOldest]=React.useState<number|null>(null);
   const [batchProgress,setBatchProgress]=React.useState('');
+  const [cacheNotice,setCacheNotice]=React.useState('');
   const load=async(older=false,pages=1)=>{
     if(busy || (older&&!next))return;
     const wallet=older?active:source.trim();
     try {new PublicKey(wallet);} catch {setError('Enter a valid distribution wallet address.');return;}
+    const key=JSON.stringify([realm,mint,wallet]);
+    const refreshing=!older&&loaded&&active===wallet;
     setBusy(true);setError('');setBatchProgress('');
-    if(!older){setGrants([]);setSelected('');setNext(null);setLoaded(false);setScanned(0);setActive(wallet);}
     try {
+      if(!older&&!refreshing){
+        const cached=await readGrantHistory(key);
+        setSelected('');setActive(wallet);
+        if(cached){
+          setGrants(cached.rows);setNext(cached.next);setScanned(cached.scanned);setOldest(cached.oldest);setLoaded(true);
+          setCacheNotice('Restored history saved in this browser. Reload recent grants to check for new transactions.');
+          return;
+        }
+        setGrants([]);setNext(null);setLoaded(false);setScanned(0);setOldest(null);setCacheNotice('');
+      }
+      let rows=older?grants:[];
+      let checked=older?scanned:0;
       let cursor=older?next:null;
+      const previousIds=new Set(grants.map(g=>g.id));
       const seen=new Set<string>();
       if(cursor)seen.add(cursor);
-      for(let page=0;page<pages;page++){
+      // Refresh through the previous head before joining the saved older history.
+      for(let page=0;refreshing||page<pages;page++){
         if(pages>1)setBatchProgress(`Loading page ${page+1} of ${pages}…`);
         const data=await request({mode:'payments',wallet,mint,...(cursor?{before:cursor}:{})});
         if(data.next && seen.has(data.next))throw new Error('Grant history did not advance. Please retry.');
         if(data.next)seen.add(data.next);
-        setGrants(previous=>Array.from(new Map([...(older||page>0?previous:[]),...data.rows].map((p:Grant)=>[p.id,p])).values()));
-        setNext(data.next);setScanned(n=>(older||page>0?n:0)+data.scanned);setOldest(data.oldest);setLoaded(true);
-        cursor=data.next;
-        if(!cursor)break;
+        const joined=refreshing&&data.rows.some((g:Grant)=>previousIds.has(g.id));
+        rows=Array.from(new Map([...rows,...data.rows,...(joined?grants:[])].map((g:Grant)=>[g.id,g])).values());
+        checked+=data.scanned;
+        cursor=joined?next:data.next;
+        const historyOldest=joined?oldest:data.oldest;
+        // Keep the prior snapshot intact if a refresh fails before reaching it.
+        if(!refreshing||joined||!cursor){
+          const totalChecked=joined?Math.max(scanned,checked):checked;
+          setGrants(rows);setNext(cursor);setScanned(totalChecked);setOldest(historyOldest);setLoaded(true);
+          const saved=await writeGrantHistory(key,{rows,next:cursor,scanned:totalChecked,oldest:historyOldest});
+          setCacheNotice(saved?'History saved in this browser.':'Browser storage is unavailable. History will only be kept for this visit.');
+        }
+        if(joined||!cursor)break;
       }
     }catch(e){setError(e.message);}finally{setBusy(false);}
   };
@@ -334,6 +360,7 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
       </Stack>
       {walletsError && <Alert severity="info" sx={{my:1}} action={<Button color="inherit" size="small" disabled={walletsLoading} onClick={loadSuggestions}>Retry</Button>}>Wallet suggestions could not be loaded. You can still paste a grantor address.</Alert>}
       {busy && <Box sx={{my:2}}><LinearProgress/>{batchProgress && <Typography variant="caption" role="status" sx={{mt:0.5,display:'block'}}>{batchProgress}</Typography>}</Box>}{error && <Alert severity="error">{error}</Alert>}
+      {cacheNotice && <Typography variant="caption" color="text.secondary" sx={{mt:1,display:'block'}}>{cacheNotice}</Typography>}
       {loaded && <Box role="status" sx={{mt:2,p:2,borderRadius:2,border:'1px solid rgba(255,255,255,0.12)',backgroundColor:'rgba(255,255,255,0.03)'}}>
         <Stack direction={{xs:'column',sm:'row'}} spacing={2} justifyContent="space-between" alignItems={{xs:'stretch',sm:'center'}}>
           <Box>
@@ -352,7 +379,7 @@ export default function GrantTrackingView({mint,realm,loadWallets,grantors=[],ch
         {source.trim()!==active && <Typography variant="caption" color="warning.main" display="block" sx={{mt:1}}>Load grants to apply the new grantor. The table still shows {short(active)}.</Typography>}
         <Typography variant="caption" display="block" color="text.secondary" sx={{mt:1}}>Select a grant total in the table to view its transactions and wallet activity.</Typography>
       </Box>}
-      <Box component="details" sx={{mt:2}}><Typography component="summary" variant="caption" color="text.secondary" sx={{cursor:'pointer'}}>About grant totals</Typography><Typography variant="body2" color="text.secondary" sx={{mt:1}}>Includes direct wallet grants and deposits into governance. Totals reflect the history loaded so far. Reloading recent grants starts a new scan. Recent results may be cached for 5 minutes; older history for 24 hours.</Typography></Box>
+      <Box component="details" sx={{mt:2}}><Typography component="summary" variant="caption" color="text.secondary" sx={{cursor:'pointer'}}>About grant totals</Typography><Typography variant="body2" color="text.secondary" sx={{mt:1}}>Includes direct wallet grants and deposits into governance. Totals reflect the history loaded so far. Loaded history is saved on this browser for each grantor and community. Load grants restores saved history and its progress; reload recent grants checks for new transactions while preserving older history. Clearing browser site data removes saved history. Provider results may be cached for 5 minutes for recent history and 24 hours for older history.</Typography></Box>
     </AccordionDetails>
   </Accordion>
   <Box component="details" sx={{my:2}}>
