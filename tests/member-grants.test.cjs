@@ -12,6 +12,10 @@ global.requestAnimationFrame=dom.window.requestAnimationFrame.bind(dom.window);
 global.cancelAnimationFrame=dom.window.cancelAnimationFrame.bind(dom.window);
 const React=require('react');
 const {render,fireEvent,screen,waitFor,cleanup}=require('@testing-library/react');
+const cacheFilename=path.resolve('src/Governance/Members/grantHistoryCache.js');
+const cacheModule=new Module(cacheFilename,module);cacheModule.filename=cacheFilename;
+cacheModule._compile(transformSync(fs.readFileSync(cacheFilename,'utf8'),{configFile:false,babelrc:false,plugins:['@babel/plugin-transform-modules-commonjs']}).code,cacheFilename);
+require.cache[cacheFilename]=cacheModule;
 const filename=path.resolve('src/Governance/Members/GrantTrackingView.tsx');
 const compiled=transformSync(fs.readFileSync(filename,'utf8'),{filename,configFile:false,babelrc:false,presets:['@babel/preset-typescript','@babel/preset-react'],plugins:['@babel/plugin-transform-modules-commonjs']}).code;
 const loaded=new Module(filename,module);loaded.filename=filename;loaded.paths=Module._nodeModulePaths(path.dirname(filename));loaded._compile(compiled,filename);
@@ -124,4 +128,44 @@ test('batch loads at most ten pages and stops when history ends',async()=>{
    assert.equal(calls,13);
    assert.equal(screen.queryByRole('button',{name:'Load next 10 pages'}),null);
  }finally{cleanup();global.fetch=originalFetch;}
+});
+
+test('restores saved history and cursor, refreshes new grants, and keeps older history on refresh failure',async()=>{
+ const cache=require('../src/Governance/Members/grantHistoryCache.js');
+ const originalRead=cache.readGrantHistory, originalWrite=cache.writeGrantHistory, originalFetch=global.fetch;
+ const saved=new Map();
+ cache.readGrantHistory=async key=>saved.get(key)||null;
+ cache.writeGrantHistory=async(key,value)=>{saved.set(key,structuredClone(value));return true;};
+ let calls=0, refresh=false, fail=false;
+ const cursors=[];
+ global.fetch=async url=>{
+   calls++;
+   const cursor=new URL(url,'https://governance.so').searchParams.get('before');
+   cursors.push(cursor);
+   if(fail)throw new Error('Offline');
+   const id=refresh?(cursor?'g1':'new'):(cursor?'g2':'g1');
+   return {ok:true,json:async()=>({rows:[{id,recipient:wallet,amount:'10',timestamp:100}],next:refresh?(cursor?'c1':'newCursor'):(cursor?'c2':'c1'),scanned:100,oldest:100})};
+ };
+ const mount=()=>render(React.createElement(GrantTracking,{mint:wallet,realm:wallet,grantors:[wallet],loadWallets:async()=>[]},cell=>React.createElement('div',null,cell(wallet,0))));
+ try{
+   mount();fireEvent.click(screen.getByText('Member grants'));fireEvent.click(screen.getByRole('button',{name:'Load grants'}));
+   fireEvent.click(await screen.findByRole('button',{name:'Load more history'}));
+   await screen.findByText('2 grants loaded');
+   await waitFor(()=>assert.equal(saved.values().next().value.rows.length,2));
+   cleanup();mount();fireEvent.click(screen.getByText('Member grants'));fireEvent.click(screen.getByRole('button',{name:'Load grants'}));
+   await screen.findByText(/Restored history saved/);
+   assert.equal(calls,2);
+   assert.ok(screen.getByText('2 grants loaded'));
+   refresh=true;fireEvent.click(screen.getByRole('button',{name:'Reload recent grants'}));
+   await screen.findByText('3 grants loaded');
+   assert.deepEqual(cursors.slice(-2),[null,'newCursor']);
+   await waitFor(()=>assert.equal(saved.values().next().value.rows.length,3));
+   assert.equal(saved.values().next().value.next,'c2');
+   fail=true;fireEvent.click(screen.getByRole('button',{name:'Reload recent grants'}));
+   await screen.findByText('Offline');
+   assert.ok(screen.getByText('3 grants loaded'));
+   assert.equal(saved.values().next().value.rows.length,3);
+   fail=false;refresh=false;fireEvent.click(screen.getByRole('button',{name:'Load more history'}));
+   await waitFor(()=>assert.equal(cursors.at(-1),'c2'));
+ }finally{cleanup();global.fetch=originalFetch;cache.readGrantHistory=originalRead;cache.writeGrantHistory=originalWrite;}
 });
